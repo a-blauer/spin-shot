@@ -1,0 +1,3647 @@
+{
+"weapons": [
+{
+"name": "Tin Star",
+"cls": "Pistol",
+"rarity": "Common",
+"mode": "Hitscan",
+"dmg": 36,
+"rate": 5.0,
+"mag": 12,
+"reserve": 96,
+"reload": 1.3,
+"spread": 1.2,
+"pellets": 1,
+"auto": false,
+"range": 6000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 12105912,
+"wallCost": 0,
+"desc": "Starting revolver."
+},
+{
+"name": "Saloon Six",
+"cls": "Pistol",
+"rarity": "Uncommon",
+"mode": "Hitscan",
+"dmg": 140,
+"rate": 2.2,
+"mag": 6,
+"reserve": 54,
+"reload": 2.0,
+"spread": 0.6,
+"pellets": 1,
+"auto": false,
+"range": 8000,
+"splash": 0,
+"pierce": 1,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.05,
+"color": 9329195,
+"wallCost": 500,
+"desc": "Heavy revolver. Shots pierce one enemy."
+},
+{
+"name": "Penny Pusher",
+"cls": "Pistol",
+"rarity": "Common",
+"mode": "Hitscan",
+"dmg": 19,
+"rate": 14.0,
+"mag": 24,
+"reserve": 168,
+"reload": 1.5,
+"spread": 3.5,
+"pellets": 1,
+"auto": true,
+"range": 5000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 13083210,
+"wallCost": 750,
+"desc": "Full-auto pistol."
+},
+{
+"name": "Snake Eyes",
+"cls": "Pistol",
+"rarity": "Rare",
+"mode": "Hitscan",
+"dmg": 28,
+"rate": 7.0,
+"mag": 30,
+"reserve": 210,
+"reload": 1.6,
+"spread": 2.0,
+"pellets": 2,
+"auto": false,
+"range": 6000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.1,
+"color": 10103852,
+"wallCost": 0,
+"desc": "Twin pistols. Two bullets per shot."
+},
+{
+"name": "Back-Alley",
+"cls": "SMG",
+"rarity": "Common",
+"mode": "Hitscan",
+"dmg": 23,
+"rate": 12.0,
+"mag": 32,
+"reserve": 224,
+"reload": 1.8,
+"spread": 3.0,
+"pellets": 1,
+"auto": true,
+"range": 5500,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 6056819,
+"wallCost": 1000,
+"desc": "Basic SMG."
+},
+{
+"name": "Hornet's Nest",
+"cls": "SMG",
+"rarity": "Uncommon",
+"mode": "Hitscan",
+"dmg": 20,
+"rate": 18.0,
+"mag": 50,
+"reserve": 300,
+"reload": 2.0,
+"spread": 3.8,
+"pellets": 1,
+"auto": true,
+"range": 5000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 14725678,
+"wallCost": 0,
+"desc": "Very high fire rate."
+},
+{
+"name": "Card Sharp",
+"cls": "SMG",
+"rarity": "Rare",
+"mode": "Hitscan",
+"dmg": 30,
+"rate": 13.0,
+"mag": 40,
+"reserve": 280,
+"reload": 1.7,
+"spread": 2.4,
+"pellets": 1,
+"auto": true,
+"range": 6000,
+"splash": 0,
+"pierce": 1,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.25,
+"color": 2911898,
+"wallCost": 0,
+"desc": "+25% crit chance. Shots pierce."
+},
+{
+"name": "Quarter Horse",
+"cls": "Rifle",
+"rarity": "Common",
+"mode": "Hitscan",
+"dmg": 48,
+"rate": 6.0,
+"mag": 20,
+"reserve": 160,
+"reload": 1.9,
+"spread": 0.8,
+"pellets": 1,
+"auto": false,
+"range": 9000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 8019002,
+"wallCost": 1200,
+"desc": "Semi-auto carbine."
+},
+{
+"name": "Lawman AR",
+"cls": "Rifle",
+"rarity": "Uncommon",
+"mode": "Hitscan",
+"dmg": 40,
+"rate": 9.5,
+"mag": 30,
+"reserve": 270,
+"reload": 2.1,
+"spread": 1.6,
+"pellets": 1,
+"auto": true,
+"range": 9000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 4083514,
+"wallCost": 1400,
+"desc": "Automatic rifle."
+},
+{
+"name": "Long Odds",
+"cls": "Rifle",
+"rarity": "Rare",
+"mode": "Hitscan",
+"dmg": 75,
+"rate": 6.5,
+"mag": 25,
+"reserve": 200,
+"reload": 2.2,
+"spread": 0.5,
+"pellets": 1,
+"auto": true,
+"range": 11000,
+"splash": 0,
+"pierce": 1,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.05,
+"color": 4868714,
+"wallCost": 0,
+"desc": "Battle rifle. Pierces one enemy."
+},
+{
+"name": "Jackpot",
+"cls": "Rifle",
+"rarity": "Epic",
+"mode": "Hitscan",
+"dmg": 52,
+"rate": 11.0,
+"mag": 45,
+"reserve": 360,
+"reload": 2.0,
+"spread": 1.4,
+"pellets": 1,
+"auto": true,
+"range": 10000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 2,
+"critBonus": 0.05,
+"color": 15909424,
+"wallCost": 0,
+"desc": "Automatic rifle. Every hit pays $2."
+},
+{
+"name": "Sawbuck",
+"cls": "Shotgun",
+"rarity": "Common",
+"mode": "Hitscan",
+"dmg": 19,
+"rate": 2.2,
+"mag": 2,
+"reserve": 48,
+"reload": 2.2,
+"spread": 7.0,
+"pellets": 9,
+"auto": false,
+"range": 2200,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 7029286,
+"wallCost": 900,
+"desc": "Double-barrel shotgun."
+},
+{
+"name": "Dealer's Pump",
+"cls": "Shotgun",
+"rarity": "Uncommon",
+"mode": "Hitscan",
+"dmg": 24,
+"rate": 1.5,
+"mag": 6,
+"reserve": 54,
+"reload": 2.6,
+"spread": 6.0,
+"pellets": 8,
+"auto": false,
+"range": 2600,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 9072203,
+"wallCost": 1500,
+"desc": "Pump-action shotgun."
+},
+{
+"name": "Full House",
+"cls": "Shotgun",
+"rarity": "Rare",
+"mode": "Hitscan",
+"dmg": 15,
+"rate": 4.0,
+"mag": 12,
+"reserve": 96,
+"reload": 2.4,
+"spread": 6.5,
+"pellets": 8,
+"auto": true,
+"range": 2400,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 11549230,
+"wallCost": 0,
+"desc": "Automatic drum shotgun."
+},
+{
+"name": "Dragon's Breath",
+"cls": "Shotgun",
+"rarity": "Epic",
+"mode": "Hitscan",
+"dmg": 20,
+"rate": 2.2,
+"mag": 8,
+"reserve": 64,
+"reload": 2.4,
+"spread": 7.5,
+"pellets": 10,
+"auto": false,
+"range": 2000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 22,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 16738842,
+"wallCost": 0,
+"desc": "Shotgun. Pellets set enemies on fire."
+},
+{
+"name": "Iron Mule",
+"cls": "LMG",
+"rarity": "Uncommon",
+"mode": "Hitscan",
+"dmg": 34,
+"rate": 10.0,
+"mag": 100,
+"reserve": 400,
+"reload": 4.0,
+"spread": 2.6,
+"pellets": 1,
+"auto": true,
+"range": 9000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 5200463,
+"wallCost": 0,
+"desc": "Belt-fed machine gun. Large magazine."
+},
+{
+"name": "Gatling Gambler",
+"cls": "LMG",
+"rarity": "Epic",
+"mode": "Hitscan",
+"dmg": 31,
+"rate": 22.0,
+"mag": 200,
+"reserve": 600,
+"reload": 5.0,
+"spread": 4.0,
+"pellets": 1,
+"auto": true,
+"range": 8000,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 10254908,
+"wallCost": 0,
+"desc": "Minigun. Spins up as it fires."
+},
+{
+"name": "Widowmaker",
+"cls": "Sniper",
+"rarity": "Rare",
+"mode": "Hitscan",
+"dmg": 420,
+"rate": 1.1,
+"mag": 5,
+"reserve": 40,
+"reload": 2.8,
+"spread": 0.0,
+"pellets": 1,
+"auto": false,
+"range": 20000,
+"splash": 0,
+"pierce": 3,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.1,
+"color": 2829099,
+"wallCost": 0,
+"desc": "Bolt-action sniper. Pierces several enemies."
+},
+{
+"name": "Railroad Spike",
+"cls": "Sniper",
+"rarity": "Epic",
+"mode": "Hitscan",
+"dmg": 800,
+"rate": 0.8,
+"mag": 4,
+"reserve": 32,
+"reload": 3.0,
+"spread": 0.0,
+"pellets": 1,
+"auto": false,
+"range": 25000,
+"splash": 0,
+"pierce": 99,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 7317724,
+"wallCost": 0,
+"desc": "Railgun. Pierces everything in a line."
+},
+{
+"name": "Dynamite Dan",
+"cls": "Launcher",
+"rarity": "Uncommon",
+"mode": "Grenade",
+"dmg": 190,
+"rate": 1.5,
+"mag": 6,
+"reserve": 36,
+"reload": 2.6,
+"spread": 2.0,
+"pellets": 1,
+"auto": false,
+"range": 4000,
+"splash": 340,
+"pierce": 0,
+"projSpeed": 2200,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 12597547,
+"wallCost": 0,
+"desc": "Lobs bouncing dynamite."
+},
+{
+"name": "Boomtown",
+"cls": "Launcher",
+"rarity": "Rare",
+"mode": "Rocket",
+"dmg": 420,
+"rate": 1.0,
+"mag": 4,
+"reserve": 24,
+"reload": 2.8,
+"spread": 0.5,
+"pellets": 1,
+"auto": false,
+"range": 12000,
+"splash": 420,
+"pierce": 0,
+"projSpeed": 3800,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 8207512,
+"wallCost": 0,
+"desc": "Rocket launcher."
+},
+{
+"name": "Fireworks Finale",
+"cls": "Launcher",
+"rarity": "Epic",
+"mode": "Rocket",
+"dmg": 130,
+"rate": 1.2,
+"mag": 4,
+"reserve": 28,
+"reload": 2.6,
+"spread": 6.0,
+"pellets": 4,
+"auto": false,
+"range": 10000,
+"splash": 260,
+"pierce": 0,
+"projSpeed": 3000,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 15221651,
+"wallCost": 0,
+"desc": "Four rockets per shot."
+},
+{
+"name": "Tesla Coil",
+"cls": "Energy",
+"rarity": "Rare",
+"mode": "Chain",
+"dmg": 62,
+"rate": 4.0,
+"mag": 20,
+"reserve": 160,
+"reload": 2.0,
+"spread": 0.5,
+"pellets": 1,
+"auto": false,
+"range": 4500,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 4,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 7649791,
+"wallCost": 0,
+"desc": "Lightning chains to four more enemies."
+},
+{
+"name": "Will-o'-Wisp",
+"cls": "Energy",
+"rarity": "Rare",
+"mode": "Plasma",
+"dmg": 72,
+"rate": 6.0,
+"mag": 30,
+"reserve": 240,
+"reload": 2.0,
+"spread": 1.0,
+"pellets": 1,
+"auto": true,
+"range": 8000,
+"splash": 130,
+"pierce": 0,
+"projSpeed": 4200,
+"burn": 0,
+"slow": 0.3,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 5631940,
+"wallCost": 0,
+"desc": "Orbs that explode and slow."
+},
+{
+"name": "Frostbite Beam",
+"cls": "Energy",
+"rarity": "Uncommon",
+"mode": "Beam",
+"dmg": 15,
+"rate": 20.0,
+"mag": 100,
+"reserve": 400,
+"reload": 2.5,
+"spread": 0.0,
+"pellets": 1,
+"auto": true,
+"range": 1900,
+"splash": 0,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0.5,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 10937343,
+"wallCost": 0,
+"desc": "Continuous beam that slows."
+},
+{
+"name": "Hellfire Hose",
+"cls": "Energy",
+"rarity": "Rare",
+"mode": "Flame",
+"dmg": 9,
+"rate": 20.0,
+"mag": 120,
+"reserve": 480,
+"reload": 2.6,
+"spread": 8.0,
+"pellets": 3,
+"auto": true,
+"range": 950,
+"splash": 0,
+"pierce": 1,
+"projSpeed": 0,
+"burn": 40,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 16729344,
+"wallCost": 0,
+"desc": "Flamethrower. Short range."
+},
+{
+"name": "Buzzsaw",
+"cls": "Wonder",
+"rarity": "Epic",
+"mode": "Saw",
+"dmg": 170,
+"rate": 2.5,
+"mag": 8,
+"reserve": 64,
+"reload": 2.2,
+"spread": 0.0,
+"pellets": 1,
+"auto": false,
+"range": 6000,
+"splash": 0,
+"pierce": 6,
+"projSpeed": 2600,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.0,
+"color": 13684944,
+"wallCost": 0,
+"desc": "Bouncing saw blades. Each hits up to six enemies."
+},
+{
+"name": "The House Always Wins",
+"cls": "Wonder",
+"rarity": "Legendary",
+"mode": "Chain",
+"dmg": 170,
+"rate": 5.0,
+"mag": 20,
+"reserve": 200,
+"reload": 2.0,
+"spread": 0.5,
+"pellets": 1,
+"auto": true,
+"range": 6000,
+"splash": 150,
+"pierce": 0,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 3,
+"moneyPerHit": 5,
+"critBonus": 0.1,
+"color": 16766720,
+"wallCost": 0,
+"desc": "Explosive chain lightning. $5 per hit."
+},
+{
+"name": "Dead Man's Hand",
+"cls": "Wonder",
+"rarity": "Legendary",
+"mode": "Plasma",
+"dmg": 70,
+"rate": 3.0,
+"mag": 15,
+"reserve": 150,
+"reload": 2.0,
+"spread": 8.0,
+"pellets": 5,
+"auto": false,
+"range": 9000,
+"splash": 110,
+"pierce": 2,
+"projSpeed": 3600,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.15,
+"color": 16119285,
+"wallCost": 0,
+"desc": "Throws five exploding, piercing cards."
+},
+{
+"name": "Black Cat",
+"cls": "Wonder",
+"rarity": "Legendary",
+"mode": "Hitscan",
+"dmg": 900,
+"rate": 1.2,
+"mag": 7,
+"reserve": 49,
+"reload": 2.6,
+"spread": 0.0,
+"pellets": 1,
+"auto": false,
+"range": 30000,
+"splash": 0,
+"pierce": 99,
+"projSpeed": 0,
+"burn": 0,
+"slow": 0,
+"chains": 0,
+"moneyPerHit": 0,
+"critBonus": 0.5,
+"color": 1710618,
+"wallCost": 0,
+"desc": "Sniper with +50% crit chance."
+}
+],
+"upgrades": [
+{
+"name": "Hollow Points",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Damage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% damage.",
+"insp": "RoR2 Crowbar-style stat item"
+},
+{
+"name": "Quick Hands",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"ReloadSpeed",
+0.14
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+14% reload speed.",
+"insp": "Gungeon"
+},
+{
+"name": "Hair Trigger",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"FireRate",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% fire rate.",
+"insp": "RoR2 Soldier's Syringe"
+},
+{
+"name": "Extended Mag",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MagSize",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% magazine size.",
+"insp": "CoD Extended Mags"
+},
+{
+"name": "Bandolier",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"ReserveAmmo",
+0.3
+]
+],
+"trigger": "OnKill",
+"fx": "RefundAmmo",
+"chance": 0.08,
+"mag": 0.25,
+"cd": 0,
+"desc": "+30% reserve ammo. Kills have an 8% chance to refill 25% of your mag.",
+"insp": "RoR2 Bandolier"
+},
+{
+"name": "Running Shoes",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MoveSpeed",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+8% move speed.",
+"insp": "RoR2 Paul's Goat Hoof"
+},
+{
+"name": "Spring Heels",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"JumpPower",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% jump height.",
+"insp": "Classic platformer"
+},
+{
+"name": "Tough Hide",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MaxHealth",
+25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25 max health.",
+"insp": "CoD Juggernog (lite)"
+},
+{
+"name": "Bandage Roll",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"HealthRegen",
+1.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1.5 health per second.",
+"insp": "RoR2 Cautious Slug"
+},
+{
+"name": "Lucky Penny",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"LuckFind",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% clover drop chance.",
+"insp": "Isaac Lucky Foot"
+},
+{
+"name": "Loose Change",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MoneyGain",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% money from all sources.",
+"insp": "Brotato Harvesting"
+},
+{
+"name": "Lens Shard",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"CritChance",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+5% crit chance.",
+"insp": "RoR2 Lens-Maker's Glasses"
+},
+{
+"name": "Steady Grip",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Spread",
+0.2
+],
+[
+"HeadshotDamage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "20% tighter spread, +10% headshot damage.",
+"insp": "CoD Steady Aim"
+},
+{
+"name": "Scrap Plating",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Armor",
+12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12 armor.",
+"insp": "RoR2 Repulsion Armor (lite)"
+},
+{
+"name": "Bloodletter",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Bleed",
+"chance": 0.12,
+"mag": 0.8,
+"cd": 0,
+"desc": "12% chance on hit to bleed for 80% of the hit over 3s.",
+"insp": "RoR2 Tri-Tip Dagger"
+},
+{
+"name": "Matchbook",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Ignite",
+"chance": 0.1,
+"mag": 0.5,
+"cd": 0,
+"desc": "10% chance on hit to ignite for 50% of the hit per second.",
+"insp": "Gungeon Hot Lead"
+},
+{
+"name": "Cold Rounds",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Freeze",
+"chance": 0.15,
+"mag": 0.5,
+"cd": 0,
+"desc": "15% chance on hit to slow the target by 50%.",
+"insp": "Hades Demeter boons"
+},
+{
+"name": "Slide Grease",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"SlideBoost",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% slide speed.",
+"insp": "Titanfall slide-hop"
+},
+{
+"name": "Coffee Thermos",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnDash",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.2,
+"cd": 0,
+"desc": "Dashing grants +20% move speed for 4s.",
+"insp": "RoR2 Energy Drink"
+},
+{
+"name": "Wind Chime",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"AirControl",
+0.25
+],
+[
+"MoveSpeed",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% air control, +6% move speed.",
+"insp": "Quake air strafing"
+},
+{
+"name": "Rusty Shiv",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"EliteDamage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% damage to elites.",
+"insp": "RoR2 Armor-Piercing Rounds"
+},
+{
+"name": "Pry Bar",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"BossDamage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% damage to bosses.",
+"insp": "RoR2 Crowbar"
+},
+{
+"name": "Skeleton Key",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"CasinoDiscount",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Casino prices 8% cheaper.",
+"insp": "Isaac Steam Sale"
+},
+{
+"name": "Piggy Bank",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Interest",
+0.03
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Earn 3% interest on your cash each round (cap $2,000).",
+"insp": "Balatro interest"
+},
+{
+"name": "Dash Boots",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"DashCooldown",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Dash recharges 15% faster.",
+"insp": "Hades Greatest Reflex"
+},
+{
+"name": "Grapple Oil",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"GrappleCooldown",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Grapple recharges 20% faster.",
+"insp": "Titanfall 2 grapple"
+},
+{
+"name": "Climber's Chalk",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"WallRunTime",
+0.75
+],
+[
+"MoveSpeed",
+0.04
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+0.75s wall-run time, +4% move speed.",
+"insp": "Titanfall 2"
+},
+{
+"name": "Hot Lead",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnCrit",
+"fx": "Ignite",
+"chance": 1.0,
+"mag": 0.25,
+"cd": 0,
+"desc": "Crits ignite for 25% of the hit per second.",
+"insp": "Gungeon Hot Lead"
+},
+{
+"name": "Medkit",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 15,
+"cd": 2.0,
+"desc": "Taking damage heals 15 HP shortly after (2s cooldown).",
+"insp": "RoR2 Medkit"
+},
+{
+"name": "Monster Tooth",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 5,
+"cd": 0,
+"desc": "Kills heal 5 HP.",
+"insp": "RoR2 Monster Tooth"
+},
+{
+"name": "Coin Purse",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Money",
+"chance": 0.25,
+"mag": 30,
+"cd": 0,
+"desc": "25% chance on kill to gain an extra $30.",
+"insp": "Gunfire Reborn coin scrolls"
+},
+{
+"name": "Headhunter Scope",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"HeadshotDamage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% headshot damage.",
+"insp": "Sulfur scopes"
+},
+{
+"name": "Momentum Rounds",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"SpeedDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% damage per 1000 speed.",
+"insp": "Titanfall momentum"
+},
+{
+"name": "Featherweight",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"AirDamage",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% damage while airborne.",
+"insp": "Gunfire Reborn airborne scrolls"
+},
+{
+"name": "Horseshoe Magnet",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"PickupRange",
+0.6
+],
+[
+"MoneyGain",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% pickup range, +8% money.",
+"insp": "Vampire Survivors Attractorb"
+},
+{
+"name": "Steel Toes",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"SlideDamage",
+0.15
+],
+[
+"SlideBoost",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% damage while sliding, +8% slide speed.",
+"insp": "Titanfall slide-hop"
+},
+{
+"name": "Hopper's Feather",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"ExtraJumps",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1 mid-air jump.",
+"insp": "RoR2 Hopoo Feather"
+},
+{
+"name": "Spare Battery",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"DashCharges",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1 dash charge.",
+"insp": "Hades Athena/Hermes"
+},
+{
+"name": "Ukulele Wire",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Chain",
+"chance": 0.15,
+"mag": 0.6,
+"cd": 0,
+"desc": "15% chance on hit to arc 60% damage to 3 nearby enemies.",
+"insp": "RoR2 Ukulele"
+},
+{
+"name": "Wisp Jar",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Explode",
+"chance": 0.35,
+"mag": 1.0,
+"cd": 0,
+"desc": "35% chance kills explode for 100% Power.",
+"insp": "RoR2 Will-o'-the-wisp"
+},
+{
+"name": "Gasoline Can",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Ignite",
+"chance": 1.0,
+"mag": 0.5,
+"cd": 0,
+"desc": "Kills ignite nearby enemies for 50% Power per second.",
+"insp": "RoR2 Gasoline"
+},
+{
+"name": "Topaz Brooch",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Shield",
+"chance": 1.0,
+"mag": 8,
+"cd": 0,
+"desc": "Kills grant 8 overshield.",
+"insp": "RoR2 Topaz Brooch"
+},
+{
+"name": "Leech Seed",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"Lifesteal",
+0.03
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heal 3% of damage dealt.",
+"insp": "RoR2 Leeching Seed"
+},
+{
+"name": "Tailwind Ribbon",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnSlide",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "Sliding grants +30% move speed for 4s.",
+"insp": "RoR2 Red Whip"
+},
+{
+"name": "Sticky Dynamite",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Explode",
+"chance": 0.1,
+"mag": 1.2,
+"cd": 0,
+"desc": "10% chance on hit to blow up for 120% of the hit.",
+"insp": "RoR2 Sticky Bomb"
+},
+{
+"name": "ATG Rocket",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Missile",
+"chance": 0.1,
+"mag": 2.0,
+"cd": 0,
+"desc": "10% chance on hit to fire a homing rocket for 200% of the hit.",
+"insp": "RoR2 AtG Missile"
+},
+{
+"name": "Tri-Tip",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Bleed",
+"chance": 0.18,
+"mag": 1.0,
+"cd": 0,
+"desc": "18% chance on hit to bleed for 100% of the hit.",
+"insp": "RoR2 Tri-Tip Dagger"
+},
+{
+"name": "Quick-Draw Holster",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnReload",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.2,
+"cd": 0,
+"desc": "Reloading grants +20% damage for 4s.",
+"insp": "Gungeon Ammo Belt synergies"
+},
+{
+"name": "Blast Holster",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnReload",
+"fx": "Shockwave",
+"chance": 1.0,
+"mag": 1.0,
+"cd": 1.0,
+"desc": "Reloading releases a shockwave for 100% Power.",
+"insp": "Gungeon Blast Helmet"
+},
+{
+"name": "Thunderclap Boots",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnAirJump",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 1.0,
+"cd": 0.5,
+"desc": "Mid-air jumps release a burst for 100% Power.",
+"insp": "Risk of Rain Loader"
+},
+{
+"name": "Parkour Tape",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnWallRun",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.15,
+"cd": 0,
+"desc": "While wall-running: +15% damage.",
+"insp": "Titanfall 2"
+},
+{
+"name": "Hookshot Spring",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [],
+"trigger": "OnGrapple",
+"fx": "ResetDash",
+"chance": 1.0,
+"mag": 1,
+"cd": 0,
+"desc": "Grappling refunds a dash charge.",
+"insp": "Apex Pathfinder"
+},
+{
+"name": "Dash Blades",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"DashDamage",
+70
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Dashing through enemies deals 70 damage (scales each round).",
+"insp": "Hades dash strike"
+},
+{
+"name": "Energy Drink",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MoveSpeed",
+0.12
+],
+[
+"SlideBoost",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% move speed, +10% slide speed.",
+"insp": "RoR2 Energy Drink"
+},
+{
+"name": "Gambler's Monocle",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"CritChance",
+0.08
+],
+[
+"CritDamage",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+8% crit chance, +15% crit damage.",
+"insp": "Balatro"
+},
+{
+"name": "Bounty Poster",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"EliteDamage",
+0.2
+]
+],
+"trigger": "OnEliteKill",
+"fx": "Money",
+"chance": 1.0,
+"mag": 150,
+"cd": 0,
+"desc": "+20% elite damage. Elite kills pay $150.",
+"insp": "Borderlands bounties"
+},
+{
+"name": "Rabbit's Foot",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [],
+"trigger": "OnEliteKill",
+"fx": "Clover",
+"chance": 0.5,
+"mag": 1,
+"cd": 0,
+"desc": "Elite kills have a 50% chance to grant +1 Luck.",
+"insp": "Isaac Rabbit's Foot"
+},
+{
+"name": "Fuel Cell",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"DashCooldown",
+0.2
+],
+[
+"GrappleCooldown",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Dash and grapple recharge 20% faster.",
+"insp": "RoR2 Fuel Cell"
+},
+{
+"name": "Rebar Rounds",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"Pierce",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Bullets pierce +1 enemy.",
+"insp": "Gungeon piercing"
+},
+{
+"name": "Buckshot Extender",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"Multishot",
+0.35
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "35% chance per shot to fire an extra projectile.",
+"insp": "Isaac 20/20"
+},
+{
+"name": "Adrenal Gland",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"LowHealthDamage",
+0.3
+],
+[
+"HealthRegen",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage under 35% HP, +1 HP/s.",
+"insp": "Isaac Bloody Lust"
+},
+{
+"name": "Blast Powder",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"ExplosionRadius",
+0.3
+],
+[
+"Damage",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% explosion radius, +6% damage.",
+"insp": "Gungeon Bomb mods"
+},
+{
+"name": "Hard Hat",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"Armor",
+25
+],
+[
+"MoveSpeed",
+-0.03
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25 armor, -3% move speed.",
+"insp": "Brotato trade-offs"
+},
+{
+"name": "Cowboy Spurs",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"SlideDamage",
+0.25
+],
+[
+"SlideBoost",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% damage while sliding, +15% slide speed.",
+"insp": "Titanfall"
+},
+{
+"name": "Mag Coupler",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MagSize",
+0.35
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+35% magazine size.",
+"insp": "CoD dual mags"
+},
+{
+"name": "Thorny Vest",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"Thorns",
+40
+],
+[
+"Armor",
+5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Enemies that hit you take 40 damage (scales each round). +5 armor.",
+"insp": "RoR2 Razorwire"
+},
+{
+"name": "High Ground",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"AirDamage",
+0.25
+],
+[
+"JumpPower",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% airborne damage, +8% jump height.",
+"insp": "Gunfire Reborn"
+},
+{
+"name": "Comp Card",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"CasinoDiscount",
+0.12
+],
+[
+"MoneyGain",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Casino 12% cheaper, +10% money.",
+"insp": "Casino comps"
+},
+{
+"name": "Mantle Spikes",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnMantle",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 1.0,
+"desc": "Vaulting a ledge blasts nearby enemies for 150% Power.",
+"insp": "Sulfur kick"
+},
+{
+"name": "Second Barrel",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHeadshot",
+"fx": "Explode",
+"chance": 0.5,
+"mag": 0.8,
+"cd": 0,
+"desc": "50% chance headshots explode for 80% of the hit.",
+"insp": "Gungeon"
+},
+{
+"name": "Behemoth Shell",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "Every hit explodes for 30% of the hit.",
+"insp": "RoR2 Brilliant Behemoth"
+},
+{
+"name": "Spirit Daggers",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Missile",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Kills launch a homing dagger for 150% Power.",
+"insp": "RoR2 Ceremonial Dagger"
+},
+{
+"name": "Winter's Halo",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "Periodic",
+"fx": "Freeze",
+"chance": 1.0,
+"mag": 0.5,
+"cd": 3.0,
+"desc": "Every 3s, chill all enemies near you by 50%.",
+"insp": "Hades Demeter"
+},
+{
+"name": "Tesla Battery",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "Periodic",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 1.5,
+"desc": "Every 1.5s, zap nearby enemies for 150% Power.",
+"insp": "RoR2 Unstable Tesla Coil"
+},
+{
+"name": "Storm Caller",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnCrit",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 0.8,
+"cd": 0,
+"desc": "Crits arc 80% damage to 3 nearby enemies.",
+"insp": "Hades Zeus"
+},
+{
+"name": "Executioner's Hood",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Execute",
+"chance": 1.0,
+"mag": 0.15,
+"cd": 0,
+"desc": "Hits instantly kill non-bosses under 15% health.",
+"insp": "RoR2 Old Guillotine"
+},
+{
+"name": "Vampire Fang",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"Lifesteal",
+0.06
+]
+],
+"trigger": "OnKill",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 3,
+"cd": 0,
+"desc": "Heal 6% of damage dealt; kills heal 3.",
+"insp": "Isaac Charm of the Vampire"
+},
+{
+"name": "Kinetic Converter",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"SpeedDamage",
+0.45
+],
+[
+"MoveSpeed",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+45% damage per 1000 speed, +5% speed.",
+"insp": "Titanfall momentum"
+},
+{
+"name": "Heavy Barrel",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"Damage",
+0.3
+],
+[
+"Knockback",
+0.3
+],
+[
+"FireRate",
+-0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage, +30% knockback, -10% fire rate.",
+"insp": "Brotato trade-offs"
+},
+{
+"name": "Wind Walker",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"ExtraJumps",
+1
+],
+[
+"DashCharges",
+1
+],
+[
+"AirControl",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1 jump, +1 dash, +20% air control.",
+"insp": "Hades Hermes"
+},
+{
+"name": "Mercury Sandals",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MoveSpeed",
+0.2
+],
+[
+"SlideBoost",
+0.2
+],
+[
+"WallRunTime",
+1.0
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% speed, +20% slide speed, +1s wall-run.",
+"insp": "Hermes"
+},
+{
+"name": "Deadeye Glass",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"HeadshotDamage",
+0.5
+],
+[
+"Spread",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+50% headshot damage, 30% tighter spread.",
+"insp": "Sulfur scopes"
+},
+{
+"name": "Ammo Printer",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "Periodic",
+"fx": "RefundAmmo",
+"chance": 1.0,
+"mag": 0.1,
+"cd": 2.0,
+"desc": "Every 2s, refill 10% of your magazine.",
+"insp": "Gungeon Ammo Synthesizer"
+},
+{
+"name": "Gilded Rounds",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Money",
+"chance": 0.2,
+"mag": 6,
+"cd": 0,
+"desc": "20% chance per hit to earn $6.",
+"insp": "Borderlands Gold weapons"
+},
+{
+"name": "Barrier Coil",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "Periodic",
+"fx": "Shield",
+"chance": 1.0,
+"mag": 30,
+"cd": 6.0,
+"desc": "Every 6s, gain 30 overshield.",
+"insp": "RoR2 Personal Shield Generator"
+},
+{
+"name": "Afterburner",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnDash",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Dashing leaves an explosion for 150% Power.",
+"insp": "Hades Athena dash"
+},
+{
+"name": "Fire Walker",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnSlide",
+"fx": "Ignite",
+"chance": 1.0,
+"mag": 0.6,
+"cd": 0,
+"desc": "Sliding ignites nearby enemies for 60% Power per second.",
+"insp": "Titanfall fire trails"
+},
+{
+"name": "Overclock",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"FireRate",
+0.25
+],
+[
+"ReloadSpeed",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% fire rate, +15% reload speed.",
+"insp": "CoD Double Tap"
+},
+{
+"name": "Marked Cards",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"CritChance",
+0.1
+]
+],
+"trigger": "OnCrit",
+"fx": "Bleed",
+"chance": 0.5,
+"mag": 0.8,
+"cd": 0,
+"desc": "+10% crit. Crits have 50% to bleed for 80%.",
+"insp": "Balatro"
+},
+{
+"name": "Croupier's Rake",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"Interest",
+0.06
+],
+[
+"MoneyGain",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+6% interest, +15% money.",
+"insp": "Balatro To the Moon"
+},
+{
+"name": "Grapple Shock",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnGrapple",
+"fx": "Shockwave",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Grappling releases a shockwave for 150% Power.",
+"insp": "Apex/Titanfall"
+},
+{
+"name": "Phantom Step",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"DashDamage",
+150
+]
+],
+"trigger": "OnDash",
+"fx": "Shield",
+"chance": 1.0,
+"mag": 15,
+"cd": 0,
+"desc": "Dash damage +150 (scales each round); dashes grant 15 overshield.",
+"insp": "Hades"
+},
+{
+"name": "Chain Reaction",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 2.5,
+"cd": 0,
+"desc": "Every kill explodes for 250% Power.",
+"insp": "RoR2 Will-o'-the-wisp+"
+},
+{
+"name": "Double Down",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"Multishot",
+1.0
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1 projectile on every shot.",
+"insp": "Isaac 20/20"
+},
+{
+"name": "Time Dilator",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnDash",
+"fx": "Freeze",
+"chance": 1.0,
+"mag": 0.7,
+"cd": 0,
+"desc": "Dashing freezes enemies around you (70% slow).",
+"insp": "Superhot"
+},
+{
+"name": "Bloodlust Engine",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnKill",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.25,
+"cd": 0,
+"desc": "Kills grant +25% damage for 4s.",
+"insp": "Doom Blood Punch"
+},
+{
+"name": "Storm Anchor",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnGrapple",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 3.0,
+"cd": 0,
+"desc": "Grappling unleashes lightning for 300% Power.",
+"insp": "Titanfall 2"
+},
+{
+"name": "Air Supremacy",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"AirDamage",
+0.5
+],
+[
+"ExtraJumps",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+50% airborne damage, +1 jump.",
+"insp": "Gunfire Reborn"
+},
+{
+"name": "Lucky Seven",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"CritChance",
+0.07
+],
+[
+"ProcChance",
+0.27
+],
+[
+"LuckFind",
+0.77
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+7% crit, +27% proc chance, +77% clover find.",
+"insp": "Balatro Oops! All 6s"
+},
+{
+"name": "Overflow Rounds",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"Pierce",
+3
+],
+[
+"Damage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+3 pierce, +25% damage.",
+"insp": "Gungeon"
+},
+{
+"name": "Overdrive",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnDash",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.4,
+"cd": 0,
+"desc": "Dashing grants +40% damage for 4s.",
+"insp": "Hades dash boons"
+},
+{
+"name": "Momentum Core",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"SpeedDamage",
+0.8
+],
+[
+"MoveSpeed",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+80% damage per 1000 speed, +10% speed.",
+"insp": "Titanfall"
+},
+{
+"name": "Wild Card",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"ProcChance",
+0.4
+]
+],
+"trigger": "OnHit",
+"fx": "Chain",
+"chance": 0.08,
+"mag": 1.0,
+"cd": 0,
+"desc": "+40% proc chance; 8% on hit to arc for 100%.",
+"insp": "Balatro"
+},
+{
+"name": "Hex Bullets",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [],
+"trigger": "OnHit",
+"fx": "Freeze",
+"chance": 0.25,
+"mag": 0.5,
+"cd": 0,
+"desc": "25% chance on hit to slow 50%; slowed enemies take +15% damage.",
+"insp": "Hades"
+},
+{
+"name": "Phoenix Feather",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"Revives",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Once per round, rise from death with full health.",
+"insp": "CoD Quick Revive"
+},
+{
+"name": "Bottomless Chamber",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"AmmoSave",
+0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "50% chance shots cost no ammo.",
+"insp": "Gungeon Bottomless clip"
+},
+{
+"name": "Royal Flush",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"Damage",
+0.25
+],
+[
+"FireRate",
+0.25
+],
+[
+"MoveSpeed",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% damage, fire rate and speed.",
+"insp": "Balatro Flush"
+},
+{
+"name": "Ace of Spades",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"CritChance",
+0.1
+]
+],
+"trigger": "OnCrit",
+"fx": "Execute",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "+10% crit. Crits kill non-bosses under 30% HP.",
+"insp": "Ace of Spades"
+},
+{
+"name": "Storm Crown",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [],
+"trigger": "Periodic",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 2.0,
+"cd": 0.8,
+"desc": "Every 0.8s, lightning strikes nearby for 200% Power.",
+"insp": "RoR2 Charged Perforator"
+},
+{
+"name": "Midas Touch",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MoneyGain",
+0.25
+]
+],
+"trigger": "OnKill",
+"fx": "Money",
+"chance": 1.0,
+"mag": 50,
+"cd": 0,
+"desc": "+25% money; every kill pays $50 extra.",
+"insp": "Midas"
+},
+{
+"name": "Hermes' Wings",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"ExtraJumps",
+2
+],
+[
+"DashCharges",
+2
+],
+[
+"MoveSpeed",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+2 jumps, +2 dashes, +20% speed.",
+"insp": "Hades Hermes"
+},
+{
+"name": "Four-Leaf Crown",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"LuckFind",
+1.5
+]
+],
+"trigger": "OnRoundStart",
+"fx": "Clover",
+"chance": 1.0,
+"mag": 1,
+"cd": 0,
+"desc": "+150% clover find; +1 Luck every round.",
+"insp": "Isaac Lucky Foot"
+},
+{
+"name": "Glass Cannon",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"Damage",
+0.6
+],
+[
+"MaxHealth",
+-60
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% damage. -60 max health.",
+"insp": "RoR2 Shaped Glass"
+},
+{
+"name": "Blood Pact",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"Lifesteal",
+0.1
+],
+[
+"HealthRegen",
+-4
+],
+[
+"MaxHealth",
+-25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heal 10% of damage dealt. No natural regen. -25 max HP.",
+"insp": "Isaac Devil deals"
+},
+{
+"name": "Devil's Dice",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"ProcChance",
+0.6
+],
+[
+"Armor",
+-30
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% proc chance. -30 armor.",
+"insp": "Isaac D6"
+},
+{
+"name": "Loan Shark",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"MoneyGain",
+0.6
+],
+[
+"CasinoDiscount",
+-0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% money. Casino 25% pricier.",
+"insp": "Balatro Credit Card"
+},
+{
+"name": "Berserker's Brand",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"FireRate",
+0.4
+],
+[
+"Spread",
+-0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+40% fire rate. 50% wider spread.",
+"insp": "Gungeon curses"
+},
+{
+"name": "Hollow Bones",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"MoveSpeed",
+0.3
+],
+[
+"ExtraJumps",
+1
+],
+[
+"MaxHealth",
+-40
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% speed, +1 jump. -40 max HP.",
+"insp": "Brotato Ghost"
+},
+{
+"name": "Cursed Coin",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"LuckFind",
+1.5
+],
+[
+"Damage",
+-0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+150% clover find. -15% damage.",
+"insp": "Isaac curses"
+},
+{
+"name": "Death Wish",
+"rarity": "Cursed",
+"stacks": 1,
+"mods": [
+[
+"LowHealthDamage",
+1.0
+],
+[
+"MaxHealth",
+-30
+]
+],
+"trigger": "OnHurt",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "+100% damage under 35% HP; getting hit grants +30% damage. -30 max HP.",
+"insp": "Isaac Bloody Lust"
+},
+{
+"name": "Whetstone",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MeleeDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% melee damage.",
+"insp": "melee"
+},
+{
+"name": "Quick Wrists",
+"rarity": "Common",
+"stacks": 8,
+"mods": [
+[
+"MeleeSpeed",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% melee swing speed.",
+"insp": "melee"
+},
+{
+"name": "Long Reach",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"MeleeRange",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% melee reach.",
+"insp": "melee"
+},
+{
+"name": "Brass Knuckles",
+"rarity": "Common",
+"stacks": 6,
+"mods": [
+[
+"MeleeDamage",
+0.12
+],
+[
+"MeleeKnock",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% melee damage, +25% melee knockback.",
+"insp": "melee"
+},
+{
+"name": "Butcher's Apron",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MeleeLifesteal",
+0.04
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits heal 4% of the damage dealt.",
+"insp": "melee"
+},
+{
+"name": "Wide Swing",
+"rarity": "Uncommon",
+"stacks": 4,
+"mods": [
+[
+"MeleeCleave",
+1
+],
+[
+"MeleeArc",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits 1 more enemy and swings 15% wider.",
+"insp": "melee"
+},
+{
+"name": "Serrated Edge",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MeleeBleed",
+0.35
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits bleed for 35% of the damage over 3 seconds.",
+"insp": "melee"
+},
+{
+"name": "Pickpocket",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MeleeMoney",
+12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits pay $12 extra.",
+"insp": "melee"
+},
+{
+"name": "Cheap Shot",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MeleeCrit",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% melee crit chance.",
+"insp": "melee"
+},
+{
+"name": "Hot Iron",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeBurn",
+30
+],
+[
+"MeleeDamage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits set enemies on fire. +10% melee damage.",
+"insp": "melee"
+},
+{
+"name": "Live Wire",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeShock",
+0.4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee hits arc 40% of the damage to 2 nearby enemies.",
+"insp": "melee"
+},
+{
+"name": "Bayonet Drill",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeAmmo",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee kills refill 25% of your magazine.",
+"insp": "melee"
+},
+{
+"name": "Second Wind",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeDashReset",
+1
+],
+[
+"MeleeSpeed",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee kills refill a dash. +8% swing speed.",
+"insp": "melee"
+},
+{
+"name": "Riot Guard",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeGuard",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 20% less damage for 2 seconds after a melee hit.",
+"insp": "melee"
+},
+{
+"name": "Headsman",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MeleeExecute",
+0.18
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Melee kills any normal enemy below 18% health outright.",
+"insp": "melee"
+},
+{
+"name": "Whirlwind",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MeleeArc",
+0.6
+],
+[
+"MeleeCleave",
+3
+],
+[
+"MeleeSpeed",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Much wider swings that hit 3 more enemies. +10% swing speed.",
+"insp": "melee"
+},
+{
+"name": "Berserker",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MeleeFrenzy",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Each melee kill adds +8% melee damage and swing speed for 6 seconds, up to 5 times.",
+"insp": "melee"
+},
+{
+"name": "Executioner's Hood",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MeleeDamage",
+1.0
+],
+[
+"MeleeExecute",
+0.12
+],
+[
+"MeleeLifesteal",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+100% melee damage. Executes below 12% health. Melee heals 5%.",
+"insp": "melee"
+}
+],
+"enemies": [
+{
+"name": "Shambler",
+"ai": "Walker",
+"shape": "Humanoid",
+"hp": 1.0,
+"speed": 210,
+"dmg": 28,
+"range": 140,
+"cd": 1.2,
+"scale": 1.0,
+"body": 8297323,
+"head": 10336394,
+"money": 60,
+"minRound": 1,
+"weight": 10.0,
+"desc": "The classic. Slow, hungry, endless."
+},
+{
+"name": "Sprinter",
+"ai": "Runner",
+"shape": "Humanoid",
+"hp": 0.8,
+"speed": 520,
+"dmg": 22,
+"range": 140,
+"cd": 1.0,
+"scale": 0.95,
+"body": 10185579,
+"head": 12880522,
+"money": 70,
+"minRound": 3,
+"weight": 4.0,
+"desc": "Fresh and fast. Arms flailing."
+},
+{
+"name": "Gutter Crawler",
+"ai": "Crawler",
+"shape": "Crawler",
+"hp": 0.6,
+"speed": 360,
+"dmg": 18,
+"range": 120,
+"cd": 0.8,
+"scale": 0.8,
+"body": 7035726,
+"head": 9075306,
+"money": 60,
+"minRound": 4,
+"weight": 3.0,
+"desc": "Legless and low. Hard to hit, easy to trip over."
+},
+{
+"name": "Bloater",
+"ai": "Bloater",
+"shape": "Bloated",
+"hp": 2.2,
+"speed": 170,
+"dmg": 45,
+"range": 200,
+"cd": 1.0,
+"scale": 1.25,
+"body": 13223018,
+"head": 14736522,
+"money": 90,
+"minRound": 5,
+"weight": 2.0,
+"desc": "Bursts in a caustic blast when killed or close."
+},
+{
+"name": "Spitter",
+"ai": "Spitter",
+"shape": "Humanoid",
+"hp": 0.9,
+"speed": 260,
+"dmg": 18,
+"range": 1900,
+"cd": 2.6,
+"scale": 1.0,
+"body": 6271839,
+"head": 9429903,
+"money": 80,
+"minRound": 6,
+"weight": 2.5,
+"desc": "Keeps its distance and lobs acid."
+},
+{
+"name": "Leaper",
+"ai": "Leaper",
+"shape": "Crawler",
+"hp": 0.85,
+"speed": 420,
+"dmg": 24,
+"range": 140,
+"cd": 1.0,
+"scale": 0.9,
+"body": 9137075,
+"head": 11440086,
+"money": 80,
+"minRound": 7,
+"weight": 2.5,
+"desc": "Pounces from far away. Watch the rooftops."
+},
+{
+"name": "Carrion Wisp",
+"ai": "Flyer",
+"shape": "Flyer",
+"hp": 0.5,
+"speed": 460,
+"dmg": 12,
+"range": 130,
+"cd": 0.9,
+"scale": 0.7,
+"body": 4930395,
+"head": 14703194,
+"money": 50,
+"minRound": 8,
+"weight": 2.5,
+"desc": "Flying skull-bat. Ignores walls and doors."
+},
+{
+"name": "Brute",
+"ai": "Brute",
+"shape": "Brute",
+"hp": 4.5,
+"speed": 250,
+"dmg": 55,
+"range": 200,
+"cd": 1.6,
+"scale": 1.6,
+"body": 7228990,
+"head": 9334366,
+"money": 200,
+"minRound": 9,
+"weight": 1.2,
+"desc": "Hulking slab of meat. Ground-pounds."
+},
+{
+"name": "Screamer",
+"ai": "Screamer",
+"shape": "Robed",
+"hp": 1.2,
+"speed": 300,
+"dmg": 16,
+"range": 140,
+"cd": 1.2,
+"scale": 1.0,
+"body": 14209224,
+"head": 15788256,
+"money": 120,
+"minRound": 10,
+"weight": 1.2,
+"desc": "Its shriek makes nearby enemies frenzied."
+},
+{
+"name": "Burrower",
+"ai": "Burrower",
+"shape": "Crawler",
+"hp": 1.5,
+"speed": 300,
+"dmg": 30,
+"range": 150,
+"cd": 1.1,
+"scale": 1.0,
+"body": 9071162,
+"head": 11176538,
+"money": 120,
+"minRound": 11,
+"weight": 1.2,
+"desc": "Tunnels under the street to pop up beside you."
+},
+{
+"name": "Gilded Ghoul",
+"ai": "Gilded",
+"shape": "Humanoid",
+"hp": 1.6,
+"speed": 470,
+"dmg": 0,
+"range": 0,
+"cd": 1.0,
+"scale": 0.9,
+"body": 15254855,
+"head": 16769658,
+"money": 600,
+"minRound": 4,
+"weight": 0.35,
+"desc": "Runs away. Drops a fortune and maybe a clover."
+},
+{
+"name": "Riot Ghoul",
+"ai": "Shield",
+"shape": "Humanoid",
+"hp": 2.2,
+"speed": 240,
+"dmg": 30,
+"range": 150,
+"cd": 1.3,
+"scale": 1.1,
+"body": 4872810,
+"head": 6978186,
+"money": 150,
+"minRound": 12,
+"weight": 1.0,
+"desc": "Carries a door as a shield. Flank it."
+},
+{
+"name": "Hex Priest",
+"ai": "Priest",
+"shape": "Robed",
+"hp": 1.4,
+"speed": 250,
+"dmg": 14,
+"range": 1500,
+"cd": 2.0,
+"scale": 1.05,
+"body": 3811914,
+"head": 10123962,
+"money": 160,
+"minRound": 13,
+"weight": 0.9,
+"desc": "Heals the horde. Kill it first."
+}
+],
+"affixes": [
+{
+"name": "Blazing",
+"desc": "Leaves fire on the ground and burns on hit.",
+"color": 16738842
+},
+{
+"name": "Frozen",
+"desc": "Hits slow you heavily.",
+"color": 10148095
+},
+{
+"name": "Shielded",
+"desc": "Overshield equal to half its health.",
+"color": 7317759
+},
+{
+"name": "Vampiric",
+"desc": "Heals 50% of damage it deals; regenerates.",
+"color": 11538490
+},
+{
+"name": "Splitting",
+"desc": "Splits into two smaller copies on death.",
+"color": 8190976
+},
+{
+"name": "Hasted",
+"desc": "+60% move and attack speed.",
+"color": 16773226
+},
+{
+"name": "Armored",
+"desc": "Takes 50% less damage from the front and body shots.",
+"color": 10132122
+},
+{
+"name": "Blinking",
+"desc": "Teleports toward you every few seconds.",
+"color": 13660415
+},
+{
+"name": "Gilded",
+"desc": "Triple money, guaranteed clover drop.",
+"color": 16766720
+},
+{
+"name": "Volatile",
+"desc": "Explodes violently on death.",
+"color": 16724016
+}
+],
+"bosses": [
+{
+"name": "Big Tony",
+"title": "The Pit Boss",
+"hp": 26,
+"speed": 300,
+"dmg": 45,
+"scale": 2.8,
+"body": 3026490,
+"head": 12094058,
+"attacks": [
+"Charge",
+"Slam",
+"Summon"
+],
+"minion": 0,
+"reward": 2500,
+"desc": "The casino's enforcer, still collecting debts. Charges in straight lines and calls in the floor staff."
+},
+{
+"name": "The Abomination",
+"title": "Stitched Mass",
+"hp": 32,
+"speed": 260,
+"dmg": 55,
+"scale": 3.4,
+"body": 9067098,
+"head": 12618362,
+"attacks": [
+"Leap",
+"Slam",
+"Ring"
+],
+"minion": 1,
+"reward": 3500,
+"desc": "A dozen enemies sewn into one. Leaps across the map and sends out shockwave rings."
+},
+{
+"name": "Mother Carrion",
+"title": "Queen of the Wisps",
+"hp": 30,
+"speed": 220,
+"dmg": 35,
+"scale": 3.0,
+"body": 3877707,
+"head": 14703194,
+"attacks": [
+"Volley",
+"Summon",
+"Barrage"
+],
+"minion": 6,
+"reward": 4000,
+"desc": "Births wisps from her ribcage and rains bile from the sky."
+},
+{
+"name": "The Croupier",
+"title": "Dealer of Fates",
+"hp": 28,
+"speed": 340,
+"dmg": 40,
+"scale": 2.6,
+"body": 1718826,
+"head": 15590344,
+"attacks": [
+"Teleport",
+"Ring",
+"Volley"
+],
+"minion": 4,
+"reward": 4500,
+"desc": "Blinks around the map dealing razor cards. Its roulette rings close in."
+},
+{
+"name": "The Gravedigger",
+"title": "Owner of the House",
+"hp": 40,
+"speed": 320,
+"dmg": 60,
+"scale": 3.6,
+"body": 1118481,
+"head": 15909424,
+"attacks": [
+"Charge",
+"Teleport",
+"Barrage",
+"Summon",
+"Ring",
+"Slam"
+],
+"minion": 7,
+"reward": 7000,
+"desc": "The house itself, walking. Uses every trick in the deck."
+},
+{
+"name": "The Last Dealer",
+"title": "The House Always Wins",
+"hp": 70,
+"speed": 250,
+"dmg": 55,
+"scale": 4.4,
+"body": 1707540,
+"head": 16765514,
+"attacks": [],
+"minion": 1,
+"reward": 25000,
+"desc": "Waits in the vault under the Lucky Stiff. Deals cards, spins the wheel and burns the room down around you."
+}
+]
+}

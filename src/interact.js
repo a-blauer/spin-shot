@@ -1,0 +1,371 @@
+// Doors, wall buys and casino stations (port of ADMHInteractable). Built from toon primitives in UE-local space.
+import * as THREE from 'three';
+import { V, R, UVec } from './mapkit.js';
+import { toonMaterial, hex } from './render.js';
+import { textMesh } from './text.js';
+import { PRIM } from './world.js';
+import { ViewModel } from './viewmodel.js';
+
+const matCache = new Map();
+function mat(color, glow) {
+  const key = color.getHexString() + '|' + glow;
+  if (!matCache.has(key)) { const m = toonMaterial({ glow }); m.uniforms.uColor.value.copy(color); matCache.set(key, m); }
+  return matCache.get(key);
+}
+const lin = (r, g, b) => new THREE.Color(r, g, b).convertLinearToSRGB();
+export const RarityHex = [0xD8D8D8, 0x5BD65B, 0x4AA3FF, 0xB565F0, 0xFFB22E, 0xFF3B3B];
+
+const CASINO_ONLY = new Set(['Slots', 'ArmsRoulette', 'MoneyTable', 'UpgradeCounter', 'StatBooth', 'HighRoller', 'ExitBell']);
+export const STATION_NAMES = { Slots: 'Slots', ArmsRoulette: 'Weapon Roulette', MoneyTable: 'Blackjack', UpgradeCounter: 'Upgrades', StatBooth: 'Tonics', HighRoller: 'Weapon Vault', ExitBell: 'Barricade', AmmoCrate: 'Ammo' };
+
+export class Interactable {
+  constructor(game, type, loc, yaw, cost, weapon, label, size) {
+    this.game = game;
+    this.type = type;
+    this.cost = cost;
+    this.weapon = weapon;
+    this.label = label;
+    this.open = false;
+    this.enabled = true;
+    this.casinoOnly = CASINO_ONLY.has(type);
+    this.zoneA = -1; this.zoneB = -1;
+    this.useRadius = 200;
+    this.spinSpeed = 0;
+    this.age = 0;
+    this.locUE = loc;
+    this.yaw = yaw;
+    this.group = new THREE.Group();
+    this.group.position.copy(loc.to3());
+    this.group.quaternion.copy(R(0, yaw, 0).quat3());
+    this.pos = this.group.position.clone();
+    this.build(size);
+  }
+
+  part(parent, meshId, loc, size, color, rot = null, glow = 0) {
+    const m = new THREE.Mesh(PRIM.GEOS[meshId], mat(color, glow > 0 ? Math.min(1.4, glow * 0.45) : 0));
+    m.position.copy(loc.to3());
+    if (rot) m.quaternion.copy(rot.quat3());
+    m.scale.set(size.X, size.Z, size.Y);
+    (parent || this.group).add(m);
+    return m;
+  }
+  text(parent, loc, yaw, sizeCm, str, color = '#ffcd5a') {
+    const t = textMesh(str, sizeCm, color, 0.7);
+    const rot = R(0, yaw, 0);
+    const n = rot.RotateVector(V(1, 0, 0)).to3();
+    const r = rot.RotateVector(V(0, -1, 0)).to3();
+    t.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(r, new THREE.Vector3(0, 1, 0), n));
+    t.position.copy(loc.to3());
+    (parent || this.group).add(t);
+    return t;
+  }
+  spinner(loc) {
+    const s = new THREE.Group();
+    s.position.copy(loc.to3());
+    this.group.add(s);
+    this.spin = s;
+    return s;
+  }
+
+  build(Size) {
+    const Wood = lin(0.42, 0.26, 0.15), DarkWood = lin(0.22, 0.13, 0.08), Gold = lin(1, 0.72, 0.18), Red = lin(0.62, 0.07, 0.1);
+    const Felt = lin(0.07, 0.38, 0.18), Black = lin(0.06, 0.05, 0.06), White = new THREE.Color(1, 1, 1);
+    const P = (...a) => this.part(...a);
+    switch (this.type) {
+      case 'Door': {
+        // blocking box in world space
+        const h = Size.mul(0.5);
+        const box = new THREE.Box3();
+        const rot = R(0, this.yaw, 0);
+        for (let i = 0; i < 8; i++) {
+          const c = V((i & 1) ? h.X : -h.X, (i & 2) ? h.Y : -h.Y, (i & 4) ? h.Z : -h.Z);
+          box.expandByPoint(this.locUE.add(V(0, 0, h.Z)).add(rot.RotateVector(c)).to3());
+        }
+        this.box3 = box;
+        this.blocker = this.game.phys.addDoor(box);
+        this.navBox = { min: new UVec(box.min.x, box.min.z, box.min.y), max: new UVec(box.max.x, box.max.z, box.max.y) };
+        if (this.cost < 0) {
+          P(null, 0, V(0, -Size.Y * 0.25, Size.Z * 0.5), V(Size.X * 0.9, Size.Y * 0.48, Size.Z), Red);
+          P(null, 0, V(0, Size.Y * 0.25, Size.Z * 0.5), V(Size.X * 0.9, Size.Y * 0.48, Size.Z), Red);
+          P(null, 0, V(0, 0, Size.Z * 0.5), V(Size.X * 1.05, 8, Size.Z), Gold, null, 1.5);
+          P(null, 1, V(0, 0, Size.Z * 0.62), V(30, 30, Size.X * 1.1), Gold, R(0, 0, 90), 2);
+          this.text(null, V(Size.X * 0.6, 0, Size.Z + 50), 0, 44, 'BARRICADED');
+          this.text(null, V(-Size.X * 0.6, 0, Size.Z + 50), 180, 44, 'BARRICADED');
+        } else {
+          const W = Size.Y;
+          P(null, 0, V(0, 0, Size.Z * 0.5), V(Size.X * 0.25, W, Size.Z), DarkWood);
+          for (let i = 0; i < 6; i++) {
+            const z = 50 + i * (Size.Z - 80) / 5;
+            const tilt = (i % 2 === 0 ? 1 : -1) * (4 + Math.random() * 8);
+            P(null, 0, V(Size.X * 0.15, 0, z), V(14, W * 1.05, 36), Wood.clone().lerp(DarkWood, (i % 3) * 0.3), R(0, 0, tilt));
+            P(null, 0, V(-Size.X * 0.15, 0, z), V(14, W * 1.05, 36), Wood.clone().lerp(DarkWood, ((i + 1) % 3) * 0.3), R(0, 0, -tilt));
+          }
+          P(null, 0, V(Size.X * 0.25, 0, Size.Z * 0.5), V(10, W * 0.9, 14), Red, R(0, 0, 40));
+          P(null, 0, V(Size.X * 0.25, 0, Size.Z * 0.5), V(10, W * 0.9, 14), Red, R(0, 0, -40));
+          this.priceText = [this.text(null, V(Size.X * 0.4, 0, Size.Z * 0.5 + 140), 0, 60, '$' + this.cost),
+            this.text(null, V(-Size.X * 0.4, 0, Size.Z * 0.5 + 140), 180, 60, '$' + this.cost)];
+        }
+        this.useRadius = Math.max(Size.Y * 0.6, 260);
+        break;
+      }
+      case 'WallBuy': {
+        const W = this.game.data.weapons[this.weapon];
+        // wooden display plaque with gold trim, two pegs and the real weapon model hung on it
+        P(null, 0, V(5, 0, 185), V(10, 210, 120), DarkWood);
+        P(null, 0, V(9, 0, 247), V(6, 220, 8), Gold, null, 0.6);
+        P(null, 0, V(9, 0, 123), V(6, 220, 8), Gold, null, 0.6);
+        P(null, 0, V(9, 106, 185), V(6, 8, 128), Gold, null, 0.6);
+        P(null, 0, V(9, -106, 185), V(6, 8, 128), Gold, null, 0.6);
+        const gun = ViewModel.displayModel(this.game, this.weapon, 0);
+        const L = { Pistol: 2.0, SMG: 1.6, Shotgun: 1.6, Rifle: 1.5, Sniper: 1.3, LMG: 1.35, Launcher: 1.4, Energy: 1.5, Wonder: 1.5 }[W.cls] || 1.3;
+        gun.scale.setScalar(L);
+        gun.position.copy(V(30, 0, 180).to3());
+        const box = new THREE.Box3().setFromObject(gun);
+        const c = box.getCenter(new THREE.Vector3()).sub(gun.position);
+        gun.position.z -= c.z; gun.position.y -= c.y;
+        this.group.add(gun);
+        // brass pegs from the plaque, set just under the gun so it reads as resting on them
+        const gb = new THREE.Box3().setFromObject(gun);
+        const span = Math.min(80, (gb.max.z - gb.min.z) * 0.3), depth = Math.max(14, gb.max.x - 10);
+        for (const y of [-span, span]) {
+          P(null, 1, V(10 + depth * 0.5, y, gb.min.y - 3), V(5, 5, depth), Gold, R(90, 0, 0), 0.4);
+          P(null, 2, V(10 + depth, y, gb.min.y - 1), V(8), Gold, null, 0.4);
+        }
+        this.text(null, V(14, 0, 286), 0, 26, W.name.toUpperCase(), '#f0ebdc');
+        this.text(null, V(14, 0, 262), 0, 22, `$${this.cost}`, '#ffcd5a');
+        this.useRadius = 200;
+        break;
+      }
+      case 'Slots': {
+        // cabinet slot machine: plinth, red cabinet with a rounded crown, bulb marquee, three reels, coin tray, lever, stool
+        P(null, 0, V(0, 0, 30), V(96, 116, 60), Black);
+        P(null, 0, V(0, 0, 120), V(84, 104, 120), Red);
+        P(null, 4, V(0, 0, 203), V(104, 84, 46), Red, R(0, 90, 0));
+        P(null, 0, V(0, 0, 182), V(88, 108, 6), Gold, null, 0.6);
+        for (let i = 0; i < 7; i++) {
+          const y = -42 + i * 14;
+          P(null, 2, V(43, y, 182 + Math.sqrt(Math.max(0, 1 - (y / 52) ** 2)) * 40), V(9), lin(1, 0.92, 0.6), null, 3);
+        }
+        // reel window: dark recess, gold frame, three drums with symbols
+        P(null, 0, V(42.5, 0, 140), V(2, 92, 44), Black);
+        for (const z of [116, 164]) P(null, 0, V(44, 0, z), V(4, 96, 6), Gold, null, 0.6);
+        for (const y of [-46, 46]) P(null, 0, V(44, y, 140), V(4, 6, 52), Gold, null, 0.6);
+        const sym = [['7', '#c8212a'], ['BAR', '#1d1418'], ['7', '#c8212a']];
+        for (let i = 0; i < 3; i++) {
+          P(null, 1, V(32, (i - 1) * 28, 140), V(36, 36, 24), lin(0.98, 0.97, 0.92), R(0, 0, 90));
+          this.text(null, V(50.5, (i - 1) * 28, 140), 0, sym[i][0] === 'BAR' ? 7 : 13, sym[i][0], sym[i][1]);
+        }
+        P(null, 0, V(46, 0, 100), V(10, 70, 20), Gold, null, 0.4);
+        P(null, 0, V(52, 0, 78), V(24, 74, 12), Black);
+        P(null, 0, V(44, 0, 70), V(4, 60, 6), lin(0.6, 0.6, 0.65));
+        P(null, 1, V(0, 60, 150), V(10, 10, 80), lin(0.75, 0.75, 0.8));
+        P(null, 2, V(0, 60, 194), V(24), lin(0.9, 0.1, 0.1), null, 1.2);
+        // stool
+        P(null, 1, V(120, 0, 34), V(8, 8, 68), lin(0.6, 0.6, 0.65));
+        P(null, 1, V(120, 0, 72), V(54, 54, 10), Red);
+        P(null, 1, V(120, 0, 4), V(40, 40, 8), lin(0.4, 0.4, 0.45));
+        this.useRadius = 170;
+        this.glowAt = V(80, 0, 200); this.glowCol = [1, 0.4, 0.5];
+        break;
+      }
+      case 'ArmsRoulette': {
+        P(null, 0, V(0, 0, 40), V(80, 160, 80), DarkWood);
+        P(null, 0, V(-20, 0, 190), V(30, 40, 300), DarkWood);
+        const s = this.spinner(V(10, 0, 250));
+        P(s, 1, V(0, 0, 0), V(260, 260, 20), Gold, R(90, 0, 0), 1.2);
+        for (let i = 0; i < 8; i++) P(s, 0, V(12, 0, 0), V(6, 230, 26), i % 2 === 0 ? Red : Black, R(0, 0, i * 22.5));
+        P(s, 2, V(16, 0, 0), V(40), Gold, null, 3);
+        P(null, 3, V(16, 0, 395), V(30, 30, 40), White, R(180, 0, 0), 3);
+        this.text(null, V(60, 0, 440), 0, 40, 'WEAPON ROULETTE');
+        this.spinSpeed = 20; this.spinAxis = 'roll';
+        this.useRadius = 230;
+        this.glowAt = V(120, 0, 300); this.glowCol = [1, 0.6, 0.3];
+        break;
+      }
+      case 'MoneyTable': {
+        P(null, 1, V(0, 0, 40), V(80, 80, 80), DarkWood);
+        P(null, 0, V(0, 0, 90), V(300, 170, 16), Felt);
+        P(null, 0, V(0, 0, 86), V(316, 186, 12), Wood);
+        const s = this.spinner(V(-90, 0, 104));
+        P(s, 1, V(0, 0, 0), V(110, 110, 14), Wood);
+        for (let i = 0; i < 6; i++) P(s, 0, V(0, 0, 8), V(100, 10, 4), i % 2 === 0 ? Red : Black, R(0, i * 30, 0));
+        P(s, 2, V(46, 0, 12), V(8), White, null, 2);
+        for (let i = 0; i < 5; i++) P(null, 1, V(60 + i * 12, -40 + i * 18, 102 + i * 2), V(22, 22, 6), i % 2 ? Red : Gold, null, 1);
+        this.text(null, V(0, 0, 230), 0, 36, 'BLACKJACK');
+        this.spinSpeed = 60; this.spinAxis = 'yaw';
+        this.useRadius = 260;
+        this.glowAt = V(0, 0, 260); this.glowCol = [0.6, 1, 0.6];
+        break;
+      }
+      case 'UpgradeCounter': {
+        // pawn shop: glass display counter of trinkets, cash register, loaded shelves, three gold balls overhead
+        P(null, 0, V(0, 0, 40), V(100, 320, 80), Wood);
+        P(null, 0, V(0, 0, 84), V(104, 324, 8), DarkWood);
+        P(null, 0, V(0, 0, 100), V(96, 316, 30), lin(0.6, 0.8, 0.85), null, 0.15);
+        P(null, 0, V(0, 0, 116), V(104, 324, 4), DarkWood);
+        for (let i = 0; i < 6; i++) P(null, i % 2 ? 2 : 0, V(10, -130 + i * 52, 98), V(18), hex(RarityHex[i % 5]), R(0, i * 30, 0), 1.2);
+        // register
+        P(null, 0, V(-10, 110, 140), V(50, 60, 40), lin(0.55, 0.45, 0.2));
+        P(null, 0, V(-20, 110, 172), V(30, 56, 24), lin(0.55, 0.45, 0.2), R(-20, 0, 0));
+        P(null, 0, V(-6, 110, 178), V(4, 30, 12), lin(0.4, 1, 0.5), null, 2);
+        P(null, 0, V(-90, 0, 200), V(30, 340, 380), DarkWood);
+        for (let sh = 0; sh < 3; sh++) {
+          P(null, 0, V(-60, 0, 150 + sh * 90), V(50, 330, 8), Wood);
+          for (let i = 0; i < 5; i++) P(null, i % 2 ? 2 : (i % 3 ? 0 : 7), V(-60, -120 + i * 60, 176 + sh * 90), V(34, 34, i % 2 ? 34 : 44), hex(RarityHex[(i + sh) % 5]), R(0, i * 20, 0), 1.2);
+        }
+        // the pawnbroker's three gold balls
+        P(null, 0, V(40, 0, 470), V(120, 8, 8), DarkWood);
+        for (let i = 0; i < 3; i++) {
+          const p = i === 1 ? V(90, 0, 410) : V(70, i === 0 ? -26 : 26, 430);
+          P(null, 1, p.add(V(0, 0, 30)), V(3, 3, 60 - (i === 1 ? -20 : 0)), DarkWood);
+          P(null, 2, p, V(34), Gold, null, 0.8);
+        }
+        this.text(null, V(20, 0, 520), 0, 36, 'UPGRADES');
+        this.useRadius = 250;
+        this.glowAt = V(120, 0, 260); this.glowCol = [0.7, 0.8, 1];
+        break;
+      }
+      case 'StatBooth': {
+        // saloon back-bar: counter with a brass rail, mirrored back wall, shelves of tonics, two stools
+        P(null, 0, V(0, 0, 55), V(100, 320, 110), DarkWood);
+        for (let i = 0; i < 4; i++) P(null, 0, V(51, -120 + i * 80, 55), V(4, 60, 90), Wood);
+        P(null, 0, V(0, 0, 112), V(116, 336, 10), Wood);
+        P(null, 1, V(58, 0, 18), V(8, 8, 320), Gold, R(90, 90, 0), 0.4);
+        P(null, 0, V(-95, 0, 200), V(20, 340, 380), Red);
+        P(null, 0, V(-84, 0, 250), V(4, 280, 150), lin(0.55, 0.7, 0.78), null, 0.25);
+        P(null, 0, V(-82, 0, 250), V(2, 290, 160), Gold, null, 0.6);
+        const T = [lin(1, 0.2, 0.2), lin(1, 0.6, 0.1), lin(0.3, 0.8, 1), lin(0.4, 1, 0.3), lin(0.8, 0.3, 1), lin(1, 0.9, 0.3), lin(0.9, 0.9, 0.95), lin(0.5, 0.3, 0.15)];
+        for (let r = 0; r < 2; r++) {
+          P(null, 0, V(-70, 0, 150 + r * 70), V(36, 300, 6), Wood);
+          for (let i = 0; i < 8; i++) {
+            const p = V(-70, -126 + i * 36, 172 + r * 70);
+            const tall = (i + r) % 3 === 0;
+            P(null, (i + r) % 2 ? 1 : 7, p, V(20, 20, tall ? 40 : 30), T[(i + r * 3) % T.length], null, 1.4);
+            P(null, 1, p.add(V(0, 0, tall ? 28 : 22)), V(8, 8, 14), T[(i + r * 3) % T.length].clone().multiplyScalar(0.5));
+          }
+        }
+        for (let i = 0; i < 4; i++) P(null, 1, V(10, -100 + i * 66, 128), V(12, 12, 24), T[i], null, 1.2);
+        for (const y of [-90, 90]) {
+          P(null, 1, V(110, y, 38), V(8, 8, 76), lin(0.6, 0.6, 0.65));
+          P(null, 1, V(110, y, 80), V(50, 50, 10), Red);
+        }
+        this.text(null, V(20, 0, 420), 0, 40, 'TONICS');
+        this.useRadius = 250;
+        this.glowAt = V(120, 0, 260); this.glowCol = [1, 0.7, 0.4];
+        break;
+      }
+      case 'HighRoller': {
+        // bank vault door set into a riveted steel frame, spoked handle wheel, gold plaque
+        const Steel = lin(0.32, 0.33, 0.37), SteelD = lin(0.18, 0.18, 0.21);
+        P(null, 0, V(-20, 0, 170), V(40, 320, 340), SteelD);
+        P(null, 0, V(-2, 0, 170), V(10, 300, 320), Steel);
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4;
+          P(null, 1, V(4, Math.cos(a) * 140, 170 + Math.sin(a) * 140), V(14, 14, 8), lin(0.6, 0.6, 0.65), R(90, 0, 0));
+        }
+        const s = this.spinner(V(8, 0, 170));
+        P(s, 1, V(0, 0, 0), V(250, 250, 26), Steel, R(90, 0, 0), 0.15);
+        P(s, 8, V(14, 0, 0), V(250, 8, 250), Gold, R(0, 90, 0), 0.6);
+        for (let i = 0; i < 12; i++) {
+          const a = i * Math.PI / 6;
+          P(s, 1, V(12, Math.cos(a) * 104, Math.sin(a) * 104), V(16, 16, 10), Gold, R(90, 0, 0), 0.6);
+        }
+        P(s, 8, V(30, 0, 0), V(130, 10, 130), lin(0.8, 0.8, 0.85), R(0, 90, 0));
+        for (let i = 0; i < 3; i++) P(s, 0, V(30, 0, 0), V(6, 130, 8), lin(0.8, 0.8, 0.85), R(i * 60, 0, 0));
+        P(s, 1, V(30, 0, 0), V(30, 30, 16), Gold, R(90, 0, 0), 0.8);
+        P(null, 0, V(4, 0, 356), V(6, 150, 46), Gold, null, 0.5);
+        P(null, 0, V(7, 0, 356), V(4, 138, 36), lin(0.12, 0.08, 0.06));
+        this.text(null, V(10, 0, 356), 0, 20, 'NO. 777', '#ffcd5a');
+        this.text(null, V(40, 0, 420), 0, 38, 'WEAPON VAULT');
+        this.spinSpeed = 8; this.spinAxis = 'roll';
+        this.useRadius = 240;
+        this.glowAt = V(140, 0, 220); this.glowCol = [1, 0.8, 0.3];
+        break;
+      }
+      case 'ExitBell': {
+        // ship's bell on a gallows stand, with a pull rope and a brass plate
+        P(null, 0, V(0, 0, 8), V(80, 80, 16), DarkWood);
+        P(null, 0, V(0, -30, 130), V(16, 16, 240), DarkWood);
+        P(null, 0, V(0, 10, 246), V(16, 96, 16), DarkWood);
+        P(null, 0, V(0, -14, 222), V(8, 40, 8), DarkWood, R(0, 0, 45));
+        const s = this.spinner(V(0, 40, 238));
+        P(s, 1, V(0, 0, -6), V(10, 10, 14), Gold);
+        P(s, 3, V(0, 0, -34), V(54, 54, 50), Gold, null, 0.8);
+        P(s, 8, V(0, 0, -60), V(58, 12, 58), Gold, R(0, 0, 90), 0.8);
+        P(s, 2, V(0, 0, -66), V(14), lin(0.4, 0.3, 0.15));
+        P(null, 1, V(0, 40, 140), V(4, 4, 110), lin(0.85, 0.75, 0.55));
+        P(null, 2, V(0, 40, 84), V(12), lin(0.85, 0.75, 0.55));
+        P(null, 0, V(9, -30, 120), V(4, 30, 20), Gold, null, 0.5);
+        this.text(null, V(20, 10, 300), 0, 30, 'BARRICADE');
+        this.spinSpeed = 0;
+        this.useRadius = 180;
+        this.glowAt = V(30, 40, 210); this.glowCol = [1, 0.8, 0.4];
+        break;
+      }
+      case 'AmmoCrate': {
+        // army surplus ammo crate: olive box, dark banding, rope handles, lid propped open on a pile of shells
+        const Olive = lin(0.26, 0.31, 0.17), OliveD = lin(0.17, 0.2, 0.11), Brass = lin(1, 0.62, 0.18);
+        P(null, 0, V(0, 0, 36), V(120, 80, 72), Olive);
+        for (const x of [-48, 48]) P(null, 0, V(x, 0, 36), V(8, 84, 74), OliveD);
+        P(null, 0, V(0, 0, 70), V(124, 84, 6), OliveD);
+        for (const y of [-42, 42]) P(null, 8, V(0, y, 46), V(30, 6, 22), lin(0.75, 0.66, 0.45));
+        P(null, 0, V(-68, 0, 114), V(8, 84, 84), Olive, R(15, 0, 0));
+        P(null, 0, V(-63, 0, 114), V(2, 60, 30), OliveD, R(15, 0, 0));
+        for (let i = 0; i < 18; i++) {
+          const x = -40 + (i % 6) * 16, y = -18 + Math.floor(i / 6) * 18;
+          P(null, 1, V(x, y, 78), V(11, 11, 16), Brass, null, 0.3);
+          P(null, 3, V(x, y, 91), V(10, 10, 10), lin(0.62, 0.42, 0.28));
+        }
+        this.text(null, V(61, 0, 36), 0, 16, 'AMMO', '#e6dcb4');
+        this.text(null, V(0, 0, 160), 0, 26, this.cost > 0 ? `AMMO  $${this.cost}` : 'FREE AMMO', '#e6e6c8');
+        this.useRadius = 170;
+        this.glowAt = V(30, 0, 120); this.glowCol = [1, 0.75, 0.3];
+        break;
+      }
+      default: break;
+    }
+  }
+
+  isUsable() {
+    if (!this.enabled || this.open) return false;
+    if (this.type === 'Door' && this.cost < 0) return false;
+    if (this.casinoOnly) return this.game.isCasinoOpen();
+    return true;
+  }
+
+  prompt(player) {
+    const G = this.game;
+    switch (this.type) {
+      case 'Door': {
+        let where = this.label;
+        if (G.zones[this.zoneA] && G.zones[this.zoneB]) where = G.zones[this.zoneA].unlocked ? G.zones[this.zoneB].name : G.zones[this.zoneA].name;
+        return `[E] Open ${where}  $${this.cost}`;
+      }
+      case 'WallBuy': {
+        const n = G.data.weapons[this.weapon].name;
+        if (player && player.hasWeapon(this.weapon)) return `[E] ${n} ammo  $${Math.floor(this.cost / 2)}`;
+        return `[E] ${n}  $${this.cost}`;
+      }
+      case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${this.cost}` : '[E] Refill ammo  (free)';
+      case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 60s');
+      case 'Slots': return `[E] Slots  $${player ? player.slotPrice() : this.cost}`;
+      default: return `[E] ${STATION_NAMES[this.type] || this.type}`;
+    }
+  }
+
+  setOpen(open) {
+    this.open = open;
+    this.group.visible = !open;
+    if (this.blocker) this.blocker.enabled = !open;
+  }
+
+  update(dt) {
+    this.age += dt;
+    if (this.spin && this.spinSpeed) {
+      const speed = (this.isUsable() ? this.spinSpeed : this.spinSpeed * 0.1) * dt;
+      // UE roll = rotation about local X (three x); UE yaw = about local Z (three y)
+      if (this.spinAxis === 'roll') this.spin.rotateX(-speed * Math.PI / 180);
+      else this.spin.rotateY(-speed * Math.PI / 180);
+    }
+  }
+}
