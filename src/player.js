@@ -938,14 +938,14 @@ export class Player {
     if (S.ammo <= 0) this.startReload();
   }
   fireFeedback(W, kick, continuous) {
-    const ads = this.aiming ? 0.55 : 1;
+    const ads = this.aiming ? 0.3 : 1;
     this.addPitch(kick * 0.45 * ads * 2.5);
     this.addYaw(frandRange(-0.3, 0.3) * kick * 0.35 * ads * 2.5);
-    this.addKick(kick * 1.7 * ads, frandRange(-0.5, 0.5) * kick * ads);
+    this.addKick(kick * 1.3 * ads, frandRange(-0.5, 0.5) * kick * ads);
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
     // every shot is felt: a shake, a punch of the view, a flash on the world in front of you, and a buzz on phones
-    this.addShake(continuous ? 0.02 : 0.06 + kick * 0.16);
-    this.fovKick += continuous ? 0.15 : Math.min(4, 0.6 + kick * 1.1);
+    this.addShake((continuous ? 0.02 : 0.06 + kick * 0.16) * (this.aiming ? 0.35 : 1));
+    this.fovKick += (continuous ? 0.15 : Math.min(4, 0.6 + kick * 1.1)) * (this.aiming ? 0.25 : 1);
     if (!continuous) {
       const G = this.game, e = this.eye(), f = this.forward();
       G.fx.flash(e.clone().addScaledVector(f, 150), lin(1, 0.75, 0.35), 180 + kick * 90, 0.06, true);

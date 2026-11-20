@@ -47,7 +47,7 @@ export class Hud {
     this.hurtWhite = 0.1;
   }
   // "you got this, and here is what it does": a card per upgrade, a few seconds each
-  gotUpgrade(i, stack) { this.cards = this.cards || []; this.cards.push({ i, stack, t: 0, life: 5 }); if (this.cards.length > 3) this.cards.shift(); }
+  gotUpgrade(i, stack) { this.cards = this.cards || []; this.cards.push({ i, stack, t: 0, life: 15 }); if (this.cards.length > 3) this.cards.shift(); }
   drawCards() {
     if (!this.cards || !this.cards.length) return;
     const g = this.g, S = this.S, W = this.W, w = 560 * S, x = W / 2 - w / 2; let y = this.H * 0.17;

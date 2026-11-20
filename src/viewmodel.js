@@ -292,7 +292,7 @@ export class ViewModel {
   // ---------------------------------------------------------------- events
   fire(kick, continuous) {
     const K = Math.min(3, Math.max(0.05, kick));
-    const ads = 1 - this.aimA * 0.55;
+    const ads = 1 - this.aimA * 0.82;   // aiming steadies the gun: the sights stay close to the target
     // UE (x back, y, z up) -> view (y, z, -x)
     const f = this.feel;
     const rx = (Math.random() * 12 - 6) * K * f.side;

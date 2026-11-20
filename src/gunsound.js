@@ -49,29 +49,57 @@ const P = {
 const FALLBACK = { crack: [2800, 1, 0.55, 0.045], body: [200, 70, 0.08, 0.5, 'triangle'], tail: [1600, 0.18, 0.16] };
 let noise = null;
 
+// Second pass at the voice. The first version led with a narrow band-passed "crack", which reads as a thin, hissy
+// zap. A real shot is a broadband slap that loses its top end in a few milliseconds, sitting on a low thump, followed
+// by a couple of early reflections and a dull tail. So: full-band click -> noise through a low-pass that sweeps down
+// fast (the bang) -> sub thump -> two quiet echoes -> tail, all pushed through a soft clipper for weight.
+// The table above still drives it: crack[0] sets how bright the bang starts, body the thump, tail the room.
+// The pitched "tone" layer is now only used by the energy and wonder weapons; on ballistic guns it sounded synthetic.
+let shaper = null, bus = null;
+const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'The House Always Wins', "Dead Man's Hand", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
 export function gunSound(audio, name, vol = 1, quiet = false) {
   const ctx = audio.ctx; if (!ctx || ctx.state !== 'running') return;
-  const p = P[name] || FALLBACK, t = ctx.currentTime, out = audio.master, v = vol * (quiet || p.soft ? 0.45 : 1), det = 1 + (Math.random() * 2 - 1) * 0.035;
+  const p = P[name] || FALLBACK, t = ctx.currentTime, det = 1 + (Math.random() * 2 - 1) * 0.04;
+  const energy = !p.body;   // beam and arc weapons have no powder charge
+  const v = vol * (quiet || p.soft ? 0.4 : 1) * 0.9;
   if (!noise) { noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-  const env = (g, peak, decay, at = t) => { g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), at + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.002 + decay); };
-  const nz = (type, freq, q, peak, decay, at = t) => {
+  if (!bus) {
+    shaper = ctx.createWaveShaper(); const c = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; c[i] = Math.tanh(x * 2.2) / Math.tanh(2.2); } shaper.curve = c; shaper.oversample = '2x';
+    bus = ctx.createGain(); bus.gain.value = 0.85; bus.connect(shaper); shaper.connect(audio.master);
+  }
+  const env = (g, peak, attack, decay, at) => { g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(Math.max(0.0002, peak), at + attack); g.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay); };
+  // noise through a low-pass that closes from f0 to f1 over `sweep`
+  const bang = (f0, f1, sweep, peak, decay, at, q = 0.7) => {
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    s.buffer = noise; s.playbackRate.value = det; f.type = type; f.frequency.value = freq * det; f.Q.value = q; env(g, peak, decay, at);
-    s.connect(f); f.connect(g); g.connect(out); s.start(at, Math.random() * 1.5); s.stop(at + decay + 0.05);
+    s.buffer = noise; s.playbackRate.value = det; f.type = 'lowpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(Math.min(16000, f0), at); f.frequency.exponentialRampToValueAtTime(Math.max(80, f1), at + sweep);
+    env(g, peak, 0.001, decay, at); s.connect(f); f.connect(g); g.connect(bus); s.start(at, Math.random() * 1.5); s.stop(at + decay + 0.06);
   };
-  const osc = (wave, f0, f1, decay, peak, trem, at = t) => {
+  const osc = (wave, f0, f1, decay, peak, trem, at) => {
     const o = ctx.createOscillator(), g = ctx.createGain(); o.type = wave;
-    o.frequency.setValueAtTime(f0 * det, at); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1 * det), at + decay); env(g, peak, decay, at);
+    o.frequency.setValueAtTime(f0 * det, at); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1 * det), at + decay); env(g, peak, 0.002, decay, at);
     if (trem) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = trem; lg.gain.value = f0 * 0.12; l.connect(lg); lg.connect(o.frequency); l.start(at); l.stop(at + decay + 0.05); }
-    o.connect(g); g.connect(out); o.start(at); o.stop(at + decay + 0.05);
+    o.connect(g); g.connect(bus); o.start(at); o.stop(at + decay + 0.06);
   };
   const shot = (at) => {
-    if (p.crack) nz('bandpass', p.crack[0], p.crack[1], p.crack[2] * v, p.crack[3], at);
-    if (p.body) osc(p.body[4], p.body[0], p.body[1], p.body[2], p.body[3] * v * 0.8, 0, at);
-    if (p.tail && !quiet) nz('lowpass', p.tail[0], 0.5, p.tail[2] * v, p.tail[1], at + 0.01);
-    if (p.tone) osc(p.tone[0], p.tone[1], p.tone[2], p.tone[3], p.tone[4] * v, p.tone[5], at);
+    if (!energy) {
+      const bright = p.crack[0], size = p.body[3], len = p.crack[3];   // size: 0.3 (pocket pistol) .. 1.1 (anti-materiel)
+      bang(16000, 9000, 0.004, 0.5 * v, 0.006, at);                                                 // the click of ignition
+      bang(Math.min(15000, bright * 3.2), 280 + (1 - Math.min(1, size)) * 500, 0.03 + len * 0.9, (0.55 + size * 0.45) * v, 0.05 + len * 1.6, at, 0.9);   // the bang
+      osc('sine', p.body[0] * 0.9, Math.max(28, p.body[1] * 0.8), p.body[2] * 1.15, p.body[3] * v * 0.95, 0, at);    // the thump
+      if (!quiet) {
+        bang(2600, 500, 0.05, 0.16 * size * v, 0.07, at + 0.045 + size * 0.02);                     // first reflection
+        bang(1500, 320, 0.08, 0.1 * size * v, 0.11, at + 0.11 + size * 0.05);                       // second, duller
+        if (p.tail) bang(p.tail[0], 220, p.tail[1] * 0.7, p.tail[2] * v * 0.9, p.tail[1] * 1.2, at + 0.02, 0.5);
+      }
+    } else {
+      bang(Math.min(15000, p.crack[0] * 2), 900, 0.03, p.crack[2] * v, p.crack[3] * 1.5, at, 2);
+      if (p.tail && !quiet) bang(p.tail[0], 300, p.tail[1], p.tail[2] * v, p.tail[1], at + 0.01, 0.5);
+    }
+    if (p.tone && TONAL.has(name)) osc(p.tone[0], p.tone[1], p.tone[2], p.tone[3], p.tone[4] * v, p.tone[5], at);
   };
   shot(t);
-  if (p.double) shot(t + p.double);                                                           // two barrels a hair apart
-  if (p.mech && !quiet) for (let i = 0; i < p.mech[3]; i++) nz('bandpass', p.mech[1] * (1 - i * 0.18), 6, p.mech[2] * vol, 0.03, t + p.mech[0] + i * 0.09);
+  if (p.double) shot(t + p.double);
+  // action noise: two short metallic ticks (a filtered click each), not a hiss
+  if (p.mech && !quiet) for (let i = 0; i < p.mech[3]; i++) { const at = t + p.mech[0] + i * 0.085; bang(p.mech[1] * 2.2, p.mech[1] * 0.5, 0.012, p.mech[2] * vol * 1.6, 0.022, at, 4); osc('square', p.mech[1] * 0.42, p.mech[1] * 0.3, 0.018, p.mech[2] * vol * 0.25, 0, at); }
 }

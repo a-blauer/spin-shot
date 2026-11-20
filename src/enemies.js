@@ -200,7 +200,11 @@ export class Enemy {
         this.pos.addScaledVector(this.vel, dt);
         this.grounded = false;
       } else {
-        const r = G.phys.moveCapsule(this.pos, this.vel, dt, this.radius, this.half, { stepHeight: this.isBoss ? 80 : 45, wasGrounded: wasG });
+        // big bodies walk on a slimmer, shorter capsule (bottom still on the ground) so a boss fits through a district doorway
+        const mr = Math.min(this.radius, 130), mh = Math.min(this.half, 235), dy = this.half - mh;
+        this.pos.y -= dy;
+        const r = G.phys.moveCapsule(this.pos, this.vel, dt, mr, mh, { stepHeight: this.isBoss ? 80 : 45, wasGrounded: wasG });
+        this.pos.y += dy;
         this.grounded = r.grounded;
         if (!this.grounded && wasG && this.vel.y <= 0 && !this.launched) {
           const h = G.phys.raycastDown(new THREE.Vector3(this.pos.x, this.pos.y - this.half + 5, this.pos.z), 45, true);

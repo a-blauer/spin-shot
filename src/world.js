@@ -670,6 +670,7 @@ export class World {
     }
     this.debugLog = [];
     M.RotFromXY = RotFromXY;
+    M.AreaBlocked = (x0, y0, x1, y1) => { for (let x = x0; x <= x1; x += 100) for (let y = y0; y <= y1; y += 100) { const [cx, cy] = GM.cellOf(x, y); if (!GM.navFree(cx, cy)) return true; } return false; };
     const gmShim = {
       set PlayerSpawn(v) { GM.playerSpawn = v.to3(); },
       set CasinoBounds(b) { GM.casinoBounds = { minX: b.min.X, maxX: b.max.X, minZ: b.min.Y, maxZ: b.max.Y }; },
