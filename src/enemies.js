@@ -558,6 +558,13 @@ export class Enemy {
     this.sinceHit = 0;
     if (fromDir.lengthSq() > 0) this.lastHitDir.copy(fromDir);
     this.puppet.hurt(Math.min(1, Math.max(0.25, dmg / Math.max(this.maxHealth * 0.25, 1))));
+    // bosses shrug off part of a burst: past a tenth of their health in one second, only 30% of the rest gets through.
+    // Ordinary guns never reach it; it stops a lucky legendary from deleting a boss in three shots.
+    if (this.isBoss) {
+      const now = this.game.time; if (!(now - this.gate0 < 1)) { this.gate0 = now; this.gateSum = 0; }
+      const room = Math.max(0, this.maxHealth * 0.1 - this.gateSum), over = Math.max(0, dmg - room);
+      this.gateSum += dmg; dmg -= over * 0.7;
+    }
     const dealt = dmg;
     if (this.shield > 0) { const a = Math.min(this.shield, dmg); this.shield -= a; dmg -= a; }
     const before = this.health;

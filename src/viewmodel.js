@@ -137,6 +137,8 @@ export class ViewModel {
     for (const p of this.parts) p.removeFromParent();
     this.parts = [];
     this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = null;
+    this.Cards = null; this.cardT = 9;
+    for (const f of this.flyers || []) f.m.removeFromParent(); this.flyers = [];
     this.flash = [];
   }
   // ---- melee: the off hand whips a weapon across the view. Built once per weapon, in camera space (x right, y up, -z forward).
@@ -312,6 +314,7 @@ export class ViewModel {
       glow.scale.set(this.FS * 5, this.FS * 5, 1);
     }
     if (this.cls === 'LMG' || this.cls === 'Wonder') this.spinSpeed = Math.min(this.spinSpeed + 400, 1800);
+    this.fireExtras(continuous);
     if (!continuous && !['Launcher', 'Energy', 'Wonder'].includes(this.cls)) {
       const p = this.toWorld(this.eject, 70);
       const cam = this.game.camera;
@@ -320,6 +323,53 @@ export class ViewModel {
       const fwd = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 2).negate();
       const vel = right.multiplyScalar(180 + Math.random() * 80).add(up.multiplyScalar(160 + Math.random() * 100)).addScaledVector(fwd, -40).add(this.game.player.vel);
       this.game.fx.debris('FX_Shell', p, vel, this.cls === 'Shotgun' ? 5 : 3.2, 3, Math.random() * 1800 - 900, true);
+    }
+  }
+  // ---- small things thrown off the gun when it fires: cards, coins, chips, sparks. They live in the gun's own space. ----
+  fling(geo, size, color, glow, from, vel, spin, life = 0.7, grav = 260) {
+    if (!this.gun || this.flyers.length > 40) return;
+    const m = new THREE.Mesh(PRIM.GEOS[geo], vmMat(new THREE.Color(color), glow));
+    m.scale.set(size[0], size[1], size[2]);
+    m.position.copy(from); m.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    this.gun.add(m);
+    this.flyers.push({ m, vel, spin, life, t: 0, grav, s: m.scale.clone() });
+  }
+  tickFlyers(dt) {
+    for (let i = this.flyers.length - 1; i >= 0; i--) {
+      const f = this.flyers[i]; f.t += dt;
+      if (f.t >= f.life) { f.m.removeFromParent(); this.flyers.splice(i, 1); continue; }
+      f.vel.y -= f.grav * dt; f.m.position.addScaledVector(f.vel, dt);
+      f.m.rotation.x += f.spin.x * dt; f.m.rotation.y += f.spin.y * dt; f.m.rotation.z += f.spin.z * dt;
+      const k = Math.min(1, (f.life - f.t) / 0.15); f.m.scale.copy(f.s).multiplyScalar(k);
+    }
+    // Dead Man's Hand: the fanned hand is thrown, then five new cards are dealt up out of the shoe one after another
+    if (this.Cards) {
+      this.cardT += dt; const t = this.cardT;
+      for (const C of this.Cards) {
+        const i = C.k + 2; let z = 0, y = 0, x = 0, s = 1, vis = true;
+        if (t < 0.08) { const u = t / 0.08; z = -46 * u; x = C.k * 5 * u; y = 2 * u; }
+        else { const d0 = 0.11 + i * 0.035; if (t < d0) vis = false; else { const u = Math.min(1, (t - d0) / 0.07); z = 7 * (1 - u); y = -3 * (1 - u); s = 0.4 + 0.6 * u; } }
+        for (const [m, r] of [[C.c, C.cr], [C.pp, C.pr]]) { m.visible = vis; m.position.set(r.x + x, r.y + y, r.z + z); }
+        C.c.scale.setScalar(1).multiply(C.cs || (C.cs = C.c.scale.clone())); if (s !== 1) C.c.scale.multiplyScalar(s);
+      }
+    }
+  }
+  fireExtras(continuous) {
+    const name = (this.game.data.weapons[this.weaponDef] || {}).name, cls = this.cls, G0 = this.game, r = (a, b) => a + Math.random() * (b - a);
+    const ej = this.eject ? this.gun.worldToLocal(this.eject.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3(), mz = this.muzzle ? this.gun.worldToLocal(this.muzzle.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3();
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    if (this.Cards) { this.cardT = 0; for (const q of this.flash) q.visible = false; return; }
+    if (name === 'Card Sharp') this.fling(0, [3.8, 0.12, 2.6], 0xF4EEDF, 0.3, ej, V3(r(60, 95), r(45, 80), r(-10, 20)), V3(r(-4, 4), r(14, 22), r(-4, 4)), 0.6, 240);       // spent cards flick out of the breech
+    else if (name === 'Jackpot' || name === 'Penny Pusher') this.fling(1, [2.6, 0.5, 2.6], name === 'Jackpot' ? 0xFFC83C : 0xC8743A, 0.5, ej, V3(r(40, 70), r(70, 110), r(-10, 10)), V3(r(16, 26), 0, r(8, 14)), 0.65, 300);   // a coin flips off every shot
+    else if (name === 'The House Always Wins') for (let i = 0; i < 2; i++) this.fling(1, [3.4, 0.7, 3.4], i ? 0xC8211B : 0x1F8A4C, 0.5, mz, V3(r(-40, 40), r(60, 120), r(-30, 10)), V3(r(10, 20), 0, r(10, 20)), 0.7, 300);   // chips fly
+    else if (name === 'Fireworks Finale') for (let i = 0; i < 5; i++) this.fling(2, [1.3, 1.3, 1.3], [0xFF5078, 0xFFE070, 0x60E0FF, 0x90FF70, 0xFFA040][i], 1.2, mz, V3(r(-70, 70), r(-20, 90), r(-40, 40)), V3(0, 0, 0), 0.4, 200);
+    else if (cls === 'Energy' && !continuous) for (let i = 0; i < 3; i++) this.fling(2, [1, 1, 1], (this.game.data.weapons[this.weaponDef] || {}).color || 0x9CE8FF, 1.3, mz, V3(r(-60, 60), r(-30, 70), r(-30, 30)), V3(0, 0, 0), 0.22, 120);   // sparks off the emitter
+    // smoke rolls off anything with a big charge
+    if (!continuous && (cls === 'Launcher' || cls === 'Shotgun' || cls === 'Sniper' || name === 'Saloon Six') && this.muzzle) {
+      const p = this.toWorld(this.muzzle, 80), cam = G0.camera, fwd = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 2).negate();
+      const n = cls === 'Launcher' ? 3 : 2;
+      for (let i = 0; i < n; i++) G0.fx.puff(p.clone().addScaledVector(fwd, i * 14), [0.78, 0.76, 0.72], cls === 'Launcher' ? 34 : 20, 0.5 + i * 0.12, fwd.clone().multiplyScalar(60 + i * 50).add(G0.player.vel));
+      if (cls === 'Launcher') { const ep = this.toWorld(this.eject || this.muzzle, 60); G0.fx.puff(ep.addScaledVector(fwd, -30), [0.6, 0.58, 0.55], 30, 0.45, fwd.clone().multiplyScalar(-160).add(G0.player.vel)); }   // backblast
     }
   }
   land(impact) { this.landVel -= Math.min(1.5, Math.max(0, impact)) * 60; }
@@ -465,6 +515,7 @@ export class ViewModel {
       this.flash[0].quaternion.copy(inv).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), spin));
       this.flash[2].quaternion.copy(inv);
     }
+    this.tickFlyers(dt);
     this.root.visible = !this.scoped && !this.hidden;
     this.tickMelee(dt);
   }

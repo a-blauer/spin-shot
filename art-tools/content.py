@@ -47,7 +47,7 @@ W = [
   "Shotgun. Pellets set enemies on fire."),
  ("Iron Mule", "LMG", "Uncommon", "Hitscan", 34, 10.0, 100, 400, 4.0, 2.6, 1, True, 9000, 0, 0, 0, 0, 0, 0, 0, 0.0, 0x4F5A4F, 0,
   "Belt-fed machine gun. Large magazine."),
- ("Gatling Gambler", "LMG", "Epic", "Hitscan", 31, 22.0, 200, 600, 5.0, 4.0, 1, True, 8000, 0, 0, 0, 0, 0, 0, 0, 0.0, 0x9C7A3C, 0,
+ ("Gatling Gambler", "LMG", "Epic", "Hitscan", 28, 22.0, 200, 600, 5.0, 4.0, 1, True, 8000, 0, 0, 0, 0, 0, 0, 0, 0.0, 0x9C7A3C, 0,
   "Minigun. Spins up as it fires."),
  ("Widowmaker", "Sniper", "Rare", "Hitscan", 420, 1.1, 5, 40, 2.8, 0.0, 1, False, 20000, 0, 3, 0, 0, 0, 0, 0, 0.10, 0x2B2B2B, 0,
   "Bolt-action sniper. Pierces several enemies."),
@@ -69,11 +69,11 @@ W = [
   "Flamethrower. Short range."),
  ("Buzzsaw", "Wonder", "Epic", "Saw", 170, 2.5, 8, 64, 2.2, 0.0, 1, False, 6000, 0, 6, 2600, 0, 0, 0, 0, 0.0, 0xD0D0D0, 0,
   "Bouncing saw blades. Each hits up to six enemies."),
- ("The House Always Wins", "Wonder", "Legendary", "Chain", 170, 5.0, 20, 200, 2.0, 0.5, 1, True, 6000, 150, 0, 0, 0, 0, 3, 5, 0.10, 0xFFD700, 0,
+ ("The House Always Wins", "Wonder", "Legendary", "Chain", 140, 5.0, 20, 200, 2.0, 0.5, 1, True, 6000, 150, 0, 0, 0, 0, 3, 5, 0.10, 0xFFD700, 0,
   "Explosive chain lightning. $5 per hit."),
- ("Dead Man's Hand", "Wonder", "Legendary", "Plasma", 70, 3.0, 15, 150, 2.0, 8.0, 5, False, 9000, 110, 2, 3600, 0, 0, 0, 0, 0.15, 0xF5F5F5, 0,
+ ("Dead Man's Hand", "Wonder", "Legendary", "Plasma", 56, 3.0, 15, 150, 2.0, 8.0, 5, False, 9000, 110, 2, 3600, 0, 0, 0, 0, 0.15, 0xF5F5F5, 0,
   "Throws five exploding, piercing cards."),
- ("Black Cat", "Wonder", "Legendary", "Hitscan", 900, 1.2, 7, 49, 2.6, 0.0, 1, False, 30000, 0, 99, 0, 0, 0, 0, 0, 0.50, 0x1A1A1A, 0,
+ ("Black Cat", "Wonder", "Legendary", "Hitscan", 700, 1.2, 7, 49, 2.6, 0.0, 1, False, 30000, 0, 99, 0, 0, 0, 0, 0, 0.50, 0x1A1A1A, 0,
   "Sniper with +50% crit chance."),
 ]
 

@@ -912,7 +912,8 @@ export class Player {
     if (S.tier > 0) tracer = lerp3(tracer, [1, 0.6, 0.95], 0.5);
     for (let p = 0; p < pellets; p++) {
       const dir = spread > 0 ? vrandCone(baseDir, spread) : baseDir.clone();
-      const pdir = spread > 0 ? vrandCone(projDir, spread) : projDir.clone();
+      let pdir = spread > 0 ? vrandCone(projDir, spread) : projDir.clone();
+      if (W.name === "Dead Man's Hand" && pellets > 1) pdir = projDir.clone().applyAxisAngle(new THREE.Vector3().setFromMatrixColumn(G.camera.matrixWorld, 1), -(p - (pellets - 1) / 2) * 0.045).add(vrandCone(projDir, 0.006).sub(projDir)).normalize();   // dealt as a fan, left to right
       switch (W.mode) {
         case 'Hitscan': this.fireHitscan(eye, dir, W.range, damage, pierce, procCoef, W, W.cls === 'Sniper' ? 7 : 3, tracer, muzzle); break;
         case 'Beam': this.fireHitscan(eye, dir, W.range, damage, pierce, procCoef, W, 10, hexRGB(W.color), muzzle); break;
@@ -1115,7 +1116,8 @@ export class Player {
     G.audio.playAt('S_Explosion', at, clamp(radius / 300, 0.5, 1.2), 1, 0.1);
     const d = at.distanceTo(this.pos);
     this.addShake(clamp(1 - d / (radius * 4 + 400), 0, 1) * clamp(radius / 250, 0.3, 1.2));
-    const hits = G.enemies.filter((E) => E !== ignore && !E.dead && E.pos.distanceTo(at) < radius + 40 * E.bodyScale);
+    const skip = ignore instanceof Set ? ignore : null;
+    const hits = G.enemies.filter((E) => E !== ignore && !(skip && skip.has(E)) && !E.dead && E.pos.distanceTo(at) < radius + 40 * E.bodyScale);
     for (const E of hits) {
       const fall = 1 - 0.5 * clamp(E.pos.distanceTo(at) / Math.max(1, radius), 0, 1);
       E.lastHitExplosive = true;

@@ -559,7 +559,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (const s of [-1, 1]) { E([[2, 6], [4.4, 8.6], [6.8, 6], [4.4, 5.2]], 0.3, PAL.red, { y: s * 2.9, bevel: 0.04, glow: 0.4 }); E(star(12, 7.4, 1.8, 4, 0.5), 0.3, PAL.bone, { y: s * 2.9, bevel: 0.04 }); }
       const card = (g, x, yaw, roll, col) => { const m = vm.Part(g, 0, V(x, 0, 0), V(8.6, 0.25, 6), col, R(0, yaw, roll), 0.35); return m; };
       vm.MagRoot = group(26, 0, 8);
-      into(vm.MagRoot, () => { for (let i = 0; i < 5; i++) { const k = i - 2; const c = vm.Part(cur, 0, V(4 - Math.abs(k) * 0.7, k * 2.6, 1.2 + i * 0.3), V(9.6, 6, 0.25), C(0xF4EEDF), R(28, k * 15, 0), 0.35); void c; vm.Part(cur, 2, V(6 - Math.abs(k) * 0.7, k * 3.3, 2.6 + i * 0.3), V(1.8, 1.8, 0.5), i % 2 ? PAL.red : PAL.black, R(28, k * 15, 0), 0.3); } });
+      into(vm.MagRoot, () => { for (let i = 0; i < 5; i++) { const k = i - 2; const c = vm.Part(cur, 0, V(4 - Math.abs(k) * 0.7, k * 2.6, 1.2 + i * 0.3), V(9.6, 6, 0.25), C(0xF4EEDF), R(28, k * 15, 0), 0.35); const pp = vm.Part(cur, 2, V(6 - Math.abs(k) * 0.7, k * 3.3, 2.6 + i * 0.3), V(1.8, 1.8, 0.5), i % 2 ? PAL.red : PAL.black, R(28, k * 15, 0), 0.3); (vm.Cards = vm.Cards || []).push({ c, pp, cr: c.position.clone(), pr: pp.position.clone(), k }); } });
       E([[-8, 10.4], [-8, 4.4], [-22, 3.6], [-24, 4.2], [-24, 9.6], [-22, 10.2]], 4.6, C(0x3a1a20), { bevel: 1 });
       grip(-2, 3.8, PAL.bone, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
       E([[6, 11.6], [14, 11.6], [14, 13.6], [6, 13.6]], 4, PAL.bone, { bevel: 0.3 }); for (let i = 0; i < 3; i++) B(10, 0, 13.7 + i * 0.3, 8 - i, 4 - i * 0.6, 0.25, i % 2 ? PAL.red : PAL.bone);   // deck on top

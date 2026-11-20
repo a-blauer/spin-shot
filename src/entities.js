@@ -75,7 +75,7 @@ export class Projectiles {
         G.fx.explosion(at, P.splash, P.color);
         G.audio.playAt('S_Splat', at, 0.8);
         if (G.player.pos.distanceTo(at) < P.splash + 40) G.player.receiveDamage(P.damage, P, false, P.slow, P.slow > 0 ? 2 : 0);
-      } else G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, null);
+      } else G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit);   // whoever the round hit directly already took its damage: the blast is for everyone else
     } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false);
     this.scene.remove(P.group);
   }
