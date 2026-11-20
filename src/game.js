@@ -1,5 +1,6 @@
 // Game mode (port of ADMHGameMode): rounds, spawning, nav flow field, zones & doors, casino nights,
 // drops and power-ups. Also owns every subsystem and the frame update order.
+import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 import { DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
@@ -473,9 +474,10 @@ export class Game {
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
     // buffs: 5% from ordinary enemies; modifier variants and elites drop more often and roll better rarities
     if (!E.isBoss) {
-      const chance = E.elite ? 0.22 : E.variant ? 0.06 : 0.015;
+      const chance = E.elite ? 0.28 : E.variant ? 0.09 : 0.025;
       if (Math.random() < chance) { const r = E.elite ? Math.max(1, Math.min(3, rollRarity(this.player.luck, 1.3))) : E.variant ? Math.min(2, rollRarity(0, 0.7)) : (Math.random() < 0.12 ? 1 : 0), u = rollUpgradeOfRarity(r, this.player.upgradeStacks); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(-40, 0, 30)), u); }
     }
+    if (!E.isBoss && Math.random() < (E.elite ? 0.22 : E.variant ? 0.09 : 0.035)) this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL());   // grenades off the dead
     if (!E.isBoss && Math.random() < 0.035) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
     if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
       this.powerupsThisRound++;

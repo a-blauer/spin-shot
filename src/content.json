@@ -153,7 +153,7 @@
 "moneyPerHit": 0,
 "critBonus": 0.0,
 "color": 14725678,
-"wallCost": 0,
+"wallCost": 1300,
 "desc": "Very high fire rate."
 },
 {
@@ -413,7 +413,7 @@
 "moneyPerHit": 0,
 "critBonus": 0.0,
 "color": 5200463,
-"wallCost": 0,
+"wallCost": 1800,
 "desc": "Belt-fed machine gun. Large magazine."
 },
 {
@@ -517,7 +517,7 @@
 "moneyPerHit": 0,
 "critBonus": 0.0,
 "color": 12597547,
-"wallCost": 0,
+"wallCost": 1600,
 "desc": "Lobs bouncing dynamite."
 },
 {
@@ -647,7 +647,7 @@
 "moneyPerHit": 0,
 "critBonus": 0.0,
 "color": 10937343,
-"wallCost": 0,
+"wallCost": 1500,
 "desc": "Continuous beam that slows."
 },
 {

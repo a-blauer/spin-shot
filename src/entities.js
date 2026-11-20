@@ -1,5 +1,6 @@
 // Projectiles (player rockets/grenades/saws/cards/plasma + hostile acid/orbs), ground hazards (boss shock
 // rings, telegraphed blast markers, fire patches) and pickups (clovers, money bags, power-ups).
+import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
 import { toonMaterial, sprite, Cam } from './render.js';
 import { PRIM } from './world.js';
@@ -75,7 +76,8 @@ export class Projectiles {
         G.fx.explosion(at, P.splash, P.color);
         G.audio.playAt('S_Splat', at, 0.8);
         if (G.player.pos.distanceTo(at) < P.splash + 40) G.player.receiveDamage(P.damage, P, false, P.slow, P.slow > 0 ? 2 : 0);
-      } else G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit);   // whoever the round hit directly already took its damage: the blast is for everyone else
+      } else if (P.gtype != null) G.player.grenadeBlast(P.gtype, at, P);
+      else G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit);   // whoever the round hit directly already took its damage: the blast is for everyone else
     } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false);
     this.scene.remove(P.group);
   }
@@ -246,8 +248,8 @@ export class Hazards {
 }
 
 // ================================================================== pickups
-const PICKUP_COLOR = { Buff: lin(1, 1, 1), Ammo: lin(0.5, 0.7, 1), Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
-const PICKUP_ICON = { Buff: 'I_Card', Ammo: 'I_MaxAmmo', Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
+const PICKUP_COLOR = { Grenade: lin(0.45, 0.85, 0.4), Buff: lin(1, 1, 1), Ammo: lin(0.5, 0.7, 1), Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
+const PICKUP_ICON = { Grenade: 'I_Nuke', Buff: 'I_Card', Ammo: 'I_MaxAmmo', Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
 
 export class Pickups {
   constructor(game, scene) { this.game = game; this.scene = scene; this.list = []; }
@@ -257,13 +259,15 @@ export class Pickups {
     const h = G.phys.raycastDown(L.clone().add(V3(0, 100, 0)), 1600);
     if (h) L.copy(h.point).add(V3(0, 70, 0));
     const buff = type === 'Buff' ? DATA.upgrades[amount] : null;
-    const power = type !== 'Clover' && type !== 'MoneyBag' && type !== 'Ammo' && !buff;
+    const nade = type === 'Grenade' ? GRENADES[amount] : null;
+    const power = type !== 'Clover' && type !== 'MoneyBag' && type !== 'Ammo' && !buff && !nade;
     const K = { type, amount, base: L, pos: L.clone(), age: 0, life: power ? 25 : 30, power, size: power ? 90 : 64, color: PICKUP_COLOR[type], spr: sprite(PICKUP_ICON[type]) };
     if (buff) {   // an upgrade lying on the ground: its own icon, tinted and labelled by rarity
       const h = RARITY_HEX[buff.rarity];
       K.spr = sprite('U_' + amount) || K.spr; K.size = 84; K.life = 40; K.white = true;
       K.label = textMesh(buff.name, 24, h, 0.8); this.scene.add(K.label);
     }
+    if (nade) { K.color = lin(...nade.color); K.size = 58; K.label = textMesh(nade.name.toUpperCase() + ' GRENADE', 20, nade.hex, 0.8); this.scene.add(K.label); }
     if (power) {
       const c = K.color;
       K.label = textMesh(PICKUP_NAMES[type], 26, `rgb(${c.map((x) => Math.round(x * 255)).join(',')})`, 0.8);

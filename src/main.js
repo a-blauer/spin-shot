@@ -48,7 +48,7 @@ document.addEventListener('pointerlockchange', () => { if (document.pointerLockE
 
 // ------------------------------------------------------------------ input
 const keys = new Set();
-const edges = { jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
+const edges = { grenade: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
 let mouseL = false, mouseR = false, lookX = 0, lookY = 0;
 let settings = {};
 try { settings = JSON.parse(localStorage.getItem('dmh-settings') || '{}') || {}; } catch (e) { settings = {}; }
@@ -70,7 +70,8 @@ function onKey(e, down) {
       case 'KeyR': edges.reload = 1; break;
       case 'KeyE': edges.interact = 1; break;
       case 'KeyB': edges.barricade = 1; break;
-      case 'KeyV': case 'KeyQ': edges.melee = 1; break;
+      case 'KeyQ': edges.melee = 1; break;
+      case 'KeyV': edges.grenade = 1; break;
       case 'Tab': edges.back = 1; break;
       case 'Digit1': edges.choice[0] = 1; break;
       case 'Digit2': edges.choice[1] = 1; break;
@@ -116,7 +117,7 @@ function readInput() {
     fire: mouseL || touchFire, aim: mouseR || touchAim,
     lookX: lookX * sens(), lookY: lookY * sens(),
     jump: edges.jump, slide: edges.slide, slideUp: edges.slideUp, dash: edges.dash, grapple: edges.grapple, reload: edges.reload,
-    interact: edges.interact, barricade: edges.barricade, melee: edges.melee, back: edges.back, next: edges.next, prev: edges.prev, firePressed: edges.firePressed, choice: edges.choice.slice(),
+    interact: edges.interact, barricade: edges.barricade, melee: edges.melee, grenade: edges.grenade, back: edges.back, next: edges.next, prev: edges.prev, firePressed: edges.firePressed, choice: edges.choice.slice(),
   };
   if (window.__dmhInput) Object.assign(In, window.__dmhInput(In) || {});
   lookX = lookY = 0;
@@ -392,6 +393,7 @@ if (TOUCH) {
   btn('tuse', 'USE', 'sm', () => { edges.interact = 1; });
   btn('tbar', 'BARR', 'sm', () => { edges.barricade = 1; });
   btn('tmelee', 'MELEE', '', () => { edges.melee = 1; });
+  btn('tgren', 'NADE', 'sm', () => { edges.grenade = 1; });
   btn('thook', 'HOOK', 'sm', () => { edges.grapple = 1; });
   btn('tswap', 'SWAP', 'sm', () => { edges.next = 1; });
   btn('ttab', 'TAB', 'sm', () => { edges.back = 1; });

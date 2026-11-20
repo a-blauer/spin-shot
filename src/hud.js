@@ -1,6 +1,7 @@
 // Sulfur-style HUD drawn on a 2D canvas: chunky condensed type with dark outlines, bone-white and saloon-gold
 // panels with clipped corners. Crosshair with spread/kick, hit markers, damage arcs, floating numbers,
 // banners, toasts, boss bar, power-up timers, casino menus (with live slot reels), inventory and death card.
+import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
 
@@ -437,7 +438,11 @@ export class Hud {
     }
     // melee weapon, with the three-swing chain
     { const MW = MELEE[P.meleeDef || 0]; this.text(MW.name.toUpperCase(), x, y - 232 * S, 26 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.1); const tw = this.measure(MW.name.toUpperCase(), 26 * S, F_BIG);
-      this.key('V', x - tw - 38 * S, y - 241 * S, 24 * S);
+      this.key('Q', x - tw - 38 * S, y - 241 * S, 24 * S);
+      // grenades: what V throws next, and how many are on the belt
+      { const n = P.grenades.length, N = n ? GRENADES[P.grenades[n - 1]] : null, label = N ? `${N.name.toUpperCase()}  x${n}` : 'NO GRENADES';
+        this.text(label, x, y - 270 * S, 22 * S, N ? N.hex : 'rgba(255,255,255,0.35)', 'right', F_BIG, 400, 0.1);
+        this.key('V', x - this.measure(label, 22 * S, F_BIG) - 38 * S, y - 278 * S, 22 * S); }
       for (let i = 0; i < 3; i++) { g.fillStyle = P.meleeComboT > 0 && i <= P.meleeCombo ? (i === 2 ? '#ffb347' : BONE) : 'rgba(255,255,255,0.18)'; g.fillRect(x - 14 * S - i * 18 * S, y - 226 * S, 14 * S, 5 * S); } }
     // name + class/tier
     this.text(Wd.name.toUpperCase(), x, y - 104 * S, 34 * S, RARITY_HEX[Wd.rarity], 'right', F_BIG, 400, 0.12);
@@ -596,7 +601,7 @@ export class Hud {
     this.helpT = (this.helpT || 0) + dt;
     if (game.round > 1 || this.helpT > 900 || game.player.menu) return;   // shown for the first round only
     const a = 1;
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['V', 'melee'], ['E', 'use'], ['TAB', 'upgrades'], ['B', 'barricade (in casino)']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades'], ['B', 'barricade (in casino)']];
     const x = 44 * S, rh = 34 * S, w = 300 * S;
     let y = H * 0.27;
     const tip = [];
@@ -915,7 +920,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('PAUSED', W / 2, cy, 120 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Click to resume', W / 2, cy + 52 * S, 26 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['V', 'melee'], ['E', 'use'], ['1-4', 'weapons'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['1-4', 'weapons'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
     const cols = 3, cw = 300 * S, rh = 42 * S, x0 = W / 2 - (cols * cw) / 2, y0 = cy + 110 * S;
     this.panel(x0 - 24 * S, y0 - 36 * S, cols * cw + 48 * S, Math.ceil(rows.length / cols) * rh + 40 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.85)', 12 * S);
     rows.forEach(([k, d], i) => {

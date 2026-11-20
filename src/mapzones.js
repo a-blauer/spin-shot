@@ -188,7 +188,7 @@ export function BuildMotel(M, GM) {
 	JumpPad(V(-3600., -4700., 0.), V(-3600., -5600., 380.));
 
 	WallBuy("Saloon Six", V(-5098., -4400., 0.), 0.);
-	WallBuy("Penny Pusher", V(-3200., -5198., 0.), 90.);
+	WallBuy("Hornet's Nest", V(-3200., -5198., 0.), 90.);
 
 	SpawnAt(V(-2400., -2500., 0.), 0);
 	SpawnAt(V(-2200., -5700., 0.), 0);
@@ -286,8 +286,8 @@ export function BuildMainStreet(M, GM) {
 	JumpPad(V(-4250., 2800., 0.), V(-5550., 3400., 960.));
 	JumpPad(V(-3500., -1300., 0.), V(-2500., -1100., 460.));
 
-	WallBuy("Back-Alley", V(-3002., 1300., 0.), 180.);
-	WallBuy("Sawbuck", V(-5098., 300., 0.), 0.);
+	WallBuy("Iron Mule", V(-3002., 1300., 0.), 180.);
+	WallBuy("Dynamite Dan", V(-5098., 300., 0.), 0.);
 
 	SpawnAt(V(-4000., -1700., 0.), 1);
 	SpawnAt(V(-4800., 1000., 0.), 1);
@@ -397,7 +397,7 @@ export function BuildChapel(M, GM) {
 	// Crypts
 	Mausoleum(V(-1500., -4700., 0.), 480., 520., 360., 0., "BLACKWOOD");
 	Mausoleum(V(900., -3200., 0.), 560., 520., 400., 180., "VAN DER LUCK");
-	WallBuy("Quarter Horse", V(648., -2980., 0.), 180.);
+	WallBuy("Frostbite Beam", V(648., -2980., 0.), 180.);
 
 	DeadTree(V(-1200., -5300., 0.), 520.);
 	DeadTree(V(1600., -2500., 0.), 460.);

@@ -15,6 +15,7 @@ const RADIUS = 38, HALF = 90;
 const UP = new THREE.Vector3(0, 1, 0);
 const SLOT_STRIP = [0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 4, 0, 1, 6, 2];
 import { gunSound } from './gunsound.js';
+import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wheel wedge or shop offer can be a gun index or a melee code
@@ -70,7 +71,7 @@ export class Player {
       fireCd: 0, bloom: 0, reloading: false, reloadT: 0, reloadDur: 0, fireConsumed: false, procDepth: 0,
       eyeZ: 66, landDip: 0, landDipVel: 0, bobPhase: 0, footDist: 0, camRoll: 0, camKick: new THREE.Vector2(), camKickVel: new THREE.Vector2(),
       shake: 0, shakeT: 0, fovKick: 0, fov: 100, killPulse: 0, crossKick: 0, damageInd: [], heartbeat: 0, revives: 0, lastRound: 1,
-      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], tonicLevels: new Array(8).fill(0), menu: null, menuStation: null, menuTick: 0, focus: null,
+      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], grenades: [0, 0], grenadeCd: 0, gzones: [], tonicLevels: new Array(8).fill(0), menu: null, menuStation: null, menuTick: 0, focus: null,
       showInventory: false, input: null, lookDelta: { x: 0, y: 0 }, launchedT: 0,
     });
   }
@@ -212,6 +213,7 @@ export class Player {
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${amount}`, '#ffd23a'); this.play('S_Cash', 0.8); }
     else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { this.addMoney(250, true); this.toast('Already maxed  +$250', '#ffd23a'); } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
+    else if (type === 'Grenade') { const N = GRENADES[amount]; if (this.grenades.length >= GRENADE_MAX) this.grenades.shift(); this.grenades.push(amount); this.toast(`${N.name} grenade  -  ${N.desc}`, N.hex); this.play('S_MagIn', 0.8, 0.8); }
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
     else { this.play('S_PowerUp', 0.9); this.game.activatePowerup(type); }
   }
@@ -271,6 +273,8 @@ export class Player {
     if (In.interact) this.interact();
     if (In.barricade) this.game.toggleBarricade();
     if (In.melee && !menu) this.meleeBuffer = 0.22;
+    if (In.grenade && !menu) this.throwGrenade();
+    this.tickGrenades(dt);
     this.tickMelee(dt, menu);
     if (In.back) { if (menu) this.closeMenu(); else this.showInventory = !this.showInventory; }
     if (In.next) this.cycleWeapon(1);
@@ -711,6 +715,39 @@ export class Player {
     }
     out.sort((a, b) => a[0] - b[0]);
     return out.map((o) => o[1]);
+  }
+  // ---- grenades (V): thrown in an arc, bounce, and go off on a fuse or on the first enemy they touch ----
+  throwGrenade() {
+    if (this.dead || this.grenadeCd > 0) return;
+    if (!this.grenades.length) { this.toast('No grenades. Enemies drop them.', '#ccc'); this.play('S_Deny', 0.5); this.grenadeCd = 0.4; return; }
+    const t = this.grenades.pop(), N = GRENADES[t], G = this.game;
+    const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
+    const from = this.eye().addScaledVector(dir, 40).add(V3(0, -12, 0));
+    G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1200).add(V3(0, 260, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: N.radius, gtype: t, gravity: 1, bounces: 3, bounceDamp: 0.45, fuse: 1.3, life: 4, kind: 'Grenade', radius: 12, color: N.color, procCoef: 0, fromProc: true });
+    this.grenadeCd = 0.7; this.play('S_Dash', 0.5, 1.3); if (G.vm.jolt) G.vm.jolt(1.2);
+  }
+  grenadeDamage(mult) { return Math.max(250, zombieHealth(this.game.round) * mult) * (1 + this.stat('Damage') * 0.5); }   // keeps pace with the round
+  grenadeBlast(t, at, P) {
+    const N = GRENADES[t], G = this.game, R = N.radius * (1 + this.stat('ExplosionRadius')), dmg = this.grenadeDamage(N.dmg);
+    const near = () => G.enemies.filter((E) => !E.dead && !E.burrowed && E.pos.distanceTo(at) < R + 40 * E.bodyScale);
+    this.explodeAt(at, R, dmg, 0, true, false, N.color, null);
+    if (t === 1) { this.gzones.push({ at: at.clone(), r: R * 0.85, t: 6, tick: 0, dps: dmg * 0.45 }); for (const E of near()) E.applyBurn(dmg * 0.25, 4); }
+    else if (t === 2) { for (const E of near()) E.applySlow(E.isBoss ? 0.35 : 0.75, E.isBoss ? 3 : 6); G.fx.ring(at, R, N.color, 0.6); }
+    else if (t === 3) { const L = near(); let prev = null; for (const E of L) { if (!E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 2.5); E.applySlow(0.9, 2.5); } if (prev) G.fx.arc(prev.pos, E.pos, N.color); prev = E; } G.fx.ring(at, R, N.color, 0.4); }
+    else if (t === 4 && !(P && P.child)) for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
+  }
+  tickGrenades(dt) {
+    if (this.grenadeCd > 0) this.grenadeCd -= dt;
+    const G = this.game;
+    for (let i = this.gzones.length - 1; i >= 0; i--) {
+      const Z = this.gzones[i]; Z.t -= dt; Z.tick -= dt;
+      if (Z.tick <= 0) {
+        Z.tick = 0.5;
+        for (const E of G.enemies) if (!E.dead && !E.burrowed && Math.hypot(E.pos.x - Z.at.x, E.pos.z - Z.at.z) < Z.r && Math.abs(E.pos.y - Z.at.y) < 260) this.dealDamage(E, Z.dps * 0.5, E.pos, V3(0, 0, 0), false, 0, true, 0, Z.dps * 0.3, 0, 0, [1, 0.6, 0.2]);
+        for (let k = 0; k < 5; k++) { const a = Math.random() * 6.28, r = Math.random() * Z.r; G.fx.add({ pos: V3(Z.at.x + Math.cos(a) * r, Z.at.y + 10, Z.at.z + Math.sin(a) * r), vel: V3(0, 120, 0), drag: 1, gravity: -120, life: 0.6, size0: 50, size1: 120, rot: Math.random() * 360, rotVel: 90, c0: [1, 0.85, 0.4, 1], c1: [1, 0.3, 0.05, 1], fadeOut: 0.5, tex: 'FX_Flame', glow: 0.9 }); }
+      }
+      if (Z.t <= 0) this.gzones.splice(i, 1);
+    }
   }
   meleeSwing() {
     const W = MELEE[this.meleeDef], sp = this.meleeSpeed();
