@@ -1,6 +1,5 @@
 // Game mode (port of ADMHGameMode): rounds, spawning, nav flow field, zones & doors, casino nights,
 // drops and power-ups. Also owns every subsystem and the frame update order.
-import { C3D } from './creature3d.js';
 import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
@@ -626,7 +625,6 @@ export class Game {
     this.pickups.update(dt);
     for (const I of this.interactables) I.update(dt);
     this.fx.update(dt);
-    C3D.tick(dt);
     // zone atmosphere
     const z = this.zoneAt(P.pos);
     if (z >= 0) this.zone = z;
@@ -745,9 +743,7 @@ export class Game {
     for (const b of Object.values(B)) b.begin();
     this.env.drawSky(B.fx, cam.position);
     this.fx.draw();
-    C3D.init(this.scene); C3D.begin();
     for (const E of this.enemies) E.draw(B);
-    C3D.drawGibs(); C3D.end();
     this.projectiles.draw(B.add);
     this.pickups.draw(B.sprite, B.add);
     this.drawCable(B.add);

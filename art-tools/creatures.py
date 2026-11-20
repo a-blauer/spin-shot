@@ -1,7 +1,8 @@
 """
 Dead Man's Hand creature art, drawn the way Sulfur draws its enemies: FRONT-FACING flat vector cut-outs built
 from a few bold, simple shapes. Big heads, stubby limbs, mitten hands, dot eyes, blocky teeth; flat fills with
-one hard shadow tone, no outlines, no gradients, muted palettes with a single accent. Cute, then gory.
+one hard shadow tone, no outlines, no gradients, muted palettes with a single accent. Same style, but nothing here
+is cute any more: sunken sockets, scowling lids, torn mouths of pointed teeth, clawed hands.
 
 Creature space: y up, feet at y=0, x is the creature's left/right as seen from the front, 1 unit = 0.5 cm.
 Each Part has a pivot; roles drive the in-game puppet animation ("Back" = viewer's left, "Front" = viewer's right).
@@ -60,46 +61,68 @@ def rrect(cx, cy, w, h, r, n=5):
     return pts
 
 
+SOCKET = '#241a20'
+
+
 def eyes(p, clip, cx, cy, gap, r, col='#f4e7a8', pupil=INK, pr=0.42, r2=None, brow=None, tilt=0.5, look=(0, -0.12)):
-    """Two simple disc eyes; `brow` colour adds slanted angry lids."""
+    """Sunken, scowling eyes: a dark socket, a small dull eye set deep in it, a pinprick pupil, and a hard lid of
+    shadow that slants down toward the nose. Nothing round and bright is left to read as friendly."""
     for s, rr in ((-1, r2 or r), (1, r)):
         x = cx + s * gap
-        p.circle(x, cy, rr, col)
+        sd = p.flat(ellipse(x, cy + rr * 0.04, rr * 1.28, rr * 1.12, n=14), SOCKET)
+        er = rr * 0.62
+        ex, ey = x - s * rr * 0.1, cy - rr * 0.16
+        p.clipped(sd, ellipse(ex, ey, er, er, n=14), mixc(col, INK, 0.14))
         if pupil:
-            p.circle(x + rr * look[0], cy + rr * look[1], rr * pr, pupil)
-        if brow:
-            lid = [(x - s * rr * 1.5, cy + rr * (1.0 - tilt * 1.5)), (x + s * rr * 1.5, cy + rr * (1.0 + tilt * 0.4)),
-                   (x + s * rr * 1.5, cy + rr * 2.2), (x - s * rr * 1.5, cy + rr * 2.2)]
-            p.clipped(clip, lid, brow, smooth=False)
+            p.clipped(sd, ellipse(ex + er * look[0], ey + er * look[1], er * 0.3, er * 0.3, n=8), pupil)
+        lid = [(x - s * rr * 1.7, cy - rr * (0.1 + tilt * 0.3)), (x + s * rr * 1.7, cy + rr * (0.55 + tilt * 0.5)),
+               (x + s * rr * 1.7, cy + rr * 2.2), (x - s * rr * 1.7, cy + rr * 2.2)]
+        p.clipped(sd, lid, SOCKET, smooth=False)
+        # a heavy brow ridge above the socket
+        ridge = [(x - s * rr * 1.5, cy + rr * 0.55), (x + s * rr * 1.45, cy + rr * 1.25), (x + s * rr * 1.45, cy + rr * 1.55), (x - s * rr * 1.5, cy + rr * 1.0)]
+        p.clipped(clip, ridge, SOCKET, smooth=False, opacity=0.55)
 
 
 def mouth(p, clip, cx, cy, w, h, top=3, bot=0, col='#2a1216', tooth=BONE, r=None, tw=0.62, th=0.42, tongue=None):
-    """Dark rounded mouth with blocky teeth."""
-    d = p.flat(rrect(cx, cy, w, h, r if r is not None else min(w, h) * 0.35), col, smooth=False)
-    if tongue:
-        p.clipped(d, ellipse(cx, cy - h * 0.55, w * 0.34, h * 0.5, n=12), tongue)
+    """A torn dark mouth full of uneven, pointed, stained teeth, with blood along the lower lip. No tongues."""
+    w, h = w * 1.06, h * 1.12
+    d = p.flat(rrect(cx, cy, w, h, r if r is not None else min(w, h) * 0.28), col, smooth=False)
+    rnd = random.Random(int(cx * 7 + cy * 13 + w * 3))
+    stain = mixc(tooth, '#a8905c', 0.3)
+    p.clipped(d, rect(cx - w * 0.5, cy - h * 0.5, cx + w * 0.5, cy - h * 0.5 + h * 0.2), BLOOD, smooth=False)
     for n, up in ((top, True), (bot, False)):
         if not n:
             continue
-        cw = w * 0.86 / n
-        for i in range(n):
-            tx = cx - w * 0.43 + cw * (i + 0.5)
-            y0, y1 = (cy + h / 2 - h * th, cy + h / 2 + 2) if up else (cy - h / 2 - 2, cy - h / 2 + h * th * 0.8)
-            p.clipped(d, rect(tx - cw * tw / 2, y0, tx + cw * tw / 2, y1), tooth, smooth=False)
+        n2 = n + 2
+        cw = w * 0.92 / n2
+        for i in range(n2):
+            if rnd.random() < 0.16:
+                continue                                   # a missing tooth
+            tx = cx - w * 0.46 + cw * (i + 0.5)
+            L = h * th * (1.0 + rnd.random() * 0.9)
+            lean = (rnd.random() - 0.5) * cw * 0.35
+            if up:
+                tri = [(tx - cw * 0.44, cy + h / 2 + 2), (tx + cw * 0.44, cy + h / 2 + 2), (tx + lean, cy + h / 2 - L)]
+            else:
+                tri = [(tx - cw * 0.44, cy - h / 2 - 2), (tx + cw * 0.44, cy - h / 2 - 2), (tx + lean, cy - h / 2 + L * 0.8)]
+            p.clipped(d, tri, stain if rnd.random() < 0.5 else tooth, smooth=False)
     return d
 
 
 def hand(p, c, r, col, ang=-90, fingers=3, claw=None, spread=34, flen=0.95):
-    """Mitten hand: a round palm with stubby fingers fanning along `ang` (degrees)."""
+    """A bony hand: a small palm, long thin fingers fanning along `ang` (degrees), every one ending in a dark nail."""
     a = math.radians(ang)
+    claw = claw or shade(col, 0.42)
+    flen = flen * 1.25
+    spread = spread * 1.12
     for i in range(fingers):
         fa = a + math.radians((i - (fingers - 1) / 2) * spread)
         b = (c[0] + math.cos(fa) * r * 0.55, c[1] + math.sin(fa) * r * 0.55)
         e = (c[0] + math.cos(fa) * r * (0.9 + flen), c[1] + math.sin(fa) * r * (0.9 + flen))
         if claw:
             p.flat(path_limb([lerp(b, e, 0.55), (c[0] + math.cos(fa) * r * (1.5 + flen), c[1] + math.sin(fa) * r * (1.5 + flen))], [r * 0.2, r * 0.03], n_end=4), claw)
-        p.shape(path_limb([b, e], [r * 0.3, r * 0.25], n_end=6), col, lit=False)
-    S(p, ellipse(c[0], c[1], r, r * 0.92, n=16), col)
+        p.shape(path_limb([b, e], [r * 0.26, r * 0.16], n_end=6), col, lit=False)
+    S(p, ellipse(c[0], c[1], r * 0.9, r * 0.84, n=16), col)
 
 
 def fist(p, c, r, col, ring=None):
@@ -327,9 +350,16 @@ def leaper():
     hd = S(h, M([(0, 232), (60, 228), (118, 196), (124, 158), (84, 126), (0, 118)]), skin)
     for s in (-1, 1):
         S(h, ellipse(s * 66, 232, 34, 32, n=16), skin)
-        h.circle(s * 66, 234, 23, '#f2d84a'); h.flat(rrect(s * 66, 234, 30, 9, 4), INK, smooth=False)
+        sd = h.flat(ellipse(s * 66, 234, 25, 22, n=14), SOCKET)
+        h.clipped(sd, ellipse(s * 63, 230, 14, 14, n=12), '#c9ac3c'); h.clipped(sd, rrect(s * 63, 230, 5, 24, 2), INK, smooth=False)
+        h.clipped(sd, [(s * 26, 232), (s * 106, 250), (s * 106, 270), (s * 26, 270)], SOCKET, smooth=False)
     md = h.flat(M([(0, 176), (96, 184), (92, 166), (0, 150)]), '#3a1620')
-    h.flat(path_limb([(20, 160), (30, 128), (22, 100)], [12, 11, 14]), '#e0607a')
+    for i, x in enumerate(range(-84, 85, 14)):
+        L = 14 + (i * 7 % 11)
+        h.clipped(md, [(x - 6, 186), (x + 6, 186), (x + (i % 3 - 1) * 2, 186 - L - abs(x) * 0.06)], BONE if i % 3 else '#c9b88c', smooth=False)
+        if i % 2: h.clipped(md, [(x - 5, 148), (x + 5, 148), (x, 148 + L * 0.7)], '#c9b88c', smooth=False)
+    h.clipped(md, rect(-100, 148, 100, 154), BLOOD, smooth=False)
+    h.flat(path_limb([(22, 152), (26, 130), (23, 112)], [5, 4, 2.5]), BLOOD)
     parts.append(h)
     parts.append(arm(cn, -1, (-50, 96), (-70, 50), (-52, 16), 16, 13, skin, skin, 18, ang=-90))
     parts.append(arm(cn, 1, (50, 96), (70, 50), (52, 16), 16, 13, skin, skin, 18, ang=-90))
@@ -447,10 +477,11 @@ def burrower():
     eyes(h, hd, 0, 84, 26, 6, col=INK, pupil=None)
     for i in range(8):
         a = 2 * math.pi * i / 8
-        h.flat(path_limb([(0, 46), (math.cos(a) * 20, 46 + math.sin(a) * 20)], [5, 3]), '#f08aa0')
-    h.circle(0, 46, 9, '#d8607c')
-    md = h.flat(rrect(0, 20, 34, 10, 4), '#2a1216', smooth=False)
-    h.flat(rect(-8, 14, -1, 26), BONE, smooth=False); h.flat(rect(1, 14, 8, 26), BONE, smooth=False)
+        h.flat(path_limb([(0, 46), (math.cos(a) * 17, 46 + math.sin(a) * 17)], [4, 1.5]), '#7a3a40')
+    h.circle(0, 46, 8, '#3a1c22')
+    md = h.flat(rrect(0, 22, 44, 16, 4), '#2a1216', smooth=False)
+    h.flat([(-10, 30), (-1, 30), (-4, 2)], '#d9c79a', smooth=False); h.flat([(1, 30), (10, 30), (5, 0)], BONE, smooth=False)
+    for x in (-17, 17): h.clipped(md, [(x - 4, 31), (x + 4, 31), (x, 18)], BONE, smooth=False)
     parts.append(h)
     for s in (-1, 1):
         a = arm(cn, s, (s * 96, 70), (s * 140, 60), (s * 146, 30), 22, 20, fur, fur, 26, ang=-90 + s * 10, fingers=4, claw=BONE, spread=24, flen=0.4)
@@ -624,10 +655,14 @@ def abomination():
     mouth(h, hd, 10, 360, 70, 22, top=5, bot=4, th=0.5)
     parts.append(h)
     pr = part(cn + '_Prop', PROP, (-110, 340), 1.5)                                      # pig head on the shoulder
-    pd = S(pr, rrect(-118, 376, 92, 82, 36), '#e0a0a8', smooth=False)
-    P(pr, [(-158, 400), (-150, 436), (-130, 412)], '#e0a0a8'); P(pr, [(-78, 400), (-86, 436), (-106, 412)], '#e0a0a8')
-    pr.circle(-136, 386, 6, INK); pr.circle(-100, 386, 6, INK)
-    S(pr, ellipse(-118, 362, 22, 15, n=12), '#f0b8c0'); pr.circle(-126, 362, 4.5, '#8a4050'); pr.circle(-110, 362, 4.5, '#8a4050')
+    pd = S(pr, rrect(-118, 376, 92, 82, 36), '#c98f98', smooth=False)
+    P(pr, [(-158, 400), (-150, 436), (-130, 412)], '#c98f98'); P(pr, [(-78, 400), (-86, 436), (-106, 412)], '#c98f98')
+    for ex in (-136, -100):
+        pr.flat(ellipse(ex, 386, 10, 9, n=10), SOCKET); pr.flat([(ex - 6, 390), (ex + 6, 382), (ex + 5, 380), (ex - 7, 388)], '#8a4050', smooth=False); pr.flat([(ex - 6, 382), (ex + 6, 390), (ex + 5, 392), (ex - 7, 384)], '#8a4050', smooth=False)
+    S(pr, ellipse(-118, 362, 22, 15, n=12), '#c9949c'); pr.circle(-126, 362, 4.5, '#5a2030'); pr.circle(-110, 362, 4.5, '#5a2030')
+    pr.clipped(pd, rect(-170, 336, -60, 346), '#5a2030', smooth=False)
+    for sx in range(-158, -76, 14): pr.clipped(pd, rect(sx, 330, sx + 3, 352), INK, smooth=False)
+    splat(pr, pd, (-150, 404), 16, seed=5)
     parts.append(pr)
     parts.append(arm(cn, -1, (-160, 300), (-216, 210), (-200, 120), 40, 30, c_, c_, 36, ang=-90, claw=BONE, fingers=3))
     a = arm(cn, 1, (160, 300), (214, 230), (220, 170), 40, 30, b_, b_, 0, kind='none')

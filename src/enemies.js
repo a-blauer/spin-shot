@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 import { DATA, AFFIX, ENEMY_CREATURES, BOSS_CREATURES, zombieHealth, effRound, payScale, hexRGB, lerp3, lin, frandRange, randInt } from './data.js';
 import { Puppet } from './puppet.js';
-import { Creature3D } from './creature3d.js';
 
 const GRAV = 980 * 1.6;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -93,7 +92,7 @@ export class Enemy {
     if (this.elite) { tint = lerp3([1, 1, 1], this.accent(), 0.22); auraSize = 230; }
     if (this.isBoss) { auraSize = 300; aura = lin(1, 0.25, 0.1); }
     if (splitChild) tint = lerp3(tint, [0.75, 1, 0.6], 0.25);
-    this.puppet = new Creature3D(creature, this.bodyScale, tint, aura, auraSize, this.isBoss ? null : D);
+    this.puppet = new Puppet(creature, this.bodyScale, tint, aura, auraSize);
     // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
     { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
       this.hitR = Math.max(this.radius, w * this.puppet.baseScale * 0.58); this.hitH = Math.max(this.half * 2, this.puppet.heightCm);
@@ -616,7 +615,7 @@ export class Enemy {
         if (arm) {
           this.armLost = true; this.attackDamage *= 0.75;
           const loc = this.puppet.partWorld(arm), hd = fromDir.lengthSq() > 0 ? fromDir.clone().normalize() : new THREE.Vector3(0, 1, 0);
-          this.puppet.throwPart(arm, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160));
+          this.game.fx.debris(arm.tex, loc, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160), arm.size[1] * this.bodyScale * 0.8, 8, frandRange(-600, 600), true, arm.spr, 'creature', this.puppet.facing < 0);
           this.game.fx.fleshHit(loc, hd, this.bodyScale * 1.2, true);
           this.game.fx.bloodPool(this.pos, 60 * this.bodyScale);
         }
@@ -643,21 +642,20 @@ export class Enemy {
       const head = this.puppet.popHead();
       if (head) {
         const v = hitDir.clone().multiplyScalar(420).add(new THREE.Vector3(0, 650, 0)).addScaledVector(randDir(), 120);
-        this.puppet.throwPart(head, v);
+        G.fx.debris(head.tex, headLoc, v, head.size[0] * this.bodyScale * 0.8, 8, frandRange(-700, 700), true, head.spr, 'creature', this.puppet.facing < 0);
       }
       G.fx.fleshHit(headLoc, hitDir, this.bodyScale * 1.4, true);
       G.fx.gibs(headLoc, this.bodyColor, this.bodyScale * 0.6, 4);
     }
     if (this.gibbed) {
       G.fx.gibs(loc, this.bodyColor, this.bodyScale, this.isBoss ? 34 : this.elite ? 16 : 10);
-      this.puppet.burst(hitDir);
       this.puppet.visible = false;
       G.audio.playAt('S_Gib', loc, 1, 1, 0.1);
     } else {
       G.fx.fleshHit(loc, hitDir, this.bodyScale, true);
       G.fx.bloodPool(loc, 110 * this.bodyScale);
       { const limb = this.puppet.popPart(['ArmFront', 'ArmBack', 'LegFront', 'LegBack']);   // something always comes off
-        if (limb) this.puppet.throwPart(limb, hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200)); }
+        if (limb) G.fx.debris(limb.tex, this.puppet.partWorld(limb), hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200), limb.size[1] * this.bodyScale * 0.8, 8, frandRange(-600, 600), true, limb.spr, 'creature', this.puppet.facing < 0); }
       this.puppet.startDeath(hitDir);
       G.audio.playAt('S_EnemyDie', loc, 0.8, Math.min(1.3, Math.max(0.7, 1.1 / Math.max(this.bodyScale, 0.5))), 0.12);
     }
