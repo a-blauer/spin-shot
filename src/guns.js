@@ -28,14 +28,14 @@ const FEEL_CLASS = {
   Shotgun: { pos: 1.9, rise: 1.15, side: 0.8, k: 170, d: 16, shake: 0.28, weight: 1.15, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: 'shot', reload: 'shell', rp: [12, -12, 26], shells: 3, cam: { up: 1.8, snap: 2.1, side: 0.4, fov: 3 }, flash: 1.5 },
   LMG: { pos: 0.8, rise: 0.5, side: 1.9, k: 260, d: 20, shake: 0.06, weight: 1.7, hip: [-2, 0.5, -1.5, 0, -2, -7], action: 'recip', cycle: 0.07, shell: 'rifle', reload: 'box', rp: [4, -18, 34], charge: 'handle', cam: { up: 0.45, snap: 0.6, side: 0.3, taper: 0.12 }, flash: 1.2, draw: 'heavy' },
   Sniper: { pos: 2.6, rise: 0.85, side: 0.5, k: 120, d: 13, shake: 0.4, weight: 1.4, hip: [-1, 0, -0.5, 0, -1.5, -6], action: 'none', shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', cam: { up: 2.4, snap: 2.9, side: 0.2, fov: 4 }, flash: 1.5 },
-  Launcher: { pos: 2.5, rise: 1, side: 0.6, k: 110, d: 12, shake: 0.45, weight: 1.6, hip: [-2, 0, -2, 0, -2, -6], action: 'none', shell: null, reload: 'muzzle', rp: [30, -16, 16], cam: { up: 1.5, snap: 1.8, side: 0.3, fov: 3.5 }, flash: 1.6, draw: 'heavy' },
+  Launcher: { pos: 2.5, rise: 1, side: 0.6, k: 110, d: 12, shake: 0.45, weight: 1.6, hip: [-2, 0, -2, 0, -2, -6], action: 'load', cycle: 0.55, shell: null, reload: 'muzzle', rp: [30, -16, 16], cam: { up: 1.5, snap: 1.8, side: 0.3, fov: 3.5 }, flash: 1.6, draw: 'heavy' },
   Energy: { pos: 0.3, rise: 0.22, side: 0.8, k: 300, d: 24, shake: 0, weight: 1, hip: [0, 0, 0, 0, -1.5, -6], action: 'pulse', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.35, snap: 0.5, side: 0.2 }, flash: 1 },
   Wonder: { pos: 1, rise: 1, side: 1, k: 220, d: 18, shake: 0.15, weight: 1.1, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.5, snap: 0.5, side: 0.2 }, flash: 1 },
 };
 const FEEL_GUN = {
   // --- pistols
-  'Tin Star': { action: 'revolver', cycle: 0.17, reload: 'revolver', rp: [24, -22, 62], flourish: 'spin', draw: 'spin', shell: null, rise: 1.6, k: 380, d: 24, cam: { up: 0.7, snap: 1.4, side: 0.15 }, flash: 1 },
-  'Saloon Six': { action: 'revolver', cycle: 0.3, reload: 'revolver', rp: [26, -24, 66], draw: 'spin', shell: null, weight: 0.85, pos: 1.7, rise: 2.4, k: 190, d: 16, shake: 0.22, cam: { up: 1.7, snap: 2.8, side: 0.3, fov: 3 }, flash: 1.6 },
+  'Tin Star': { action: 'revolver', cycle: 0.17, reload: 'revolver', rp: [24, -22, 62], shell: null, rise: 1.6, k: 380, d: 24, cam: { up: 0.7, snap: 1.4, side: 0.15 }, flash: 1 },
+  'Saloon Six': { action: 'revolver', cycle: 0.3, reload: 'revolver', rp: [26, -24, 66], shell: null, weight: 0.85, pos: 1.7, rise: 2.4, k: 190, d: 16, shake: 0.22, cam: { up: 1.7, snap: 2.8, side: 0.3, fov: 3 }, flash: 1.6 },
   'Penny Pusher': { pos: 0.55, rise: 0.5, side: 2.2, k: 420, cycle: 0.05, weight: 0.7, cam: { up: 0.2, snap: 0.35, side: 0.36, pat: 'zig', taper: 0.04 }, flash: 0.7 },
   'Snake Eyes': { twin: true, reload: 'twin', side: 1.5, rise: 1.1, cycle: 0.08, cam: { up: 0.4, snap: 0.7, side: 0.42, pat: 'zig' }, flash: 0.8 },
   // --- SMGs
@@ -59,16 +59,16 @@ const FEEL_GUN = {
   Widowmaker: { action: 'bolt', cycle: 0.72, shellAt: 0.42, cam: { up: 2.3, snap: 3.2, side: 0.2, fov: 4 } },
   'Railroad Spike': { pos: 3.4, rise: 0.6, k: 85, d: 11, shake: 0.6, weight: 1.7, action: 'pulse', shell: null, reload: 'cell', rp: [10, -16, 36], chargeUp: 0.28, cam: { up: 0.8, snap: 4.6, side: 0.1, fov: 6 }, flash: 1.8, flashTint: [0.55, 0.85, 1] },
   // --- launchers
-  'Dynamite Dan': { hip: [-3, 1.5, -4.5, 0, -2, -6], pos: 1.6, rise: 1.2, k: 150, cam: { up: 1.6, snap: 2.1, side: 0.3, fov: 3 }, flash: 1.2 },
-  Boomtown: { hip: [-2, 2, -4.5, 0, -2, -6], pos: 2.2, rise: 0.8, k: 100, d: 11, weight: 1.9, cam: { up: 0.6, snap: 3, side: 0.2, fov: 4.5 }, flash: 2 },
-  'Fireworks Finale': { hip: [-2, 2, -4, 0, -2, -6], pos: 2.8, rise: 1.1, shake: 0.5, beats: 4, cam: { up: 1.2, snap: 2.2, side: 0.8, fov: 4 }, flash: 1.8, flashTint: [1, 0.7, 0.85] },
+  'Dynamite Dan': { cycle: 0.42, hip: [-3, 1.5, -4.5, 0, -2, -6], pos: 1.6, rise: 1.2, k: 150, cam: { up: 1.6, snap: 2.1, side: 0.3, fov: 3 }, flash: 1.2 },
+  Boomtown: { cycle: 0.7, hip: [-2, 2, -4.5, 0, -2, -6], pos: 2.2, rise: 0.8, k: 100, d: 11, weight: 1.9, cam: { up: 0.6, snap: 3, side: 0.2, fov: 4.5 }, flash: 2 },
+  'Fireworks Finale': { cycle: 0.6, hip: [-2, 2, -4, 0, -2, -6], pos: 2.8, rise: 1.1, shake: 0.5, beats: 4, cam: { up: 1.2, snap: 2.2, side: 0.8, fov: 4 }, flash: 1.8, flashTint: [1, 0.7, 0.85] },
   // --- energy
   'Tesla Coil': { side: 2.2, pos: 0.4, cam: { up: 0.1, snap: 0.3, side: 0.5, pat: 'rand' }, flash: 0.9 },
   "Will-o'-Wisp": { pos: 0.6, rise: 0.5, k: 200, d: 15, cam: { up: 0.25, snap: 0.6, side: 0.1 }, flash: 1 },
   'Frostbite Beam': { pos: 0.12, rise: 0.08, side: 0.5, cam: { up: 0.01, snap: 0.02, side: 0.04, pat: 'S' }, flash: 0.6 },
   'Hellfire Hose': { pos: 0.2, rise: 0.1, side: 1.4, weight: 1.4, cam: { up: 0.03, snap: 0.04, side: 0.06, pat: 'rand' }, flash: 0 },
   // --- wonder weapons
-  Buzzsaw: { pos: 4, rise: 2, side: 3, shake: 0.12, reload: 'mag', rp: [10, -12, 34], charge: 'rev', weight: 1.3, cam: { up: 0.4, snap: 0.9, side: 0.5, pat: 'zig' }, flash: 0 },
+  Buzzsaw: { action: 'saw', cycle: 0.3, pos: 4, rise: 2, side: 3, shake: 0.12, reload: 'mag', rp: [10, -12, 34], charge: 'rev', weight: 1.3, cam: { up: 0.4, snap: 0.9, side: 0.5, pat: 'zig' }, flash: 0 },
   'The House Always Wins': { pos: 4, rise: 3.4, shake: 0.25, reload: 'slot', rp: [6, -22, 30], action: 'reels', cam: { up: 0.9, snap: 1.3, side: 0.25, fov: 2 }, flash: 1.4, flashTint: [1, 0.9, 0.45] },
   "Dead Man's Hand": { pos: 3, rise: 3.2, side: 1.6, reload: 'deck', rp: [16, -12, 24], cam: { up: 0.8, snap: 1.1, side: 0.3, pat: 'zig' }, flash: 0 },
   'Black Cat': { action: 'bolt', cycle: 0.66, shellAt: 0.42, shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', weight: 1.3, pos: 9, rise: 5.5, k: 150, d: 15, shake: 0.3, cam: { up: 1.4, snap: 2, side: 0.12, fov: 3 }, flash: 0.25 },
@@ -183,8 +183,9 @@ function buildGunWith(vm, W, tier, PAL) {
       T(0.7, 7.3, cd, 6.6, PAL.steelL); T(0.5, 0.75, cd * 0.92, 6.6, PAL.steel);
       for (let i = 0; i < 6; i++) { const a = d2r(i * 60), c = Math.cos(a) * cd, s = Math.sin(a) * cd;
         T(2.4, 7.4, cd * 0.2, 6.6 + s * 0.44, PAL.steel, c * 0.44);                                  // flutes
-        T(0.3, 0.62, cd * 0.24, 6.6 + Math.sin(a + 0.52) * cd * 0.31, PAL.brass, Math.cos(a + 0.52) * cd * 0.31);   // cartridge rims, seen from behind
+        T(0.42, 0.6, cd * 0.2, 6.6 + Math.sin(a + 0.52) * cd * 0.31, PAL.black, Math.cos(a + 0.52) * cd * 0.31);    // empty chambers
       }
+      part('rims', 4, 0, 6.6, () => { for (let i = 0; i < 6; i++) { const a = d2r(i * 60) + 0.52; T(0.3, 0.66, cd * 0.24, 6.6 + Math.sin(a) * cd * 0.31, PAL.brass, Math.cos(a) * cd * 0.31); } });   // cartridge rims, seen from behind
     });
     vm.SpinPart = null;
     (oct ? O : T)(9, 9 + bl, bd, 7.4, frame);
@@ -198,7 +199,10 @@ function buildGunWith(vm, W, tier, PAL) {
     grip(-2.6, 3.4, gripCol, 12.5, o.rake || 22, 6, 4.4);
     for (const s of [-1, 1]) Ty(-4.4, -2.2, 1.5, 0.3, PAL.brass, s * 2.3);                      // grip screws
     guard(1.2, 2.8, o.guardCol || PAL.steelD, 7, 4.6);
-    vm.MagRoot = part('mag', 4, 0, 6.6, () => { T(-1.4, 0.2, cd * 0.62, 6.6, PAL.steelD); T(-2.2, -1.4, cd * 0.3, 6.6, PAL.steelL); for (let i = 0; i < 6; i++) { const a = d2r(i * 60 + 30); T(0.2, 3.6, cd * 0.2, 6.6 + Math.sin(a) * cd * 0.31, PAL.brass, Math.cos(a) * cd * 0.31); } });   // speedloader
+    vm.MagRoot = part('mag', 4, 0, 6.6, () => {   // speedloader: a knob and a disc holding six rounds
+      T(-1.4, 0.2, cd * 0.62, 6.6, PAL.steelD); T(-2.2, -1.4, cd * 0.3, 6.6, PAL.steelL);
+      part('loaderRounds', 4, 0, 6.6, () => { for (let i = 0; i < 6; i++) { const a = d2r(i * 60) + 0.52; T(0.2, 3.6, cd * 0.2, 6.6 + Math.sin(a) * cd * 0.31, PAL.brass, Math.cos(a) * cd * 0.31); } });
+    });
     Muzzle = V(9 + bl + 0.5, 0, 7.4); Sight = 11; Eject = V(4, 3, 7);
   };
   const autoPistol = (o) => {
@@ -262,7 +266,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(-8, 22, 5.4, 7, PAL.steel);                                                             // tube receiver
       T(22, 33, 4.4, 7, PAL.steelD); for (let i = 0; i < 4; i++) for (const a of [45, 135, 225, 315]) Ball(24 + i * 2.4, Math.cos(d2r(a)) * 2.1, 7 + Math.sin(d2r(a)) * 2.1, 1.1, PAL.black);
       T(33, 36, 2.4, 7, PAL.steelD);
-      B(6, 2.6, 7.6, 9, 0.5, 1.6, PAL.black); part('charge', 9, 3.2, 7.6, () => { Ball(9, 3.9, 7.6, 2, PAL.steelL); B(9, 3, 7.6, 1, 1.4, 1, PAL.steelL); });   // bolt slot + handle (open bolt: it runs with every shot)
+      B(6, -2.6, 7.6, 9, 0.5, 1.6, PAL.black); part('charge', 9, -3.2, 7.6, () => { Ball(9, -3.9, 7.6, 2, PAL.steelL); B(9, -3, 7.6, 1, 1.4, 1, PAL.steelL); });   // bolt slot + handle (open bolt: it runs with every shot)
       for (let i = 0; i < 3; i++) Ring(-5 + i * 3, 7, 5.9, 0.5, PAL.steelD);                       // weld seams on the tube
       E([[-3, 1.6], [-3, 4.6], [8, 4.6], [8, 3], [5, 1.6]], 3, PAL.steel, { bevel: 0.4 });
       grip(-0.6, 2, Accent, 11, 12, 5, 3.6); guard(1.4, 2, PAL.steelD, 6, 4);
@@ -277,7 +281,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(16, 30, 3, 7.2, PAL.steelD); fins(17, 26, 7.2, 4.8, 7, PAL.steel);
       T(30, 34, 4.4, 7.2, PAL.steelD); B(32, 0, 9.6, 3, 0.8, 0.8, PAL.black);                      // compensator
       for (let i = 0; i < 4; i++) B(-4 + i * 5, 0, 10.2, 2.4, 4.8, 0.5, i % 2 ? PAL.black : Accent, null, i % 2 ? 0 : 0.25);   // hornet stripes
-      part('charge', 4, 2.6, 8.6, () => { Ball(4, 3.4, 8.6, 2, PAL.steelL); B(4, 2.6, 8.6, 1, 1.4, 1, PAL.steelL); }); B(4, 2.35, 8.6, 8, 0.3, 1.4, PAL.black);
+      part('charge', 4, -2.6, 8.6, () => { Ball(4, -3.4, 8.6, 2, PAL.steelL); B(4, -2.6, 8.6, 1, 1.4, 1, PAL.steelL); }); B(4, -2.35, 8.6, 8, 0.3, 1.4, PAL.black);
       stock(-7, 9.4, PAL.wood, 20, 5, 9, 4.2);
       grip(-2, 3.6, PAL.wood, 11, 16, 5.4, 4); guard(0.6, 3.4, PAL.steelD, 6.6, 4.4);
       E([[20, 4.6], [24, 4.6], [23.4, -4], [20.6, -4]], 3.4, PAL.wood, { bevel: 0.9 });            // vertical fore grip
@@ -289,7 +293,7 @@ function buildGunWith(vm, W, tier, PAL) {
     case 'Card Sharp': {
       E([[-6, 3.6], [-6, 9.4], [-3, 10.4], [14, 10.4], [18, 8.6], [18, 3.6]], 4.2, Accent, { bevel: 0.6 });
       E(rect(-4, 10.4, 12, 11.2), 2, PAL.steelD, { bevel: 0.2 });
-      part('charge', 3, 2.2, 8.8, () => { B(3, 2.5, 8.8, 2.6, 1, 1.1, PAL.steelL); }); B(5, 2.15, 8.8, 7, 0.25, 1.3, PAL.black);
+      part('charge', 3, -2.2, 8.8, () => { B(3, -2.5, 8.8, 2.6, 1, 1.1, PAL.steelL); }); B(5, -2.15, 8.8, 7, 0.25, 1.3, PAL.black);
       T(18, 20, 3, 7, PAL.steelD); T(20, 36, 4.6, 7, PAL.black); T(35.6, 36.2, 3, 7, PAL.steelD);   // suppressor
       for (const s of [-1, 1]) { E([[3, 5.4], [5, 7.4], [7, 5.4], [5, 3.6]], 0.3, PAL.bone, { y: s * 2.2, bevel: 0.04, glow: 0.3 }); }
       E([[18, 3.2], [18, 5.4], [8, 5.4], [8, 3.2]], 4.8, PAL.black, { bevel: 0.8 });                // handguard
@@ -326,7 +330,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(46, 49, 3.2, 7.4, PAL.steelD);
       grip(-2, 4.2, Accent, 11.4, 16, 5.2, 3.8); guard(0.6, 4, PAL.steelD, 6.6, 4.4);
       E(rect(0, 11, 8, 14), 3, PAL.steelD, { bevel: 0.5 }); B(7.6, 0, 12.6, 0.4, 2.2, 2.2, C(0xFF3A2A), null, 2);   // red dot
-      B(4, 2.3, 8.6, 9, 0.3, 1.6, PAL.black); part('charge', 8, 2.4, 8.6, () => { Ball(8, 3.2, 8.6, 1.8, PAL.steelL); B(8, 2.6, 8.6, 1, 1.2, 0.9, PAL.steelL); });
+      B(4, -2.3, 8.6, 9, 0.3, 1.6, PAL.black); part('charge', 8, -2.4, 8.6, () => { Ball(8, -3.2, 8.6, 1.8, PAL.steelL); B(8, -2.6, 8.6, 1, 1.2, 0.9, PAL.steelL); });
       B(-2, 2.2, 6.4, 1.6, 0.4, 0.8, PAL.red); for (let i = 0; i < 2; i++) Ty(-4 + i * 14, 5.4, 1.1, 4.5, PAL.steelL);   // selector, takedown pins
       vm.MagRoot = group(10, 0, 4.4); into(vm.MagRoot, () => banana(0, 0, 14, 3, PAL.steelD, 30, 5));
       Muzzle = V(49.5, 0, 7.4); Support = V(22, 0, 3); Sight = 12.6;
@@ -343,7 +347,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: 1.6, bevel: 0.2 }); E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: -1.6, bevel: 0.2 });  // folded bipod
       grip(-2, 4.6, PAL.black, 11.4, 14, 5.2, 3.8); guard(0.6, 4.4, PAL.steelD, 6.6, 4.4);
       scope(-1, 13, 13.2, 3);
-      part('charge', 6, 2.3, 8.4, () => { Ball(6, 3.2, 8.4, 1.8, PAL.steelL); B(6, 2.5, 8.4, 1, 1.2, 0.9, PAL.steelL); }); B(4, 2.2, 8.4, 9, 0.3, 1.4, PAL.black);
+      part('charge', 6, -2.3, 8.4, () => { Ball(6, -3.2, 8.4, 1.8, PAL.steelL); B(6, -2.5, 8.4, 1, 1.2, 0.9, PAL.steelL); }); B(4, -2.2, 8.4, 9, 0.3, 1.4, PAL.black);
       vm.MagRoot = group(10, 0, 4.6); into(vm.MagRoot, () => E([[2.6, 0.4], [-2.6, 0.4], [-3.4, -11], [1.8, -11]], 3.2, PAL.steel, { bevel: 0.35 }));
       Muzzle = V(59.5, 0, 7.4); Support = V(24, 0, 3); Sight = 13.4;
       break;
@@ -357,7 +361,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(32, 46, 2.4, 7.2, gold, 0, 0.15); E([[36, 7.6], [38, 7.6], [37.6, 12.6], [36.4, 12.6]], 1.4, goldD, { bevel: 0.2 }); T(46, 50, 3.4, 7.2, goldD);
       grip(-2, 4.6, PAL.bone, 11.4, 16, 5.2, 3.8); guard(0.6, 4.4, goldD, 6.6, 4.4);
       for (const s of [-1, 1]) { Ty(4, 7, 3.6, 0.3, PAL.bone, s * 2.2); B(4, s * 2.4, 7, 0.6, 0.2, 2.4, C(0x1f7a3a)); }   // $ medallion
-      part('charge', 8, 2.3, 8.4, () => { Ball(8, 3.2, 8.4, 1.8, PAL.bone); B(8, 2.5, 8.4, 1, 1.2, 0.9, goldD); }); B(5, 2.2, 8.4, 8, 0.3, 1.4, PAL.black);
+      part('charge', 8, -2.3, 8.4, () => { Ball(8, -3.2, 8.4, 1.8, PAL.bone); B(8, -2.5, 8.4, 1, 1.2, 0.9, goldD); }); B(5, -2.2, 8.4, 8, 0.3, 1.4, PAL.black);
       vm.MagRoot = group(9, 0, 4.4); into(vm.MagRoot, () => banana(0, 0, 12, 3, goldD, 16, 5));
       Muzzle = V(50.5, 0, 7.2); Support = V(22, 0, 3.4); Sight = 12.6;
       break;
@@ -404,7 +408,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[-8, 10.6], [-8, 4], [-22, 3], [-24, 3.6], [-24, 10.2], [-22, 10.6]], 5, Accent, { bevel: 1 }); E(rect(-25.4, 3.4, -23.6, 10.4), 5.2, PAL.rubber, { bevel: 0.3 });
       T(20, 40, 4.2, 7.6, PAL.steelD); T(20, 30, 6.4, 7.6, PAL.black); for (let i = 0; i < 4; i++) for (const a of [0, 90, 180, 270]) Ball(22 + i * 2.2, Math.cos(d2r(a)) * 3.1, 7.6 + Math.sin(d2r(a)) * 3.1, 1.1, PAL.steelD);
       grip(-3, 3.8, PAL.black, 11, 14, 5.4, 4); guard(-0.4, 3.6, PAL.steelD, 6.6, 4.4);
-      part('charge', 8, 3, 8.6, () => { Ball(8, 3.9, 8.6, 2.2, PAL.steelL); B(8, 3.1, 8.6, 1.2, 1.4, 1, PAL.steelL); }); B(8, 2.85, 8.6, 12, 0.3, 1.8, PAL.black);
+      part('charge', 8, -3, 8.6, () => { Ball(8, -3.9, 8.6, 2.2, PAL.steelL); B(8, -3.1, 8.6, 1.2, 1.4, 1, PAL.steelL); }); B(8, -2.85, 8.6, 12, 0.3, 1.8, PAL.black);
       E([[14, 3.6], [18, 3.6], [17.4, -3.6], [14.6, -3.6]], 3.4, PAL.black, { bevel: 0.9 });
       vm.MagRoot = group(7, 0, 3.4); into(vm.MagRoot, () => { Ty(0, -7, 15, 6, PAL.steelD); Ty(0, -7, 6, 6.6, PAL.steelL); B(0, 0, -0.6, 5, 4, 2.6, PAL.steelD); for (let i = 0; i < 6; i++) Ball(Math.cos(i) * 5, 3.1, -7 + Math.sin(i) * 5, 1.4, PAL.red); });
       post(38.4, 9.6, 2.2); notch(-6, 12, 3.4);
@@ -434,7 +438,7 @@ function buildGunWith(vm, W, tier, PAL) {
         E([[-6.6, 11.6], [-5.4, 11.6], [-5.4, 13.6], [-6.6, 13.6]], 3, PAL.steelL, { bevel: 0.2 });                   // latch
       });
       E([[24, 9.6], [26, 9.6], [30, 14], [38, 14], [38, 12.6], [31, 12.6], [28, 9.6]], 1.6, PAL.steelD, { bevel: 0.3 }); // carry handle on the barrel
-      part('charge', 10, 3.7, 6.4, () => { Ball(10, 4.7, 6.4, 2.4, PAL.steelL); B(10, 3.9, 6.4, 1.2, 1.6, 1, PAL.steelL); }); B(8, 3.55, 6.4, 14, 0.3, 1.6, PAL.black);
+      part('charge', 0, -3.7, 9.6, () => { Ball(0, -4.7, 9.6, 2.4, PAL.steelL); B(0, -3.9, 9.6, 1.2, 1.6, 1, PAL.steelL); }); B(-2, -3.55, 9.6, 10, 0.3, 1.6, PAL.black);
       stock(-8, 11, PAL.wood, 20, 4, 10, 5, 6.4);
       T(22, 54, 3.6, 8, PAL.steelD); fins(23, 40, 8, 5.8, 9, PAL.steel); T(54, 58, 4.8, 8, PAL.steel);
       E([[44, 8], [46, 8], [45.6, 12.6], [44.4, 12.6]], 1.4, PAL.steelD, { bevel: 0.2 });
@@ -456,12 +460,12 @@ function buildGunWith(vm, W, tier, PAL) {
         for (let i = 0; i < 6; i++) { const a = d2r(i * 60); T(-20, 22, 2.3, Math.sin(a) * 3.3, PAL.steelD, Math.cos(a) * 3.3); }
         T(-20, -17, 9.6, 0, PAL.steel); T(0, 2, 9.6, 0, PAL.steel); T(19, 21, 9.6, 0, PAL.steel); T(-20, 20, 2.4, 0, PAL.steelL);
       });
-      part('crank', 4, 0, 6, () => { Ty(4, 6, 2, 12, PAL.steelD, 4); E([[2.6, 7], [5.4, 7], [5.4, -1], [2.6, -1]], 1.2, PAL.steelL, { y: 9.4, bevel: 0.2 }); Ty(4, -1, 2.4, 4, PAL.wood, 11.4); });   // crank
+      part('crank', 10, 0, 5.4, () => { Ty(10, 5.4, 2, 6, PAL.steelD, -6.6); E([[8.9, 6.4], [11.1, 6.4], [11.1, 0.2], [8.9, 0.2]], 1.2, PAL.steelL, { y: -9.4, bevel: 0.2 }); Ty(10, 1, 2.4, 4.6, PAL.wood, -12); });   // crank, turned by the off hand
       E([[-8, 10], [-8, 4], [-13, 4], [-13, 10]], 5, PAL.steelD, { bevel: 0.6 });
       for (const s of [-1, 1]) E([[-12, 9], [-12, 5], [-20, 5.6], [-20, 8.4]], 1.8, PAL.wood, { y: s * 3.2, bevel: 0.7 });   // spade grips
       grip(-2, 3, PAL.wood, 11, 12, 5.4, 4);
       vm.MagRoot = group(2, 0, 15); into(vm.MagRoot, () => Ty(0, 0, 6, 5.4, PAL.brass));
-      Muzzle = V(56.5, 0, 7); Support = V(18, 0, 0.8); Sight = 16.5;
+      Muzzle = V(56.5, 0, 7); Support = V(10, -12.6, 0.4); Sight = 16.5;
       break;
     }
     // ============================================================ SNIPERS
@@ -618,7 +622,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (const s of [-1, 1]) E(rect(-4, 6.8, 14, 12), 0.4, PAL.bone, { y: s * 3.2, bevel: 0.05 });
       for (let i = 0; i < 3; i++) part('reel' + i, -1 + i * 6, 0, 9.4, () => { for (const s of [-1, 1]) { Ty(-1 + i * 6, 9.4, 4.4, 0.3, PAL.black, s * 3.45); Ball(-1 + i * 6, s * 3.5, 10.6, 2, reels[i], 1.4); Ball(-1 + i * 6, s * 3.5, 8.3, 1.5, reels[(i + 1) % 3], 1.2); } });
       for (let i = 0; i < 5; i++) Ball(-2 + i * 3.6, 0, 16.8, 1.3, C(0xFFF0A0), 2.6);                                    // marquee bulbs
-      part('lever', 4, 4.4, 6.4, () => { Tz(4, 6, 11.6, 1.2, PAL.steelL, 4.4); Ball(4, 4.4, 12.4, 2.8, C(0xFF4050), 0.8); }); Ty(4, 6.4, 2.4, 1.4, gold, 4);   // pull lever
+      part('lever', -6, -4.4, 6.4, () => { Tz(-6, 6, 11.6, 1.2, PAL.steelL, -4.4); Ball(-6, -4.4, 12.4, 2.8, C(0xFF4050), 0.8); }); Ty(-6, 6.4, 2.4, 1.4, gold, -4);   // pull lever, on the side the off hand can reach
       T(18, 30, 5, 9, gold, 0, 0.3); Ring(22, 9, 7.4, 1, goldD); Ring(27, 9, 7.4, 1, goldD);
       for (let i = 0; i < 3; i++) { const a = d2r(i * 120 + 90); E([[30, -0.8], [40, -0.3], [44, 0], [40, 0.3], [30, 0.8]], 1, gold, { bevel: 0.2, glow: 1.4 }).position.add(new THREE.Vector3(Math.cos(a) * 3, 9 + Math.sin(a) * 3, 0)); }   // lightning prongs
       Ball(38, 0, 9, 3.4, C(0xFFF0A0), 3);

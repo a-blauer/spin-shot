@@ -944,7 +944,7 @@ export class Player {
       look: this.lookDelta, localVel, grounded: this.grounded, sprinting: this.sprintHeld && this.inFwd > 0.1 && sp > 500, sliding: this.sliding,
       aiming: this.aiming && !this.inMenu(), wallSide: this.wallRunning ? this.wallSide : 0, reloading: this.reloading,
       reloadFrac: this.reloadDur > 0 ? 1 - this.reloadT / this.reloadDur : 0,
-      empty: this.slot.def >= 0 && this.slot.ammo <= 0 && !this.reloading, spool: this.spool || 0, charge: this.railT > 0 ? 1 - this.railT / 0.28 : 0,
+      ammo: this.slot.def >= 0 ? this.slot.ammo : 0, empty: this.slot.def >= 0 && this.slot.ammo <= 0 && !this.reloading, spool: this.spool || 0, charge: this.railT > 0 ? 1 - this.railT / 0.28 : 0,
     });
     this.lookDelta = { x: 0, y: 0 };
     if (this.health < this.maxHealth * 0.3 && !this.dead) { this.heartbeat -= dt; if (this.heartbeat <= 0) { this.heartbeat = 0.9; this.play('S_Heartbeat', 0.6); } }
