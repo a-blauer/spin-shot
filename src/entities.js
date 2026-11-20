@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { toonMaterial, sprite, Cam } from './render.js';
 import { PRIM } from './world.js';
 import { textMesh } from './text.js';
-import { PICKUP_NAMES, lin } from './data.js';
+import { DATA, PICKUP_NAMES, lin, RARITY_HEX } from './data.js';
 
 const matCache = new Map();
 function mat(rgb, glow) {
@@ -246,8 +246,8 @@ export class Hazards {
 }
 
 // ================================================================== pickups
-const PICKUP_COLOR = { Ammo: lin(0.5, 0.7, 1), Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
-const PICKUP_ICON = { Ammo: 'I_MaxAmmo', Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
+const PICKUP_COLOR = { Buff: lin(1, 1, 1), Ammo: lin(0.5, 0.7, 1), Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
+const PICKUP_ICON = { Buff: 'I_Card', Ammo: 'I_MaxAmmo', Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
 
 export class Pickups {
   constructor(game, scene) { this.game = game; this.scene = scene; this.list = []; }
@@ -256,8 +256,14 @@ export class Pickups {
     const L = at.clone();
     const h = G.phys.raycastDown(L.clone().add(V3(0, 100, 0)), 1600);
     if (h) L.copy(h.point).add(V3(0, 70, 0));
-    const power = type !== 'Clover' && type !== 'MoneyBag' && type !== 'Ammo';
+    const buff = type === 'Buff' ? DATA.upgrades[amount] : null;
+    const power = type !== 'Clover' && type !== 'MoneyBag' && type !== 'Ammo' && !buff;
     const K = { type, amount, base: L, pos: L.clone(), age: 0, life: power ? 25 : 30, power, size: power ? 90 : 64, color: PICKUP_COLOR[type], spr: sprite(PICKUP_ICON[type]) };
+    if (buff) {   // an upgrade lying on the ground: its own icon, tinted and labelled by rarity
+      const h = RARITY_HEX[buff.rarity];
+      K.spr = sprite('U_' + amount) || K.spr; K.size = 84; K.life = 40; K.white = true;
+      K.label = textMesh(buff.name, 24, h, 0.8); this.scene.add(K.label);
+    }
     if (power) {
       const c = K.color;
       K.label = textMesh(PICKUP_NAMES[type], 26, `rgb(${c.map((x) => Math.round(x * 255)).join(',')})`, 0.8);

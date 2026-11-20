@@ -211,6 +211,7 @@ export class Player {
   collectPickup(type, amount) {
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${amount}`, '#ffd23a'); this.play('S_Cash', 0.8); }
+    else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { this.addMoney(250, true); this.toast('Already maxed  +$250', '#ffd23a'); } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
     else { this.play('S_PowerUp', 0.9); this.game.activatePowerup(type); }
   }

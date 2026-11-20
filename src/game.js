@@ -2,7 +2,7 @@
 // drops and power-ups. Also owns every subsystem and the frame update order.
 import * as THREE from 'three';
 import { Meta } from './meta.js';
-import { DATA, zombieCount, maxAlive, lin, frandRange, randInt } from './data.js';
+import { DATA, zombieCount, maxAlive, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment } from './env.js';
@@ -166,7 +166,7 @@ export class Game {
       const x = c.x + Math.cos(ang) * r, z = c.z + Math.sin(ang) * r;
       const [cx, cy] = this.cellOf(x, z);
       if (!this.navFree(cx, cy) || this.navDist[cy * this.navW + cx] === INF) continue;
-      if (!this.isCasinoOpen() && this.inCasino({ x, z })) continue;
+      if (this.barricadeT > 0 && this.inCasino({ x, z })) continue;   // never place anything inside a barricaded casino
       const h = this.phys.raycast(V3(x, 300, z), V3(0, -1, 0), 500);
       if (h && h.point.y < 60) return h.point.clone();
     }
@@ -374,15 +374,35 @@ export class Game {
     for (const D of this.casinoDoors) { D.setOpen(!on); this.NavBlockBox(D.navBox, on ? 1 : -1); }
     this.audio.play('S_Door', 0.9, on ? 0.8 : 1.4);
   }
-  toggleBarricade() {
-    if (this.net.active) { this.hud.toast('The barricade is single-player only', '#ff5a4d'); return; }
-    if (this.barricadeT > 0) { this.barricadeT = 0; this.barricadeCd = 180; this.setBarricade(false); this.banner('BARRICADE DOWN', lin(1, 0.6, 0.2), 2.5); return; }
-    if (this.barricadeCd > 0) { this.hud.toast(`Barricade ready in ${Math.ceil(this.barricadeCd)}s`, '#ff5a4d'); this.audio.play('S_Deny', 0.6); return; }
-    if (!this.inCasino(this.player.pos)) { this.hud.toast('Barricade only works inside the casino', '#ff5a4d'); return; }
-    this.barricadeT = 60; this.setBarricade(true); this.banner('BARRICADE UP  -  60s', lin(0.5, 0.9, 1), 3);
+  toggleBarricade(byPos) {
+    if (this.net.role === 'client') { this.net.emit('bar', {}); return; }   // the host owns the barricade
+    const local = !byPos, say = (t) => { if (local) { this.hud.toast(t, '#ff5a4d'); this.audio.play('S_Deny', 0.6); } };
+    if (this.barricadeT > 0) { this.barricadeT = 0; this.barricadeCd = 300; this.setBarricade(false); this.banner('BARRICADE DOWN', lin(1, 0.6, 0.2), 2.5); return; }
+    if (this.barricadeCd > 0) { say(`Barricade ready in ${Math.ceil(this.barricadeCd)}s`); return; }
+    if (!this.inCasino(byPos || this.player.pos)) { say('Barricade only works inside the casino'); return; }
+    this.barricadeT = 180; this.setBarricade(true); this.banner('BARRICADE UP  -  3 MINUTES', lin(0.5, 0.9, 1), 3);
+    this.evictCasino();
+  }
+  // while the barricade is up nothing is allowed inside: whatever is in there, or tunnels, flies or blinks in, is thrown back out
+  evictCasino() {
+    if (this.net.role === 'client') return;
+    for (const E of this.enemies) {
+      if (E.dead || E.isBoss || !this.inCasino(E.pos)) continue;
+      const B = this.casinoBounds, c = V3((B.minX + B.maxX) / 2, 0, (B.minZ + B.maxZ) / 2);
+      // open ground outside the walls (the usual reachability test is useless here: with the doors shut nothing outside can reach the player)
+      let f = null;
+      for (let k = 0; k < 40 && !f; k++) {
+        const ang = Math.random() * 6.28, r = 500 + Math.random() * 2400, x = c.x + Math.cos(ang) * r, z = c.z + Math.sin(ang) * r, [cx, cy] = this.cellOf(x, z);
+        if (!this.navFree(cx, cy) || this.inCasino({ x, z })) continue;
+        const h = this.phys.raycast(V3(x, 300, z), V3(0, -1, 0), 500); if (h && h.point.y < 60) f = h.point.clone();
+      }
+      if (f) { E.burrowed = false; E.collides = true; E.pos.set(f.x, f.y + E.half + 2, f.z); E.vel.set(0, 0, 0); E.emerge = 1.5; }
+    }
   }
   tickCasino(dt) {
-    if (this.barricadeT > 0) { this.barricadeT -= dt; if (this.barricadeT <= 0) { this.barricadeT = 0; this.barricadeCd = 180; this.setBarricade(false); this.banner('BARRICADE DOWN', lin(1, 0.6, 0.2), 2.5); } }
+    if (this.net.role === 'client') { if (this.fireSaleT > 0) { this.fireSaleT -= dt; this.fireSale = this.fireSaleT > 0; } return; }
+    if (this.barricadeT > 0) { this.evictT = (this.evictT || 0) - dt; if (this.evictT <= 0) { this.evictT = 0.25; this.evictCasino(); } }
+    if (this.barricadeT > 0) { this.barricadeT -= dt; if (this.barricadeT <= 0) { this.barricadeT = 0; this.barricadeCd = 300; this.setBarricade(false); this.banner('BARRICADE DOWN', lin(1, 0.6, 0.2), 2.5); } }
     else if (this.barricadeCd > 0) this.barricadeCd = Math.max(0, this.barricadeCd - dt);
     if (this.fireSaleT > 0) { this.fireSaleT -= dt; this.fireSale = this.fireSaleT > 0; }
   }
@@ -403,6 +423,7 @@ export class Game {
     this.spawnPoints.forEach((S, i) => {
       const Z = this.zones[S.zone];
       if (!Z || !Z.unlocked || !Z.spawns) return;
+      if (this.barricadeT > 0 && this.inCasino(S.pos)) return;   // no spawning behind the barricade
       const d = Math.hypot(S.pos.x - PL.x, S.pos.z - PL.z);
       if (d < 800) return;
       c.push([d, i]);
@@ -448,6 +469,11 @@ export class Game {
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
+    // buffs: 5% from ordinary enemies; modifier variants and elites drop more often and roll better rarities
+    if (!E.isBoss) {
+      const chance = E.elite ? 0.4 : E.variant ? 0.15 : 0.05, bias = E.elite ? 2.6 : E.variant ? 1.6 : 1;
+      if (Math.random() < chance) { const r = Math.max(E.elite ? 1 : 0, rollRarity(this.player.luck, bias)), u = rollUpgradeOfRarity(r, this.player.upgradeStacks); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(-40, 0, 30)), u); }
+    }
     if (!E.isBoss && Math.random() < 0.07) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
     if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
       this.powerupsThisRound++;

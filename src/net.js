@@ -78,6 +78,7 @@ export const Net = {
     if (this.role === 'host') {
       on('h', (d, m) => { for (const h of (Array.isArray(d.l) ? d.l.slice(0, 80) : [])) this.hostHit(h, m.peer); });
       on('fx', (d, m) => this.hostFx(d, m.peer));
+      on('bar', (d, m) => { const G = this.ghosts.get(m.peer); if (G && G.fresh && !G.dead && this.game) this.game.toggleBarricade(G.pos); });
     } else {
       const fromHost = (f) => (d, m) => { if (m.peer === this.hostPeer) { this.lastHost = performance.now(); f(d, m); } };
       on('e', fromHost((d) => this.onEnemies(d)));
@@ -147,7 +148,7 @@ export const Net = {
         this.ts = 0.5;
         const doors = []; g.interactables.forEach((I, i) => { if (I.type === 'Door' && I.open) doors.push(i); });
         const F = g.final, fin = F ? { g: F.gate ? [Math.round(F.gate.x), Math.round(F.gate.y), Math.round(F.gate.z)] : 0, a: F.active ? 1 : 0, d: F.done ? 1 : 0, r: Math.round(F.safeR || 0), b: F.beam ? [Math.round(F.beam.x), Math.round(F.beam.y), Math.round(F.beam.z), Math.round(F.beam.ang * 100) / 100, F.beam.spd, F.beam.n, Math.round(F.beam.dmg), Math.round((F.beam.t || 0) * 10) / 10] : 0 } : 0;
-        this.emit('s', { r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin });
+        this.emit('s', { r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
         if (g.phase === 'Round' && this.allDead()) g.gameOver();
       }
     } else if (performance.now() - this.lastHost > 12000) this.hostGone();
@@ -223,6 +224,7 @@ export const Net = {
     }
     if (ph !== g.phase) { if (ph === 'Intermission' && g.phase === 'Round') g.player.onRoundEnded(g.round); if (ph === 'GameOver') g.gameOver(); else g.phase = ph; }
     g.phaseTimer = num(d.pt, 0, 999); this.netRem = num(d.rem, 0, 9999);
+    if (Array.isArray(d.bar)) { const up = num(d.bar[0], 0, 999) > 0; if (up !== (g.barricadeT > 0)) { g.setBarricade(up); g.banner(up ? 'BARRICADE UP  -  3 MINUTES' : 'BARRICADE DOWN', up ? [0.5, 0.9, 1] : [1, 0.6, 0.2], 2.5); } g.barricadeT = num(d.bar[0], 0, 999); g.barricadeCd = num(d.bar[1], 0, 999); }
     if (d.fin && typeof d.fin === 'object') {
       const f = d.fin, F = g.final || (g.final = { gate: null, active: false, done: false, beam: null, safeR: 0, t: 0 });
       F.gate = Array.isArray(f.g) ? new THREE.Vector3(num(f.g[0]), num(f.g[1]), num(f.g[2])) : null; F.active = !!f.a; F.safeR = num(f.r, 0, 3000);

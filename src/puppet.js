@@ -57,7 +57,7 @@ export class Puppet {
     if (!c.length) return null;
     const p = c[Math.floor(Math.random() * c.length)]; p.visible = false; return p;
   }
-  partWorld(P) { const out = new THREE.Vector3(); this.partTransform(P, out, _x, _y); return out; }
+  partWorld(P) { const out = new THREE.Vector3(); if (!this.feet || !this.toCam) return out; this.partTransform(P, out, _x, _y); return out; }
   // open wound where a shot landed: stored in the body part's own space so it rides the animation
   addWound(at) {
     const B = this.parts.find((p) => p.role === 'Body' && p.visible); if (!B || !this.feet) return;
@@ -137,7 +137,7 @@ export class Puppet {
 
   // per-part pose: [rotation (deg, clockwise), vertical offset, scale]
   partAngle(P) {
-    const S = this.S, sw = Math.sin(this.walk), cw = Math.cos(this.walk), st = this.stride, T = this.time;
+    const S = this.S || {}, sw = Math.sin(this.walk), cw = Math.cos(this.walk), st = this.stride, T = this.time;   // S is empty for an enemy killed on the frame it spawned
     const side = (P.role === 'ArmBack' || P.role === 'LegBack' || P.role === 'WingBack') ? -1 : (P.rest[0] < -1 && P.role === 'Prop' ? -1 : 1);
     let rot = 0, oz = 0, sc = 1;
     switch (P.role) {
