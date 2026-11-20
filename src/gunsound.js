@@ -57,7 +57,62 @@ let noise = null;
 // The pitched "tone" layer is now only used by the energy and wonder weapons; on ballistic guns it sounded synthetic.
 let shaper = null, bus = null;
 const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'The House Always Wins', "Dead Man's Hand", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
+// ---- Recorded shots -------------------------------------------------------------------------------------------
+// Powder guns play real recordings: single shots cut from the Free Firearm Sound Library (Ben Jaszczak et al., CC0),
+// close-mic'd, two or three takes per gun so repeated fire never sounds stamped. The synth below is only the voice
+// of the energy and wonder weapons, and the fallback for the first moments before a recording has loaded.
+//   [recording, takes, pitch, gain, choke (fast guns cut the previous tail short), low-pass Hz, double-tap gap s]
+const REC = {
+  'Tin Star':        ['V', 2, 1.00, 0.80],          // .38 revolver
+  'Saloon Six':      ['A', 2, 0.86, 0.95],          // .45, pitched down: a hand cannon
+  'Penny Pusher':    ['R', 2, 1.04, 0.60, 1],       // .22 pistol
+  'Snake Eyes':      ['F', 2, 1.00, 0.70, 0, 0, 0.04],   // .380, two barrels
+  'Back-Alley':      ['G', 3, 1.00, 0.70, 1],       // 9mm submachine gun
+  "Hornet's Nest":   ['P', 3, 1.08, 0.62, 1],       // 7.62 Tokarev submachine gun
+  'Card Sharp':      ['X', 3, 1.05, 0.66, 1],       // 9mm
+  'Quarter Horse':   ['I', 2, 1.00, 0.85],          // .30-30 lever action
+  'Lawman AR':       ['D', 2, 1.00, 0.72, 1],       // 5.56
+  'Long Odds':       ['U', 3, 0.97, 0.85],          // 7.62x39 carbine
+  'Jackpot':         ['C', 3, 1.03, 0.70, 1],       // AK
+  'Sawbuck':         ['O', 2, 0.96, 0.95],          // 12 gauge
+  "Dealer's Pump":   ['K', 2, 0.94, 1.00],          // 12 gauge pump
+  'Full House':      ['H', 2, 1.06, 0.82],          // 12 gauge
+  "Dragon's Breath": ['N', 2, 0.84, 1.00],          // 12 gauge, slowed
+  'Iron Mule':       ['C', 3, 0.88, 0.78, 1],       // AK, slowed: heavier
+  'Gatling Gambler': ['T', 2, 1.04, 0.58, 1],       // .300
+  'Widowmaker':      ['W', 2, 0.96, 1.00],          // .30-06 bolt action
+  'Railroad Spike':  ['M', 3, 0.78, 1.00],          // 7.62x54R, slowed
+  'Dynamite Dan':    ['N', 2, 0.62, 0.85, 0, 1400], // launchers: a slowed, muffled 12 gauge reads as a tube thump
+  'Boomtown':        ['K', 2, 0.52, 1.00, 0, 1100],
+};
+const startOf = new WeakMap(), live = [];
+function lead(buf) {   // mp3 decoding leaves a few ms of silence in front: find where the shot really starts
+  let o = startOf.get(buf);
+  if (o === undefined) { const d = buf.getChannelData(0); let i = 0; while (i < d.length && Math.abs(d[i]) < 0.03) i++; o = Math.max(0, i / buf.sampleRate - 0.001); startOf.set(buf, o); }
+  return o;
+}
+export function preloadGunSounds(audio) { for (const k in REC) for (let i = 0; i < REC[k][1]; i++) audio.load(`guns/G_${REC[k][0]}${i}`); }
 export function gunSound(audio, name, vol = 1, quiet = false) {
+  const ctx = audio.ctx; if (!ctx || ctx.state !== 'running') return;
+  const r = REC[name];
+  if (!r || quiet) return synthShot(audio, name, vol, quiet);
+  const [code, takes, pitch, gain, choke, lp, dbl] = r;
+  let take = Math.floor(Math.random() * takes); if (take === r.last && takes > 1) take = (take + 1) % takes; r.last = take;
+  const key = `guns/G_${code}${take}`, buf = audio.buffers.get(key);
+  if (!buf) { audio.load(key); return synthShot(audio, name, vol, quiet); }
+  const t = ctx.currentTime;
+  if (choke) for (const g of live) { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0, t + 0.03, 0.07); }
+  const one = (at) => {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf; src.playbackRate.value = pitch * (1 + (Math.random() * 2 - 1) * 0.025); g.gain.value = gain * vol * (0.94 + Math.random() * 0.1);
+    let node = src;
+    if (lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; node.connect(f); node = f; }
+    node.connect(g); g.connect(audio.master); src.start(at, lead(buf));
+    live.push(g); src.onended = () => { const i = live.indexOf(g); if (i >= 0) live.splice(i, 1); g.disconnect(); };
+  };
+  one(t); if (dbl) one(t + dbl);
+}
+function synthShot(audio, name, vol = 1, quiet = false) {
   const ctx = audio.ctx; if (!ctx || ctx.state !== 'running') return;
   const p = P[name] || FALLBACK, t = ctx.currentTime, det = 1 + (Math.random() * 2 - 1) * 0.04;
   const energy = !p.body;   // beam and arc weapons have no powder charge

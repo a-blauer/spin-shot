@@ -596,9 +596,11 @@ export function BuildCasino(M, GM) {
 		// walls: dark wood wainscot, gold rails, padded panels, and a line of marquee bulbs under the ceiling
 		for (const s of [-1, 1])
 		{
-			Box(V(s * 852., 0., 110.), V(16., 2100., 220.), Wood, false, false); Box(V(s * 850., 0., 226.), V(22., 2100., 14.), Pal.Gold, false, false);
+			// the entrance is in the -X wall (Y -260..260): the wainscot stops either side of it
+			if (s > 0) { Box(V(s * 852., 0., 110.), V(16., 2100., 220.), Wood, false, false); Box(V(s * 850., 0., 226.), V(22., 2100., 14.), Pal.Gold, false, false); }
+			else for (const e of [-1, 1]) { Box(V(s * 852., e * 665., 110.), V(16., 770., 220.), Wood, false, false); Box(V(s * 850., e * 665., 226.), V(22., 770., 14.), Pal.Gold, false, false); }
 			Box(V(0., s * 1052., 110.), V(1700., 16., 220.), Wood, false, false); Box(V(0., s * 1050., 226.), V(1700., 22., 14.), Pal.Gold, false, false);
-			for (let k = -4; k <= 4; ++k) { Box(V(s * 853., k * 220., 520.), V(10., 170., 440.), Velvet, false, false); Box(V(s * 851., k * 220., 520.), V(8., 186., 456.), Pal.Gold, false, false); }
+			for (let k = -4; k <= 4; ++k) { if (s < 0 && Math.abs(k) <= 1) continue; Box(V(s * 853., k * 220., 520.), V(10., 170., 440.), Velvet, false, false); Box(V(s * 851., k * 220., 520.), V(8., 186., 456.), Pal.Gold, false, false); }
 			for (let k = -3; k <= 3; ++k) { Box(V(k * 220., s * 1053., 520.), V(170., 10., 440.), Velvet, false, false); Box(V(k * 220., s * 1051., 520.), V(186., 8., 456.), Pal.Gold, false, false); }
 			for (let k = 0; k < 21; ++k) { Glow(V(s * 846., -1000. + k * 100., 800.), V(18.), Pal.Bulb, 2); if (k < 17) Glow(V(-800. + k * 100., s * 1046., 800.), V(18.), Pal.Bulb, 2); }
 			Glow(V(s * 848., 0., 850.), V(6., 2080., 10.), s > 0 ? Pal.Neon : Teal, 2); Glow(V(0., s * 1048., 850.), V(1680., 6., 10.), s > 0 ? Teal : Pal.Neon, 2);

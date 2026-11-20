@@ -1,4 +1,5 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
+import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
 import { Net } from './net.js';
@@ -147,6 +148,7 @@ async function boot() {
 function start() {
   audio.unlock();
   audio.master && (audio.master.gain.value = 0.8);
+  preloadGunSounds(audio);
   audio.preload(['S_Pistol', 'S_Revolver', 'S_HitFlesh', 'S_HitFlesh2', 'S_HitMarker', 'S_Kill', 'S_Step0', 'S_Step1', 'S_Step2', 'S_Step3', 'S_Jump', 'S_Land', 'S_Groan0', 'S_Groan1', 'S_EnemyDie', 'S_Coin', 'S_Explosion', 'S_RoundStart']);
   title.style.display = 'none';
   mode = 'play'; applySettings();
