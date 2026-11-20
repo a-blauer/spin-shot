@@ -31,14 +31,38 @@ const extCache = new Map();
 const TAPER = new THREE.CylinderGeometry(0.5, 0.62, 1, 16);   // sleeve: wider toward the elbow (bottom = first point)
 const worldMats = new Map();
 const BOXG = new THREE.BoxGeometry(1, 1, 1);
+// View-model shading: the world's two-tone look plus what makes a held object read up close: a second, brighter
+// band where a face turns to the light, a hard specular glint on metal, and a cool rim along edges facing away.
+function gunMaterial(color, glow, metal) {
+  return new THREE.ShaderMaterial({
+    uniforms: { sunDir: vmSun, litTint: G.litTint, shadowTint: G.shadowTint, uColor: { value: color.clone() }, uGlow: { value: glow }, uMetal: { value: metal } },
+    vertexShader: /* glsl */`
+      varying vec3 vN; varying vec3 vW;
+      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 uColor; uniform float uGlow; uniform float uMetal;
+      varying vec3 vN; varying vec3 vW;
+      void main() {
+        vec3 n = normalize(vN), v = normalize(-vW);
+        vec3 L = normalize(sunDir + vec3(-0.25, 0.55, 0.45));          // the key light is pulled up and toward the shooter so the gun is never a silhouette
+        float ndl = dot(n, L);
+        float b1 = smoothstep(-0.04, 0.06, ndl), b2 = smoothstep(0.62, 0.7, ndl);
+        vec3 c = mix(uColor * mix(shadowTint.rgb, vec3(1.0), 0.25), uColor * litTint.rgb, b1);
+        c *= 1.0 + b2 * mix(0.12, 0.3, uMetal);
+        c *= mix(0.84, 1.0, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
+        float sp = pow(max(dot(n, normalize(L + v)), 0.0), mix(14.0, 48.0, uMetal));
+        c += mix(uColor, vec3(1.0, 0.97, 0.9), 0.65) * smoothstep(0.52, 0.6, sp) * uMetal * 0.5;
+        float rim = pow(1.0 - max(dot(n, v), 0.0), 2.6) * smoothstep(-0.3, 0.5, n.y);
+        c += (uColor * 0.5 + vec3(0.1, 0.12, 0.18)) * smoothstep(0.42, 0.55, rim) * (0.3 + 0.35 * uMetal);
+        c += uColor * uGlow;
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  });
+}
 function vmMat(color, glow) {
-  const key = color.getHexString() + glow;
-  if (!matCache.has(key)) {
-    const m = toonMaterial({ glow });
-    m.uniforms.uColor.value.copy(color);
-    m.uniforms.sunDir = vmSun;
-    matCache.set(key, m);
-  }
+  const metal = color.metal === undefined ? 0.2 : color.metal;
+  const key = color.getHexString() + glow + '|' + metal;
+  if (!matCache.has(key)) matCache.set(key, gunMaterial(color, glow, metal));
   return matCache.get(key);
 }
 
@@ -79,7 +103,7 @@ export class ViewModel {
     this.landZ = 0; this.landVel = 0; this.bobPhase = 0; this.bobAmp = 0;
     this.sprintA = 0; this.aimA = 0; this.slideA = 0; this.wallA = 0; this.airA = 0;
     this.switchT = 0; this.swapped = false; this.flashTime = 0; this.lastReload = 0; this.spinSpeed = 0; this.time = 0;
-    this.scoped = false;
+    this.scoped = false; this.A = {}; this.cyc = 9; this.cycDur = 0.1; this.shots = 0; this.drawT = 9; this.spool = 0; this.chargeA = 0;
   }
 
   // ---------------------------------------------------------------- building
@@ -136,7 +160,8 @@ export class ViewModel {
   clear() {
     for (const p of this.parts) p.removeFromParent();
     this.parts = [];
-    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = null;
+    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = this.hand = null;
+    this.A = {};   // named moving parts: slide, hammer, bolt, lever, barrels, cover, charge, crank, emit, mag, pump, cyl...
     this.Cards = null; this.cardT = 9;
     for (const f of this.flyers || []) f.m.removeFromParent(); this.flyers = [];
     this.flash = [];
@@ -202,7 +227,8 @@ export class ViewModel {
   }
   setWeapon(def, tier, animate) {
     if (animate && this.parts.length) {
-      this.pendingDef = def; this.pendingTier = tier; this.switchT = 0.36; this.swapped = false;
+      this.switchDur = 0.3 + 0.1 * gunFeel(this.game.data.weapons[def]).weight;
+      this.pendingDef = def; this.pendingTier = tier; this.switchT = this.switchDur; this.swapped = false;
       return;
     }
     this.weaponDef = def; this.weaponTier = tier;
@@ -217,20 +243,23 @@ export class ViewModel {
     const Trim = this.weaponTier > 0 ? hex(0xF2C43A) : MetalLight;
     const TrimGlow = this.weaponTier > 0 ? 0.6 + 0.25 * this.weaponTier : 0;
     this.spinAxis = null;
-    this.feel = gunFeel(W); this.actT = 0; this.cylTarget = 0; this.cylAngle = 0;
+    this.feel = gunFeel(W); this.cyc = 9; this.cylTarget = 0; this.cylAngle = 0; this.shots = 0; this.emitK = 1; this.reelSpin = 0; this.crankA = 0;
     const spec = buildGun(this, W, this.weaponTier, Meta.gunLevel(W.name) >= 5);
     const sk = Meta.skin();
     const Glove = hex(sk.glove), GloveLight = hex(sk.gloveL), Cuff = hex(sk.cuff), Sleeve = hex(sk.sleeve), SleeveStripe = hex(sk.stripe);
     const SightZ = spec.Sight, MuzzleAt = spec.Muzzle, EjectAt = spec.Eject, SupportRest = spec.Support;
     this.gunPartCount = this.parts.length;
+    if (this.PumpRoot) this.A.pump = this.PumpRoot;
+    if (!this.A.mag) this.A.mag = this.MagRoot;
     this.magRest = this.MagRoot.position.clone();
+    this.muzzleRest = P3(MuzzleAt);
     this.sightZ = SightZ;
     this.supportRest = P3(SupportRest);
     this.muzzle = this.scene_(MuzzleAt);
     this.eject = this.scene_(EjectAt);
     // --- hands: leather gloves, cream cuffs, rust sleeves ---------------------------------------------------
-    const g = this.gun;
-    this.Ext([[-7.6, 2.8], [-3.2, 3.2], [-1.6, -1], [-3.4, -8.6], [-8.8, -9.4], [-10.4, -4]], 6.4, Glove, { bevel: 1.8, y: 0.5 });   // palm behind the grip
+    const g = this.hand = this.scene_(V(0, 0, 0));
+    this.Ext([[-7.6, 2.8], [-3.2, 3.2], [-1.6, -1], [-3.4, -8.6], [-8.8, -9.4], [-10.4, -4]], 6.4, Glove, { bevel: 1.8, y: 0.5, parent: g });   // palm behind the grip
     for (let i = 0; i < 3; i++) this.Cap(g, V(1.3 - i * 0.95, 3.0, -1.6 - i * 2.7), V(1.3 - i * 0.95, -2.9, -1.8 - i * 2.7), 1.45, i === 0 ? GloveLight : Glove);   // fingers round the front strap
     this.Cap(g, V(-1.6, 3.0, 1.9), V(3.4, 2.5, 1.3), 1.3, GloveLight);                          // trigger finger
     this.Cap(g, V(-5.4, -3.0, 2.2), V(-0.8, -3.3, 3.2), 1.45, GloveLight);                      // thumb
@@ -243,8 +272,8 @@ export class ViewModel {
     void palm;
     for (let i = 0; i < 4; i++) this.Cap(sp, V(-3.4 + i * 2.3, 2.5, -2.2), V(-3.4 + i * 2.3, 3.5, 2.2), 1.25, i === 1 ? GloveLight : Glove);
     this.Cap(sp, V(-1.6, -3.3, -1.8), V(1.4, -3.9, 2.2), 1.4, GloveLight);
-    this.Cap(sp, V(-7.4, -9.4, -10), V(-3.2, -4.2, -5), 4.2, Cuff);
-    this.Cap(sp, V(-24, -34, -34), V(-8, -10.2, -10.8), 4.8, Sleeve, 6.4);
+    this.Cap(sp, V(-4.6, -8.2, -11), V(-2.4, -3.8, -5), 3.7, Cuff);                  // the forearm comes up from below, so it never crosses the view when the hand works the gun
+    this.Cap(sp, V(-12, -28, -48), V(-5, -8.8, -11.8), 4.2, Sleeve, 5.6);
     // muzzle flash: star facing the camera, flame along the barrel, additive glow
     const big = ['Shotgun', 'Sniper', 'Launcher'].includes(this.cls);
     this.FS = big ? 30 : (this.cls === 'Pistol' ? 18 : 22);
@@ -276,6 +305,7 @@ export class ViewModel {
     vm.weaponDef = def; vm.weaponTier = tier;
     vm.build();
     vm.parts.forEach((o, i) => { o.userData.extra = i >= vm.gunPartCount; });
+    if (vm.feel.reload === 'revolver' && vm.A.mag) vm.A.mag.visible = false;   // no speedloader on a display piece
     const g = vm.gun.clone(true);
     const drop = [];
     g.traverse((o) => { if (o !== g && o.userData.extra) drop.push(o); });
@@ -292,38 +322,55 @@ export class ViewModel {
   }
 
   // ---------------------------------------------------------------- events
+  twinLeft(n) { return !!this.feel.twin && n % 2 === 0; }
   fire(kick, continuous) {
     const K = Math.min(3, Math.max(0.05, kick));
     const ads = 1 - this.aimA * 0.82;   // aiming steadies the gun: the sights stay close to the target
-    // UE (x back, y, z up) -> view (y, z, -x)
     const f = this.feel;
+    this.shots++;
+    const left = this.twinLeft(this.shots);
+    // UE (x back, y, z up) -> view (y, z, -x)
     const rx = (Math.random() * 12 - 6) * K * f.side;
-    this.recoilPosVel.add(new THREE.Vector3(rx * 1.4, 22 * K * f.rise, 100 * K * f.pos).multiplyScalar(ads));
-    this.recoilRotVel.add(new THREE.Vector3(240 * K * f.rise, (Math.random() * 110 - 55) * K * f.side, (Math.random() * 260 - 130) * K * f.side).multiplyScalar(ads));
+    if (left) {
+      // the off-hand pistol kicks on its own; the gun hand barely feels it
+      this.twinV = (this.twinV || 0) + 260 * K * f.rise * ads;
+      this.recoilPosVel.add(new THREE.Vector3(-4 * K, 4 * K, 30 * K * f.pos).multiplyScalar(ads));
+      this.recoilRotVel.add(new THREE.Vector3(30 * K, -40 * K, -90 * K).multiplyScalar(ads));
+    } else {
+      this.recoilPosVel.add(new THREE.Vector3(rx * 1.4, 22 * K * f.rise, 100 * K * f.pos).multiplyScalar(ads));
+      this.recoilRotVel.add(new THREE.Vector3(240 * K * f.rise, (Math.random() * 110 - 55) * K * f.side, (f.twin ? 90 * K : (Math.random() * 260 - 130) * K * f.side)).multiplyScalar(ads));
+    }
     if (f.shake > 0 && !continuous) this.game.player.addShake(f.shake);
-    if (!continuous && f.action !== 'none') { this.actT = { pump: 0.4, bolt: 0.75, lever: 0.34, revolver: 0.18 }[f.action]; this.actDur = this.actT; this.actSnd = false; }
+    if (!continuous) { this.cyc = 0; this.cycDur = Math.max(0.03, f.cycle); this.cycSnd = false; this.cycShell = !f.shell; }
     if (f.action === 'revolver') this.cylTarget += Math.PI / 3;
-    if (!continuous || Math.random() < 0.5) {
+    if (f.action === 'reels') this.reelSpin = (this.reelSpin || 0) + 1;
+    this.emitP = 1;
+    if (this.muzzle) { this.muzzle.position.copy(this.muzzleRest); if (left && this.A.twin) this.muzzle.position.add(this.A.twin.userData.rest); }
+    if (f.flash > 0 && (!continuous || Math.random() < 0.5)) {
       this.flashTime = continuous ? 0.03 : 0.05;
-      const J = 0.8 + Math.random() * 0.5;
+      const J = (0.8 + Math.random() * 0.5) * f.flash;
       const [star, flame, glow] = this.flash;
       for (const q of this.flash) q.visible = !this.scoped;
       star.userData.spin = Math.random() * Math.PI * 2;
       star.scale.set(this.FS * J * 1.3, this.FS * J * 1.3, 1);
-      flame.scale.set(this.FS * 1.3 * J, this.FS * 0.55 * (0.8 + Math.random() * 0.4), 1);
-      glow.scale.set(this.FS * 5, this.FS * 5, 1);
+      flame.scale.set(this.FS * 1.3 * J, this.FS * 0.55 * J * (0.8 + Math.random() * 0.4), 1);
+      glow.scale.set(this.FS * 5 * f.flash, this.FS * 5 * f.flash, 1);
     }
     if (this.cls === 'LMG' || this.cls === 'Wonder') this.spinSpeed = Math.min(this.spinSpeed + 400, 1800);
     this.fireExtras(continuous);
-    if (!continuous && !['Launcher', 'Energy', 'Wonder'].includes(this.cls)) {
-      const p = this.toWorld(this.eject, 70);
-      const cam = this.game.camera;
-      const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
-      const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
-      const fwd = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 2).negate();
-      const vel = right.multiplyScalar(180 + Math.random() * 80).add(up.multiplyScalar(160 + Math.random() * 100)).addScaledVector(fwd, -40).add(this.game.player.vel);
-      this.game.fx.debris('FX_Shell', p, vel, this.cls === 'Shotgun' ? 5 : 3.2, 3, Math.random() * 1800 - 900, true);
-    }
+  }
+  // A spent case out of the port: small brass for pistols, long brass for rifles, a fat red hull for shotguns.
+  ejectShell() {
+    if (!this.eject) return;
+    const cam = this.game.camera, kind = this.feel.shell;
+    if (this.twinLeft(this.shots) && this.A.twin) this.eject.position.copy(this.eject.userData.rest).add(this.A.twin.userData.rest); else this.eject.position.copy(this.eject.userData.rest);
+    const p = this.toWorld(this.eject, 70);
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+    const fwd = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 2).negate();
+    const hard = kind === 'rifle' ? 1.25 : kind === 'shot' ? 0.8 : 1;
+    const vel = right.multiplyScalar((180 + Math.random() * 80) * hard).add(up.multiplyScalar(160 + Math.random() * 100)).addScaledVector(fwd, kind === 'shot' ? -90 : -40).add(this.game.player.vel);
+    this.game.fx.debris('FX_Shell', p, vel, kind === 'shot' ? 5.4 : kind === 'rifle' ? 3.8 : 2.7, 3, Math.random() * 1800 - 900, true);
   }
   // ---- small things thrown off the gun when it fires: cards, coins, chips, sparks. They live in the gun's own space. ----
   fling(geo, size, color, glow, from, vel, spin, life = 0.7, grav = 260) {
@@ -387,105 +434,317 @@ export class ViewModel {
     const o = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
     return o.clone().add(w.sub(o).normalize().multiplyScalar(dist));
   }
-  muzzleWorld() { return this.muzzle ? this.toWorld(this.muzzle, 60) : this.game.player.eye(); }
+  muzzleWorld() {
+    if (!this.muzzle) return this.game.player.eye();
+    if (this.feel.twin && this.A.twin) { this.muzzle.position.copy(this.muzzleRest); if (this.twinLeft(this.shots + 1)) this.muzzle.position.add(this.A.twin.userData.rest); this.muzzle.updateMatrixWorld(true); }   // the pistol about to fire
+    return this.toWorld(this.muzzle, 60);
+  }
 
   // ---------------------------------------------------------------- per frame
   update(dt, In) {
     if (dt <= 0) return;
     dt = Math.min(dt, 0.05);
     this.time += dt;
+    const f = this.feel, w = f.weight, A = this.A, audio = this.game.audio;
     const hs = Math.hypot(In.localVel.x, In.localVel.z);
     this.sprintA = interp(this.sprintA, (In.sprinting && !In.aiming && !In.reloading && In.grounded) ? 1 : 0, dt, 9);
-    this.aimA = interp(this.aimA, (In.aiming && !In.reloading && this.switchT <= 0) ? 1 : 0, dt, 14);
+    this.aimA = interp(this.aimA, (In.aiming && !In.reloading && this.switchT <= 0) ? 1 : 0, dt, 14 / Math.pow(w, 0.7));   // heavy guns come up to the eye slower
     this.slideA = interp(this.slideA, In.sliding ? 1 : 0, dt, 10);
     this.wallA = interp(this.wallA, In.wallSide, dt, 8);
     this.airA = interp(this.airA, In.grounded ? 0 : 1, dt, 6);
     this.scoped = this.cls === 'Sniper' && this.aimA > 0.92;
 
-    // sway (UE: Y right, Z up) -> view x, y
+    // sway (UE: Y right, Z up) -> view x, y. A heavy gun lags further behind the hand and takes longer to settle.
     const sm = 1 - this.aimA * 0.75;
     const lx = Math.max(-6, Math.min(6, In.look.x)), ly = Math.max(-6, Math.min(6, In.look.y));
     this.swayVel.add(new THREE.Vector3(-lx * 0.9 * sm, -ly * 0.7 * sm, 0).multiplyScalar(40));
-    spring(this.swayPos, this.swayVel, 160, 18, dt);
+    spring(this.swayPos, this.swayVel, 160 / w, 18 / Math.sqrt(w), dt);
     const lx8 = Math.max(-8, Math.min(8, In.look.x)), ly8 = Math.max(-8, Math.min(8, In.look.y));
     this.swayRotVel.add(new THREE.Vector3(ly8 * 1.4, -lx8 * 1.6, -lx8 * 2.4).multiplyScalar(22 * sm));
-    spring(this.swayRot, this.swayRotVel, 140, 16, dt);
+    spring(this.swayRot, this.swayRotVel, 140 / w, 16 / Math.sqrt(w), dt);
     this.swayPos.clampScalar(-5, 5);
     this.swayRot.clampScalar(-12, 12);
 
     const bobT = In.grounded && !In.sliding ? Math.min(1.6, hs / 640) : 0;
     this.bobAmp = interp(this.bobAmp, bobT, dt, 8);
     this.bobPhase += dt * (6 + hs * 0.0105);
-    const bm = this.bobAmp * (1 - this.aimA * 0.85) * (1 + this.sprintA * 0.6);
+    const bm = this.bobAmp * (1 - this.aimA * 0.85) * (1 + this.sprintA * 0.6) * (0.7 + 0.32 * w);
     const bob = new THREE.Vector3(Math.sin(this.bobPhase) * 1.6 * bm, -Math.abs(Math.cos(this.bobPhase)) * 1.4 * bm + Math.sin(this.time * 1.6) * 0.25, 0);
     const bobRot = new THREE.Vector3(Math.abs(Math.cos(this.bobPhase)) * 1.2 * bm, Math.sin(this.bobPhase) * 0.8 * bm, Math.sin(this.bobPhase) * 1.6 * bm);
 
-    spring(this.recoilPos, this.recoilPosVel, this.feel.k, this.feel.d, dt);
-    spring(this.recoilRot, this.recoilRotVel, this.feel.k * 0.92, this.feel.d * 0.9, dt);
+    spring(this.recoilPos, this.recoilPosVel, f.k, f.d, dt);
+    spring(this.recoilRot, this.recoilRotVel, f.k * 0.92, f.d * 0.9, dt);
     { const a = (0 - this.landZ) * 120 - this.landVel * 13; this.landVel += a * dt; this.landZ += this.landVel * dt; }
+    { const a = (0 - (this.twinR || 0)) * 330 - (this.twinV || 0) * 24; this.twinV = (this.twinV || 0) + a * dt; this.twinR = (this.twinR || 0) + this.twinV * dt; }
 
     // positions in UE-local terms (x fwd, y right, z up) then mapped
+    const hipK = 1 - this.aimA, hip = f.hip || [0, 0, 0, 0, 0, 0];
     const ads = { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
     const pos = { X: HipPos.X + (ads.X - HipPos.X) * this.aimA, Y: HipPos.Y + (ads.Y - HipPos.Y) * this.aimA, Z: HipPos.Z + (ads.Z - HipPos.Z) * this.aimA };
     const rot = { P: 0, Y: 0, R: 0 };
     const add = (x, y, z, k) => { pos.X += x * k; pos.Y += y * k; pos.Z += z * k; };
     const addR = (p, y, r, k) => { rot.P += p * k; rot.Y += y * k; rot.R += r * k; };
+    add(hip[0], hip[1], hip[2], hipK); addR(hip[3], hip[4], hip[5], hipK);
     add(-6, -2, -6, this.sprintA); addR(-16, -32, -24, this.sprintA);
     add(-2, -2, -3, this.slideA); addR(4, 0, -16, this.slideA);
     rot.R += -this.wallA * 10;
     pos.Z += this.airA * 1.2; rot.P += this.airA * 3;
     pos.Z += Math.sin(this.time * 1.4) * 0.3 * (1 - this.aimA);
 
-    let reloadPose = 0, magOffZ = 0;
-    const supOff = new THREE.Vector3();
+    // ---- moving parts: everything starts the frame at rest, then the action, the reload and the draw move it ----
+    for (const k in A) { const g = A[k]; g.position.copy(g.userData.rest); g.rotation.set(0, 0, 0); g.scale.setScalar(1); g.visible = true; }
+    const U = (fw, rt = 0, up = 0) => new THREE.Vector3(rt, up, -fw);
+    const mv = (n, fw, rt = 0, up = 0) => { const g = A[n]; if (g) { g.position.x += rt; g.position.y += up; g.position.z -= fw; } };
+    const rx = (n, deg) => { const g = A[n]; if (g) g.rotation.x += d2r(deg); };
+    const rz = (n, deg) => { const g = A[n]; if (g) g.rotation.z += d2r(deg); };
+    const supPos = this.supportRest.clone(), handOff = new THREE.Vector3(); let handRot = 0, gunSpin = 0;
+    const supTo = (t, k) => { if (k > 0) supPos.lerp(t, Math.min(1, k)); };
+    const magOff = new THREE.Vector3();
+    const bump = (x, a, b, c, d) => sstep(a, b, x) * (1 - sstep(c, d, x));
+    const OFF = U(6, -12, -38);                                    // where the off hand goes when it leaves the view
+    const play = (n, v = 0.8, p = 1) => audio.play(n, v, p);
+
+    const pumpCycle = (r) => { mv('pump', -7 * r); };
+    const leverCycle = (r) => { rx('lever', 46 * r); handOff.add(U(1.6 * r, 0, -4.4 * r)); handRot += 16 * r; addR(-9, 0, 7, r); add(1.5, 0, -1.5, r); };
+    const boltCycle = (u) => {
+      const reach = bump(u, 0, 0.16, 0.84, 1), lift = bump(u, 0.14, 0.28, 0.7, 0.84), pull = bump(u, 0.26, 0.42, 0.5, 0.7), mid = Math.sin(Math.min(1, Math.max(0, u)) * Math.PI);
+      rz('bolt', 58 * lift); mv('bolt', -7.5 * pull);
+      handOff.add(U(1, 4.2, 6.2).multiplyScalar(reach)).add(U(-7.5 * pull, -1.6 * lift, 2.6 * lift));
+      addR(5, -4, 15, mid); add(-2, 0, -1.2, mid);
+    };
+    const chargeCycle = (u) => {   // the off hand racks the handle
+      const reach = bump(u, 0, 0.3, 0.72, 1), pull = bump(u, 0.28, 0.5, 0.56, 0.7);
+      const cp = (A.charge ? A.charge.userData.rest : this.magRest).clone();
+      mv('charge', -5.5 * pull);
+      supTo(cp.add(U(-1 - 5.5 * pull, -1.5, 1)), reach);
+    };
+
+    // ---- the action cycling after a shot
+    this.cyc += dt;
+    const u = this.cyc / this.cycDur, act = f.action;
+    const blow = u < 1 ? (u < 0.28 ? u / 0.28 : 1 - (u - 0.28) / 0.72) : 0;     // back fast, forward slower
+    if (!this.cycShell && u >= f.shellAt && this.cyc < this.cycDur + 0.25) { this.cycShell = true; this.ejectShell(); }
+    const rackSnd = (at, v = 0.75, p = 1) => { if (!this.cycSnd && u >= at && u < 1.5) { this.cycSnd = true; play('S_Rack', v, p); } };
+    if (act === 'slide') {
+      const cur = this.twinLeft(this.shots) ? 'slide2' : 'slide';
+      if (In.empty && f.lock) { mv('slide', -3.4); mv('slide2', -3.4); } else mv(cur, -3.4 * blow);
+      rx(this.twinLeft(this.shots) ? 'hammer2' : 'hammer', 30 * blow);
+    } else if (act === 'recip') mv('charge', -3.2 * blow);
+    else if (act === 'revolver') rx('hammer', u < 0.2 ? 0 : 36 * Math.min(1, (u - 0.2) / 0.5));       // falls with the shot, thumbed back for the next
+    else if (act === 'hammers') rx('hammer', (In.empty || u < 0.5) ? 0 : 30 * Math.min(1, (u - 0.5) / 0.4));
+    else if (act === 'pump') { if (u < 1) { pumpCycle(u > 0.18 ? Math.sin(((u - 0.18) / 0.82) * Math.PI) : 0); rackSnd(0.3); } }
+    else if (act === 'lever') { rx('hammer', u < 0.3 ? 0 : 30 * Math.min(1, (u - 0.3) / 0.3)); if (u < 1) { leverCycle(Math.sin(u * Math.PI)); rackSnd(0.25, 0.5, 1.3); } }
+    else if (act === 'bolt') { if (u < 1) { boltCycle(u); rackSnd(0.32, 0.8, 0.85); } }
+    if (this.A.twin) this.A.twin.rotation.x += d2r((this.twinR || 0) - this.recoilRot.x * 0.8);          // each pistol kicks on its own
+    // glowing emitters swell with every shot and breathe at rest; the rail gun's swells as it charges
+    this.emitP = Math.max(0, (this.emitP || 0) - dt * 7);
+    this.chargeA = interp(this.chargeA, In.charge || 0, dt, 30);
+    let emitScale = 1 + 0.06 * Math.sin(this.time * 5.5) + 0.45 * this.emitP + 1.4 * this.chargeA;
+    if (this.chargeA > 0.02) { add((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, 0, this.chargeA); add(-2.5, 0, 0, this.chargeA); }   // drawn back and humming
+    if (f.action === 'reels' || f.reload === 'slot') {
+      // three reels: each shot knocks them on a third of a turn, one after another
+      this.reelA = this.reelA || [0, 0, 0];
+      for (let i = 0; i < 3; i++) { const target = (this.reelSpin || 0) * 120; this.reelA[i] += (target - this.reelA[i]) * Math.min(1, dt * (16 - i * 4)); rx('reel' + i, this.reelA[i]); }
+    }
+
+    // ---- reload choreography
     let pumpOff = 0;
     if (In.reloading) {
-      const T = Math.min(1, Math.max(0, In.reloadFrac));
-      reloadPose = sstep(0, 0.14, T) * (1 - sstep(0.82, 1, T));
-      const out = sstep(0.18, 0.32, T), inA = sstep(0.45, 0.62, T);
-      magOffZ = -26 * out * (1 - inA);
-      if (out > 0.99 && inA < 0.01) magOffZ = -60;
-      const toMag = this.magRest.clone().sub(this.supportRest).add(P3(V(-2, -3, -8)));
-      supOff.copy(toMag).multiplyScalar(sstep(0.1, 0.25, T) * (1 - sstep(0.62, 0.78, T))).add(new THREE.Vector3(0, magOffZ * 0.6, 0));
-      if (this.PumpRoot) {
-        const rack = Math.sin(sstep(0.84, 0.98, T) * Math.PI);
-        pumpOff = -7 * rack;
-        supOff.z += 7 * rack;
+      const T = Math.min(1, Math.max(0, In.reloadFrac)), last = this.lastReload;
+      const cue = (m, fn) => { if (last < m && T >= m) fn(); };
+      const rp = f.rp || [14, -8, 30];
+      const pose = (a, b, c, d, px = -2, py = -2, pz = 3) => { const k = bump(T, a, b, c, d); add(px, py, pz, k); addR(rp[0], rp[1], rp[2], k); return k; };
+      const magSwap = (t, dir, grab, inSnd = 'S_MagIn') => {
+        const k = sstep(t[1], t[2], T) * (1 - sstep(t[3], t[4], T));
+        magOff.copy(dir).multiplyScalar(k);
+        supTo(this.magRest.clone().add(magOff).add(grab), sstep(t[0], t[1], T) * (1 - sstep(t[4] + 0.02, t[5], T)));
+        cue(t[1], () => play('S_MagOut', 0.7));
+        cue(t[4], () => { play(inSnd, 0.8); this.jolt(0.7); });
+      };
+      const finish = (a, b) => {
+        const v = (T - a) / (b - a), on = v > 0 && v < 1;
+        switch (f.charge) {
+          case 'slide': { const s = 1 - sstep(a, a + (b - a) * 0.3, T); mv('slide', -3.4 * s); mv('slide2', -3.4 * s); cue(a + 0.01, () => { play('S_Rack', 0.6, 1.4); this.jolt(0.4); }); break; }
+          case 'handle': if (on) chargeCycle(v); cue(a + (b - a) * 0.5, () => { play('S_Rack', 0.8); this.jolt(0.5); }); break;
+          case 'bolt': if (on) boltCycle(v); cue(a + (b - a) * 0.35, () => { play('S_Rack', 0.8, 0.85); this.jolt(0.4); }); break;
+          case 'pump': if (on) pumpCycle(Math.sin(v * Math.PI)); cue(a + (b - a) * 0.4, () => { play('S_Rack', 0.8); this.jolt(0.5); }); break;
+          case 'lever': if (on) leverCycle(Math.sin(v * Math.PI)); cue(a + (b - a) * 0.4, () => { play('S_Rack', 0.6, 1.3); this.jolt(0.4); }); break;
+          case 'slap': supTo(this.magRest.clone().add(U(0, -1, -8 + 3 * bump(v, 0.3, 0.5, 0.5, 0.7))), bump(v, 0, 0.3, 0.7, 1)); cue(a + (b - a) * 0.5, () => { play('S_MagIn', 0.6, 0.8); this.jolt(0.8); }); break;
+          case 'rev': cue(a + (b - a) * 0.4, () => { this.spinSpeed = 2600; play('S_Saw', 0.5, 1.2); this.jolt(0.6); }); break;
+          default: break;
+        }
+      };
+      const md = f.magDir ? U(f.magDir[0], f.magDir[1], f.magDir[2]) : U(-3, -9, -28);
+      switch (f.reload) {
+        case 'twin': {   // no free hand: both magazines are thumbed out, the guns dip out of sight and come back loaded
+          const tip = bump(T, 0.04, 0.16, 0.74, 0.86), dip = bump(T, 0.26, 0.4, 0.58, 0.74), fall = sstep(0.18, 0.34, T);
+          addR(26, 0, 0, tip); add(0, 0, 3, tip); add(-4, 0, -30, dip);
+          if (this.A.twin) this.A.twin.rotation.z += d2r(-24 * tip);
+          rot.R += 20 * tip;
+          const gone = T > 0.3 && T < 0.5;
+          for (const n of ['mag', 'mag2']) if (A[n]) { A[n].position.y -= (T < 0.5 ? fall * fall * 46 : 0); A[n].visible = !gone; }
+          mv('slide', -3.4 * (1 - sstep(0.8, 0.84, T))); mv('slide2', -3.4 * (1 - sstep(0.87, 0.91, T)));
+          cue(0.18, () => play('S_MagOut', 0.8)); cue(0.5, () => { play('S_MagIn', 0.8); this.jolt(0.5); }); cue(0.56, () => play('S_MagIn', 0.7, 1.1));
+          cue(0.81, () => { play('S_Rack', 0.6, 1.4); this.jolt(0.4); }); cue(0.88, () => { play('S_Rack', 0.6, 1.5); this.jolt(-0.4); });
+          supPos.copy(this.supportRest);
+          break;
+        }
+        case 'revolver': {
+          const open = bump(T, 0.05, 0.16, 0.7, 0.78);
+          add(-1, -1, 3.5, open); addR(rp[0], rp[1], rp[2], open);
+          const swing = U(0, -5.2, -1.6).multiplyScalar(open);
+          if (A.cyl) A.cyl.position.add(swing);
+          cue(0.19, () => { play('S_ShellDrop', 0.9); this.jolt(-0.6); const at = A.cyl ? A.cyl.position.clone() : new THREE.Vector3(); for (let i = 0; i < 6; i++) this.fling(1, [0.9, 2.4, 0.9], 0xD9A03A, 0.3, at.clone().add(U(-2, 0, 0)), new THREE.Vector3(-20 + Math.random() * 30, 10 + Math.random() * 40, 40 + Math.random() * 40), new THREE.Vector3(Math.random() * 12, Math.random() * 12, Math.random() * 12), 0.6, 320); });
+          const cylAt = A.cyl ? A.cyl.userData.rest.clone().add(U(0, -5.2, -1.6)) : this.magRest.clone();
+          const mp = OFF.clone().lerp(cylAt.clone().add(U(-8, 0, 0)), sstep(0.3, 0.5, T)).lerp(cylAt, sstep(0.52, 0.6, T));
+          if (A.mag) { A.mag.position.copy(mp); A.mag.visible = T > 0.3 && T < 0.64; }
+          supTo(mp.clone().add(U(-4, -1.5, -2)), bump(T, 0.24, 0.34, 0.64, 0.76));
+          cue(0.59, () => { play('S_ShellIn', 0.8); this.jolt(0.5); });
+          cue(0.75, () => { play('S_Rack', 0.8, 1.35); this.jolt(0.9); this.cylTarget += Math.PI * 2; });
+          if (f.flourish === 'spin') { gunSpin = -360 * sstep(0.8, 0.97, T); cue(0.8, () => play('S_Switch', 0.6, 1.4)); }
+          rx('hammer', 36 * sstep(0.9, 0.98, T));
+          break;
+        }
+        case 'break': {
+          const open = bump(T, 0.04, 0.15, 0.7, 0.77);
+          add(-2, -1, 3, open); addR(rp[0], rp[1], rp[2], open);
+          rx('barrels', -38 * open);
+          const B = A.barrels, q = B ? B.quaternion.clone().setFromEuler(B.rotation) : new THREE.Quaternion(), piv = B ? B.userData.rest : new THREE.Vector3();
+          const home = this.magRest.clone().sub(piv).applyQuaternion(q).add(piv), axis = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+          const mp = OFF.clone().lerp(home.clone().addScaledVector(axis, -9), sstep(0.3, 0.48, T)).lerp(home, sstep(0.5, 0.6, T));
+          if (A.mag) { A.mag.position.copy(T < 0.3 ? home : mp); A.mag.quaternion.copy(q); A.mag.visible = T < 0.16 || T > 0.3; }
+          cue(0.16, () => { play('S_ShellDrop', 0.9); this.jolt(-0.5); for (const s of [-1, 1]) this.fling(1, [3.2, 5.2, 3.2], 0xB0262C, 0.2, home.clone().add(new THREE.Vector3(s * 2, 0, 0)), new THREE.Vector3(s * 14, 60 + Math.random() * 30, 70 + Math.random() * 30), new THREE.Vector3(6 + Math.random() * 8, 0, Math.random() * 8), 0.7, 320); const p = this.toWorld(this.eject, 60); this.game.fx.puff(p, [0.75, 0.73, 0.7], 18, 0.5, this.game.player.vel); });
+          supTo(mp.clone().add(U(-4, -1.5, -2)), bump(T, 0.2, 0.32, 0.6, 0.7));
+          const sr = this.supportRest.clone().sub(piv).applyQuaternion(q).add(piv); supPos.lerp(sr, T < 0.2 ? 1 - sstep(0.16, 0.2, T) : sstep(0.6, 0.7, T));
+          cue(0.58, () => { play('S_ShellIn', 0.8); this.jolt(0.4); }); cue(0.61, () => play('S_ShellIn', 0.7, 1.15));
+          cue(0.75, () => { play('S_Rack', 0.9, 0.9); this.jolt(1.1); });
+          break;
+        }
+        case 'shell': {
+          pose(0, 0.1, 0.8, 0.94, -1, -2, 7);
+          const n = f.shells || 3, w0 = 0.12, len = (0.74 - w0) / n, port = this.magRest.clone().add(U(0, 0, -3.6));   // fed up through the gate in its belly
+          let vis = false; const mp = OFF.clone();
+          for (let i = 0; i < n; i++) {
+            const v = (T - w0 - i * len) / len; if (v <= 0 || v >= 1) continue;
+            mp.copy(OFF).lerp(port.clone().add(U(-3, -2, -8)), sstep(0, 0.5, v)).lerp(port, sstep(0.55, 0.82, v)); vis = v < 0.86;
+            cue(w0 + (i + 0.8) * len, () => { play('S_ShellIn', 0.75, 0.95 + i * 0.06); this.jolt(0.35); });
+          }
+          if (A.mag) { A.mag.position.copy(mp); A.mag.visible = vis; }
+          supTo(mp.clone().add(U(-3, -1.5, -3.5)), bump(T, 0.05, 0.14, 0.72, 0.8));
+          finish(0.78, 0.97);
+          break;
+        }
+        case 'box': {
+          pose(0, 0.1, 0.9, 1, -2, -1, 2);
+          const lid = bump(T, 0.1, 0.18, 0.7, 0.76);
+          rx('cover', -56 * lid);
+          const latch = (A.cover ? A.cover.userData.rest : this.magRest).clone().add(U(-22, 0, 2));
+          supTo(latch, bump(T, 0.04, 0.1, 0.16, 0.2));
+          magSwap([0.18, 0.26, 0.38, 0.48, 0.6, 0.66], U(-2, -20, -26), U(0, -3, -5));
+          supTo(latch.clone().add(U(0, 0, 9 * lid)), bump(T, 0.66, 0.7, 0.76, 0.8));
+          cue(0.12, () => play('S_Rack', 0.5, 1.5)); cue(0.75, () => { play('S_Rack', 0.9, 0.75); this.jolt(1.1); });
+          finish(0.8, 0.97);
+          break;
+        }
+        case 'drumtop': {
+          pose(0, 0.1, 0.88, 1, -2, -1, 2);
+          magSwap([0.08, 0.18, 0.32, 0.46, 0.6, 0.7], U(-2, -34, -8), U(-1, -4.5, -2));   // slid off to the side, never over the sights
+          const crank = sstep(0.7, 0.96, T);
+          this.crankA = (this.crankA || 0) + (T > 0.7 && T < 0.96 ? dt * 720 : 0);
+          if (T > 0.7 && T < 0.96) this.spinSpeed = Math.max(this.spinSpeed, 700);
+          void crank; cue(0.72, () => play('S_Rack', 0.7, 0.9)); cue(0.84, () => play('S_SlotTick', 0.6));
+          break;
+        }
+        case 'muzzle': {
+          pose(0, 0.14, 0.84, 1, -4, -2, 2);
+          const front = this.magRest.clone().add(U(16, 0, 0));
+          const mp = U(26, -16, -30).lerp(front, sstep(0.26, 0.5, T)).lerp(this.magRest, sstep(0.54, 0.7, T));
+          if (A.mag) { A.mag.position.copy(mp); A.mag.visible = T > 0.26; }
+          supTo(mp.clone().add(U(3, -2.5, -3)), bump(T, 0.1, 0.26, 0.72, 0.84));
+          if (f.beats) for (let i = 0; i < f.beats; i++) cue(0.56 + i * 0.045, () => { play('S_ShellIn', 0.8, 0.9 + i * 0.08); this.jolt(0.4); });
+          else cue(0.68, () => { play('S_MagIn', 0.9, 0.8); this.jolt(0.9); });
+          cue(0.86, () => { play('S_Rack', 0.5, 0.7); this.jolt(0.3); });
+          break;
+        }
+        case 'cell': {
+          pose(0, 0.12, 0.84, 1, -2, -2, 3);
+          if (A.mag) A.mag.rotation.y = d2r(90) * bump(T, 0.12, 0.2, 0.6, 0.68);
+          magSwap([0.06, 0.2, 0.32, 0.46, 0.6, 0.72], U(-2, -8, -28), U(0, -0.5, -6), 'S_MagIn');
+          cue(0.21, () => { play('S_Flame', 0.4, 1.6); const p = this.toWorld(this.MagRoot, 60); for (let i = 0; i < 3; i++) this.game.fx.puff(p, [0.85, 0.9, 0.95], 16 + i * 6, 0.5 + i * 0.1, new THREE.Vector3(0, -40 - i * 20, 0).add(this.game.player.vel)); });   // spent cell vents
+          emitScale = T < 0.2 ? emitScale : T < 0.7 ? 0.12 : emitScale + 1.1 * (1 - sstep(0.7, 0.92, T));
+          cue(0.7, () => { play('S_PowerUp', 0.35, 1.6); this.jolt(0.5); });
+          break;
+        }
+        case 'slot': {   // pull the handle: the reels spin, the coins drop in, and it pays out a full magazine
+          pose(0, 0.1, 0.88, 1, -2, -1, 2);
+          const lev = A.lever ? A.lever.userData.rest.clone().add(U(0, 0.5, 6)) : this.magRest.clone();
+          const pull = bump(T, 0.12, 0.22, 0.26, 0.38);
+          rx('lever', 62 * pull);
+          supTo(lev.add(U(-5.4 * pull, 0, -2 * pull)), bump(T, 0.03, 0.12, 0.3, 0.42));
+          cue(0.14, () => play('S_SlotPull', 0.8));
+          this.reelA = this.reelA || [0, 0, 0];
+          for (let i = 0; i < 3; i++) if (T > 0.2 && T < 0.58 + i * 0.1) this.reelA[i] += dt * 1400;
+          for (let i = 0; i < 3; i++) cue(0.58 + i * 0.1, () => { play('S_SlotStop', 0.8, 1 + i * 0.1); this.jolt(0.3); this.reelA[i] = Math.round(this.reelA[i] / 120) * 120; this.reelSpin = Math.round(this.reelA[i] / 120); });
+          magOff.copy(U(0, 0, -16)).multiplyScalar(T < 0.3 ? sstep(0.04, 0.14, T) : 1 - sstep(0.4, 0.74, T));
+          for (const m of [0.44, 0.52, 0.6, 0.68]) cue(m, () => play('S_Coin', 0.5, 1 + m));
+          cue(0.84, () => { play('S_Jackpot', 0.4, 1.3); this.jolt(0.8); this.emitP = 1.5; });
+          break;
+        }
+        case 'deck': {   // flick the spent deck away, slap a fresh one on, and it deals itself a new hand
+          pose(0, 0.1, 0.86, 1, -2, -2, 3);
+          const D = A.deck, home = D ? D.userData.rest.clone() : this.magRest.clone();
+          const off = sstep(0.1, 0.22, T);
+          const dp = OFF.clone().lerp(home.clone().add(U(0, 0, 9)), sstep(0.34, 0.52, T)).lerp(home, sstep(0.54, 0.62, T));
+          if (D) { if (T < 0.3) { D.position.copy(home).add(U(-4 * off, -16 * off, 5 * off)); D.rotation.z = d2r(70 * off); D.visible = T < 0.22; } else { D.position.copy(dp); D.visible = T > 0.34; } }
+          cue(0.11, () => { play('S_UIMove', 0.8, 0.8); for (let i = 0; i < 6; i++) this.fling(0, [4, 0.12, 2.8], i % 2 ? 0xB0262C : 0xF4EEDF, 0.3, home.clone(), new THREE.Vector3(-50 - Math.random() * 60, 20 + Math.random() * 60, Math.random() * 40 - 10), new THREE.Vector3(Math.random() * 8 - 4, 10 + Math.random() * 12, Math.random() * 8 - 4), 0.7, 200); });
+          supTo(dp.clone().add(U(-1, -3.5, 1.5)), bump(T, 0.28, 0.38, 0.64, 0.76));
+          cue(0.61, () => { play('S_MagIn', 0.8, 1.2); this.jolt(0.7); });
+          if (A.mag) A.mag.visible = T < 0.1 || T > 0.72;
+          cue(0.73, () => { this.cardT = 0.09; for (let i = 0; i < 5; i++) setTimeout(() => play('S_SlotTick', 0.5, 1.2 + i * 0.1), i * 35); });
+          break;
+        }
+        default: {   // box magazines, drums and stick mags
+          pose(0, 0.12, 0.84, 1);
+          magSwap([0.08, 0.2, 0.33, 0.47, 0.6, 0.72], md, U(0, -0.5, -5.5));
+          finish(0.74, 0.96);
+        }
       }
-      const crossed = (m) => this.lastReload < m && T >= m;
-      if (crossed(0.2)) this.game.audio.play('S_MagOut', 0.7);
-      if (crossed(0.6)) { this.game.audio.play(this.cls === 'Shotgun' ? 'S_ShellIn' : 'S_MagIn', 0.8); this.jolt(0.6); }
-      if (crossed(0.86) && ['Shotgun', 'Sniper', 'Rifle', 'LMG'].includes(this.cls)) { this.game.audio.play('S_Rack', 0.8); this.jolt(0.5); }
       this.lastReload = T;
-    } else this.lastReload = 0;
-    {
-      // each reload style holds the gun differently: tipped to dump a cylinder, broken open, muzzle up for a tube...
-      const RP = { mag: [14, -8, 30], revolver: [22, -26, 72], break: [-40, -6, 14], shell: [10, -12, 44], box: [6, -16, 38], tube: [34, -10, 18], cell: [8, -16, 36] }[this.feel.reload] || [14, -8, 30];
-      add(-3, -3, -4, reloadPose); addR(RP[0], RP[1], RP[2], reloadPose);
-      if (In.reloading && this.feel.reload === 'shell') { const T = In.reloadFrac; for (const m of [0.32, 0.46]) if (this.lastReloadShell < m && T >= m) { this.game.audio.play('S_ShellIn', 0.7); this.jolt(0.35); } this.lastReloadShell = T; } else this.lastReloadShell = 0;
+    } else {
+      this.lastReload = 0;
+      if (f.reload === 'revolver' && A.mag) A.mag.visible = false;                    // the speedloader lives in a pocket
+      if (f.reload === 'muzzle' && A.mag && In.empty) A.mag.visible = false;          // nothing left in the tube
     }
-    // the action cycling after a shot: pump racks, bolt lifts and pulls, lever flicks, cylinder indexes
-    if (this.actT > 0) {
-      this.actT -= dt;
-      const u = 1 - Math.max(0, this.actT) / this.actDur, w = Math.sin(Math.min(1, u) * Math.PI);
-      const a = this.feel.action;
-      if (a === 'pump' && this.PumpRoot && u > 0.25) { const r = Math.sin(((u - 0.25) / 0.75) * Math.PI); pumpOff = -7 * r; supOff.z += 7 * r; if (!this.actSnd) { this.actSnd = true; this.game.audio.play('S_Rack', 0.75); } }
-      else if (a === 'bolt' && u > 0.2) { const r = Math.sin(((u - 0.2) / 0.8) * Math.PI); addR(7, -5, 24, r); add(-2, 0, -1.5, r); if (!this.actSnd && u > 0.4) { this.actSnd = true; this.game.audio.play('S_Rack', 0.8, 0.85); } }
-      else if (a === 'lever') { addR(-13, 0, 9, w); add(1.5, 0, -1.5, w); if (!this.actSnd && u > 0.3) { this.actSnd = true; this.game.audio.play('S_Rack', 0.5, 1.3); } }
-    }
-    if (this.CylPart) { this.cylAngle += (this.cylTarget - this.cylAngle) * Math.min(1, dt * 30); this.CylPart.rotation.z = this.cylAngle; }
+    void pumpOff;
+    if (A.emit) { A.emit.scale.setScalar(Math.max(0.05, emitScale)); if (this.cls === 'Energy') A.emit.position.y += Math.sin(this.time * 2.3) * 0.35; }
 
+    // ---- bringing a gun up
     if (this.switchT > 0) {
+      const half = (this.switchDur || 0.36) / 2;
       this.switchT -= dt;
-      if (this.switchT <= 0.18 && !this.swapped && this.pendingDef >= 0) {
+      if (this.switchT <= half && !this.swapped && this.pendingDef >= 0) {
         this.swapped = true;
         this.weaponDef = this.pendingDef; this.weaponTier = this.pendingTier; this.pendingDef = -1;
         this.build();
-        this.game.audio.play('S_Switch', 0.7);
+        this.drawT = 0;
+        audio.play('S_Switch', 0.7);
+        return this.update(1e-4, In);          // pose the new gun this frame
       }
     }
-    const drop = this.switchT <= 0 ? 0 : (this.switchT > 0.18 ? 1 - sstep(0.18, 0.36, this.switchT) : sstep(0, 0.18, this.switchT));
-    add(-4, 2, -22, drop); addR(-35, 10, 20, drop);
+    {
+      const dur = this.switchDur || 0.36, half = dur / 2;
+      const drop = this.switchT <= 0 ? 0 : (this.switchT > half ? 1 - sstep(half, dur, this.switchT) : sstep(0, half, this.switchT));
+      add(-4, 2, -22, drop); addR(-35, 10, 20, drop);
+      // each kind of gun arrives its own way
+      this.drawT += dt;
+      const d = this.feel.draw, t = this.drawT;
+      if (d === 'spin' && t < 0.42) gunSpin += 360 * (1 - sstep(0, 0.42, t));                                  // a revolver spun up out of the holster
+      else if (d === 'heavy' && t < 0.5) { const s = bump(t, 0.12, 0.26, 0.3, 0.5); add(0, 0, -3.5, s); addR(-5, 0, 0, s); if (this.drawSnd !== this.weaponDef && t > 0.2) { this.drawSnd = this.weaponDef; this.game.player.addShake(0.12); } }   // it lands in the hands with a thud
+      if (act === 'pump' && t > 0.16 && t < 0.5) { pumpCycle(Math.sin(((t - 0.16) / 0.34) * Math.PI)); if (this.drawSnd !== -this.weaponDef - 1 && t > 0.26) { this.drawSnd = -this.weaponDef - 1; play('S_Rack', 0.7); this.jolt(0.4); } }   // racked as it comes up
+    }
+    if (this.CylPart) { this.cylAngle += (this.cylTarget - this.cylAngle) * Math.min(1, dt * 30); this.CylPart.rotation.z = this.cylAngle; }
+    if (f.action === 'crank') { this.crankA = (this.crankA || 0) + this.spinSpeed * dt * 0.3; this.spinSpeed = Math.max(this.spinSpeed, (In.spool || 0) * 1700); }
+    rx('crank', this.crankA || 0);
 
     const p3 = P3(pos).add(this.swayPos).add(bob).add(this.recoilPos).add(new THREE.Vector3(0, this.landZ, 0));
     this.gun.position.copy(p3);
@@ -496,9 +755,21 @@ export class ViewModel {
     const Y = rot.Y + this.swayRot.y + bobRot.y + this.recoilRot.y;
     const Rr = rot.R + this.swayRot.z + bobRot.z + this.recoilRot.z;
     this.gun.quaternion.copy(quatVM(R(P, Y, Rr)));
-    if (this.MagRoot) this.MagRoot.position.copy(this.magRest).add(new THREE.Vector3(0, magOffZ, 0));
-    if (this.support) this.support.position.copy(this.supportRest).add(supOff);
-    if (this.PumpRoot) this.PumpRoot.position.copy(this.PumpRoot.userData.rest).add(new THREE.Vector3(0, 0, -(pumpOff + Math.min(0, -this.recoilPos.z * 0.6))));
+    if (gunSpin) {   // a spin around the trigger finger: the gun turns, the hand holding it does not
+      const sq = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d2r(gunSpin));
+      this.gun.quaternion.multiply(sq);
+      if (this.hand) this.hand.quaternion.copy(sq).invert();
+      if (this.support) { supPos.applyQuaternion(sq.clone().invert()); this.support.quaternion.copy(sq).invert(); }
+    } else if (this.support) this.support.quaternion.identity();
+    if (this.MagRoot && magOff.lengthSq() > 0) this.MagRoot.position.copy(this.magRest).add(magOff);
+    // the off hand rides whatever it is holding (a pump, the barrels) and goes wherever the reload sent it
+    if (this.support) {
+      const on = f.supOn && A[f.supOn];
+      if (on && !In.reloading) supPos.add(on.position).sub(on.userData.rest);
+      else if (on && In.reloading && f.charge === 'pump') supPos.add(on.position).sub(on.userData.rest);
+      this.support.position.copy(supPos);
+    }
+    if (this.hand) { this.hand.position.copy(handOff); if (!gunSpin) this.hand.rotation.set(d2r(handRot), 0, 0); }
     if (this.SpinPart) {
       this.spinSpeed = interp(this.spinSpeed, this.cls === 'Wonder' ? 600 : 0, dt, 1.5);
       const a = this.spinSpeed * dt * Math.PI / 180;

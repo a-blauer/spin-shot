@@ -16,6 +16,7 @@ const RADIUS = 38, HALF = 90;
 const UP = new THREE.Vector3(0, 1, 0);
 const SLOT_STRIP = [0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 4, 0, 1, 6, 2];
 import { gunSound } from './gunsound.js';
+import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
@@ -943,6 +944,7 @@ export class Player {
       look: this.lookDelta, localVel, grounded: this.grounded, sprinting: this.sprintHeld && this.inFwd > 0.1 && sp > 500, sliding: this.sliding,
       aiming: this.aiming && !this.inMenu(), wallSide: this.wallRunning ? this.wallSide : 0, reloading: this.reloading,
       reloadFrac: this.reloadDur > 0 ? 1 - this.reloadT / this.reloadDur : 0,
+      empty: this.slot.def >= 0 && this.slot.ammo <= 0 && !this.reloading, spool: this.spool || 0, charge: this.railT > 0 ? 1 - this.railT / 0.28 : 0,
     });
     this.lookDelta = { x: 0, y: 0 };
     if (this.health < this.maxHealth * 0.3 && !this.dead) { this.heartbeat -= dt; if (this.heartbeat <= 0) { this.heartbeat = 0.9; this.play('S_Heartbeat', 0.6); } }
@@ -957,9 +959,21 @@ export class Player {
     this.aimHold = this.aiming && this.fireCd <= 0 ? this.aimHold + dt : 0;
     if (this.swapBuffT > 0) this.swapBuffT -= dt;
     if (this.echoT > 0) { this.echoT -= dt; if (this.echoT <= 0 && !this.reloading && this.slot.def >= 0) this.fireWeapon(true); }   // Echo Chamber's second shot
+    // Feel: a crank gun has to wind up (holding the sights keeps it turning), and the rail gun charges for a beat before it lets go.
+    const FL = this.slot.def >= 0 ? gunFeel(this.W) : null, trig = this.fireHeld && !this.inMenu() && !this.dead && !this.reloading;
+    if (FL && FL.spool) this.spool = clamp((this.spool || 0) + dt * (trig && this.slot.ammo > 0 ? 1.5 : this.aiming ? (this.spool < 0.45 ? 1.2 : -0.2) : -1.1), 0, 1); else this.spool = 0;
+    if (this.railT > 0) {
+      this.railT -= dt;
+      if (!FL || !FL.chargeUp || this.reloading || this.slot.ammo <= 0) this.railT = 0;
+      else if (this.railT <= 0) { this.railT = 0; this.fireWeapon(); this.fireCd -= FL.chargeUp; }   // the charge is part of the cycle: the rate of fire is unchanged
+      return;
+    }
     if (!this.fireHeld || this.inMenu() || this.dead) return;
     if (!this.W.auto && !(this.stat('FullAuto') > 0) && this.fireConsumed) return;
-    if (this.fireCd <= 0 && this.game.vm.switchT <= 0.05) { this.fireWeapon(); this.fireConsumed = true; }
+    if (this.fireCd <= (FL && FL.chargeUp ? FL.chargeUp : 0) && this.game.vm.switchT <= 0.05) {
+      if (FL && FL.chargeUp && this.slot.ammo > 0 && !this.reloading) { this.railT = FL.chargeUp; this.fireConsumed = true; this.play('S_Energy', 0.6, 0.55); return; }
+      if (this.fireCd <= 0) { this.fireWeapon(); this.fireConsumed = true; }
+    }
   }
   fireWeapon(echo = false) {
     const S = this.slot;
@@ -967,7 +981,7 @@ export class Player {
     const G = this.game, W = DATA.weapons[S.def];
     if (!echo && S.ammo <= 0) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
     if (!echo && this.aiming && S.altCd <= 0 && this.altKind() && this.fireAlt(S, W)) return;   // aiming down the sights fires the gun's alt mode when it is ready
-    const rate = W.rate * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1);
+    const rate = W.rate * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
@@ -1022,18 +1036,31 @@ export class Player {
       case 'Energy': kick = continuous ? 0.04 : 0.4; break; default: kick = 0.3;
     }
     this.bloom = Math.min(this.bloom + (continuous ? 0.02 : 0.15), 1.5);
-    this.fireFeedback(W, echo ? kick * 0.5 : kick, continuous);
+    this.fireFeedback(W, echo ? kick * 0.5 : kick, continuous, echo ? 0.5 : 1);
     if (S.ammo <= 0) this.startReload();
   }
-  fireFeedback(W, kick, continuous) {
-    const ads = this.aiming ? 0.3 : 1;
-    this.addPitch(kick * 0.45 * ads * 2.5);
-    this.addYaw(frandRange(-0.3, 0.3) * kick * 0.35 * ads * 2.5);
-    this.addKick(kick * 1.3 * ads, frandRange(-0.5, 0.5) * kick * ads);
+  fireFeedback(W, kick, continuous, scale = 1) {
+    const ads = (this.aiming ? 0.3 : 1) * scale, F = gunFeel(W), cam = F.cam, t = this.game.time;
+    // a burst is a run of shots with no real pause; patterns are read off its length
+    if (t - (this.lastShotT || -9) > Math.max(0.22, 1.8 / W.rate)) this.shotRun = 0;
+    this.lastShotT = t; const n = this.shotRun = (this.shotRun || 0) + 1;
+    const settle = 1 / (1 + (n - 1) * (cam.taper || 0));                       // the climb eases off as you hold the trigger down
+    let side = 0;
+    switch (cam.pat) {
+      case 'zig': side = (n % 2 ? 1 : -1) * (0.6 + Math.random() * 0.4); break;          // left, right, left
+      case 'left': side = -(0.5 + Math.random() * 0.5); break;
+      case 'right': side = 0.5 + Math.random() * 0.5; break;
+      case 'S': side = Math.sin(n * 0.55) * 0.9 + (Math.random() - 0.5) * 0.4; break;      // a slow snake you can learn
+      default: side = Math.random() * 2 - 1;
+    }
+    const e = kick < 0.01 ? 0 : 1;
+    this.addPitch(cam.up * settle * ads * e);
+    this.addYaw(side * cam.side * ads * e);
+    this.addKick(cam.snap * 1.3 * ads * e, side * cam.side * 2 * ads * e);
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
     // every shot is felt: a shake, a punch of the view, a flash on the world in front of you, and a buzz on phones
     this.addShake((continuous ? 0.02 : 0.06 + kick * 0.16) * (this.aiming ? 0.35 : 1));
-    this.fovKick += (continuous ? 0.15 : Math.min(4, 0.6 + kick * 1.1)) * (this.aiming ? 0.25 : 1);
+    this.fovKick += (continuous ? 0.15 : Math.min(7, cam.fov || (0.6 + kick * 1.1))) * (this.aiming ? 0.25 : 1);
     if (!continuous) {
       const G = this.game, e = this.eye(), f = this.forward();
       G.fx.flash(e.clone().addScaledVector(f, 150), lin(1, 0.75, 0.35), 180 + kick * 90, 0.06, true);
