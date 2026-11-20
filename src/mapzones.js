@@ -556,7 +556,7 @@ export function BuildCasino(M, GM) {
 	Glow(V(-1080., 0., 422.), V(320., 860., 4.), Pal.Bulb);
 	Box(V(-1240., -420., 210.), V(30., 30., 420.), Pal.Gold);
 	Box(V(-1240., 420., 210.), V(30., 30., 420.), Pal.Gold);
-	Sign(V(-1262., 0., 470.), 180., "OPEN EVERY THIRD NIGHT", FC(255, 220, 140), 34.);
+	Sign(V(-1262., 0., 470.), 180., "ALWAYS OPEN", FC(255, 220, 140), 34.);
 
 	// Rooftop sign, dice and card
 	Box(V(-850., 0., 1120.), V(40., 1800., 360.), Pal.CasinoBlack, true, false);
@@ -582,6 +582,57 @@ export function BuildCasino(M, GM) {
 	{
 		let D = R(0., i * 30., 0.).Vector();
 		Glow(V(0., 0., 700.).add(D.mul(230.)), V(18., 18., 80.), 0xFFF2CC, 1);
+	}
+
+	// ---- interior dressing: patterned carpet, panelled walls, neon, a tiered chandelier, card tables and signage
+	{
+		const Wood = 0x3A2218, Velvet = 0x4A0A1A, Plum = 0x3A1030, Teal = 0x2FD8C8;
+		// carpet: a harlequin of diamonds inside a gold border, with a medallion in the middle
+		for (let i = -5; i <= 5; ++i) for (let j = -6; j <= 6; ++j)
+		{
+			if (((i + j) & 1) == 0) Box(V(i * 150., j * 150., 5.), V(106., 106., 2.), ((i * 3 + j) & 2) ? Plum : Velvet, false, false, 45.);
+		}
+		for (const s of [-1, 1]) { Box(V(s * 840., 0., 7.), V(14., 2080., 3.), Pal.Gold, false, false); Box(V(0., s * 1040., 7.), V(1690., 14., 3.), Pal.Gold, false, false); }
+		Cyl(V(120., 0., 7.), 520., 3., Pal.Gold, false, false); Cyl(V(120., 0., 8.), 480., 3., Pal.CasinoBlack, false, false); Cyl(V(120., 0., 9.), 300., 3., Pal.CasinoRed, false, false);
+		for (let i = 0; i < 8; ++i) { const D = R(0., i * 45., 0.).Vector(); Box(V(120., 0., 10.).add(D.mul(195.)), V(120., 26., 2.), Pal.Gold, false, false, i * 45.); }
+		// walls: dark wood wainscot, gold rails, padded panels, and a line of marquee bulbs under the ceiling
+		for (const s of [-1, 1])
+		{
+			Box(V(s * 852., 0., 110.), V(16., 2100., 220.), Wood, false, false); Box(V(s * 850., 0., 226.), V(22., 2100., 14.), Pal.Gold, false, false);
+			Box(V(0., s * 1052., 110.), V(1700., 16., 220.), Wood, false, false); Box(V(0., s * 1050., 226.), V(1700., 22., 14.), Pal.Gold, false, false);
+			for (let k = -4; k <= 4; ++k) { Box(V(s * 853., k * 220., 520.), V(10., 170., 440.), Velvet, false, false); Box(V(s * 851., k * 220., 520.), V(8., 186., 456.), Pal.Gold, false, false); }
+			for (let k = -3; k <= 3; ++k) { Box(V(k * 220., s * 1053., 520.), V(170., 10., 440.), Velvet, false, false); Box(V(k * 220., s * 1051., 520.), V(186., 8., 456.), Pal.Gold, false, false); }
+			for (let k = 0; k < 21; ++k) { Glow(V(s * 846., -1000. + k * 100., 800.), V(18.), Pal.Bulb, 2); if (k < 17) Glow(V(-800. + k * 100., s * 1046., 800.), V(18.), Pal.Bulb, 2); }
+			Glow(V(s * 848., 0., 850.), V(6., 2080., 10.), s > 0 ? Pal.Neon : Teal, 2); Glow(V(0., s * 1048., 850.), V(1680., 6., 10.), s > 0 ? Teal : Pal.Neon, 2);
+		}
+		// ceiling: coffers and a three-tier chandelier
+		for (let k = -3; k <= 3; ++k) { Box(V(k * 260., 0., 868.), V(40., 2100., 40.), Wood, false, false); Box(V(0., k * 320., 874.), V(1700., 40., 30.), Wood, false, false); }
+		for (let t = 0; t < 3; ++t)
+		{
+			const r = 380. - t * 120., z = 720. - t * 90.;
+			Cyl(V(120., 0., z), r * 2., 14., Pal.Gold, false, false); Cyl(V(120., 0., z - 2.), r * 2. - 40., 16., Pal.CasinoBlack, false, false);
+			for (let k = 0; k < 14 - t * 3; ++k) { const D = R(0., k * 360. / (14 - t * 3), 0.).Vector(); Glow(V(120., 0., z - 34.).add(D.mul(r - 14.)), V(16., 16., 60.), 0xFFF2CC, 2); Glow(V(120., 0., z - 76.).add(D.mul(r - 14.)), V(12.), Teal, 1); }
+		}
+		Box(V(120., 0., 810.), V(10., 10., 160.), Pal.Gold, false, false); Glow(V(120., 0., 500.), V(60.), 0xFFE9A8, 3);
+		Lamp(V(120., 0., 560.), LC(1., 0.8, 0.5), 18., 1500., false);
+		// two card tables where the blackjack table stood: felt, a wood rail, stools, chips and a fanned hand
+		for (const ty of [-260., 260.])
+		{
+			const T = V(120., ty, 0.);
+			Cyl(T.add(V(0, 0, 45.)), 60., 90., Wood, true, true); Cyl(T.add(V(0, 0, 96.)), 300., 14., Wood, true, false); Cyl(T.add(V(0, 0, 104.)), 268., 6., Pal.Felt, false, false);
+			for (let k = 0; k < 5; ++k) { const D = R(0., k * 72. + 20., 0.).Vector(); Cyl(T.add(D.mul(210.)).add(V(0, 0, 30.)), 20., 60., Pal.Gold, false, false); Cyl(T.add(D.mul(210.)).add(V(0, 0, 66.)), 70., 14., Pal.CasinoRed, false, false); }
+			for (let k = 0; k < 4; ++k) { const D = R(0., k * 90. + 45., 0.).Vector(); for (let c = 0; c < 3 + (k % 3); ++c) Cyl(T.add(D.mul(90.)).add(V(0, 0, 110. + c * 6.)), 26., 5., [0xc8211b, 0xf2e8d5, 0x1f8a4c, 0x2a2a3c][(k + c) % 4], false, false); }
+			for (let c = -2; c <= 2; ++c) Box(T.add(V(-150., c * 22., 109.)), V(44., 30., 1.5), 0xfff4d8, false, false, c * 12.);
+		}
+		// velvet ropes at the door, and potted palms in the corners
+		for (const s of [-1, 1]) { for (const x of [-760., -560.]) { Cyl(V(x, s * 330., 55.), 16., 110., Pal.Gold, false, false); Ball(V(x, s * 330., 116.), 26., Pal.Gold, false); } Box(V(-660., s * 330., 96.), V(200., 10., 12.), Pal.CasinoRed, false, false); }
+		for (const [px, py] of [[-800., -1000.], [-800., 1000.], [800., -1000.], [800., 1000.]]) { Cyl(V(px, py, 40.), 90., 80., Pal.Gold, false, false); for (let k = 0; k < 6; ++k) Box(V(px, py, 170.), V(18., 150., 150.), Pal.Leaf, false, false, k * 30.); }
+		// what is where, in neon
+		Sign(V(50., 1040., 470.), -90., "SLOTS", FC(255, 205, 90), 80.);
+		Sign(V(-100., -1040., 470.), 90., "WEAPON ROULETTE", FC(255, 110, 170), 60.);
+		Sign(V(840., -450., 520.), 180., "UPGRADES", FC(120, 230, 220), 60.);
+		Sign(V(840., 450., 520.), 180., "TONICS", FC(255, 205, 90), 60.);
+		Lamp(V(50., 800., 420.), LC(1., 0.7, 0.3), 10., 900., false); Lamp(V(-100., -800., 420.), LC(1., 0.4, 0.6), 10., 900., false);
 	}
 
 	GM.CasinoBounds = BOX(V(-900., -1100., -200.), V(900., 1100., 1200.));

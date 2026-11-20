@@ -560,7 +560,7 @@ export class Game {
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
     this.audio.setListener(this.camera.position, fwd, V3(0, 1, 0));
     this.audio.loop('S_AmbWind', this.zone === this.casinoZone ? 0.05 : 0.22);
-    this.audio.loop('S_AmbCasino', this.zone === this.casinoZone ? (this.isCasinoOpen() ? 0.55 : 0.2) : this.isCasinoOpen() ? 0.06 : 0);
+    this.audio.loop('S_AmbCasino', this.zone === this.casinoZone ? 0.3 : 0);   // only inside, and quieter
   }
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked
   // nav cell is walked back out to the nearest open one; anything that makes no progress for 5s is respawned.

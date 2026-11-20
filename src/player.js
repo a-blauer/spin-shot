@@ -181,7 +181,7 @@ export class Player {
     this.recompute();
     if (this.maxHealth > old) this.health += this.maxHealth - old;
     this.dashCharges = Math.min(this.maxDash(), this.dashCharges + 1);
-    this.toast(`${U.name}  ${this.upgradeStacks[i] > 1 ? 'x' + this.upgradeStacks[i] : ''}`, RARITY_HEX[U.rarity]);
+    this.game.hud.gotUpgrade(i, this.upgradeStacks[i]);   // a card saying what it does
   }
 
   // ------------------------------------------------------------------ economy
@@ -1146,7 +1146,6 @@ export class Player {
     this.killPulse = 1;
     this.play('S_Kill', 0.6, 1, 0.08);
     G.fx.coins(E.pos, clamp(Math.floor(pay / 40), 1, 8));
-    G.audio.playAt('S_Coin', E.pos, 0.5, 1, 0.1);
     if (E.isBoss) this.addShake(1.5);
     G.hud.floater(E.pos.clone().add(V3(0, 80, 0)), `+$${pay}`, [1, 0.85, 0.25], headshot ? 1.2 : 1);
     if (this.procDepth < 2) {

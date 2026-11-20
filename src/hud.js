@@ -46,6 +46,30 @@ export class Hud {
     if (this.hurtFx.length > 14) this.hurtFx.splice(0, this.hurtFx.length - 14);
     this.hurtWhite = 0.1;
   }
+  // "you got this, and here is what it does": a card per upgrade, a few seconds each
+  gotUpgrade(i, stack) { this.cards = this.cards || []; this.cards.push({ i, stack, t: 0, life: 5 }); if (this.cards.length > 3) this.cards.shift(); }
+  drawCards() {
+    if (!this.cards || !this.cards.length) return;
+    const g = this.g, S = this.S, W = this.W, w = 560 * S, x = W / 2 - w / 2; let y = this.H * 0.17;
+    for (const c of this.cards) {
+      c.t += 1 / 60;
+      const U = DATA.upgrades[c.i], col = RARITY_HEX[U.rarity], a = Math.min(1, c.t * 6, (c.life - c.t) * 2.5), slide = (1 - Math.min(1, c.t * 6)) * 30 * S;
+      g.font = `600 ${this.fs(19 * S)}px ${F_TXT}`;
+      const words = U.desc.split(' '), lines = []; let ln = '';
+      for (const wd of words) { const t = ln ? ln + ' ' + wd : wd; if (g.measureText(t).width > w - 118 * S && ln) { lines.push(ln); ln = wd; } else ln = t; }
+      if (ln) lines.push(ln);
+      const h = (58 + lines.length * 24) * S;
+      g.globalAlpha = Math.max(0, a);
+      g.fillStyle = 'rgba(20,10,16,0.92)'; g.fillRect(x, y - slide, w, h); g.fillStyle = col; g.fillRect(x, y - slide, 6 * S, h); g.fillRect(x, y - slide, w, 2 * S);
+      this.icon('U_' + c.i, x + 20 * S, y - slide + h / 2 - 34 * S, 68 * S, Math.max(0, a));
+      this.text(U.name.toUpperCase() + (c.stack > 1 ? `  x${c.stack}` : ''), x + 102 * S, y - slide + 32 * S, 27 * S, col, 'left', F_BIG, 400, 0.08, Math.max(0, a));
+      this.text(U.rarity.toUpperCase(), x + w - 14 * S, y - slide + 28 * S, 14 * S, col, 'right', F_TXT, 700, 0.1, Math.max(0, a));
+      lines.forEach((t, k) => this.text(t, x + 102 * S, y - slide + (56 + k * 24) * S, 19 * S, BONE, 'left', F_TXT, 600, 0.1, Math.max(0, a)));
+      g.globalAlpha = 1;
+      y += h + 10 * S;
+    }
+    this.cards = this.cards.filter((c) => c.t < c.life);
+  }
   toast(text, color = BONE) { this.toasts.push({ text, color: toCss(color), t: 0, life: 3.2 }); if (this.toasts.length > 6) this.toasts.shift(); }
   banner(text, color = BONE, dur = 3, kind = '') {
     if (kind === 'round') { this.roundBanner = { text, t: 0, life: dur }; return; }
@@ -194,6 +218,7 @@ export class Hud {
     if (!P.dead) this.drawEnemyBars(game, P);
     if (this.needMouse && !P.dead) { const S2 = this.S; this.g.fillStyle = 'rgba(20,10,16,0.75)'; this.g.fillRect(this.W / 2 - 250 * S2, this.H * 0.62, 500 * S2, 54 * S2); this.text('CLICK TO GRAB THE MOUSE', this.W / 2, this.H * 0.62 + 37 * S2, 30 * S2, GOLD, 'center', F_BIG, 400, 0.1); }
     if (game.net && game.net.active) this.drawTeam(game, W, H, S);
+    if (!P.inMenu()) this.drawCards();
     this.drawFloaters(game, dt);
     if (!P.dead) {
       this.drawCasinoMarker(game);

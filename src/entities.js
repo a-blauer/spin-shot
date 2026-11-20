@@ -269,7 +269,7 @@ export class Pickups {
       K.label = textMesh(PICKUP_NAMES[type], 26, `rgb(${c.map((x) => Math.round(x * 255)).join(',')})`, 0.8);
       this.scene.add(K.label);
     }
-    G.audio.playAt(power ? 'S_PowerUp' : 'S_Coin', L, 0.6);
+    if (power) G.audio.playAt('S_PowerUp', L, 0.6);   // ordinary drops are silent: a chime per drop was constant in a horde
     this.list.push(K);
   }
   update(dt) {
