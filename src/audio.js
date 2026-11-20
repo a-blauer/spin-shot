@@ -13,7 +13,7 @@ const TRIM = {
   S_RoundStart: 0.74, S_RoundEnd: 0.75, S_LevelUp: 0.69, S_Upgrade: 0.85, S_Win: 0.79, S_Lose: 0.92, S_Jackpot: 0.75, S_PowerUp: 0.93, S_Luck: 0.98,
   S_Buy: 0.71, S_Deny: 0.68, S_Cash: 0.75, S_Coin: 0.76, S_JumpPad: 0.61, S_Hurt: 1.42, S_Heartbeat: 1.49,
   S_Step0: 0.98, S_Step1: 1.03, S_Step2: 1.06, S_Step3: 1.01, S_Land: 0.89, S_Jump: 0.72, S_AirJump: 0.81, S_Dash: 1.08, S_Slide: 0.92, S_Wallrun: 0.90, S_Grapple: 0.99,
-  S_MagIn: 0.95, S_MagOut: 1.16, S_Rack: 1.55, S_ShellIn: 1.55, S_ShellDrop: 0.60, S_Switch: 1.45, S_Dry: 1.7,
+  S_MagIn: 0.95, S_MagOut: 1.16, S_Rack: 1.55, S_ShellIn: 1.55, S_ShellDrop: 0.9, S_HullDrop: 0.9, S_Switch: 1.45, S_Dry: 1.7,
   S_HitFlesh: 1.09, S_HitFlesh2: 1.01, S_HitWall: 1.68, S_Ricochet: 0.82, S_Door: 0.99, S_Chain: 1.74, S_Beam: 0.80, S_Energy: 1.09, S_Launcher: 1.87,
   S_UIMove: 1.0, S_UISelect: 1.11, S_SlotTick: 1.1, S_SlotStop: 1.02, S_SlotPull: 0.99, S_Saw: 1.52, S_Flame: 1.75, S_Plasma: 1.37,
 };
@@ -21,7 +21,7 @@ const TRIM = {
 const DRY = new Set(['S_UIMove', 'S_UISelect', 'S_Buy', 'S_Deny', 'S_Upgrade', 'S_LevelUp', 'S_Luck', 'S_Coin', 'S_Cash', 'S_PowerUp', 'S_HitMarker', 'S_Headshot', 'S_Kill', 'S_Crit',
   'S_RoundStart', 'S_RoundEnd', 'S_Win', 'S_Lose', 'S_Jackpot', 'S_Heartbeat', 'S_Hurt', 'S_SlotTick']);
 // Sounds that repeat many times a second are never played at exactly the same pitch twice.
-const JIT = { S_HitMarker: 0.05, S_HitFlesh: 0.09, S_HitFlesh2: 0.09, S_HitWall: 0.1, S_Step0: 0.09, S_Step1: 0.09, S_Step2: 0.09, S_Step3: 0.09, S_ShellDrop: 0.12, S_ShellIn: 0.05, S_Kill: 0.04,
+const JIT = { S_HitMarker: 0.05, S_HitFlesh: 0.09, S_HitFlesh2: 0.09, S_HitWall: 0.1, S_Step0: 0.09, S_Step1: 0.09, S_Step2: 0.09, S_Step3: 0.09, S_ShellDrop: 0.06, S_HullDrop: 0.06, S_ShellIn: 0.05, S_Kill: 0.04,
   S_Coin: 0.06, S_Cash: 0.05, S_Dash: 0.05, S_Jump: 0.05, S_Land: 0.07, S_Explosion: 0.1, S_Gib: 0.1, S_Splat: 0.12, S_EnemyDie: 0.1, S_Attack: 0.1, S_Ricochet: 0.15, S_Chain: 0.08, S_Rack: 0.03 };
 // The loud ones push the music down for a moment so they land in clear air.
 const DUCK = { S_Explosion: 0.45, S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S_Screech: 0.6 };

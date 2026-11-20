@@ -679,7 +679,7 @@ export class ViewModel {
           const home = this.magRest.clone().sub(piv).applyQuaternion(q).add(piv), axis = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
           const mp = OFF.clone().lerp(home.clone().addScaledVector(axis, -9), sstep(0.3, 0.48, T)).lerp(home, sstep(0.5, 0.6, T));
           if (A.mag) { A.mag.position.copy(T < 0.3 ? home : mp); A.mag.quaternion.copy(q); A.mag.visible = T < 0.16 || T > 0.3; }
-          cue(0.16, () => { play('S_ShellDrop', 0.9); this.jolt(-0.5); for (const s of [-1, 1]) this.fling(1, [3.2, 5.2, 3.2], 0xB0262C, 0.2, home.clone().add(new THREE.Vector3(s * 2, 0, 0)), new THREE.Vector3(s * 14, 60 + Math.random() * 30, 70 + Math.random() * 30), new THREE.Vector3(6 + Math.random() * 8, 0, Math.random() * 8), 0.7, 320); const p = this.toWorld(this.eject, 60); this.game.fx.puff(p, [0.75, 0.73, 0.7], 18, 0.5, this.game.player.vel); });
+          cue(0.16, () => { play('S_HullDrop', 0.9); this.jolt(-0.5); for (const s of [-1, 1]) this.fling(1, [3.2, 5.2, 3.2], 0xB0262C, 0.2, home.clone().add(new THREE.Vector3(s * 2, 0, 0)), new THREE.Vector3(s * 14, 60 + Math.random() * 30, 70 + Math.random() * 30), new THREE.Vector3(6 + Math.random() * 8, 0, Math.random() * 8), 0.7, 320); const p = this.toWorld(this.eject, 60); this.game.fx.puff(p, [0.75, 0.73, 0.7], 18, 0.5, this.game.player.vel); });
           supTo(mp.clone().add(U(-4, -1.5, -2)), bump(T, 0.2, 0.32, 0.6, 0.7));
           const sr = this.supportRest.clone().sub(piv).applyQuaternion(q).add(piv); supPos.lerp(sr, T < 0.2 ? 1 - sstep(0.16, 0.2, T) : sstep(0.6, 0.7, T));
           cue(0.58, () => { play('S_ShellIn', 0.8); this.jolt(0.4); }); cue(0.61, () => play('S_ShellIn', 0.7, 1.15));

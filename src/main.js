@@ -154,7 +154,7 @@ function start() {
   audio.unlock();
   audio.master && (audio.master.gain.value = 0.8);
   preloadGunSounds(audio);
-  audio.preload(['S_Pistol', 'S_Revolver', 'S_HitFlesh', 'S_HitFlesh2', 'S_HitMarker', 'S_Kill', 'S_Step0', 'S_Step1', 'S_Step2', 'S_Step3', 'S_Jump', 'S_Land', 'S_Groan0', 'S_Groan1', 'S_EnemyDie', 'S_Coin', 'S_Explosion', 'S_RoundStart']);
+  audio.preload(['S_ShellDrop', 'S_HullDrop', 'S_ShellIn', 'S_Rack', 'S_Pistol', 'S_Revolver', 'S_HitFlesh', 'S_HitFlesh2', 'S_HitMarker', 'S_Kill', 'S_Step0', 'S_Step1', 'S_Step2', 'S_Step3', 'S_Jump', 'S_Land', 'S_Groan0', 'S_Groan1', 'S_EnemyDie', 'S_Coin', 'S_Explosion', 'S_RoundStart']);
   title.style.display = 'none';
   mode = 'play'; applySettings();
   if (TOUCH) { document.getElementById('touch').style.display = 'block'; lockFailed = true; }
