@@ -144,6 +144,7 @@ async function boot() {
   await game.build();
   window.__dmh = game;
   window.__diffTest = { setDifficulty, zombieCount, maxAlive, zombieHealth };
+  window.__gs1 = (n) => import('./gunsound.js').then((m) => m.gunSound(game.audio, n, 1, false));
   status('');
   document.body.classList.add('ready');
   resize();

@@ -947,7 +947,11 @@ export class Player {
       ammo: this.slot.def >= 0 ? this.slot.ammo : 0, empty: this.slot.def >= 0 && this.slot.ammo <= 0 && !this.reloading, spool: this.spool || 0, charge: this.railT > 0 ? 1 - this.railT / 0.28 : 0,
     });
     this.lookDelta = { x: 0, y: 0 };
-    if (this.health < this.maxHealth * 0.3 && !this.dead) { this.heartbeat -= dt; if (this.heartbeat <= 0) { this.heartbeat = 0.9; this.play('S_Heartbeat', 0.6); } }
+    { // badly hurt: the heartbeat comes up, quickens as it gets worse, and the rest of the world goes dull behind it
+      const low = !this.dead && this.health < this.maxHealth * 0.3, k = low ? 1 - this.health / (this.maxHealth * 0.3) : 0;
+      G.audio.setMuffle(low ? 0.35 + 0.5 * k : 0);
+      if (low) { this.heartbeat -= dt; if (this.heartbeat <= 0) { this.heartbeat = 0.9 - 0.3 * k; this.play('S_Heartbeat', 0.6 + 0.25 * k, 1 + 0.12 * k); } }
+    }
   }
 
   // ------------------------------------------------------------------ combat

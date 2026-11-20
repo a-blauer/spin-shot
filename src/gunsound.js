@@ -62,28 +62,31 @@ const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire
 // close-mic'd, two or three takes per gun so repeated fire never sounds stamped. The synth below is only the voice
 // of the energy and wonder weapons, and the fallback for the first moments before a recording has loaded.
 //   [recording, takes, pitch, gain, choke (fast guns cut the previous tail short), low-pass Hz, double-tap gap s]
+//   [recording, takes, pitch, gain, choke (fast guns cut the previous tail short), low-pass Hz, double-tap gap s, body 0..1]
+// Every take is mastered to the same loudness (tools/master_audio.py), so `gain` here is purely the mix: slow, heavy guns sit
+// on top, guns that fire ten times a second sit lower because their shots add up. `body` is the low thump built under it.
 const REC = {
-  'Tin Star':        ['V', 2, 1.00, 0.80],          // .38 revolver
-  'Saloon Six':      ['A', 2, 0.86, 0.95],          // .45, pitched down: a hand cannon
-  'Copperhead':    ['R', 2, 1.04, 0.60, 1],       // .22 pistol
-  'Sidewinders':      ['F', 2, 1.00, 0.70, 0, 0, 0.04],   // .380, two barrels
-  'Back-Alley':      ['G', 3, 1.00, 0.70, 1],       // 9mm submachine gun
-  "Hornet's Nest":   ['P', 3, 1.08, 0.62, 1],       // 7.62 Tokarev submachine gun
-  'Rustler':      ['X', 3, 1.05, 0.66, 1],       // 9mm
-  'Quarter Horse':   ['I', 2, 1.00, 0.85],          // .30-30 lever action
-  'Lawman AR':       ['D', 2, 1.00, 0.72, 1],       // 5.56
-  'Long Rider':       ['U', 3, 0.97, 0.85],          // 7.62x39 carbine
-  'Gold Rush':         ['C', 3, 1.03, 0.70, 1],       // AK
-  'Sawbuck':         ['O', 2, 0.96, 0.95],          // 12 gauge
-  "Homesteader":   ['K', 2, 0.94, 1.00],          // 12 gauge pump
-  'Stampede':      ['H', 2, 1.06, 0.82],          // 12 gauge
-  "Dragon's Breath": ['N', 2, 0.84, 1.00],          // 12 gauge, slowed
-  'Iron Mule':       ['C', 3, 0.88, 0.78, 1],       // AK, slowed: heavier
-  'Thresher': ['T', 2, 1.04, 0.58, 1],       // .300
-  'Widowmaker':      ['W', 2, 0.96, 1.00],          // .30-06 bolt action
-  'Railroad Spike':  ['M', 3, 0.78, 1.00],          // 7.62x54R, slowed
-  'Dynamite Dan':    ['N', 2, 0.62, 0.85, 0, 1400], // launchers: a slowed, muffled 12 gauge reads as a tube thump
-  'Boomtown':        ['K', 2, 0.52, 1.00, 0, 1100],
+  'Tin Star':        ['V', 2, 1.00, 0.74, 0, 0, 0, 0.35],      // .38 revolver
+  'Saloon Six':      ['A', 2, 0.86, 0.95, 0, 0, 0, 0.7],       // .45, pitched down: a hand cannon
+  'Copperhead':      ['R', 2, 1.04, 0.52, 1, 0, 0, 0.2],       // .22 pistol
+  'Sidewinders':     ['F', 2, 1.00, 0.58, 0, 0, 0.04, 0.3],    // .380, two barrels
+  'Back-Alley':      ['G', 3, 1.00, 0.56, 1, 0, 0, 0.25],      // 9mm submachine gun
+  "Hornet's Nest":   ['P', 3, 1.08, 0.5, 1, 0, 0, 0.18],       // 7.62 Tokarev submachine gun
+  'Rustler':         ['X', 3, 1.05, 0.6, 1, 3400, 0, 0.12],    // 9mm through a suppressor: the top is rolled off
+  'Quarter Horse':   ['I', 2, 1.00, 0.85, 0, 0, 0, 0.55],      // .30-30 lever action
+  'Lawman AR':       ['D', 2, 1.00, 0.6, 1, 0, 0, 0.35],       // 5.56
+  'Long Rider':      ['U', 3, 0.97, 0.8, 0, 0, 0, 0.55],       // 7.62x39 carbine
+  'Gold Rush':       ['C', 3, 1.03, 0.6, 1, 0, 0, 0.4],        // AK
+  'Sawbuck':         ['O', 2, 0.96, 1.0, 0, 0, 0, 0.9],        // 12 gauge
+  "Homesteader":     ['K', 2, 0.94, 1.0, 0, 0, 0, 0.85],       // 12 gauge pump
+  'Stampede':        ['H', 2, 1.06, 0.78, 0, 0, 0, 0.65],      // 12 gauge
+  "Dragon's Breath": ['N', 2, 0.84, 1.0, 0, 0, 0, 0.9],        // 12 gauge, slowed
+  'Iron Mule':       ['C', 3, 0.88, 0.64, 1, 0, 0, 0.5],       // AK, slowed: heavier
+  'Thresher':        ['T', 2, 1.04, 0.48, 1, 0, 0, 0.28],      // .300
+  'Widowmaker':      ['W', 2, 0.96, 1.0, 0, 0, 0, 0.9],        // .30-06 bolt action
+  'Railroad Spike':  ['M', 3, 0.78, 1.0, 0, 0, 0, 1],          // 7.62x54R, slowed
+  'Dynamite Dan':    ['N', 2, 0.62, 0.9, 0, 1400, 0, 0.8],     // launchers: a slowed, muffled 12 gauge reads as a tube thump
+  'Boomtown':        ['K', 2, 0.52, 1.0, 0, 1100, 0, 1],
 };
 const startOf = new WeakMap(), live = [];
 function lead(buf) {   // mp3 decoding leaves a few ms of silence in front: find where the shot really starts
@@ -96,7 +99,7 @@ export function gunSound(audio, name, vol = 1, quiet = false) {
   const ctx = audio.ctx; if (!ctx || ctx.state !== 'running') return;
   const r = REC[name];
   if (!r || quiet) return synthShot(audio, name, vol, quiet);
-  const [code, takes, pitch, gain, choke, lp, dbl] = r;
+  const [code, takes, pitch, gain, choke, lp, dbl, body] = r;
   let take = Math.floor(Math.random() * takes); if (take === r.last && takes > 1) take = (take + 1) % takes; r.last = take;
   const key = `guns/G_${code}${take}`, buf = audio.buffers.get(key);
   if (!buf) { audio.load(key); return synthShot(audio, name, vol, quiet); }
@@ -107,10 +110,11 @@ export function gunSound(audio, name, vol = 1, quiet = false) {
     src.buffer = buf; src.playbackRate.value = pitch * (1 + (Math.random() * 2 - 1) * 0.025); g.gain.value = gain * vol * (0.94 + Math.random() * 0.1);
     let node = src;
     if (lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; node.connect(f); node = f; }
-    node.connect(g); g.connect(audio.master); src.start(at, lead(buf));
+    node.connect(g); g.connect((audio.gunBus || audio.master)); src.start(at, lead(buf));
     live.push(g); src.onended = () => { const i = live.indexOf(g); if (i >= 0) live.splice(i, 1); g.disconnect(); };
   };
   one(t); if (dbl) one(t + dbl);
+  audio.gunBody(body || 0, vol); audio.duck(0.55 + 0.3 * (1 - (body || 0)), 0.08);   // weight under the crack, and the music steps back
 }
 function synthShot(audio, name, vol = 1, quiet = false) {
   const ctx = audio.ctx; if (!ctx || ctx.state !== 'running') return;
@@ -120,7 +124,7 @@ function synthShot(audio, name, vol = 1, quiet = false) {
   if (!noise) { noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
   if (!bus) {
     shaper = ctx.createWaveShaper(); const c = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; c[i] = Math.tanh(x * 2.2) / Math.tanh(2.2); } shaper.curve = c; shaper.oversample = '2x';
-    bus = ctx.createGain(); bus.gain.value = 0.85; bus.connect(shaper); shaper.connect(audio.master);
+    bus = ctx.createGain(); bus.gain.value = 0.85; bus.connect(shaper); shaper.connect((audio.gunBus || audio.master));
   }
   const env = (g, peak, attack, decay, at) => { g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(Math.max(0.0002, peak), at + attack); g.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay); };
   // noise through a low-pass that closes from f0 to f1 over `sweep`
