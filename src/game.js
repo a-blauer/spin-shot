@@ -183,30 +183,28 @@ export class Game {
     return -1;
   }
 
-  // ray vs vertical capsule; returns entry distance or null
+  // ray vs the enemy's hit shape; returns entry distance or null. The shape is an upright cylinder fitted to the
+  // creature's drawn body (feet to the top of its head, as wide as its torso), not the slim capsule it walks on:
+  // enemies are flat cut-outs that always face you, so what you see is what you can hit.
   rayEnemy(o, d, maxT, E, extra = 0) {
-    const r = E.radius + extra, h = Math.max(0, E.half - E.radius);
-    const c = E.pos;
+    const r = (E.hitR || E.radius) + extra, y0 = E.pos.y - E.feetOffset - extra, y1 = E.pos.y - E.feetOffset + (E.hitH || E.half * 2) + extra;
+    const c = E.pos, ox = o.x - c.x, oz = o.z - c.z;
     let best = null;
-    const ox = o.x - c.x, oz = o.z - c.z;
     const a = d.x * d.x + d.z * d.z, b = 2 * (ox * d.x + oz * d.z), cc = ox * ox + oz * oz - r * r;
+    if (cc < 0 && o.y >= y0 && o.y <= y1) return 0;   // already inside it
     if (a > 1e-8) {
       const disc = b * b - 4 * a * cc;
       if (disc >= 0) {
-        const s = Math.sqrt(disc);
-        let t = (-b - s) / (2 * a);
-        if (cc < 0) t = 0;
-        if (t >= 0 && t <= maxT) { const y = o.y + d.y * t; if (y >= c.y - h && y <= c.y + h) best = t; }
+        const t = (-b - Math.sqrt(disc)) / (2 * a);
+        if (t >= 0 && t <= maxT) { const y = o.y + d.y * t; if (y >= y0 && y <= y1) best = t; }
       }
     }
-    for (const sy of [c.y - h, c.y + h]) {
-      const px = o.x - c.x, py = o.y - sy, pz = o.z - c.z;
-      const bb = px * d.x + py * d.y + pz * d.z, c2 = px * px + py * py + pz * pz - r * r;
-      const disc = bb * bb - c2;
-      if (disc < 0) continue;
-      let t = -bb - Math.sqrt(disc);
-      if (c2 < 0) t = 0;
-      if (t >= 0 && t <= maxT && (best === null || t < best)) best = t;
+    // the flat top and bottom, for shots from above or below
+    if (Math.abs(d.y) > 1e-6) for (const yc of [y0, y1]) {
+      const t = (yc - o.y) / d.y;
+      if (t < 0 || t > maxT || (best !== null && t >= best)) continue;
+      const px = ox + d.x * t, pz = oz + d.z * t;
+      if (px * px + pz * pz <= r * r) best = t;
     }
     return best;
   }

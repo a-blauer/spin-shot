@@ -707,7 +707,7 @@ export class Player {
     const cosA = Math.cos(Math.min(170, arcDeg) * Math.PI / 360), out = [];
     for (const E of this.game.enemies) {
       if (E.dead || E.burrowed) continue;
-      const dx = E.pos.x - eye.x, dz = E.pos.z - eye.z, d = Math.hypot(dx, dz), reach = range + E.radius;
+      const dx = E.pos.x - eye.x, dz = E.pos.z - eye.z, d = Math.hypot(dx, dz), reach = range + (E.hitR || E.radius);
       if (d > reach || Math.abs(E.pos.y - this.pos.y) > 150 + E.half) continue;
       if (d > 50 && (dx * ff.x + dz * ff.z) / d < cosA) continue;
       if (!this.game.phys.lineOfSight(eye, E.pos)) continue;

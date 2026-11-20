@@ -92,6 +92,9 @@ export class Enemy {
     if (this.isBoss) { auraSize = 300; aura = lin(1, 0.25, 0.1); }
     if (splitChild) tint = lerp3(tint, [0.75, 1, 0.6], 0.25);
     this.puppet = new Puppet(creature, this.bodyScale, tint, aura, auraSize);
+    // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
+    { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
+      this.hitR = Math.max(this.radius, w * this.puppet.baseScale * 0.58); this.hitH = Math.max(this.half * 2, this.puppet.heightCm); }
     this.puppet.setMods(DATA.affixes.map((A, i) => (this.affixes & (1 << i) ? Object.keys(AFFIX).find((k) => AFFIX[k] === i) : null)).filter(Boolean));
     // timers
     this.emerge = this.ai === 'Flyer' ? 0.01 : 1.5;
@@ -113,7 +116,7 @@ export class Enemy {
   get emerging() { return this.emerge > 0; }
   has(name) { return (this.affixes & (1 << AFFIX[name])) !== 0; }
   feet() { return new THREE.Vector3(this.pos.x, this.pos.y - this.feetOffset, this.pos.z); }
-  headY() { return ['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? this.pos.y + this.half * 0.1 : this.pos.y + this.half * 0.45; }
+  headY() { const feet = this.pos.y - this.feetOffset, H = this.hitH || this.half * 2; return feet + H * (['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? 0.55 : this.ai === 'Flyer' ? 0.5 : 0.74); }   // the head is the top quarter of what is drawn
   healthFrac() { return this.health / this.maxHealth; }
   accent() {
     for (let i = 0; i < DATA.affixes.length; i++) if (this.affixes & (1 << i)) return hexRGB(DATA.affixes[i].color);
