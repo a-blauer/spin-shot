@@ -511,13 +511,16 @@ export class Hud {
     if (P.menu || !P.focus) return;
     let t = P.focus.prompt(P);
     if (!t) return;
-    t = t.replace(/\s+-\s+/g, '   ');
-    const g = this.g, size = 24 * S;
-    const tw = this.measure(t.replace(/\[[^\]]+\]/g, 'XX'), size, F_TXT, 700) + 40 * S;
-    const cy = H * 0.64;
-    this.rrect(W / 2 - tw / 2 - 22 * S, cy - 28 * S, tw + 44 * S, 56 * S, 10 * S);
+    // first line is the action; an optional second line says what you are looking at
+    const [l1, l2] = t.split('\n');
+    const g = this.g, size = 24 * S, s2 = 16 * S;
+    let tw = this.measure(l1.replace(/\[[^\]]+\]/g, 'XX'), size, F_TXT, 700) + 40 * S;
+    if (l2) tw = Math.max(tw, this.measure(l2, s2, F_TXT, 500) + 10 * S);
+    const cy = H * 0.64, hh = l2 ? 84 * S : 56 * S;
+    this.rrect(W / 2 - tw / 2 - 22 * S, cy - 28 * S, tw + 44 * S, hh, 10 * S);
     g.fillStyle = 'rgba(20,10,16,0.86)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = 'rgba(255,205,90,0.85)'; g.stroke();
-    this.hints(t, W / 2, cy, size, 'center', 1);
+    this.hints(l1, W / 2, cy, size, 'center', 1);
+    if (l2) this.text(l2, W / 2, cy + 36 * S, s2, '#d9cfbd', 'center', F_TXT, 500);
   }
   // when only a handful of enemies are left, point at each one
   drawStragglers(game) {

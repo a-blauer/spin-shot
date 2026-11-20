@@ -235,7 +235,7 @@ export class Player {
       if (u >= 0 && !this.pawnOffers.includes(u)) { this.pawnOffers.push(u); break; }
     }
     // the fourth shelf sometimes holds a melee weapon
-    if (Math.random() < 0.6) this.pawnOffers[3] = MELEE_CODE + rollMelee(rarityIndex(rollRarity(this.luck, 1.2)), this.meleeDef);
+    if (Math.random() < 0.6) this.pawnOffers[3] = MELEE_CODE + rollMelee(rollRarity(this.luck, 1.2), this.meleeDef);
     if (this.menu && this.menu.type === 'Pawn') this.menu.offers = this.pawnOffers;
   }
 
@@ -1290,6 +1290,14 @@ export class Player {
       if (d < I.useRadius && d < bd) { bd = d; best = I; }
     }
     this.focus = best;
+    // counters with wares: whichever item the crosshair is on (or nearest to) is the one E buys
+    this.focusWare = null;
+    if (best && best.wares && best.wares.length) {
+      const e = G.camera.getWorldPosition(new THREE.Vector3()), f = G.camera.getWorldDirection(new THREE.Vector3()), v = new THREE.Vector3();
+      let bw = null, bdot = 0.955;
+      for (const w of best.wares) { v.copy(w.pos).sub(e); const d = v.length(); if (d > 420) continue; const dot = v.dot(f) / d; if (dot > bdot) { bdot = dot; bw = w; } }
+      this.focusWare = bw;
+    }
   }
   interact() {
     if (this.dead) return;
@@ -1305,7 +1313,10 @@ export class Player {
         break;
       case 'AmmoCrate': if (this.spend(I.cost)) { this.refillAll(); this.toast('All ammo refilled', '#cce6ff'); } break;
       case 'ExitBell': G.ringBell(); break;
-      case 'ArmsRoulette': this.openMenu(I); this.rouletteSpin(); if (this.menu && this.menu.stage === 0) this.closeMenu(); break;   // one press: pay and spin (can't afford it: nothing opens)
+      // the casino has no menus: every station is played or bought from in the world
+      case 'ArmsRoulette': I.wheelUse(this); break;
+      case 'Slots': I.slotUse(this); break;
+      case 'UpgradeCounter': case 'StatBooth': case 'HighRoller': if (this.focusWare) this.focusWare.buy(this); break;
       default: this.openMenu(I); break;
     }
   }
@@ -1508,6 +1519,39 @@ export class Player {
     this.money += pay;
   }
   tableResolve() { /* replaced by blackjack */ }
+  buyPawn(i) {
+    const o = this.pawnOffers[i]; if (o == null || o < 0) return;
+    if (isMelee(o)) { const W = MELEE[o - MELEE_CODE]; if (this.spend(Math.round(MELEE_PRICE[W.rarity] * this.priceMult()))) { this.giveWeapon(o); this.toast(`Melee: ${W.name}`, RARITY_HEX[W.rarity]); this.play('S_Buy', 0.8); this.pawnOffers[i] = -1; } return; }
+    const U = DATA.upgrades[o];
+    if (this.spend(Math.round(rarityPrice(rarityIndex(U.rarity)) * this.priceMult()))) { this.addUpgrade(o); this.play('S_Upgrade', 0.8); this.pawnOffers[i] = -1; }
+  }
+  pawnRerollPrice() { return Math.round(400 * (1 + this.pawnRerolls) * this.priceMult()); }
+  pawnReroll() { if (this.spend(this.pawnRerollPrice())) { this.pawnRerolls++; this.rollPawn(); this.play('S_UISelect', 0.7); } }
+  // what the three drums will stop on. Luck gives a dud pull one free second roll.
+  slotRarity([a, b, c]) {
+    const TRIPLE = [1, 2, 2, 3, 4], PAIR = [0, 1, 1, 2, 3], pair = a === b || a === c ? a : b === c ? b : -1;
+    if (a === b && b === c) return a === 6 ? 5 : a === 5 ? 2 : TRIPLE[a];
+    if (pair >= 0 && pair <= 4) return PAIR[pair];
+    return pair === 5 ? 1 : 0;
+  }
+  slotsRoll() {
+    const roll = () => [0, 1, 2].map(() => SLOT_STRIP[randInt(0, SLOT_STRIP.length - 1)]);
+    let r = roll();
+    if (this.slotRarity(r) === 0 && Math.random() < luckRerollChance(this.luck)) r = roll();
+    return r;
+  }
+  slotsPayout(res) {
+    Meta.bump('slotSpins');
+    const R = this.slotRarity(res), clovers = res.filter((x) => x === 5).length;
+    if (clovers >= 2) this.addLuck(clovers === 3 ? 3 : 1);
+    const u = rollUpgradeOfRarity(R, this.upgradeStacks);
+    if (u < 0) { this.money += this.slotPrice(); this.toast('No upgrades left. Refunded.', '#ccc'); return; }
+    const U = DATA.upgrades[u], names = res.map((x) => SYMBOLS[x]).join('  ');
+    this.play(R === 4 ? 'S_Jackpot' : R === 5 ? 'S_Lose' : 'S_Win', 0.9);
+    if (R === 4 || R === 5) this.game.banner(R === 5 ? 'CURSED' : 'JACKPOT', RARITY_HEX[RARITIES[R]], 2.5);
+    this.toast(`${names}:  ${U.rarity} upgrade`, RARITY_HEX[U.rarity]);
+    this.addUpgrade(u);
+  }
   buyTonic(i) {
     if (i < 0 || i > 7) return;
     const T = TONICS[i];
@@ -1527,17 +1571,17 @@ export class Player {
     this.toast(`${T.name}  (level ${this.tonicLevels[i]})`, '#ffb359');
   }
   vaultUpgrade(gamble) {
-    const S = this.slot, M = this.menu;
+    const S = this.slot;
     if (S.def < 0) return;
     if (S.tier >= 3) { this.toast('Already max tier', '#ccc'); return; }
     const full = Math.round(VAULT_COST[S.tier] * this.priceMult());
     if (!this.spend(gamble ? Math.floor(full / 2) : full)) return;
-    if (gamble && Math.random() >= Math.min(0.45 + 0.03 * this.luck, 0.75)) { M.result = 'Upgrade failed.'; M.resultColor = '#ff4d40'; this.play('S_Lose', 0.8); return; }
+    if (gamble && Math.random() >= Math.min(0.45 + 0.03 * this.luck, 0.75)) { this.toast('The gamble failed. Money gone.', '#ff4d40'); this.play('S_Lose', 0.8); return; }
     S.tier++; S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(S.def, S.tier, true);
     this.play('S_Upgrade', 0.9);
     if (S.tier >= 3) Meta.bump('tier3');
-    M.result = `${DATA.weapons[S.def].name} is now tier ${S.tier}`; M.resultColor = '#ff59e6';
+    this.toast(`${DATA.weapons[S.def].name} is now tier ${S.tier}`, '#ff59e6');
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
   }
 

@@ -5,6 +5,9 @@ import { toonMaterial, hex } from './render.js';
 import { textMesh } from './text.js';
 import { PRIM } from './world.js';
 import { ViewModel } from './viewmodel.js';
+import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
+import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee } from './melee.js';
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 const matCache = new Map();
 function mat(color, glow) {
@@ -65,6 +68,134 @@ export class Interactable {
     this.group.add(s);
     this.spin = s;
     return s;
+  }
+
+  // ---- wares: things laid out on a counter that you look at and buy with E (no menu) ----
+  ware(loc, build, info, buy, tagAt = V(22, 0, -12), tagSize = 9) {
+    const node = new THREE.Group(); node.position.copy(loc.to3()); this.group.add(node); build(node);
+    this.group.updateMatrixWorld(true);
+    const w = { node, pos: node.getWorldPosition(new THREE.Vector3()), info, buy, tagAt, tagSize, tagStr: null, tagMesh: null, k: 1 };
+    (this.wares = this.wares || []).push(w);
+    return w;
+  }
+  setTag(w, str, color) {
+    if (w.tagStr === str) return;
+    w.tagStr = str;
+    if (w.tagMesh) { w.tagHolder.remove(w.tagMesh); w.tagMesh = null; }
+    if (!w.tagHolder) { w.tagHolder = new THREE.Group(); w.tagHolder.position.copy(w.node.position); this.group.add(w.tagHolder); }   // tags don't grow with the hovered item
+    if (str) w.tagMesh = this.text(w.tagHolder, w.tagAt, 0, w.tagSize, str, color || '#ffcd5a');
+  }
+  clearWares() { for (const w of this.wares || []) { this.group.remove(w.node); if (w.tagHolder) this.group.remove(w.tagHolder); } this.wares = []; }
+  tickWares(dt, P) {
+    this.wareT = (this.wareT || 0) - dt;
+    const refresh = this.wareT <= 0; if (refresh) this.wareT = 0.25;
+    for (const w of this.wares || []) {
+      const hot = P.focusWare === w;
+      w.k += ((hot ? 1.35 : 1) - w.k) * Math.min(1, dt * 12);
+      w.node.scale.setScalar(w.k);
+      w.node.rotation.y = hot ? w.node.rotation.y + dt * 2.2 : w.node.rotation.y * Math.max(0, 1 - dt * 6);
+      if (refresh) { const f = w.info(P); this.setTag(w, f.price != null ? '$' + f.price.toLocaleString() : (f.tag || ''), f.price != null && P.money < f.price ? '#ff7a66' : '#ffcd5a'); }
+    }
+  }
+  // the pawn counter's stock changes every round, on every purchase and on a restock: lay it out again when it does
+  layPawn(P) {
+    if (!P.pawnOffers.length) P.rollPawn();   // the counter is never bare
+    const sig = P.pawnOffers.join(',') + '|' + P.pawnRerolls;
+    if (sig === this.pawnSig) return;
+    this.pawnSig = sig; this.clearWares();
+    const Pt = (...a) => this.part(...a), Black = lin(0.06, 0.05, 0.06), Gold = lin(1, 0.72, 0.18);
+    P.pawnOffers.forEach((o, i) => {
+      if (o == null || o < 0) return;
+      const melee = isMelee(o), D = melee ? MELEE[o - MELEE_CODE] : this.game.data.upgrades[o], ri = rarityIndex(D.rarity), col = hex(RarityHex[ri]);
+      const w = this.ware(V(24, -128 + i * 70, 119), (n) => {
+        Pt(n, 1, V(0, 0, 2), V(46, 46, 4), Black); Pt(n, 1, V(0, 0, 5), V(38, 38, 3), Gold, null, 0.4);
+        if (melee) { Pt(n, 0, V(0, 0, 14), V(8, 8, 14), lin(0.3, 0.2, 0.12)); Pt(n, 0, V(0, 0, 36), V(5, 12, 34), col, null, 1.2); Pt(n, 0, V(0, 0, 22), V(8, 22, 4), Gold, null, 0.4); }
+        else { Pt(n, ri >= 3 ? 3 : ri >= 1 ? 2 : 0, V(0, 0, 24), ri >= 3 ? V(26, 26, 34) : V(24), col, R(0, 45, 0), 1.6); if (ri >= 4) Pt(n, 2, V(0, 0, 48), V(10), lin(1, 0.95, 0.7), null, 3); }
+      }, () => ({ name: D.name, desc: melee ? `${D.rarity} melee weapon. ${D.desc}` : `${D.rarity} upgrade. ${D.desc}`, price: Math.round((melee ? MELEE_PRICE[D.rarity] : rarityPrice(ri)) * P.priceMult()), color: RARITY_HEX[D.rarity] }), (pl) => pl.buyPawn(i), V(30, 0, -14));
+      this.text(w.node, V(0, 0, 58), 0, 7, D.name.toUpperCase(), RARITY_HEX[D.rarity]);
+    });
+    this.ware(V(24, 152, 119), (n) => { Pt(n, 1, V(0, 0, 2), V(34, 34, 4), Black); Pt(n, 2, V(0, 0, 6), V(28, 28, 22), Gold, null, 0.8); Pt(n, 1, V(0, 0, 20), V(6, 6, 8), Black); },
+      () => ({ name: 'Ring for new stock', desc: 'Swaps everything on the counter for four new items.', price: P.pawnRerollPrice() }), (pl) => pl.pawnReroll(), V(30, 0, -14));
+  }
+  // ---- the wheel: E pays and spins the real wheel; whatever wedge stops under the pointer is the rarity you get ----
+  wheelPaint(order) {
+    this.wheelOrder = order;
+    order.forEach((r, k) => { this.wheelWedges[k].material = mat(r === 5 ? lin(0.06, 0.05, 0.06) : hex(RarityHex[r]), r === 5 ? 0 : 0.35); });
+  }
+  wheelTop() {
+    this.spin.updateMatrixWorld(true);
+    let best = 0, by = -1e9; const v = new THREE.Vector3();
+    for (let k = 0; k < 10; k++) { const a = (k + 0.5) * Math.PI / 5; v.set(Math.cos(a) * 100, Math.sin(a) * 100, 0); this.wheelWedges[k].localToWorld(v); if (v.y > by) { by = v.y; best = k; } }
+    return best;
+  }
+  wheelPrizeClear() { if (this.prizeNode) { this.group.remove(this.prizeNode); this.prizeNode = null; } }
+  wheelUse(P) {
+    const W = this.wheel;
+    if (W.state === 'spin' || W.lock > 0) return;   // a mashed E can't buy a second spin or grab the prize unseen
+    if (W.state === 'prize') {
+      const D = isMelee(W.prize) ? MELEE[W.prize - MELEE_CODE] : this.game.data.weapons[W.prize];
+      P.giveWeapon(W.prize); P.toast(`Took ${D.name}`, RARITY_HEX[D.rarity]); P.play('S_Buy', 0.8);
+      this.wheelPrizeClear(); W.state = 'idle'; return;
+    }
+    if (!P.spend(Math.round(950 * P.priceMult()))) return;
+    // lay the wheel out for this spin: ten wedges rolled against your luck, one or two of them busts
+    const order = []; for (let i = 0; i < 10; i++) order.push(rollRarity(P.luck, 1.25));
+    order[rnd(0, 4)] = 5; if (Math.random() >= luckRerollChance(P.luck)) order[rnd(5, 9)] = 5;
+    this.wheelPaint(order);
+    W.state = 'spin'; W.t = 0; W.spd = 9 + Math.random() * 4; W.free = 0.7 + Math.random() * 0.9; W.last = -1;
+    P.play('S_SlotPull', 0.7, 0.9);
+  }
+  wheelTick(dt, P) {
+    const W = this.wheel;
+    if (W.lock > 0) W.lock -= dt;
+    if (W.state === 'idle') { this.spin.rotateX(-0.25 * dt); return; }
+    if (W.state === 'prize') {
+      if (this.prizeNode) { this.prizeNode.rotation.y += dt * 1.4; this.prizeNode.position.y = this.prizeY + Math.sin(this.age * 2.4) * 5; }
+      W.keep -= dt; if (W.keep <= 0) { this.wheelPrizeClear(); W.state = 'idle'; }
+      return;
+    }
+    W.t += dt; if (W.t > W.free) W.spd -= dt * 4.2;
+    this.spin.rotateX(-Math.max(W.spd, 0.15) * dt);
+    const k = this.wheelTop();
+    if (k !== W.last) { W.last = k; this.game.audio.playAt('S_SlotTick', this.pos, 0.5, 1, 0.05); }
+    if (W.spd > 0.15) return;
+    W.lock = 0.6;
+    const r = this.wheelOrder[k];
+    if (r === 5) { W.state = 'idle'; this.game.audio.playAt('S_Lose', this.pos, 0.8); P.toast('Bust. The wheel stopped on black.', '#ff4d40'); return; }
+    // a weapon of exactly the rarity it stopped on (now and then a melee weapon of that rarity)
+    let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
+    if (Math.random() < 0.15 && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m] && rarityIndex(MELEE[m].rarity) === r) prize = MELEE_CODE + m; }
+    const D = isMelee(prize) ? MELEE[prize - MELEE_CODE] : this.game.data.weapons[prize];
+    W.state = 'prize'; W.prize = prize; W.keep = 60;
+    this.game.audio.playAt(r >= 4 ? 'S_Jackpot' : 'S_Win', this.pos, 0.9);
+    if (r >= 4) this.game.banner(`${D.name.toUpperCase()}!`, lin(1, 0.7, 0.18), 2.5);
+    const n = new THREE.Group(); this.prizeY = V(95, 0, 190).to3().y; n.position.copy(V(95, 0, 190).to3()); this.group.add(n); this.prizeNode = n;
+    try {
+      if (isMelee(prize)) { this.part(n, 0, V(0, 0, 0), V(8, 16, 70), hex(RarityHex[r]), null, 1.6); this.part(n, 0, V(0, 0, -30), V(10, 36, 6), lin(1, 0.72, 0.18), null, 0.6); }
+      else { const gun = ViewModel.displayModel(this.game, prize, 0); gun.scale.setScalar(1.5); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()); gun.position.sub(c); n.add(gun); }
+    } catch (e) { /* no model: the name still shows */ }
+    const holder = new THREE.Group(); holder.position.copy(V(95, 0, 250).to3()); this.group.add(holder); n.userData.holder = holder;
+    this.text(holder, V(0, 0, 0), 0, 16, D.name.toUpperCase(), RARITY_HEX[D.rarity]);
+    const clear = this.wheelPrizeClear.bind(this); this.wheelPrizeClear = () => { this.group.remove(holder); this.wheelPrizeClear = clear; clear(); };
+  }
+  // ---- slots: E pays and pulls; the three drums spin and stop on real symbols, and the result pays out by itself ----
+  slotUse(P) {
+    const S = this.slot;
+    if (S.busy) return;
+    if (!P.spend(P.slotPrice())) return;
+    P.slotPulls++;
+    S.busy = true; S.t = 0; S.done = 0; S.res = P.slotsRoll(); S.flick = 0;
+    this.game.audio.playAt('S_SlotPull', this.pos, 0.8);
+  }
+  slotShow(i, k) { this.reels[i].forEach((m, j) => { m.visible = j === k; }); }
+  slotTick(dt, P) {
+    const S = this.slot;
+    if (this.lever) this.lever.rotation.z += ((S.busy && S.t < 0.35 ? -0.9 : 0) - this.lever.rotation.z) * Math.min(1, dt * 14);
+    if (!S.busy) return;
+    S.t += dt; S.flick -= dt;
+    if (S.flick <= 0) { S.flick = 0.055; for (let i = S.done; i < 3; i++) this.slotShow(i, rnd(0, 6)); }
+    while (S.done < 3 && S.t > 0.9 + S.done * 0.6) { this.slotShow(S.done, S.res[S.done]); S.done++; this.game.audio.playAt('S_SlotStop', this.pos, 0.8, 0.9 + S.done * 0.1); }
+    if (S.done >= 3 && S.t > 2.4) { S.busy = false; P.slotsPayout(S.res); }
   }
 
   build(Size) {
@@ -150,16 +281,19 @@ export class Interactable {
         P(null, 0, V(42.5, 0, 140), V(2, 92, 44), Black);
         for (const z of [116, 164]) P(null, 0, V(44, 0, z), V(4, 96, 6), Gold, null, 0.6);
         for (const y of [-46, 46]) P(null, 0, V(44, y, 140), V(4, 6, 52), Gold, null, 0.6);
-        const sym = [['7', '#c8212a'], ['BAR', '#1d1418'], ['7', '#c8212a']];
+        const SYM = [['CHERRY', '#d8202e'], ['BELL', '#c98a10'], ['BAR', '#1d1418'], ['7', '#d8202e'], ['CROWN', '#c07a10'], ['CLOVER', '#2e9a3a'], ['SKULL', '#3a3036']];
+        this.reels = []; this.slot = { busy: false };
         for (let i = 0; i < 3; i++) {
           P(null, 1, V(32, (i - 1) * 28, 140), V(36, 36, 24), lin(0.98, 0.97, 0.92), R(0, 0, 90));
-          this.text(null, V(50.5, (i - 1) * 28, 140), 0, sym[i][0] === 'BAR' ? 7 : 13, sym[i][0], sym[i][1]);
+          this.reels.push(SYM.map(([t, c]) => this.text(null, V(50.5, (i - 1) * 28, 140), 0, t.length === 1 ? 13 : t.length <= 3 ? 7.5 : t.length <= 5 ? 5.6 : 4.6, t, c)));
+          this.slotShow(i, [3, 2, 3][i]);
         }
         P(null, 0, V(46, 0, 100), V(10, 70, 20), Gold, null, 0.4);
         P(null, 0, V(52, 0, 78), V(24, 74, 12), Black);
         P(null, 0, V(44, 0, 70), V(4, 60, 6), lin(0.6, 0.6, 0.65));
-        P(null, 1, V(0, 60, 150), V(10, 10, 80), lin(0.75, 0.75, 0.8));
-        P(null, 2, V(0, 60, 194), V(24), lin(0.9, 0.1, 0.1), null, 1.2);
+        this.lever = new THREE.Group(); this.lever.position.copy(V(0, 60, 112).to3()); this.group.add(this.lever);   // pulls forward when you play
+        P(this.lever, 1, V(0, 0, 38), V(10, 10, 80), lin(0.75, 0.75, 0.8));
+        P(this.lever, 2, V(0, 0, 82), V(24), lin(0.9, 0.1, 0.1), null, 1.2);
         // stool
         P(null, 1, V(120, 0, 34), V(8, 8, 68), lin(0.6, 0.6, 0.65));
         P(null, 1, V(120, 0, 72), V(54, 54, 10), Red);
@@ -191,7 +325,7 @@ export class Interactable {
         const order = [0, 2, 1, 5, 3, 0, 4, 1, 5, 2];   // rarity of each wedge; 5 = bust
         for (let k = 0; k < 10; k++) {
           const g = new THREE.CircleGeometry(140, 10, k * Math.PI / 5 + 0.03, Math.PI / 5 - 0.06);
-          const w = new THREE.Mesh(g, mat(order[k] === 5 ? Black : hex(RarityHex[order[k]]), order[k] === 5 ? 0 : 0.35)); w.rotation.y = Math.PI / 2; w.position.x = 5; s.add(w);
+          const w = new THREE.Mesh(g, mat(order[k] === 5 ? Black : hex(RarityHex[order[k]]), order[k] === 5 ? 0 : 0.35)); w.rotation.y = Math.PI / 2; w.position.x = 5; s.add(w); (this.wheelWedges = this.wheelWedges || []).push(w);
           const a = k * Math.PI / 5; P(s, 1, V(8, Math.cos(a) * 140, Math.sin(a) * 140), V(9, 9, 14), Gold, R(90, 0, 0), 0.6);
         }
         P(s, 1, V(8, 0, 0), V(64, 64, 14), Gold, R(90, 0, 0), 0.6); P(s, 2, V(16, 0, 0), V(30), Red, null, 1.2);
@@ -208,7 +342,8 @@ export class Interactable {
           P(null, 0, V(40, y, 70), V(60, 70, 92), DarkWood); P(null, 0, V(40, y, 118), V(68, 78, 6), Gold, null, 0.5); P(null, 0, V(40, y, 126), V(40, 50, 10), Red);
           try { const gun = ViewModel.displayModel(this.game, wi, 0); gun.scale.setScalar(1.25); gun.position.copy(V(40, y, 165).to3()); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()).sub(gun.position); gun.position.sub(c); gun.position.y += (b.max.y - b.min.y) * 0.5 - 30; this.group.add(gun); } catch (e) { /* no model */ }
         });
-        this.spinSpeed = 20; this.spinAxis = 'roll';
+        this.wheelOrder = order; this.wheel = { state: 'idle' };
+        this.spinSpeed = 0; this.spinAxis = 'roll';
         this.useRadius = 260;
         this.glowAt = V(120, 0, 300); this.glowCol = [1, 0.6, 0.3];
         break;
@@ -257,7 +392,7 @@ export class Interactable {
         this.text(null, V(-48, 0, 520), 0, 44, 'UPGRADES', '#78e6dc');
         for (let i = 0; i < 3; i++) { P(null, 0, V(51, -106 + i * 106, 42), V(3, 92, 58), DarkWood); P(null, 0, V(52, -106 + i * 106, 73), V(3, 96, 4), Gold, null, 0.5); P(null, 2, V(53, -106 + i * 106, 42), V(14), hex(RarityHex[i + 1]), null, 1.6); }
         for (const y of [-80, 80]) { P(null, 1, V(20, y, 400), V(3, 3, 110), Black); P(null, 3, V(20, y, 336), V(56, 56, 34), lin(0.2, 0.5, 0.45)); P(null, 2, V(20, y, 322), V(18), lin(1, 0.92, 0.7), null, 3); }
-        P(null, 0, V(20, -120, 126), V(40, 60, 3), Red); for (let i = 0; i < 3; i++) P(null, 1, V(14 + i * 8, -120 + i * 6, 131), V(16, 16, 5), Gold, null, 0.8);
+        this.wares = [];
         this.useRadius = 250;
         this.glowAt = V(120, 0, 260); this.glowCol = [0.7, 0.8, 1];
         break;
@@ -281,7 +416,13 @@ export class Interactable {
             P(null, 1, p.add(V(0, 0, tall ? 28 : 22)), V(8, 8, 14), T[(i + r * 3) % T.length].clone().multiplyScalar(0.5));
           }
         }
-        for (let i = 0; i < 4; i++) P(null, 1, V(10, -100 + i * 66, 128), V(12, 12, 24), T[i], null, 1.2);
+        TONICS.forEach((Tn, i) => {
+          const col = T[i % T.length];
+          this.ware(V(30, -137 + i * 39, 118), (n) => {
+            P(n, 1, V(0, 0, 2), V(26, 26, 3), Gold, null, 0.4);
+            P(n, i % 2 ? 1 : 7, V(0, 0, 20), V(20, 20, 32), col, null, 1.6); P(n, 1, V(0, 0, 42), V(8, 8, 14), col.clone().multiplyScalar(0.5)); P(n, 1, V(0, 0, 50), V(10, 10, 4), Gold, null, 0.4);
+          }, (pl) => { const lv = pl.tonicLevels[i], max = lv >= Tn.max; return { name: Tn.name, desc: `${Tn.desc}.  ${max ? 'Maxed out.' : Tn.max > 1 ? `Level ${lv} of ${Tn.max}.` : ''}`, price: max ? null : pl.tonicPrice(i), tag: 'MAX' }; }, (pl) => pl.buyTonic(i), V(29, 0, -13), 8);
+        });
         for (const y of [-90, 90]) {
           P(null, 1, V(110, y, 38), V(8, 8, 76), lin(0.6, 0.6, 0.65));
           P(null, 1, V(110, y, 80), V(50, 50, 10), Red);
@@ -290,10 +431,6 @@ export class Interactable {
         for (let i = 0; i < 10; i++) P(null, 2, V(-48, -144 + i * 32, 494), V(11), i % 2 ? lin(1, 0.92, 0.6) : lin(1, 0.5, 0.3), null, 3);
         this.text(null, V(-50, 0, 440), 0, 48, 'TONICS', '#ffcd5a');
         // brass tap tower, glasses, a bar towel, and two shaded lamps over the counter
-        P(null, 0, V(30, 120, 124), V(26, 70, 14), Gold, null, 0.4);
-        for (let i = 0; i < 3; i++) { P(null, 1, V(30, 98 + i * 22, 146), V(7, 7, 34), Gold, null, 0.5); P(null, 0, V(40, 98 + i * 22, 160), V(22, 5, 5), Gold, null, 0.5); P(null, 0, V(30, 98 + i * 22, 172), V(6, 6, 22), [Red, Black, lin(0.1, 0.4, 0.2)][i]); }
-        for (let i = 0; i < 4; i++) P(null, 1, V(34, -150 + i * 16, 126), V(11, 11, 18), lin(0.75, 0.9, 0.95), null, 0.5);
-        P(null, 0, V(40, 30, 119), V(34, 50, 3), lin(0.9, 0.88, 0.8));
         for (const y of [-80, 80]) { P(null, 1, V(20, y, 400), V(3, 3, 110), Black); P(null, 3, V(20, y, 336), V(56, 56, 34), Red); P(null, 2, V(20, y, 322), V(18), lin(1, 0.9, 0.6), null, 3); }
         this.useRadius = 250;
         this.glowAt = V(120, 0, 260); this.glowCol = [1, 0.7, 0.4];
@@ -334,6 +471,17 @@ export class Interactable {
         this.text(null, V(16, -40, 446), 0, 46, 'WORKBENCH', '#ffcd5a');
         this.text(null, V(16, -40, 402), 0, 21, 'UPGRADE YOUR WEAPONS', '#f2e8d5');
         for (let i = 0; i < 3; i++) for (const sgn of [-1, 1]) P(null, 0, V(17, 150 + sgn * 13, 404 + i * 24), V(4, 38, 9), Green, R(sgn * 38, 0, 0), 1.6 - i * 0.3);
+        // two things to reach for on the bench: the sure job, and the half-price gamble
+        const vinfo = (gamble) => (pl) => {
+          const S = pl.slot, W = S.def >= 0 ? this.game.data.weapons[S.def] : null;
+          if (!W) return { name: 'Hold a gun to work on it', desc: '', price: null, tag: '' };
+          if (S.tier >= 3) return { name: `${W.name} is at max tier`, desc: '', price: null, tag: 'MAX' };
+          const full = Math.round(VAULT_COST[S.tier] * pl.priceMult());
+          return gamble ? { name: `Gamble on ${W.name}  (${Math.round(Math.min(0.45 + 0.03 * pl.luck, 0.75) * 100)}% chance)`, desc: `Half price for a shot at tier ${S.tier + 1}. If it fails the money is gone.`, price: Math.floor(full / 2) }
+            : { name: `Upgrade ${W.name} to tier ${S.tier + 1}`, desc: '+75% damage, a bigger magazine and faster fire. Tier 3 adds pierce.', price: full };
+        };
+        this.ware(V(112, -128, 110), (n) => { P(n, 1, V(0, 0, 3), V(44, 44, 6), Black); P(n, 0, V(0, 0, 22), V(10, 16, 30), Green, null, 1.6); P(n, 3, V(0, 0, 50), V(10, 40, 28), Green, null, 1.6); }, vinfo(false), (pl) => pl.vaultUpgrade(false), V(26, 0, -4));
+        this.ware(V(112, 30, 110), (n) => { P(n, 1, V(0, 0, 3), V(44, 44, 6), Black); P(n, 0, V(0, -9, 17), V(20), White, R(0, 20, 0)); P(n, 0, V(0, 11, 15), V(17), Red, R(0, -25, 0)); P(n, 2, V(10.5, -9, 17), V(5), Black); P(n, 2, V(9, 11, 15), V(4.5), White); }, vinfo(true), (pl) => pl.vaultUpgrade(true), V(26, 0, -4));
         this.spinSpeed = 40; this.spinAxis = 'yaw';
         this.useRadius = 260;
         this.glowAt = V(120, 0, 240); this.glowCol = [1, 0.8, 0.3];
@@ -413,8 +561,19 @@ export class Interactable {
         return `[E] ${n}  $${this.cost}`;
       }
       case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${this.cost}` : '[E] Refill ammo  (free)';
-      case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 60s');
-      case 'Slots': return `[E] Slots  $${player ? player.slotPrice() : this.cost}`;
+      case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 3 minutes');
+      case 'Slots': return this.slot.busy ? '' : `[E] Pull the lever  $${player ? player.slotPrice() : this.cost}\nThree of a kind or a pair pays a better upgrade. Every pull pays something.`;
+      case 'ArmsRoulette': {
+        const W = this.wheel;
+        if (W.state === 'spin') return '';
+        if (W.state === 'prize') { const D = isMelee(W.prize) ? MELEE[W.prize - MELEE_CODE] : G.data.weapons[W.prize]; return `[E] Claim ${D.name}\n${D.rarity}${isMelee(W.prize) ? ' melee weapon' : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        return `[E] Spin the wheel  $${Math.round(950 * (player ? player.priceMult() : 1))}\nYou win a weapon of the colour it stops on. Black is a bust.`;
+      }
+      case 'UpgradeCounter': case 'StatBooth': case 'HighRoller': {
+        const w = player && player.focusWare; if (!w) return 'Look at an item to see it';
+        const f = w.info(player);
+        return `${f.price != null ? '[E] ' : ''}${f.name}${f.price != null ? '  $' + f.price.toLocaleString() : ''}${f.desc ? '\n' + f.desc : ''}`;
+      }
       default: return `[E] ${STATION_NAMES[this.type] || this.type}`;
     }
   }
@@ -427,6 +586,11 @@ export class Interactable {
 
   update(dt) {
     this.age += dt;
+    const PL = this.game.player;
+    if (this.type === 'UpgradeCounter' && PL) this.layPawn(PL);
+    if (this.wares && PL) this.tickWares(dt, PL);
+    if (this.wheel && PL) this.wheelTick(dt, PL);
+    if (this.slot && PL) this.slotTick(dt, PL);
     if (this.spin && this.spinSpeed) {
       const speed = (this.isUsable() ? this.spinSpeed : this.spinSpeed * 0.1) * dt;
       // UE roll = rotation about local X (three x); UE yaw = about local Z (three y)
