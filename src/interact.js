@@ -1,4 +1,5 @@
 // Doors, wall buys and casino stations (port of ADMHInteractable). Built from toon primitives in UE-local space.
+import { cash } from './data.js';
 import * as THREE from 'three';
 import { V, R, UVec } from './mapkit.js';
 import { toonMaterial, hex } from './render.js';
@@ -117,6 +118,58 @@ export class Interactable {
     this.ware(V(24, 152, 119), (n) => { Pt(n, 1, V(0, 0, 2), V(34, 34, 4), Black); Pt(n, 2, V(0, 0, 6), V(28, 28, 22), Gold, null, 0.8); Pt(n, 1, V(0, 0, 20), V(6, 6, 8), Black); },
       () => ({ name: 'Ring for new stock', desc: 'Swaps everything on the counter for four new items.', price: P.pawnRerollPrice() }), (pl) => pl.pawnReroll(), V(30, 0, -14));
   }
+  setOpened(on) { this.opened = on; if (this.beam) this.beam.visible = !on; if (this.inside) this.inside.visible = on; }
+  // ---- the mystery box ----
+  boxShow(def) {
+    while (this.holder.children.length) this.holder.remove(this.holder.children[0]);
+    if (def < 0) return;
+    try {
+      if (isMelee(def)) { this.part(this.holder, 0, V(0, 0, 0), V(8, 70, 14), hex(RarityHex[rarityIndex(MELEE[def - MELEE_CODE].rarity)]), null, 1.4); }
+      else { const gun = ViewModel.displayModel(this.game, def, 0); gun.scale.setScalar(1.5); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()); gun.position.sub(c); const h = new THREE.Group(); h.rotation.y = Math.PI / 2; h.add(gun); this.holder.add(h); }
+    } catch (e) { /* no model */ }
+  }
+  boxUse(P) {
+    const B = this.box, G = this.game;
+    if (B.state === 'offer') {
+      const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize];
+      P.giveWeapon(B.prize); P.toast(`Took ${D.name}`, RARITY_HEX[D.rarity]); P.play('S_Buy', 0.8);
+      B.state = 'closing'; B.t = 0; this.boxShow(-1); return;
+    }
+    if (B.state !== 'idle') return;
+    if (!P.spend(Math.round(950 * P.priceMult()))) return;
+    B.uses++;
+    if (B.uses > B.limit && G.boxSpots && G.boxSpots.some((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800)) { P.money += Math.round(950 * P.priceMult()); B.state = 'leaving'; B.t = 0; G.audio.playAt('S_Lose', this.pos, 0.9); G.banner('THE BOX IS MOVING', lin(0.4, 0.75, 1), 3); return; }   // refunded, and gone
+    const r = rollRarity(P.luck, 1.25);
+    let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
+    if (Math.random() < 0.1 && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
+    B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;
+    G.audio.playAt('S_SlotPull', this.pos, 0.8, 0.8);
+  }
+  boxTick(dt, P) {
+    const B = this.box, G = this.game; B.t += dt;
+    const open = B.state === 'rolling' || B.state === 'offer';
+    this.lid.rotation.z += ((open ? -1.7 : 0) - this.lid.rotation.z) * Math.min(1, dt * 8);
+    this.inside.visible = open;
+    this.holder.position.y = 90 + (B.state === 'rolling' ? Math.min(1, B.t / 2.6) * 50 : B.state === 'offer' ? 50 + Math.sin(this.age * 2.5) * 4 : 0);
+    if (B.state === 'rolling') {
+      B.flick -= dt;
+      if (B.flick <= 0) { B.flick = 0.09 + B.t * 0.06; const W = G.data.weapons; this.boxShow(1 + Math.floor(Math.random() * (W.length - 1))); G.audio.playAt('S_SlotTick', this.pos, 0.4, 1 + B.t * 0.15, 0.05); }
+      if (B.t > 2.8) { B.state = 'offer'; B.t = 0; this.boxShow(B.prize); const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; G.audio.playAt(rarityIndex(D.rarity) >= 4 ? 'S_Jackpot' : 'S_Win', this.pos, 0.9); }
+    } else if (B.state === 'offer') { this.holder.rotation.y += dt * 1.2; if (B.t > 12) { B.state = 'closing'; B.t = 0; this.boxShow(-1); } }
+    else if (B.state === 'closing') { if (B.t > 0.5) B.state = 'idle'; }
+    else if (B.state === 'leaving') {
+      this.group.position.y = this.pos.y - Math.max(0, B.t - 0.6) * 160;
+      if (B.t > 1.8) {
+        // somewhere else: any open district but this one
+        const here = G.zoneAt(this.pos), spots = G.boxSpots.filter((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800);
+        const S = spots.length ? spots[Math.floor(Math.random() * spots.length)] : null;
+        if (S) { this.pos.copy(S.pos); this.group.quaternion.copy(R(0, S.yaw, 0).quat3()); }
+        this.group.position.copy(this.pos); B.state = 'idle'; B.uses = 0; B.limit = 4 + Math.floor(Math.random() * 4);
+        G.fx.ring(this.pos, 200, [0.4, 0.75, 1], 0.6);
+        P.toast(`The mystery box is now in ${G.zones[S ? S.zone : here].name}`, '#6ec8ff');
+      }
+    }
+  }
   // ---- the wheel: E pays and spins the real wheel; whatever wedge stops under the pointer is the rarity you get ----
   wheelPaint(order) {
     this.wheelOrder = order;
@@ -233,8 +286,8 @@ export class Interactable {
           }
           P(null, 0, V(Size.X * 0.25, 0, Size.Z * 0.5), V(10, W * 0.9, 14), Red, R(0, 0, 40));
           P(null, 0, V(Size.X * 0.25, 0, Size.Z * 0.5), V(10, W * 0.9, 14), Red, R(0, 0, -40));
-          this.priceText = [this.text(null, V(Size.X * 0.4, 0, Size.Z * 0.5 + 140), 0, 60, '$' + this.cost),
-            this.text(null, V(-Size.X * 0.4, 0, Size.Z * 0.5 + 140), 180, 60, '$' + this.cost)];
+          this.priceText = [this.text(null, V(Size.X * 0.4, 0, Size.Z * 0.5 + 140), 0, 60, '$' + cash(this.cost)),
+            this.text(null, V(-Size.X * 0.4, 0, Size.Z * 0.5 + 140), 180, 60, '$' + cash(this.cost))];
         }
         this.useRadius = Math.max(Size.Y * 0.6, 260);
         break;
@@ -263,7 +316,7 @@ export class Interactable {
           P(null, 2, V(10 + depth, y, gb.min.y - 1), V(8), Gold, null, 0.4);
         }
         this.text(null, V(14, 0, 286), 0, 26, W.name.toUpperCase(), '#f0ebdc');
-        this.text(null, V(14, 0, 262), 0, 22, `$${this.cost}`, '#ffcd5a');
+        this.text(null, V(14, 0, 262), 0, 22, `$${cash(this.cost)}`, '#ffcd5a');
         this.useRadius = 200;
         break;
       }
@@ -471,17 +524,6 @@ export class Interactable {
         this.text(null, V(16, -40, 446), 0, 46, 'WORKBENCH', '#ffcd5a');
         this.text(null, V(16, -40, 402), 0, 21, 'UPGRADE YOUR WEAPONS', '#f2e8d5');
         for (let i = 0; i < 3; i++) for (const sgn of [-1, 1]) P(null, 0, V(17, 150 + sgn * 13, 404 + i * 24), V(4, 38, 9), Green, R(sgn * 38, 0, 0), 1.6 - i * 0.3);
-        // two things to reach for on the bench: the sure job, and the half-price gamble
-        const vinfo = (gamble) => (pl) => {
-          const S = pl.slot, W = S.def >= 0 ? this.game.data.weapons[S.def] : null;
-          if (!W) return { name: 'Hold a gun to work on it', desc: '', price: null, tag: '' };
-          if (S.tier >= 3) return { name: `${W.name} is at max tier`, desc: '', price: null, tag: 'MAX' };
-          const full = Math.round(VAULT_COST[S.tier] * pl.priceMult());
-          return gamble ? { name: `Gamble on ${W.name}  (${Math.round(Math.min(0.45 + 0.03 * pl.luck, 0.75) * 100)}% chance)`, desc: `Half price for a shot at tier ${S.tier + 1}. If it fails the money is gone.`, price: Math.floor(full / 2) }
-            : { name: `Upgrade ${W.name} to tier ${S.tier + 1}`, desc: '+75% damage, a bigger magazine and faster fire. Tier 3 adds pierce.', price: full };
-        };
-        this.ware(V(112, -128, 110), (n) => { P(n, 1, V(0, 0, 3), V(44, 44, 6), Black); P(n, 0, V(0, 0, 22), V(10, 16, 30), Green, null, 1.6); P(n, 3, V(0, 0, 50), V(10, 40, 28), Green, null, 1.6); }, vinfo(false), (pl) => pl.vaultUpgrade(false), V(26, 0, -4));
-        this.ware(V(112, 30, 110), (n) => { P(n, 1, V(0, 0, 3), V(44, 44, 6), Black); P(n, 0, V(0, -9, 17), V(20), White, R(0, 20, 0)); P(n, 0, V(0, 11, 15), V(17), Red, R(0, -25, 0)); P(n, 2, V(10.5, -9, 17), V(5), Black); P(n, 2, V(9, 11, 15), V(4.5), White); }, vinfo(true), (pl) => pl.vaultUpgrade(true), V(26, 0, -4));
         this.spinSpeed = 40; this.spinAxis = 'yaw';
         this.useRadius = 260;
         this.glowAt = V(120, 0, 240); this.glowCol = [1, 0.8, 0.3];
@@ -513,6 +555,48 @@ export class Interactable {
         this.glowAt = V(30, 0, 280); this.glowCol = [1, 0.6, 0.2];
         break;
       }
+      case 'Chest': {
+        // a locked chest. Tier decides the look and what is inside: wood, iron, gilt, reliquary.
+        const T = this.tier = Math.max(0, Math.min(3, this.weapon | 0));
+        const body = [lin(0.36, 0.23, 0.13), lin(0.33, 0.35, 0.4), lin(0.2, 0.11, 0.09), lin(0.07, 0.06, 0.08)][T];
+        const trim = [lin(0.2, 0.2, 0.22), lin(0.55, 0.7, 0.9), lin(1, 0.72, 0.18), lin(0.9, 0.86, 0.72)][T];
+        const glow = hex(RarityHex[T + 1]), sc = 1 + T * 0.1;
+        const B = new THREE.Group(); B.scale.setScalar(sc); this.group.add(B);
+        P(B, 0, V(0, 0, 4), V(76, 112, 8), lin(0.08, 0.07, 0.08));
+        P(B, 0, V(0, 0, 30), V(64, 100, 44), body);
+        for (const y of [-34, 34]) { P(B, 0, V(0, y, 30), V(67, 9, 46), trim, null, T >= 2 ? 0.3 : 0); }
+        for (const y of [-51, 51]) P(B, 0, V(0, y, 30), V(66, 4, 46), trim);
+        P(B, 0, V(33, 0, 36), V(5, 18, 20), trim, null, T >= 2 ? 0.4 : 0); P(B, 2, V(36, 0, 36), V(8), glow, null, 2.2);
+        const lid = new THREE.Group(); lid.position.copy(V(-32, 0, 52).to3()); B.add(lid); this.lid = lid;
+        P(lid, 0, V(32, 0, 9), V(66, 102, 18), body); P(lid, 0, V(32, 0, 19), V(54, 96, 6), body);
+        for (const y of [-34, 34]) P(lid, 0, V(32, y, 11), V(69, 9, 24), trim, null, T >= 2 ? 0.3 : 0);
+        if (T >= 2) { P(lid, 2, V(32, 0, 24), V(16), glow, null, 2.4); for (const y of [-51, 51]) P(lid, 0, V(32, y, 9), V(68, 4, 20), trim, null, 0.3); }
+        if (T >= 3) for (const [x, y] of [[-28, -46], [-28, 46], [28, -46], [28, 46]]) P(B, 3, V(x, y, 62), V(10, 10, 22), trim);
+        this.inside = P(B, 0, V(0, 0, 44), V(52, 88, 6), glow, null, 2.5); this.inside.visible = false;
+        // a thin column of light so you can find it across a district; it goes out when the chest is opened
+        this.beam = P(null, 0, V(0, 0, 400), V(5, 5, 700), glow, null, 1.6);
+        this.opened = false;
+        this.useRadius = 190;
+        this.glowAt = V(40, 0, 60); this.glowCol = [1, 0.8, 0.4];
+        break;
+      }
+      case 'MysteryBox': {
+        // the mystery box: pay, the lid lifts, guns flick past, one settles. Take it or leave it. After a few uses it moves.
+        const Dark = lin(0.13, 0.08, 0.06), Gold = lin(1, 0.72, 0.18), Blue = lin(0.35, 0.75, 1);
+        P(null, 0, V(0, 0, 5), V(96, 190, 10), lin(0.06, 0.05, 0.06));
+        P(null, 0, V(0, 0, 32), V(80, 172, 46), Dark);
+        for (const y of [-70, 0, 70]) P(null, 0, V(0, y, 32), V(84, 8, 48), Gold, null, 0.4);
+        for (const y of [-35, 35]) this.text(null, V(41, y, 32), 0, 34, '?', '#6ec8ff');
+        const lid = new THREE.Group(); lid.position.copy(V(-40, 0, 55).to3()); this.group.add(lid); this.lid = lid;
+        P(lid, 0, V(40, 0, 6), V(84, 176, 12), Dark); for (const y of [-70, 0, 70]) P(lid, 0, V(40, y, 7), V(88, 8, 16), Gold, null, 0.4);
+        this.inside = P(null, 0, V(0, 0, 54), V(66, 158, 4), Blue, null, 3); this.inside.visible = false;
+        this.beam = P(null, 0, V(0, 0, 1300), V(9, 9, 2500), Blue, null, 1.8);
+        this.box = { state: 'idle', t: 0, uses: 0, limit: 4 + Math.floor(Math.random() * 4), prize: -1 };
+        this.holder = new THREE.Group(); this.holder.position.copy(V(0, 0, 90).to3()); this.group.add(this.holder);
+        this.useRadius = 230;
+        this.glowAt = V(60, 0, 100); this.glowCol = [0.4, 0.75, 1];
+        break;
+      }
       case 'AmmoCrate': {
         // army surplus ammo crate: olive box, dark banding, rope handles, lid propped open on a pile of shells
         const Olive = lin(0.26, 0.31, 0.17), OliveD = lin(0.17, 0.2, 0.11), Brass = lin(1, 0.62, 0.18);
@@ -531,7 +615,7 @@ export class Interactable {
         P(null, 0, V(-14, 112, 26), V(100, 76, 52), OliveD); P(null, 0, V(-14, 112, 53), V(104, 80, 4), Olive); P(null, 0, V(-10, 108, 76), V(76, 58, 40), Olive, R(0, 14, 0)); P(null, 0, V(-10, 108, 97), V(80, 62, 4), OliveD, R(0, 14, 0));
         P(null, 0, V(-6, -104, 20), V(70, 60, 40), Olive, R(0, -10, 0)); P(null, 0, V(30, -104, 46), V(10, 44, 10), Brass, R(0, -10, 0), 0.3);
         P(null, 0, V(-70, 0, 150), V(6, 6, 300), OliveD); P(null, 0, V(-66, 0, 176), V(6, 150, 46), Black);
-        this.text(null, V(-61, 0, 176), 0, 26, this.cost > 0 ? `AMMO  $${this.cost}` : 'FREE AMMO', '#e6e6c8');
+        this.text(null, V(-61, 0, 176), 0, 26, this.cost > 0 ? `AMMO  $${cash(this.cost)}` : 'FREE AMMO', '#e6e6c8');
         this.useRadius = 170;
         this.glowAt = V(30, 0, 120); this.glowCol = [1, 0.75, 0.3];
         break;
@@ -541,7 +625,8 @@ export class Interactable {
   }
 
   isUsable() {
-    if (!this.enabled || this.open) return false;
+    if (!this.enabled || this.open || this.opened) return false;
+    if (this.box && this.box.state !== 'idle' && this.box.state !== 'offer') return false;
     if (this.type === 'Door' && this.cost < 0) return false;
     if (this.casinoOnly) return this.game.isCasinoOpen();
     return true;
@@ -553,23 +638,39 @@ export class Interactable {
       case 'Door': {
         let where = this.label;
         if (G.zones[this.zoneA] && G.zones[this.zoneB]) where = G.zones[this.zoneA].unlocked ? G.zones[this.zoneB].name : G.zones[this.zoneA].name;
-        return `[E] Open ${where}  $${this.cost}`;
+        return `[E] Open ${where}  $${cash(this.cost)}`;
       }
       case 'WallBuy': {
         const n = G.data.weapons[this.weapon].name;
-        if (player && player.hasWeapon(this.weapon)) return `[E] ${n} ammo  $${Math.floor(this.cost / 2)}`;
-        return `[E] ${n}  $${this.cost}`;
+        if (player && player.hasWeapon(this.weapon)) return `[E] ${n} ammo  $${cash(Math.floor(this.cost / 2))}`;
+        return `[E] ${n}  $${cash(this.cost)}`;
       }
-      case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${this.cost}` : '[E] Refill ammo  (free)';
+      case 'Chest': {
+        const names = ['Wooden', 'Iron', 'Gilded', 'Reliquary'], T = this.tier;
+        return `[E] Open the ${names[T]} chest  $${cash(player ? player.chestPrice(T) : 100)}\nOne ${RARITIES[T].toLowerCase()} or ${RARITIES[T + 1].toLowerCase()} buff. Every chest you open makes the next one dearer.`;
+      }
+      case 'MysteryBox': {
+        const B = this.box;
+        if (B.state === 'offer') { const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; return `[E] Take ${D.name}\n${D.rarity}${isMelee(B.prize) ? ' melee weapon' : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        if (B.state !== 'idle') return '';
+        return `[E] Mystery box  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nA random weapon. It moves on after a few uses.`;
+      }
+      case 'HighRoller': {
+        const S = player && player.slot, W = S && S.def >= 0 ? G.data.weapons[S.def] : null;
+        if (!W) return 'Hold a gun to work on it';
+        if (S.mods.length >= 4) return `${W.name} has all four modifiers`;
+        return `[E] Modify ${W.name}  $${cash(player.benchCost(S))}\nAdds a random modifier to this gun (${S.mods.length} of 4). It changes how the gun behaves.`;
+      }
+      case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${cash(this.cost)}` : '[E] Refill ammo  (free)';
       case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 3 minutes');
-      case 'Slots': return this.slot.busy ? '' : `[E] Pull the lever  $${player ? player.slotPrice() : this.cost}\nThree of a kind or a pair pays a better upgrade. Every pull pays something.`;
+      case 'Slots': return this.slot.busy ? '' : `[E] Pull the lever  $${cash(player ? player.slotPrice() : this.cost)}\nThree of a kind or a pair pays a better upgrade. Every pull pays something.`;
       case 'ArmsRoulette': {
         const W = this.wheel;
         if (W.state === 'spin') return '';
         if (W.state === 'prize') { const D = isMelee(W.prize) ? MELEE[W.prize - MELEE_CODE] : G.data.weapons[W.prize]; return `[E] Claim ${D.name}\n${D.rarity}${isMelee(W.prize) ? ' melee weapon' : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
-        return `[E] Spin the wheel  $${Math.round(950 * (player ? player.priceMult() : 1))}\nYou win a weapon of the colour it stops on. Black is a bust.`;
+        return `[E] Spin the wheel  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nYou win a weapon of the colour it stops on. Black is a bust.`;
       }
-      case 'UpgradeCounter': case 'StatBooth': case 'HighRoller': {
+      case 'UpgradeCounter': case 'StatBooth': {
         const w = player && player.focusWare; if (!w) return 'Look at an item to see it';
         const f = w.info(player);
         return `${f.price != null ? '[E] ' : ''}${f.name}${f.price != null ? '  $' + f.price.toLocaleString() : ''}${f.desc ? '\n' + f.desc : ''}`;
@@ -587,6 +688,8 @@ export class Interactable {
   update(dt) {
     this.age += dt;
     const PL = this.game.player;
+    if (this.lid && this.type === 'Chest') { const want = this.opened ? -1.9 : 0; this.lid.rotation.z += (want - this.lid.rotation.z) * Math.min(1, dt * 7); }
+    if (this.box) this.boxTick(dt, PL);
     if (this.type === 'UpgradeCounter' && PL) this.layPawn(PL);
     if (this.wares && PL) this.tickWares(dt, PL);
     if (this.wheel && PL) this.wheelTick(dt, PL);

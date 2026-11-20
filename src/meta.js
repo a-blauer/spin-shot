@@ -34,11 +34,11 @@ export const ACHIEVEMENTS = [
   { id: 'round20', name: 'Round 20', desc: 'Reach round 12', stat: 'bestRound', need: 12, guns: ["Dead Man's Hand"], skin: 'gilded' },
   { id: 'boss1', name: 'Boss Killer', desc: 'Defeat a boss', stat: 'bosses', need: 4, guns: ['Buzzsaw'] },
   { id: 'boss3', name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, upgrades: ['Phoenix Feather'] },
-  { id: 'slots25', name: 'Regular', desc: 'Spin the slots 75 times', stat: 'slotSpins', need: 75, guns: ['Jackpot'], skin: 'dealer' },
+  { id: 'slots25', name: 'Regular', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Jackpot'], skin: 'dealer' },
   { id: 'money100k', name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
   { id: 'luck15', name: 'Lucky', desc: 'Reach 15 luck in one run', stat: 'maxLuck', need: 15, upgrades: ['Four-Leaf Crown'] },
   { id: 'win', name: 'House Cleaner', desc: 'Beat the Last Dealer and clear Deadwater Gulch', stat: 'wins', need: 1, guns: ['The House Always Wins'] },
-  { id: 'tier3', name: 'Maxed Out', desc: 'Upgrade a weapon to tier 3', stat: 'tier3', need: 1, skin: 'pinstripe' },
+  { id: 'tier3', name: 'Maxed Out', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, skin: 'pinstripe' },
   { id: 'master1', name: 'Mastery', desc: 'Get any gun to level 5', stat: 'mastered', need: 2, skin: 'bone' },
 ];
 
@@ -95,6 +95,8 @@ export const Meta = {
   setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; S.look = Object.assign({}, DEFAULT_LOOK, S.look); S.look[slot] = cosItem(slot, id).id; dirty = true; this.save(); },
   starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.need || (S.stats[T.need[0]] || 0) >= T.need[1]); },
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
+  cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },
+  setCls(id) { S.cls = id; dirty = true; this.save(); },
   difficulty() { return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
   setDifficulty(i) { S.diff = i; dirty = true; this.save(); },
   setStarter(w) { if (this.starterUnlocked(w)) { S.starter = w; dirty = true; this.save(); } },

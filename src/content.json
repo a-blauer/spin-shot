@@ -1181,7 +1181,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Casino prices 8% cheaper.",
+"desc": "Everything costs 8% less.",
 "insp": "Isaac Steam Sale"
 },
 {
@@ -1953,7 +1953,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Casino 12% cheaper, +10% money.",
+"desc": "Everything costs 12% less, +10% money.",
 "insp": "Casino comps"
 },
 {
@@ -2808,7 +2808,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+60% money. Casino 25% pricier.",
+"desc": "+60% money. Everything costs 25% more.",
 "insp": "Balatro Credit Card"
 },
 {
@@ -3258,6 +3258,760 @@
 "cd": 0,
 "desc": "+100% melee damage. Executes below 12% health. Melee heals 5%.",
 "insp": "melee"
+},
+{
+"name": "Underbarrel Launcher",
+"rarity": "Rare",
+"stacks": 1,
+"mods": [
+[
+"AltLauncher",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Aim and fire to lob a grenade from this gun. 5 second cooldown.",
+"insp": "CoD underbarrel"
+},
+{
+"name": "Gravity Coil",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"AltGravity",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Aim and fire to throw a singularity that drags enemies in, then bursts. 10 second cooldown.",
+"insp": "Titanfall gravity star"
+},
+{
+"name": "Rail Capacitor",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"AltRail",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Aim and fire for a charged beam through everything in its line. 6 second cooldown.",
+"insp": "Quake railgun"
+},
+{
+"name": "Flak Tube",
+"rarity": "Uncommon",
+"stacks": 1,
+"mods": [
+[
+"AltBuck",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Aim and fire for a point-blank blast of buckshot. 3 second cooldown.",
+"insp": "Masterkey"
+},
+{
+"name": "Active Reload",
+"rarity": "Uncommon",
+"stacks": 1,
+"mods": [
+[
+"ActiveReload",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Press reload again inside the marked window to finish at once and load a hot magazine: +35% damage.",
+"insp": "Gears of War"
+},
+{
+"name": "Echo Chamber",
+"rarity": "Rare",
+"stacks": 1,
+"mods": [
+[
+"EchoShot",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every shot is followed by a free second shot at half damage.",
+"insp": "Destiny"
+},
+{
+"name": "Ricochet Rounds",
+"rarity": "Uncommon",
+"stacks": 2,
+"mods": [
+[
+"Ricochet",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Bullets skip to another enemy nearby for 60% damage.",
+"insp": "Borderlands"
+},
+{
+"name": "Closer",
+"rarity": "Uncommon",
+"stacks": 2,
+"mods": [
+[
+"LastRounds",
+0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "The last third of the magazine deals +50% damage.",
+"insp": "Destiny"
+},
+{
+"name": "Opening Hand",
+"rarity": "Uncommon",
+"stacks": 2,
+"mods": [
+[
+"FirstShot",
+1.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "The first shot of every magazine deals +150% damage.",
+"insp": "Hades"
+},
+{
+"name": "Fan the Hammer",
+"rarity": "Uncommon",
+"stacks": 1,
+"mods": [
+[
+"FullAuto",
+1
+],
+[
+"FireRate",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "This gun fires for as long as you hold the trigger, and 15% faster.",
+"insp": "Westerns"
+},
+{
+"name": "Reaper's Feed",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"KillReload",
+2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Kills put 2 rounds straight back in the magazine.",
+"insp": "Destiny"
+},
+{
+"name": "Steady Aim",
+"rarity": "Uncommon",
+"stacks": 2,
+"mods": [
+[
+"SteadyAim",
+0.6
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Aim for a moment without firing: the next shot deals +60% damage.",
+"insp": "Sniper Elite"
+},
+{
+"name": "Shrapnel Jacket",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"Shrapnel",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Kills burst into shrapnel: 25% of the shot's damage to enemies nearby.",
+"insp": "RoR2"
+},
+{
+"name": "Hollow Charge",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"Pierce",
+2
+],
+[
+"Damage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Shots pierce 2 more enemies, +10% damage.",
+"insp": "AP rounds"
+},
+{
+"name": "Twin Link",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"Multishot",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Fires one extra projectile with every shot.",
+"insp": "Gungeon"
+},
+{
+"name": "Drum Magazine",
+"rarity": "Uncommon",
+"stacks": 2,
+"mods": [
+[
+"MagSize",
+0.6
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% magazine size.",
+"insp": "Thompson drum"
+},
+{
+"name": "Battering Ram",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"AbilityCooldown",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Bull Rush recharges 20% faster.",
+"insp": "Brawler"
+},
+{
+"name": "Bone Breaker",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"AbilityPower",
+0.6
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Bull Rush hits 60% harder and staggers what survives.",
+"insp": "Brawler"
+},
+{
+"name": "Iron Gut",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"MaxHealth",
+25
+],
+[
+"Armor",
+4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25 max health, +4 armor.",
+"insp": "Brawler"
+},
+{
+"name": "Blood Frenzy",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MeleeAbilityReset",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every melee kill takes a second off Bull Rush's cooldown.",
+"insp": "Brawler"
+},
+{
+"name": "Meat Shield",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"RushGuard",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 20% less damage for 3 seconds after a Bull Rush.",
+"insp": "Brawler"
+},
+{
+"name": "Overclocked Servos",
+"rarity": "Uncommon",
+"stacks": 4,
+"mods": [
+[
+"TurretRate",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret fires 25% faster.",
+"insp": "Engineer"
+},
+{
+"name": "Bored-Out Barrel",
+"rarity": "Uncommon",
+"stacks": 4,
+"mods": [
+[
+"TurretDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret deals 30% more damage.",
+"insp": "Engineer"
+},
+{
+"name": "Twin Mount",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"TurretCount",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Deploy a second turret. It fires a built-in sentry gun.",
+"insp": "Engineer"
+},
+{
+"name": "Shock Fence",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"TurretShock",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret zaps and slows enemies that come close to it.",
+"insp": "Engineer"
+},
+{
+"name": "Field Repairs",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"TurretAura",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Near your turret you regenerate 4 health a second and reload 30% faster.",
+"insp": "Engineer"
+},
+{
+"name": "Slow Hands",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"AbilityDuration",
+1.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Deadeye lasts 1.5 seconds longer.",
+"insp": "Gunslinger"
+},
+{
+"name": "Trick Holster",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"AbilityCooldown",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Deadeye recharges 20% faster.",
+"insp": "Gunslinger"
+},
+{
+"name": "Dead to Rights",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"DeadeyeExtend",
+0.4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Kills during Deadeye extend it by 0.4 seconds.",
+"insp": "Gunslinger"
+},
+{
+"name": "Two-Gun Kid",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"SwapReload",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Swapping guns reloads the one you put away, and you deal +20% damage for 2 seconds.",
+"insp": "Gunslinger"
+},
+{
+"name": "Fanning Practice",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"FireRate",
+0.12
+],
+[
+"MoveSpeed",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% fire rate, +6% move speed.",
+"insp": "Gunslinger"
+},
+{
+"name": "Eagle Eye",
+"rarity": "Uncommon",
+"stacks": 4,
+"mods": [
+[
+"HeadshotDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% headshot damage.",
+"insp": "Sniper"
+},
+{
+"name": "High Ground",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"AirDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage while airborne.",
+"insp": "Sniper"
+},
+{
+"name": "Marked for Death",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"HeadMark",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Headshots mark the target: it takes 30% more damage from everything for 5 seconds.",
+"insp": "Sniper"
+},
+{
+"name": "Steady Breath",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"AdsCrit",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% crit chance while aiming.",
+"insp": "Sniper"
+},
+{
+"name": "Reel Spring",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"GrappleCooldown",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Grapple recharges 30% faster.",
+"insp": "Sniper"
+},
+{
+"name": "Bigger Boom",
+"rarity": "Uncommon",
+"stacks": 4,
+"mods": [
+[
+"ExplosionRadius",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% explosion radius.",
+"insp": "Bomber"
+},
+{
+"name": "Bomb Belt",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"GrenadeCap",
+2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Carry 2 more grenades.",
+"insp": "Bomber"
+},
+{
+"name": "Short Fuse",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"AbilityCooldown",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Satchel Charge recharges 20% faster.",
+"insp": "Bomber"
+},
+{
+"name": "Chain Reaction",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"BlastChain",
+0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Enemies killed by a blast explode for half its damage.",
+"insp": "Bomber"
+},
+{
+"name": "Fire in the Hole",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"AbilityPower",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Satchel Charge bursts into four more bombs.",
+"insp": "Bomber"
 }
 ],
 "enemies": [

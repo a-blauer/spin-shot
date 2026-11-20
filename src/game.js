@@ -1,5 +1,6 @@
 // Game mode (port of ADMHGameMode): rounds, spawning, nav flow field, zones & doors, casino nights,
 // drops and power-ups. Also owns every subsystem and the frame update order.
+import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
@@ -94,7 +95,7 @@ export class Game {
       const [cx, cy] = this.cellCenter(x, y);
       if (cx >= minX - pad && cx <= maxX + pad && cy >= minY - pad && cy <= maxY + pad) {
         const i = y * this.navW + x;
-        this.navBlock[i] = Math.max(0, Math.min(255, this.navBlock[i] + delta));
+        this.navBlock[i] = Math.max(0, Math.min(255, this.navBlock[i] + delta)); this.narrowDirty = true;
       }
     }
   }
@@ -130,13 +131,78 @@ export class Game {
         D[ni] = d + 1; Q[qn++] = ni;
       }
     }
+    // A second field for broad bodies (bosses, brutes): the same search, but any cell touching a blocked cell is
+    // off limits, so the route never threads a one-cell gap. Only worked out while something that broad is alive.
+    this.wideLive = this.enemies.some((E) => !E.dead && E.wide);
+    if (!this.wideLive) return;
+    if (!this.navDistW) { this.navDistW = new Int32Array(W * H); this.navNarrow = new Uint8Array(W * H); this.narrowDirty = true; }
+    const N = this.navNarrow, DW = this.navDistW;
+    if (this.narrowDirty) {
+      this.narrowDirty = false;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        let n = B[y * W + x] !== 0 ? 1 : 0;
+        if (!n) for (let k = 0; k < 8 && !n; k++) { const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || B[ny * W + nx] !== 0) n = 1; }
+        N[y * W + x] = n;
+      }
+    }
+    DW.fill(INF); qn = 0; head = 0;
+    for (let R = 0; R <= 14 && qn === 0; R++) {
+      for (let y = ty - R; y <= ty + R; y++) for (let x = tx - R; x <= tx + R; x++) {
+        if (Math.max(Math.abs(x - tx), Math.abs(y - ty)) !== R || x < 0 || y < 0 || x >= W || y >= H) continue;
+        if (!N[y * W + x]) { DW[y * W + x] = R; Q[qn++] = y * W + x; }
+      }
+    }
+    while (head < qn) {
+      const i = Q[head++], x = i % W, y = (i / W) | 0, d = DW[i];
+      for (let k = 0; k < 8; k++) {
+        const nx = x + DX[k], ny = y + DY[k];
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const ni = ny * W + nx;
+        if (N[ni] || DW[ni] !== INF) continue;
+        DW[ni] = d + 1; Q[qn++] = ni;
+      }
+    }
   }
-  flowDirection(from, flee) {
+  // An enemy has been pushing against something the grid thought was open. If there really is geometry in front of
+  // it (and it is not just queueing behind other enemies), mark that cell blocked for the rest of the run.
+  navScar(E, dir) {
+    if (!this.navW || (this.scars = this.scars || 0) > 600) return;
+    for (const O of this.enemies) { if (O === E || O.dead) continue; const dx = O.pos.x - E.pos.x, dz = O.pos.z - E.pos.z; if (dx * dx + dz * dz < 190 * 190 && dx * dir.x + dz * dir.z > 70 && !O.noProg) return; }   // a queue that is moving, not a wall
+    const feet = E.pos.y - E.half, r = Math.min(E.radius, 130);
+    let hit = null;
+    for (const h of [22, 55, 100]) { const H = this.phys.raycast(V3(E.pos.x, feet + h, E.pos.z), dir, r + 90); if (H && (!hit || H.distance < hit.distance)) hit = H; }
+    if (!hit) return;
+    const [cx, cy] = this.cellOf(hit.point.x + dir.x * 12, hit.point.z + dir.z * 12), [ex, ey] = this.cellOf(E.pos.x, E.pos.z), [px, py] = this.cellOf(this.navTarget.x, this.navTarget.z);
+    if (!this.navValid(cx, cy) || (cx === ex && cy === ey) || Math.max(Math.abs(cx - px), Math.abs(cy - py)) < 3 || this.navBlock[cy * this.navW + cx] !== 0) {
+      // the obstacle is in a cell already blocked, or in our own cell: block the next cell along our heading instead
+      const nx = ex + Math.round(dir.x), ny = ey + Math.round(dir.z);
+      if (!this.navFree(nx, ny) || Math.max(Math.abs(nx - px), Math.abs(ny - py)) < 3) return;
+      this.navBlock[ny * this.navW + nx] = 1;
+    } else this.navBlock[cy * this.navW + cx] = 1;
+    this.scars++; this.flowTimer = 0; this.narrowDirty = true;
+  }
+  flowDirection(from, flee, wide) {
     const direct = V3(this.navTarget.x - from.x, 0, this.navTarget.z - from.z);
     if (direct.lengthSq() > 0) direct.normalize().multiplyScalar(flee ? -1 : 1);
     const [cx, cy] = this.cellOf(from.x, from.z);
     if (!this.navValid(cx, cy)) return direct;
-    const W = this.navW, D = this.navDist;
+    const W = this.navW;
+    // broad bodies use the clear-of-walls field wherever it reaches them; in a tight spot they fall back to the ordinary one
+    if (wide && !flee && this.navDistW && this.wideLive) {
+      const DW = this.navDistW, here = DW[cy * W + cx];
+      const DX = [1, -1, 0, 0, 1, 1, -1, -1], DY = [0, 0, 1, -1, 1, -1, 1, -1];
+      let bd = here, bx = -1, by = -1;
+      for (let k = 0; k < 8; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (!this.navValid(nx, ny)) continue; const d = DW[ny * W + nx]; if (d < bd) { bd = d; bx = nx; by = ny; } }
+      if (bx >= 0) { const c = this.cellCenter(bx, by), dir = V3(c[0] - from.x, 0, c[1] - from.z); if (dir.lengthSq() > 0) return dir.normalize(); }
+      else if (here === INF) {
+        // not on the wide field at all: head for the nearest cell that is
+        for (let R = 1; R <= 3; R++) for (let y = cy - R; y <= cy + R; y++) for (let x = cx - R; x <= cx + R; x++) {
+          if (Math.max(Math.abs(x - cx), Math.abs(y - cy)) !== R || !this.navValid(x, y) || DW[y * W + x] === INF) continue;
+          const c = this.cellCenter(x, y), dir = V3(c[0] - from.x, 0, c[1] - from.z); if (dir.lengthSq() > 0) return dir.normalize();
+        }
+      } else if (here === 0) return direct;
+    }
+    const D = this.navDist;
     const DX = [1, -1, 0, 0, 1, 1, -1, -1], DY = [0, 0, 1, -1, 1, -1, 1, -1];
     const best = (x, y) => {
       let bd = flee ? -1 : INF, out = null;
@@ -310,7 +376,7 @@ export class Game {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
     if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.35);   // never leave the player with nothing to shoot
-    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.1, 1.5 - this.round * 0.1) * diff().spawn; this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
+    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.12, 1.8 - this.round * 0.11) * diff().spawn; this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {
@@ -330,7 +396,7 @@ export class Game {
     this.bossRound = this.round % 3 === 0;   // 15 rounds: a boss every third round, the Gravedigger at 15
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
-    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.spawnTimer = 1.5;
+    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.spawnTimer = 1.5;
     this.phase = 'Round';
     if (this.barricadeT === undefined) this.casinoInit();
     Meta.best('bestRound', this.round);
@@ -470,12 +536,19 @@ export class Game {
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
-    // buffs: 5% from ordinary enemies; modifier variants and elites drop more often and roll better rarities
-    if (!E.isBoss) {
-      const chance = E.elite ? 0.28 : E.variant ? 0.09 : 0.025;
-      if (Math.random() < chance) { const r = E.elite ? Math.max(1, Math.min(3, rollRarity(this.player.luck, 1.3))) : E.variant ? Math.min(2, rollRarity(0, 0.7)) : (Math.random() < 0.12 ? 1 : 0), u = rollUpgradeOfRarity(r, this.player.upgradeStacks); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(-40, 0, 30)), u); }
+    // Tonics, not buffs, come off the dead. The odds are set per round, not per kill: about one or two a round
+    // however big the horde is, never more than three, with elites far more likely to be carrying one.
+    if (!E.isBoss && this.tonicsThisRound < 3) {
+      const per = 1.5 / Math.max(10, this.toSpawn || 10), chance = E.elite ? 0.14 : E.variant ? per * 3 : per;
+      if (Math.random() < chance) { this.tonicsThisRound++; this.pickups.spawn('Tonic', loc.clone().add(V3(-40, 0, 30)), P.rollTonic()); }
     }
-    if (!E.isBoss && Math.random() < (E.elite ? 0.22 : E.variant ? 0.09 : 0.035)) this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL());   // grenades off the dead
+    // every boss leaves a buff; later bosses lean toward the higher rarities
+    if (E.isBoss && !E.boss.final) {
+      const k = Math.min(4, Math.max(0, Math.floor(this.round / 3) - 1)), T = [[0, 60, 35, 5, 0], [0, 30, 50, 18, 2], [0, 0, 50, 40, 10], [0, 0, 25, 50, 25], [0, 0, 0, 50, 50]][k];
+      let r = Math.random() * 100, ri = 1; for (let q = 0; q < 5; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
+      const u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(120, 0, 120)), u);
+    }
+    if (!E.isBoss && Math.random() < (E.elite ? 0.22 : E.variant ? 0.09 : 0.035) * (P.cls.id === 'bomber' ? 1.7 : 1)) this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL());   // grenades off the dead
     if (!E.isBoss && Math.random() < 0.035) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
     if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
       this.powerupsThisRound++;
@@ -502,7 +575,7 @@ export class Game {
         P.addMoney(400, false);
         break;
       }
-      case 'FireSale': this.fireSale = true; this.fireSaleT = 60; this.banner('CASINO HALF PRICE FOR 60s', lin(0.9, 0.3, 1), 3.5); break;
+      case 'FireSale': this.fireSale = true; this.fireSaleT = 60; this.banner('EVERYTHING HALF PRICE FOR 60s', lin(0.9, 0.3, 1), 3.5); break;
       default: break;
     }
   }

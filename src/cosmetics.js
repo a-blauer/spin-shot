@@ -3,7 +3,7 @@
 export const SLOTS = ['body', 'tone', 'hair', 'haircol', 'outfit', 'legs', 'boots', 'gloves', 'hat', 'face', 'neck', 'shoulder', 'waist', 'back'];
 export const SLOT_NAMES = { body: 'BODY', tone: 'SKIN', hair: 'HAIR', haircol: 'HAIR COLOR', outfit: 'OUTFIT', legs: 'LEGS', boots: 'BOOTS', gloves: 'GLOVES', hat: 'HAT', face: 'FACE', neck: 'NECK', shoulder: 'SHOULDERS', waist: 'WAIST', back: 'BACK' };
 const STAT_TEXT = { kills: 'Kill # enemies', headshots: 'Get # headshot kills', bestRound: 'Reach round #', bosses: 'Defeat # bosses', runs: 'Play # runs', eliteKills: 'Kill # elites',
-  slotSpins: 'Spin the slots # times', moneyEarned: 'Earn $# in total', wins: 'Clear Deadwater Gulch', mastered: 'Master # guns', airKills: 'Get # kills in the air', tier3: 'Upgrade a weapon to tier 3' };
+  chests: 'Open # chests', moneyEarned: 'Earn $# in total', wins: 'Clear Deadwater Gulch', mastered: 'Master # guns', airKills: 'Get # kills in the air', tier3: 'Give one gun three modifiers' };
 export const needText = (I) => (I.need ? STAT_TEXT[I.need[0]].replace('#', I.need[1].toLocaleString()).replace(/\b1 (bosses|runs|guns)/, (m, w) => '1 ' + w.replace(/e?s$/, '')) : '');
 
 export const COSMETICS = {
@@ -17,30 +17,30 @@ export const COSMETICS = {
   hair: [
     { id: 'short', name: 'Short' }, { id: 'bald', name: 'Bald' }, { id: 'long', name: 'Long' }, { id: 'pomp', name: 'Pompadour' },
     { id: 'mohawk', name: 'Mohawk', need: ['kills', 1400] }, { id: 'braids', name: 'Braids', need: ['runs', 9] }, { id: 'bun', name: 'Top Knot', need: ['headshots', 300] },
-    { id: 'afro', name: 'Afro', need: ['bestRound', 4] }, { id: 'mullet', name: 'Mullet', need: ['slotSpins', 45] }, { id: 'spikes', name: 'Spikes', need: ['eliteKills', 75] },
+    { id: 'afro', name: 'Afro', need: ['bestRound', 4] }, { id: 'mullet', name: 'Mullet', need: ['chests', 45] }, { id: 'spikes', name: 'Spikes', need: ['eliteKills', 75] },
   ],
   haircol: [
     { id: 'brown', name: 'Brown', c: 0x3a2a22 }, { id: 'black', name: 'Black', c: 0x1c1a20 }, { id: 'blonde', name: 'Blonde', c: 0xe0b860 }, { id: 'ginger', name: 'Ginger', c: 0xb0502a },
-    { id: 'grey', name: 'Grey', c: 0xb8b2a8 }, { id: 'teal', name: 'Teal', c: 0x1f8a8a, need: ['kills', 3600] }, { id: 'pink', name: 'Pink', c: 0xe86a9a, need: ['slotSpins', 100] },
+    { id: 'grey', name: 'Grey', c: 0xb8b2a8 }, { id: 'teal', name: 'Teal', c: 0x1f8a8a, need: ['kills', 3600] }, { id: 'pink', name: 'Pink', c: 0xe86a9a, need: ['chests', 100] },
     { id: 'red', name: 'Blood Red', c: 0xc8211b, need: ['headshots', 1600] }, { id: 'white', name: 'White', c: 0xf2e8d5, need: ['bestRound', 6] }, { id: 'goldh', name: 'Gold', c: 0xffcd5a, need: ['moneyEarned', 900000] },
   ],
   boots: [
     { id: 'work', name: 'Work Boots', a: 0x4E3324, b: 0x2a1c14 }, { id: 'cowboy', name: 'Cowboy Boots', a: 0x6a4a32, b: 0x3a2a22, style: 'spur' }, { id: 'sneak', name: 'Sneakers', a: 0xf2e8d5, b: 0xc8211b, style: 'low' },
     { id: 'rubber', name: 'Rubber Boots', a: 0xe8c81e, b: 0x2a2430, style: 'tall', need: ['runs', 18] }, { id: 'blackb', name: 'Black Boots', a: 0x1c1a20, b: 0x140d12, style: 'tall', need: ['kills', 2200] },
-    { id: 'sandal', name: 'Sandals', a: 0x8a5a3c, b: 0x4E3324, style: 'sandal', need: ['slotSpins', 90] }, { id: 'snake', name: 'Snakeskin', a: 0x4f8a5a, b: 0xffcd5a, style: 'spur', need: ['eliteKills', 150] },
+    { id: 'sandal', name: 'Sandals', a: 0x8a5a3c, b: 0x4E3324, style: 'sandal', need: ['chests', 90] }, { id: 'snake', name: 'Snakeskin', a: 0x4f8a5a, b: 0xffcd5a, style: 'spur', need: ['eliteKills', 150] },
     { id: 'peg', name: 'Peg Leg', a: 0x8a6a42, b: 0x3a2a22, style: 'peg', need: ['bosses', 8] }, { id: 'redb', name: 'Red Boots', a: 0xc8211b, b: 0xf2e8d5, style: 'spur', need: ['bestRound', 7] },
     { id: 'goldb', name: 'Gold Boots', a: 0xe0ac2a, b: 0xfff4d8, style: 'tall', need: ['moneyEarned', 1200000] },
   ],
   gloves: [
     { id: 'bare', name: 'Bare Hands' }, { id: 'leather', name: 'Leather', a: 0x4E3324, b: 0xC9A46A }, { id: 'blackg', name: 'Black', a: 0x1c1a20, b: 0x6a2030, need: ['kills', 300] },
-    { id: 'whiteg', name: 'Dealer White', a: 0xece6d6, b: 0xE8B83A, need: ['slotSpins', 75] }, { id: 'redg', name: 'Red', a: 0xc8211b, b: 0x140d12, need: ['headshots', 650] },
+    { id: 'whiteg', name: 'Dealer White', a: 0xece6d6, b: 0xE8B83A, need: ['chests', 75] }, { id: 'redg', name: 'Red', a: 0xc8211b, b: 0x140d12, need: ['headshots', 650] },
     { id: 'wraps', name: 'Hand Wraps', a: 0xd8d2c4, b: 0xb8b2a8, style: 'wrap', need: ['runs', 15] }, { id: 'boxing', name: 'Boxing Gloves', a: 0xc8211b, b: 0xf2e8d5, style: 'big', need: ['eliteKills', 60] },
     { id: 'hazg', name: 'Rubber', a: 0xe8c81e, b: 0x140d12, style: 'long', need: ['bosses', 8] }, { id: 'boneg', name: 'Bone', a: 0xe8dcc0, b: 0x3a2a30, need: ['mastered', 2] },
     { id: 'goldg', name: 'Gilded', a: 0xE0AC2A, b: 0xfff4d8, need: ['bestRound', 12] },
   ],
   neck: [
     { id: 'none', name: 'None' }, { id: 'kerchief', name: 'Neckerchief', a: 0xc8211b, b: 0xf2e8d5 }, { id: 'bolo', name: 'Bolo Tie', a: 0x140d12, b: 0x1f8a8a },
-    { id: 'scarf', name: 'Long Scarf', a: 0x1f6a6a, b: 0xffcd5a, need: ['runs', 9] }, { id: 'bowtie', name: 'Bow Tie', a: 0xc8211b, b: 0x140d12, need: ['slotSpins', 60] },
+    { id: 'scarf', name: 'Long Scarf', a: 0x1f6a6a, b: 0xffcd5a, need: ['runs', 9] }, { id: 'bowtie', name: 'Bow Tie', a: 0xc8211b, b: 0x140d12, need: ['chests', 60] },
     { id: 'chain', name: 'Gold Chain', a: 0xffcd5a, b: 0xffcd5a, need: ['moneyEarned', 240000] }, { id: 'bandolier', name: 'Bandolier', a: 0x4E3324, b: 0xe0ac2a, need: ['kills', 3000] },
     { id: 'teeth', name: 'Tooth Necklace', a: 0x3a2a22, b: 0xf2e8d5, need: ['eliteKills', 100] }, { id: 'lei', name: 'Lei', a: 0xe86a9a, b: 0xffcd5a, need: ['bestRound', 5] },
     { id: 'noose', name: 'Cut Noose', a: 0xc9a46a, b: 0x8a6a42, need: ['bosses', 12] }, { id: 'medal', name: 'Medal', a: 0x34506a, b: 0xffcd5a, need: ['wins', 1] },
@@ -56,7 +56,7 @@ export const COSMETICS = {
     { id: 'belt', name: 'Plain Belt' }, { id: 'holster', name: 'Holster', a: 0x4E3324, b: 0x2a2a32 }, { id: 'twin', name: 'Twin Holsters', a: 0x3a2a22, b: 0x46464e, need: ['kills', 700] },
     { id: 'ammo', name: 'Ammo Belt', a: 0x4E3324, b: 0xe0ac2a, need: ['headshots', 500] }, { id: 'sash', name: 'Sash', a: 0xc8211b, b: 0xffcd5a, need: ['runs', 12] },
     { id: 'tool', name: 'Tool Belt', a: 0x8a6a42, b: 0x9aa0aa, need: ['tier3', 1] }, { id: 'rope', name: 'Rope Coil', a: 0xc9a46a, b: 0x8a6a42, need: ['airKills', 200] },
-    { id: 'chips', name: 'Chip Pouch', a: 0x1f5a3c, b: 0xc8211b, need: ['slotSpins', 150] }, { id: 'champ', name: 'Champion Belt', a: 0x140d12, b: 0xffcd5a, need: ['bosses', 16] },
+    { id: 'chips', name: 'Chip Pouch', a: 0x1f5a3c, b: 0xc8211b, need: ['chests', 150] }, { id: 'champ', name: 'Champion Belt', a: 0x140d12, b: 0xffcd5a, need: ['bosses', 16] },
     { id: 'skulls', name: 'Skull Trophies', a: 0x3a2a22, b: 0xf2e8d5, need: ['kills', 9600] },
   ],
   tone: [
@@ -68,7 +68,7 @@ export const COSMETICS = {
     { id: 'rancher', name: 'Rancher', a: 0x3f6f8a, b: 0xf2e8d5, c: 0x6a4a32, style: 'shirt' },
     { id: 'mechanic', name: 'Mechanic', a: 0x46586a, b: 0xffcd5a, c: 0x2a2430, style: 'overalls', need: ['runs', 9] },
     { id: 'undertaker', name: 'Undertaker', a: 0x24202a, b: 0x6a2030, c: 0xece6d6, style: 'coat', need: ['kills', 300] },
-    { id: 'dealer', name: 'Dealer', a: 0x1f5a3c, b: 0xE8B83A, c: 0xece6d6, style: 'vest', need: ['slotSpins', 75] },
+    { id: 'dealer', name: 'Dealer', a: 0x1f5a3c, b: 0xE8B83A, c: 0xece6d6, style: 'vest', need: ['chests', 75] },
     { id: 'lumber', name: 'Lumberjack', a: 0xc8211b, b: 0x140d12, c: 0x6a4a32, style: 'plaid', need: ['kills', 1800] },
     { id: 'sheriff', name: 'Sheriff', a: 0x8a6a42, b: 0xffcd5a, c: 0x3a2a22, style: 'badge', need: ['headshots', 400] },
     { id: 'convict', name: 'Convict', a: 0xf2e8d5, b: 0x140d12, c: 0x8a8a90, style: 'stripes', need: ['eliteKills', 50] },
@@ -83,12 +83,12 @@ export const COSMETICS = {
     { id: 'denim', name: 'Denim', a: 0x34506a, b: 0x4E3324 }, { id: 'dust', name: 'Dusters', a: 0x8a7a5e, b: 0x3a2a22 },
     { id: 'black', name: 'Blacks', a: 0x1c1a20, b: 0x140d12, need: ['kills', 1200] }, { id: 'chaps', name: 'Chaps', a: 0x6a4a32, b: 0x8a5a3c, chaps: true, need: ['bestRound', 4] },
     { id: 'red', name: 'Reds', a: 0x8a1f24, b: 0xf2e8d5, need: ['headshots', 1200] }, { id: 'teal', name: 'Teals', a: 0x1f6a6a, b: 0xffcd5a, need: ['airKills', 300] },
-    { id: 'white', name: 'Whites', a: 0xece6d6, b: 0xc8211b, need: ['slotSpins', 200] }, { id: 'goldl', name: 'Gold Trim', a: 0x2a2430, b: 0xffcd5a, stripe: true, need: ['bosses', 16] },
+    { id: 'white', name: 'Whites', a: 0xece6d6, b: 0xc8211b, need: ['chests', 200] }, { id: 'goldl', name: 'Gold Trim', a: 0x2a2430, b: 0xffcd5a, stripe: true, need: ['bosses', 16] },
   ],
   hat: [
     { id: 'none', name: 'None' }, { id: 'cowboy', name: 'Cowboy Hat', a: 0x3a2a22, b: 0xc8211b }, { id: 'cap', name: 'Trucker Cap', a: 0xc8211b, b: 0xf2e8d5 },
     { id: 'bowler', name: 'Bowler', a: 0x1c1a20, b: 0x6a2030, need: ['kills', 600] }, { id: 'beanie', name: 'Beanie', a: 0x1f6a6a, b: 0xffcd5a, need: ['runs', 15] },
-    { id: 'visor', name: 'Dealer Visor', a: 0x1f8a4c, b: 0x140d12, need: ['slotSpins', 30] }, { id: 'tophat', name: 'Top Hat', a: 0x140d12, b: 0xc8211b, need: ['bestRound', 5] },
+    { id: 'visor', name: 'Dealer Visor', a: 0x1f8a4c, b: 0x140d12, need: ['chests', 30] }, { id: 'tophat', name: 'Top Hat', a: 0x140d12, b: 0xc8211b, need: ['bestRound', 5] },
     { id: 'sombrero', name: 'Sombrero', a: 0xe0b060, b: 0xc8211b, need: ['kills', 4800] }, { id: 'miner', name: 'Miner Helmet', a: 0xe8c81e, b: 0xfff4d8, need: ['bosses', 4] },
     { id: 'fez', name: 'Fez', a: 0xa01f24, b: 0xffcd5a, need: ['moneyEarned', 150000] }, { id: 'cone', name: 'Traffic Cone', a: 0xf07a1e, b: 0xf2e8d5, need: ['airKills', 150] },
     { id: 'whitehat', name: 'White Hat', a: 0xece6d6, b: 0xffcd5a, need: ['headshots', 2400] }, { id: 'horns', name: 'Horns', a: 0x8a1f24, b: 0xf2e8d5, need: ['eliteKills', 200] },

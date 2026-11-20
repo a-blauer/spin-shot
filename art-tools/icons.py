@@ -153,6 +153,15 @@ G = dict(bullet=bullet, shells=shells, mag=mag, boot=boot, heart=heart, shield=s
 
 # upgrade name -> (glyph, colour[, small corner glyph, its colour])
 MAP = {
+ 'Underbarrel Launcher': ('barrel', STEEL, 'blast', ORANGE), 'Gravity Coil': ('magnet', PURPLE, 'star', BONE), 'Rail Capacitor': ('battery', BLUE, 'bolt', GOLD), 'Flak Tube': ('shells', STEEL, 'blast', RED),
+ 'Active Reload': ('mag', GOLD, 'clock', BONE), 'Echo Chamber': ('bullet', BLUE, 'bullet', BONE), 'Ricochet Rounds': ('bullet', GREEN, 'chain', GOLD), 'Closer': ('mag', RED, 'skull', BONE),
+ 'Opening Hand': ('card', BONE, 'bullet', GOLD), 'Fan the Hammer': ('barrel', GOLD, 'wind', BONE), "Reaper's Feed": ('skull', BONE, 'mag', STEEL), 'Steady Aim': ('cross', GOLD, 'clock', BONE),
+ 'Shrapnel Jacket': ('blast', STEEL, 'fang', BONE), 'Hollow Charge': ('bullet', PURPLE, 'dash', BONE), 'Twin Link': ('bullet', GOLD, 'plus', BONE), 'Drum Magazine': ('gear', STEEL, 'mag', GOLD),
+ 'Battering Ram': ('fist', RED, 'clock', BONE), 'Bone Breaker': ('hammer', BONE, 'blast', RED), 'Iron Gut': ('plate', RED, 'heart', RED), 'Blood Frenzy': ('fang', RED, 'dash', BONE), 'Meat Shield': ('shield', RED, 'fist', BROWN),
+ 'Overclocked Servos': ('gear', GOLD, 'bolt', BLUE), 'Bored-Out Barrel': ('barrel', ORANGE, 'gear', STEEL), 'Twin Mount': ('gear', BLUE, 'plus', GOLD), 'Shock Fence': ('bolt', BLUE, 'gear', STEEL), 'Field Repairs': ('hammer', GREEN, 'plus', RED),
+ 'Slow Hands': ('clock', GOLD, 'eye', BONE), 'Trick Holster': ('barrel', BROWN, 'clock', BONE), 'Dead to Rights': ('eye', RED, 'skull', BONE), 'Two-Gun Kid': ('barrel', GOLD, 'barrel', STEEL), 'Fanning Practice': ('hat', BROWN, 'wind', BONE),
+ 'Eagle Eye': ('eye', GOLD, 'cross', BONE), 'High Ground': ('wing', BLUE, 'cross', BONE), 'Marked for Death': ('cross', RED, 'skull', BONE), 'Steady Breath': ('lens', GREEN, 'cross', BONE), 'Reel Spring': ('hook', GOLD, 'spring', STEEL),
+ 'Bigger Boom': ('blast', ORANGE, 'plus', BONE), 'Bomb Belt': ('bag', GREEN, 'blast', RED), 'Short Fuse': ('blast', RED, 'clock', BONE), 'Chain Reaction': ('blast', PURPLE, 'chain', GOLD), 'Fire in the Hole': ('rocket', RED, 'blast', ORANGE),
  'Whetstone': ('dagger', STEEL), 'Quick Wrists': ('fist', BROWN, 'bolt', GOLD), 'Long Reach': ('dagger', BONE, 'plus', GOLD), 'Brass Knuckles': ('fist', GOLD),
  "Butcher's Apron": ('dagger', RED, 'heart', RED), 'Wide Swing': ('dagger', STEEL, 'wind', BONE), 'Serrated Edge': ('fang', STEEL, 'drop', RED), 'Pickpocket': ('fist', BROWN, 'coin', GOLD),
  'Cheap Shot': ('dagger', GOLD, 'cross', BONE), 'Hot Iron': ('hammer', ORANGE), 'Live Wire': ('dagger', BLUE, 'bolt', GOLD), 'Bayonet Drill': ('dagger', STEEL, 'bullet', GOLD),

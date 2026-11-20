@@ -1,6 +1,8 @@
 // Sulfur-style HUD drawn on a 2D canvas: chunky condensed type with dark outlines, bone-white and saloon-gold
 // panels with clipped corners. Crosshair with spread/kick, hit markers, damage arcs, floating numbers,
 // banners, toasts, boss bar, power-up timers, casino menus (with live slot reels), inventory and death card.
+import { TONICS } from './data.js';
+import { cash } from './data.js';
 import { diff } from './data.js';
 import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
@@ -49,13 +51,14 @@ export class Hud {
     this.hurtWhite = 0.1;
   }
   // "you got this, and here is what it does": a card per upgrade, a few seconds each
-  gotUpgrade(i, stack) { this.cards = this.cards || []; this.cards.push({ i, stack, t: 0, life: 15 }); if (this.cards.length > 3) this.cards.shift(); }
+  gotUpgrade(i, stack, tag) { this.cards = this.cards || []; this.cards.push({ i, stack, tag, t: 0, life: 15 }); if (this.cards.length > 3) this.cards.shift(); }
+  gotTonic(i, level) { this.cards = this.cards || []; this.cards.push({ tonic: i, stack: level, t: 0, life: 9 }); if (this.cards.length > 3) this.cards.shift(); }
   drawCards() {
     if (!this.cards || !this.cards.length) return;
     const g = this.g, S = this.S, W = this.W, w = 560 * S, x = W / 2 - w / 2; let y = this.H * 0.17;
     for (const c of this.cards) {
       c.t += 1 / 60;
-      const U = DATA.upgrades[c.i], col = RARITY_HEX[U.rarity], a = Math.min(1, c.t * 6, (c.life - c.t) * 2.5), slide = (1 - Math.min(1, c.t * 6)) * 30 * S;
+      const U = c.tonic != null ? { name: TONICS[c.tonic].name, desc: TONICS[c.tonic].desc + `.  Level ${c.stack}.`, rarity: 'Tonic' } : DATA.upgrades[c.i], col = c.tonic != null ? '#ffb359' : RARITY_HEX[U.rarity], a = Math.min(1, c.t * 6, (c.life - c.t) * 2.5), slide = (1 - Math.min(1, c.t * 6)) * 30 * S;
       g.font = `600 ${this.fs(19 * S)}px ${F_TXT}`;
       const words = U.desc.split(' '), lines = []; let ln = '';
       for (const wd of words) { const t = ln ? ln + ' ' + wd : wd; if (g.measureText(t).width > w - 118 * S && ln) { lines.push(ln); ln = wd; } else ln = t; }
@@ -63,9 +66,9 @@ export class Hud {
       const h = (58 + lines.length * 24) * S;
       g.globalAlpha = Math.max(0, a);
       g.fillStyle = 'rgba(20,10,16,0.92)'; g.fillRect(x, y - slide, w, h); g.fillStyle = col; g.fillRect(x, y - slide, 6 * S, h); g.fillRect(x, y - slide, w, 2 * S);
-      this.icon('U_' + c.i, x + 20 * S, y - slide + h / 2 - 34 * S, 68 * S, Math.max(0, a));
-      this.text(U.name.toUpperCase() + (c.stack > 1 ? `  x${c.stack}` : ''), x + 102 * S, y - slide + 32 * S, 27 * S, col, 'left', F_BIG, 400, 0.08, Math.max(0, a));
-      this.text(U.rarity.toUpperCase(), x + w - 14 * S, y - slide + 28 * S, 14 * S, col, 'right', F_TXT, 700, 0.1, Math.max(0, a));
+      this.icon(c.tonic != null ? 'TN_' + c.tonic : 'U_' + c.i, x + 20 * S, y - slide + h / 2 - 34 * S, 68 * S, Math.max(0, a));
+      this.text(U.name.toUpperCase() + (c.tonic == null && c.stack > 1 ? `  x${c.stack}` : ''), x + 102 * S, y - slide + 32 * S, 27 * S, col, 'left', F_BIG, 400, 0.08, Math.max(0, a));
+      this.text((c.tag || U.rarity).toUpperCase(), x + w - 14 * S, y - slide + 28 * S, 14 * S, col, 'right', F_TXT, 700, 0.1, Math.max(0, a));
       lines.forEach((t, k) => this.text(t, x + 102 * S, y - slide + (56 + k * 24) * S, 19 * S, BONE, 'left', F_TXT, 600, 0.1, Math.max(0, a)));
       g.globalAlpha = 1;
       y += h + 10 * S;
@@ -309,6 +312,7 @@ export class Hud {
       const f = 1 - P.reloadT / Math.max(P.reloadDur, 0.01);
       g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 5 * S; g.beginPath(); g.arc(cx, cy, 26 * S, 0, Math.PI * 2); g.stroke();
       g.strokeStyle = GOLD; g.lineWidth = 3 * S; g.beginPath(); g.arc(cx, cy, 26 * S, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke();
+      if (P.stat('ActiveReload') > 0 && !P.arFail) { g.strokeStyle = '#7dff8a'; g.lineWidth = 7 * S; g.beginPath(); g.arc(cx, cy, 26 * S, -Math.PI / 2 + 0.42 * Math.PI * 2, -Math.PI / 2 + 0.62 * Math.PI * 2); g.stroke(); this.hints('[R]', cx, cy + 50 * S, 16 * S, 'center', 0.9); }
     }
     if (P.hitMarker > 0) {
       const k = P.hitMarker / 0.18, s = (9 + 6 * (1 - k)) * S * P.hitScale, o = 6 * S;
@@ -373,7 +377,7 @@ export class Hud {
     const low = P.health < P.maxHealth * 0.35;
     // money + luck
     const my = y - 92 * S;
-    const ms = `$${P.money.toLocaleString()}`;
+    const ms = `$${Math.floor(P.money / 10).toLocaleString()}`;
     const mw = this.text(ms, x, my, 60 * S, GOLD, 'left', F_BIG, 400, 0.12);
     let lx = x + mw + 18 * S;
     if (game.doublePoints > 0) lx += this.text('x2', lx - 8 * S, my - 30 * S, 28 * S, GOLD, 'left', F_BIG, 400, 0.12) + 6 * S;
@@ -414,8 +418,8 @@ export class Hud {
       g.fillStyle = f < 0.15 ? '#ff5a4d' : '#8fe08a'; g.fillRect(px, py, 54 * S * f, ph);
       px += 60 * S;
     });
-    group('HOOK', 1, () => {
-      const gr = P.grappleCd > 0 ? 1 - P.grappleCd / P.grappleCooldown() : 1;
+    group(P.cls.short, 1, () => {
+      const gr = Math.max(0, Math.min(1, P.abilityReady()));
       g.fillStyle = INK; g.fillRect(px - 2 * S, py - 2 * S, 58 * S, ph + 4 * S);
       g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(px, py, 54 * S, ph);
       g.fillStyle = gr >= 1 ? GOLD : '#a07a30'; g.fillRect(px, py, 54 * S * gr, ph);
@@ -437,6 +441,13 @@ export class Hud {
       g.fillStyle = INK; g.fillRect(x - (i + 1) * pw - 1, y + 14 * S, pw, 16 * S);
       g.fillStyle = i < filledN ? (low ? '#ffb347' : BONE) : 'rgba(255,255,255,0.12)'; g.fillRect(x - (i + 1) * pw + 1, y + 16 * S, pw - 3 * S, 12 * S);
     }
+    // what this gun has been given at the workbench, and whether its alt-fire is ready
+    { const mods = Sl.mods || []; let my = y - 300 * S;
+      for (const u of mods) { const U = DATA.upgrades[u]; this.text(U.name.toUpperCase(), x, my, 15 * S, RARITY_HEX[U.rarity], 'right', F_TXT, 700, 0.1); my -= 18 * S; }
+      const alt = P.altKind && P.altKind();
+      if (alt) { const rdy = Sl.altCd <= 0; this.text(rdy ? 'ALT-FIRE READY  -  AIM AND FIRE' : `ALT-FIRE ${Sl.altCd.toFixed(1)}s`, this.W / 2, this.H / 2 + 74 * S, 15 * S, rdy ? '#7dff8a' : 'rgba(255,255,255,0.5)', 'center', F_TXT, 700, 0.12); }
+      if (P.deadeyeT > 0) this.text(`DEADEYE  ${P.deadeyeT.toFixed(1)}`, this.W / 2, this.H / 2 + 96 * S, 20 * S, '#ffcd5a', 'center', F_BIG, 400, 0.12);
+      if (Sl.hot > 0) this.text('HOT MAG', x, y + 44 * S, 15 * S, '#ff8a2a', 'right', F_TXT, 700, 0.1); }
     // melee weapon, with the three-swing chain
     { const MW = MELEE[P.meleeDef || 0]; this.text(MW.name.toUpperCase(), x, y - 232 * S, 26 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.1); const tw = this.measure(MW.name.toUpperCase(), 26 * S, F_BIG);
       this.key('Q', x - tw - 38 * S, y - 241 * S, 24 * S);
@@ -486,13 +497,6 @@ export class Hud {
     else if (game.phase === 'Casino') { info = `CASINO  ${Math.ceil(game.phaseTimer)}`; ic = GOLD; }
     this.text(info, tx, y - 46 * S, 28 * S, ic, 'left', F_BIG, 400, 0.12);
     this.text(zn, tx, y - 16 * S, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 700, 0.14);
-    {
-      const bt = game.barricadeT || 0, bc = game.barricadeCd || 0, inC = game.zone === game.casinoZone;
-      const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.ceil(t) % 60).padStart(2, '0')}`;
-      if (bt > 0) this.text(`BARRICADE  ${Math.ceil(bt)}s`, x, y + 34 * S, 19 * S, '#7fd3ff', 'left', F_TXT, 700, 0.14);
-      else if (bc > 0) this.text(`BARRICADE IN ${mmss(bc)}`, x, y + 34 * S, 17 * S, 'rgba(242,232,213,0.6)', 'left', F_TXT, 700, 0.14);
-      else if (inC) this.hints('[B] Barricade', x, y + 30 * S, 17 * S, 'left', 0.9);
-    }
     if (false) {
       const next = 3 - (game.round % 3);
       this.text(next === 3 ? 'CASINO NEXT' : `CASINO IN ${next}`, x, y + 34 * S, 17 * S, 'rgba(255,205,90,0.9)', 'left', F_TXT, 700, 0.14);
@@ -511,7 +515,7 @@ export class Hud {
     const one = (icon, t, col) => { this.icon(icon, x, y, 64 * S, t < 5 && Math.sin(this.time * 12) < 0 ? 0.35 : 1); this.text(`${Math.ceil(t)}`, x, y + 50 * S, 22 * S, col, 'center', F_BIG); x += 120 * S; };
     if (game.instaKill > 0) one('I_InstaKill', game.instaKill, '#ff5a4d');
     if (game.doublePoints > 0) one('I_DoublePoints', game.doublePoints, GOLD);
-    if (game.fireSale) this.text(`CASINO HALF PRICE  ${Math.ceil(game.fireSaleT || 0)}s`, W / 2, H - 140 * S, 18 * S, '#ff8cff', 'center', F_TXT, 700);
+    if (game.fireSale) this.text(`HALF PRICE  ${Math.ceil(game.fireSaleT || 0)}s`, W / 2, H - 140 * S, 18 * S, '#ff8cff', 'center', F_TXT, 700);
   }
   drawPrompt(game, P, W, H, S) {
     if (P.menu || !P.focus) return;
@@ -549,10 +553,11 @@ export class Hud {
   drawCasinoMarker(game) {
     const gate = game.final && game.final.gate;
     if (game.final && game.final.active) return;
-    if (!gate && (!game.isCasinoOpen() || game.zone === game.casinoZone)) return;
+    const box = game.box;
+    if (!gate && (!box || game.player.pos.distanceTo(box.pos) < 700)) return;
     const S = this.S, W = this.W, H = this.H;
     _v.set(0, 380, 0);
-    if (gate) _v.set(gate.x, gate.y + 300, gate.z); else if (game.casinoBounds) _v.set((game.casinoBounds.minX + game.casinoBounds.maxX) / 2, 420, (game.casinoBounds.minZ + game.casinoBounds.maxZ) / 2);
+    if (gate) _v.set(gate.x, gate.y + 300, gate.z); else _v.set(box.pos.x, box.pos.y + 260, box.pos.z);
     const d = _v.distanceTo(game.player.pos);
     _v.project(game.camera);
     let x = (_v.x * 0.5 + 0.5) * W, y = (-_v.y * 0.5 + 0.5) * H;
@@ -562,7 +567,7 @@ export class Hud {
     x = clamp(x, m, W - m); y = clamp(y, m + 80 * S, H - m - 120 * S);
     const bob = Math.sin(this.time * 4) * 5 * S;
     this.icon('I_Card', x, y + bob, 52 * S);
-    this.text(game.final && game.final.gate ? 'VAULT' : 'CASINO', x, y + 46 * S + bob, 18 * S, GOLD, 'center', F_BIG);
+    this.text(game.final && game.final.gate ? 'VAULT' : 'BOX', x, y + 46 * S + bob, 18 * S, GOLD, 'center', F_BIG);
     this.text(`${Math.round(d / 100)}m`, x, y + 66 * S + bob, 15 * S, BONE, 'center', F_TXT, 600);
   }
   drawFloaters(game, dt) {
@@ -602,7 +607,7 @@ export class Hud {
     this.helpT = (this.helpT || 0) + dt;
     if (game.round > 1 || this.helpT > 900 || game.player.menu) return;   // shown for the first round only
     const a = 1;
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades'], ['B', 'barricade (in casino)']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
     const x = 44 * S, rh = 34 * S, w = 300 * S;
     let y = H * 0.27;
     const tip = [];
@@ -733,7 +738,7 @@ export class Hud {
     }
     // option card
     const kh = 40 * S, nameSize = 28 * S, descSize = 18 * S, priceSize = 32 * S;
-    const priceStr = it.price !== undefined ? `$${it.price.toLocaleString()}` : '';
+    const priceStr = it.price !== undefined ? `$${cash(it.price)}` : '';
     const pw = priceStr ? this.measure(priceStr, priceSize, F_BIG) + 30 * S : 0;
     const ic = it.icon ? 58 * S : 0;
     const left = 24 * S + kh * 1.6 + (ic ? ic + 8 * S : 0);
@@ -779,7 +784,7 @@ export class Hud {
     g.beginPath(); g.arc(qx, qy, qr, 0, Math.PI * 2); g.fillStyle = M.showHelp ? GOLD : 'rgba(0,0,0,0.45)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = GOLD; g.stroke();
     this.text('?', qx, qy + qr * 0.42, qr * 1.25, M.showHelp ? INK : GOLD, 'center', F_BIG, 400, 0);
     const lw = this.chip(`LUCK ${P.luck}`, x + w - pad, y + headH * 0.5, 18 * S, '#7dff8a', 'rgba(0,0,0,0.45)', 'right');
-    this.chip(`$${P.money.toLocaleString()}`, x + w - pad - lw - 10 * S, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
+    this.chip(`$${Math.floor(P.money / 10).toLocaleString()}`, x + w - pad - lw - 10 * S, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
     let cy = y + headH + 22 * S;
     if (showReels) { this.drawReels(P, W / 2, cy + 80 * S, S); cy += 178 * S; }
     for (const it of items) { it.draw(x + pad, cy); cy += it.h; }
@@ -889,7 +894,7 @@ export class Hud {
         for (const d of last) { this.text(`-${Math.round(d.dmg)}`, x + 50 * S, y, 19 * S, '#ff8a80', 'right', F_TXT, 700); this.text(`${d.who}   ${(game.deathTime - d.t).toFixed(1)}s before`, x + 62 * S, y, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 600); y += 26 * S; }
       } }
     const survived = Math.max(0, game.round - 1);
-        const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${P.money.toLocaleString()}`]];
+        const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     g.globalAlpha = a; this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.8)', 12 * S); g.globalAlpha = 1;
     stats.forEach(([k, v], i) => {
@@ -909,7 +914,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Deadwater Gulch is cleared. The Last Dealer is out of the game.', W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${P.money.toLocaleString()}`]];
+    const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });
@@ -921,7 +926,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('PAUSED', W / 2, cy, 120 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Click to resume', W / 2, cy + 52 * S, 26 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', 'grapple'], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['1-4', 'weapons'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['1-4', 'weapons'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
     const cols = 3, cw = 300 * S, rh = 42 * S, x0 = W / 2 - (cols * cw) / 2, y0 = cy + 110 * S;
     this.panel(x0 - 24 * S, y0 - 36 * S, cols * cw + 48 * S, Math.ceil(rows.length / cols) * rh + 40 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.85)', 12 * S);
     rows.forEach(([k, d], i) => {

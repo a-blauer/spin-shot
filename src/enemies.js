@@ -81,6 +81,7 @@ export class Enemy {
     if (this.ai === 'Flyer') half = 40 * this.bodyScale;
     this.half = Math.max(half, this.radius);
     this.feetOffset = this.half;
+    this.wide = Math.min(this.radius, 130) > 58;   // too broad for one-cell gaps: follows the flow field that keeps clear of walls
     this.pos = pos.clone();
     this.vel = new THREE.Vector3();
     this.grounded = false;
@@ -204,7 +205,7 @@ export class Enemy {
         this.grounded = false;
       } else {
         // big bodies walk on a slimmer, shorter capsule (bottom still on the ground) so a boss fits through a district doorway
-        const mr = Math.min(this.radius, 130), mh = Math.min(this.half, 235), dy = this.half - mh;
+        const mr = Math.min(this.radius, 130), mh = Math.max(mr, Math.min(this.half, 140)), dy = this.half - mh;   // and no taller than a doorway or a plank bridge overhead
         this.pos.y -= dy;
         const r = G.phys.moveCapsule(this.pos, this.vel, dt, mr, mh, { stepHeight: this.isBoss ? 80 : 45, wasGrounded: wasG });
         this.pos.y += dy;
@@ -357,7 +358,7 @@ export class Enemy {
     }
     let desired = new THREE.Vector3(), speedScale = 1;
     const los = dist < 2200 ? this.canSee(Pl) : false;
-    const flow = (flee = false) => G.flowDirection(Me, flee);
+    const flow = (flee = false) => G.flowDirection(Me, flee, this.wide);
     switch (this.ai) {
       case 'Flyer': {
         const goal = Pl.clone().add(new THREE.Vector3(0, 60 + 50 * Math.sin(this.life * 3), 0));
@@ -374,10 +375,20 @@ export class Enemy {
       case 'Spitter':
       case 'Priest': {
         const keep = this.ai === 'Priest' ? 1100 : 850;
-        if (los && dist < this.def.range && this.attackCd <= 0) {
-          this.attackCd = this.def.cd;
-          if (this.ai === 'Spitter') this.fireAt(Pl.clone().addScaledVector(P.vel, 0.5), 1300, 1, this.attackDamage, 90, 'Acid', [0.4, 1, 0.2], 1, 0);
-          else this.fireAt(Pl, 900, 0, this.attackDamage, 0, 'Orb', lin(0.7, 0.3, 1), 1, 0);
+        // Ranged enemies telegraph: they rear back for half a second and then shoot at where you WERE when they
+        // started, a little off true. Keep moving and it misses; stand still and it lands.
+        if (this.windT > 0) {
+          this.windT -= dt;
+          if (this.windT <= 0) {
+            const aim = this.windAim.clone().add(new THREE.Vector3((Math.random() - 0.5) * 90, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 90));
+            if (this.ai === 'Spitter') this.fireAt(aim, 1050, 1, this.attackDamage, 70, 'Acid', [0.4, 1, 0.2], 1, 0);
+            else this.fireAt(aim, 760, 0, this.attackDamage, 0, 'Orb', lin(0.7, 0.3, 1), 1, 0);
+          }
+        } else if (los && dist < this.def.range && this.attackCd <= 0) {
+          this.attackCd = this.def.cd * 1.4;
+          this.windT = 0.55; this.windAim = Pl.clone();
+          G.fx.glowAt(Me.clone().add(new THREE.Vector3(0, 60 * this.bodyScale, 0)), this.ai === 'Spitter' ? [0.4, 1, 0.2] : lin(0.7, 0.3, 1), 70, 0.5);
+          G.audio.playAt('S_Attack', Me, 0.5, 1.5, 0.1);
         }
         if (this.ai === 'Priest' && this.special <= 0) {
           this.special = 1;
@@ -461,11 +472,33 @@ export class Enemy {
       G.fx.dust(this.feet(), lin(0.3, 0.25, 0.2), 50);
       return;
     }
-    if (desired.lengthSq() > 1e-4 && this.grounded && Math.hypot(this.vel.x, this.vel.z) < this.baseSpeed * 0.15) {
-      this.stuck += dt;
-      if (this.stuck > 1.2) { this.stuck = 0; this.launch(desired.clone().multiplyScalar(300).add(new THREE.Vector3(0, 520, 0))); }
-    } else this.stuck = 0;
+    desired = this.steer(desired, speedScale, dt, dist2D);
     if (desired.lengthSq() > 1e-4) this.moveToward(desired, speedScale);
+  }
+
+  // Called with the direction the AI wants to go; returns the direction to actually take.
+  steer(desired, speedScale, dt, dist2D) {
+    const G = this.game, Me = this.pos;
+    // Something solid in the way that the flow field does not know about (a step, a ramp's edge, a prop):
+    //   1. after a third of a second of pushing, slide round it on whichever side is open;
+    //   2. if it still will not give, tell the nav grid that the cell ahead is blocked so everyone routes round it
+    //      from now on, and hop.
+    if (this.sideT > 0) { this.sideT -= dt; desired = desired.clone().applyAxisAngle(UP, this.side * 1.25); }
+    // "not getting anywhere" is measured on the ground actually covered, not on velocity: a body sliding against a wall keeps its speed
+    this.pgT = (this.pgT || 0) + dt; if (!this.pgPos) this.pgPos = Me.clone();
+    if (this.pgT >= 0.4) { this.noProg = Math.hypot(Me.x - this.pgPos.x, Me.z - this.pgPos.z) < this.baseSpeed * Math.max(0.3, speedScale) * this.pgT * 0.25; this.pgPos.copy(Me); this.pgT = 0; }
+    if (desired.lengthSq() > 1e-4 && this.grounded && !(this.staggerT > 0) && speedScale > 0.3 && this.noProg) {
+      this.stuck += dt; this.stuckSum = (this.stuckSum || 0) + dt;
+      if (this.stuck > 0.35 && !(this.sideT > 0)) {
+        const o = new THREE.Vector3(Me.x, Me.y - this.half + 55, Me.z), reach = Math.min(this.radius, 130) + 110;
+        const L = G.phys.raycast(o, desired.clone().applyAxisAngle(UP, 0.9), reach), Rr = G.phys.raycast(o, desired.clone().applyAxisAngle(UP, -0.9), reach);
+        this.side = !L && Rr ? 1 : L && !Rr ? -1 : L && Rr ? (L.distance > Rr.distance ? 1 : -1) : (this.side || (Math.random() < 0.5 ? 1 : -1));
+        this.sideT = 0.7;
+      }
+      if (this.stuckSum > 1.6 && dist2D > 500) { this.stuckSum = 0; G.navScar(this, desired); }
+      if (this.stuck > 1.2) { this.stuck = 0; this.launch(desired.clone().multiplyScalar(300).add(new THREE.Vector3(0, 520, 0))); }
+    } else { this.stuck = 0; this.stuckSum = Math.max(0, (this.stuckSum || 0) - dt * 0.5); }
+    return desired;
   }
 
   meleeStrike() {
@@ -652,7 +685,7 @@ export class Enemy {
     if (this.bossAttack < 0) {
       this.bossTimer -= dt * rage;
       this.attackCd -= dt;
-      const dir = dist < 1200 && this.canSee(Pl) ? safeN2(To) : G.flowDirection(Me, false);
+      const dir = this.steer(dist < 1200 && this.canSee(Pl) ? safeN2(To) : G.flowDirection(Me, false, true), 1, dt, Math.hypot(To.x, To.z));
       this.moveToward(dir, 1);
       if (dist < 220 * this.bodyScale * 0.5 + 120 && this.attackCd <= 0) {
         this.attackCd = 1.2; this.lungeT = 0.25;

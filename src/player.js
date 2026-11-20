@@ -2,6 +2,7 @@
 // mantle, grapple, ground slam, jump pads), camera feel (bob, roll, FOV kick, recoil springs, shake), gunplay
 // (hitscan/pierce, beams, flames, chain lightning, projectiles, crits, headshots), 120 upgrades with proc
 // triggers, and every casino station.
+import { cash, cost10 } from './data.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 import {
@@ -15,6 +16,8 @@ const RADIUS = 38, HALF = 90;
 const UP = new THREE.Vector3(0, 1, 0);
 const SLOT_STRIP = [0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 4, 0, 1, 6, 2];
 import { gunSound } from './gunsound.js';
+import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
+import { Turret } from './turret.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -52,7 +55,8 @@ export class Player {
     this.upgradeOrder = [];
     this.procCd = new Array(DATA.upgrades.length).fill(0);
     this.periodic = new Array(DATA.upgrades.length).fill(0);
-    this.weapons = [{ def: 0, tier: 0, ammo: 0, reserve: 0 }, { def: -1, tier: 0, ammo: 0, reserve: 0 }, { def: -1, tier: 0, ammo: 0, reserve: 0 }];
+    this.weapons = [0, 1, 2].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], altCd: 0, hot: 0 }));
+    this.cls = CLASSES[0];
     this.maxSlots = 2; this.active = 0;
     this.money = 500; this.luck = 0; this.kills = 0; this.headshots = 0;
     this.maxHealth = 150; this.health = 150; this.overshield = 0;
@@ -71,7 +75,8 @@ export class Player {
       fireCd: 0, bloom: 0, reloading: false, reloadT: 0, reloadDur: 0, fireConsumed: false, procDepth: 0,
       eyeZ: 66, landDip: 0, landDipVel: 0, bobPhase: 0, footDist: 0, camRoll: 0, camKick: new THREE.Vector2(), camKickVel: new THREE.Vector2(),
       shake: 0, shakeT: 0, fovKick: 0, fov: 100, killPulse: 0, crossKick: 0, damageInd: [], heartbeat: 0, revives: 0, lastRound: 1,
-      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], grenades: [0, 0], grenadeCd: 0, gzones: [], tonicLevels: new Array(8).fill(0), menu: null, menuStation: null, menuTick: 0, focus: null,
+      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], chestsOpened: 0, benchUses: 0, abilityCd: 0, deadeyeT: 0, rushT: 0, rushGuardT: 0, rushHits: new Set(), rushDir: V3(1, 0, 0), turrets: [], turretNext: 0,
+      aimHold: 0, echoT: 0, healBucket: 12, swapBuffT: 0, wells: [], arFail: false, grenades: [0, 0], grenadeCd: 0, gzones: [], tonicLevels: new Array(8).fill(0), menu: null, menuStation: null, menuTick: 0, focus: null,
       showInventory: false, input: null, lookDelta: { x: 0, y: 0 }, launchedT: 0,
     });
   }
@@ -95,12 +100,12 @@ export class Player {
   play(name, vol = 1, pitch = 1, jitter = 0) { this.game.audio.play(name, vol, pitch, jitter); }
 
   // ------------------------------------------------------------------ stats & inventory
-  magSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(1, Math.ceil(W.mag * (1 + this.stat('MagSize')) * (1 + 0.5 * S.tier) * (Meta.gunLevel(W.name) >= 2 ? 1.15 : 1))); }
-  reserveSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(0, Math.ceil(W.reserve * (1 + this.stat('ReserveAmmo')) * (1 + 0.5 * S.tier))); }
+  magSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(1, Math.ceil(W.mag * (1 + this.stat('MagSize')) * (1 + 0.1 * S.tier) * (Meta.gunLevel(W.name) >= 2 ? 1.15 : 1))); }
+  reserveSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(0, Math.ceil(W.reserve * (1 + this.stat('ReserveAmmo')) * (1 + 0.1 * S.tier))); }
   weaponDps() {
     const S = this.slot; if (S.def < 0) return 50;
     const W = DATA.weapons[S.def];
-    let d = W.dmg * W.pellets * W.rate * (1 + this.stat('FireRate')) * (1 + 0.1 * S.tier) * (1 + 0.75 * S.tier);
+    let d = W.dmg * W.pellets * W.rate * (1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (1 + 0.2 * S.tier);
     d *= Math.max(0.1, 1 + this.stat('Damage'));
     if (W.mode === 'Chain') d *= 1 + 0.4 * W.chains;
     return d;
@@ -121,14 +126,18 @@ export class Player {
     let target = this.active;
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def < 0) { target = i; break; }
     const S = this.weapons[target];
-    S.def = def; S.tier = 0; S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
+    S.def = def; S.tier = 0; S.mods = []; S.altCd = 0; S.hot = 0;
     this.reloading = false; this.active = target; this.fireCd = 0.45;
+    this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(def, 0, true);
   }
   switchTo(i) {
     if (i >= this.maxSlots || this.weapons[i].def < 0 || i === this.active) return;
+    const prev = this.slot;
     this.active = i; this.reloading = false; this.fireCd = 0.38;
-    this.game.vm.setWeapon(this.weapons[i].def, this.weapons[i].tier, true);
+    this.recompute();
+    if (this.stat('SwapReload') > 0 && prev.def >= 0) { const take = Math.min(this.magSize(prev) - prev.ammo, prev.reserve); if (take > 0) { prev.ammo += take; prev.reserve -= take; } this.swapBuffT = 2; }   // Two-Gun Kid
+    this.game.vm.setWeapon(this.weapons[i].def, Math.min(3, this.weapons[i].tier), true);
   }
   cycleWeapon(dir) {
     if (this.dead || this.inMenu()) return;
@@ -143,7 +152,8 @@ export class Player {
     const S = this.slot;
     if (S.def < 0 || S.ammo >= this.magSize(S) || S.reserve <= 0) return;
     this.reloading = true;
-    this.reloadDur = DATA.weapons[S.def].reload / (1 + Math.max(-0.5, this.stat('ReloadSpeed'))) / (Meta.gunLevel(DATA.weapons[S.def].name) >= 1 ? 1.1 : 1);
+    this.arFail = false;
+    this.reloadDur = DATA.weapons[S.def].reload / (1 + Math.max(-0.5, this.stat('ReloadSpeed') + (this.nearTurret ? 0.3 * this.stat('TurretAura') : 0))) / (Meta.gunLevel(DATA.weapons[S.def].name) >= 1 ? 1.1 : 1);
     this.reloadT = this.reloadDur;
     this.runProcs('OnReload', null, this.pos, 0, 1);
   }
@@ -159,6 +169,11 @@ export class Player {
       if (n <= 0) return;
       for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val * n;
     });
+    for (const [stat, val] of this.cls.stats) this.stats[STAT[stat]] += val;
+    // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
+    const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
+    for (const u of (this.slot && this.slot.mods) || []) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
+    this.eff = eff;
     // suit sets: 3 / 6 / 9 different upgrades of a suit
     const sc = { Spades: 0, Hearts: 0, Diamonds: 0, Clubs: 0 };
     this.upgradeStacks.forEach((n, u) => { if (n > 0) sc[DATA.upgrades[u].suit]++; });
@@ -197,7 +212,8 @@ export class Player {
     Meta.bump('moneyEarned', Math.max(1, Math.round(a)));
   }
   spend(amount) {
-    if (amount < 0 || this.money < amount) { this.toast(`Not enough money  ($${amount} needed)`, '#ff5a4d'); this.play('S_Deny', 0.6); return false; }
+    amount = cost10(amount);
+    if (amount < 0 || this.money < amount) { this.toast(`Not enough money  ($${cash(amount)} needed)`, '#ff5a4d'); this.play('S_Deny', 0.6); return false; }
     this.money -= amount;
     if (amount > 0) this.play('S_Buy', 0.6, 1, 0.05);
     return true;
@@ -211,9 +227,10 @@ export class Player {
   }
   collectPickup(type, amount) {
     if (type === 'Clover') this.addLuck(1);
-    else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${amount}`, '#ffd23a'); this.play('S_Cash', 0.8); }
-    else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { this.addMoney(250, true); this.toast('Already maxed  +$250', '#ffd23a'); } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
-    else if (type === 'Grenade') { const N = GRENADES[amount]; if (this.grenades.length >= GRENADE_MAX) this.grenades.shift(); this.grenades.push(amount); this.toast(`${N.name} grenade  -  ${N.desc}`, N.hex); this.play('S_MagIn', 0.8, 0.8); }
+    else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${cash(amount)}`, '#ffd23a'); this.play('S_Cash', 0.8); }
+    else if (type === 'Tonic') this.gainTonic(amount);
+    else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { const u = rollBuff(rarityIndex(DATA.upgrades[amount].rarity), this.upgradeStacks, this.cls.id); if (u >= 0) this.addUpgrade(u); else { this.addMoney(500, true); this.toast('Nothing left to learn  +$50', '#ffd23a'); } } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
+    else if (type === 'Grenade') { const N = GRENADES[amount]; if (this.grenades.length >= this.grenadeMax()) this.grenades.shift(); this.grenades.push(amount); this.toast(`${N.name} grenade  -  ${N.desc}`, N.hex); this.play('S_MagIn', 0.8, 0.8); }
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
     else { this.play('S_PowerUp', 0.9); this.game.activatePowerup(type); }
   }
@@ -227,7 +244,7 @@ export class Player {
   onRoundEnded() {
     this.play('S_RoundEnd', 0.8);
     const rate = this.stat('Interest');
-    if (rate > 0) { const pay = Math.min(Math.round(this.money * rate), 2000); if (pay > 0) { this.money += pay; this.toast(`Interest  +$${pay}`, '#ffd24d'); } }
+    if (rate > 0) { const pay = Math.min(Math.round(this.money * rate), 2000); if (pay > 0) { this.money += pay; this.toast(`Interest  +$${cash(pay)}`, '#ffd24d'); } }
   }
   onCasinoOpened() { this.slotPulls = Math.max(0, this.slotPulls - 2); this.pawnRerolls = 0; this.rollPawn(); }   // each round: fresh stock, slot price eases back
   rollPawn() {
@@ -256,7 +273,8 @@ export class Player {
     this.hasteT = Math.max(0, this.hasteT - dt); if (this.hasteT <= 0) this.haste = 0;
     this.rageT = Math.max(0, this.rageT - dt); if (this.rageT <= 0) this.rage = 0;
     this.slowT = Math.max(0, this.slowT - dt);
-    const regen = this.stat('HealthRegen');
+    this.healBucket = Math.min(14, this.healBucket + 8 * dt);
+    const regen = this.stat('HealthRegen') + (this.nearTurret ? 4 * this.stat('TurretAura') : 0);
     if (regen >= 0) this.health = Math.min(this.maxHealth, this.health + (regen + (this.sinceDamage > 5 ? 25 : 0)) * dt);
     // input edges
     const menu = this.inMenu();
@@ -268,13 +286,13 @@ export class Player {
     if (In.slide) this.onSlidePressed();
     if (In.slideUp) this.onSlideReleased();
     if (In.dash && !menu) this.doDash();
-    if (In.grapple && !menu) { if (this.grappling) this.endGrapple(false); else this.startGrapple(); }
-    if (In.reload && !menu) this.startReload();
+    if (In.grapple && !menu) this.useAbility();
+    if (In.reload && !menu) { if (this.reloading && this.stat('ActiveReload') > 0) this.activeReload(); else this.startReload(); }
     if (In.interact) this.interact();
-    if (In.barricade) this.game.toggleBarricade();
     if (In.melee && !menu) this.meleeBuffer = 0.22;
     if (In.grenade && !menu) this.throwGrenade();
     this.tickGrenades(dt);
+    this.tickAbility(dt);
     this.tickMelee(dt, menu);
     if (In.back) { if (menu) this.closeMenu(); else this.showInventory = !this.showInventory; }
     if (In.next) this.cycleWeapon(1);
@@ -691,6 +709,7 @@ export class Player {
   // Press to swing; the hit lands after a short wind-up. Presses during a swing are buffered so chains feel instant.
   // Every third swing in a chain is a heavy finisher. A swing pulls you a step toward what you are aiming at.
   tickMelee(dt, menu) {
+    this.meleeHitting = false;
     const G = this.game;
     if (this.meleeDef === undefined) { this.meleeDef = 0; this.meleeCd = 0; this.meleeCombo = 0; this.meleeComboT = 0; this.meleeHitT = -1; this.meleeBuffer = 0; this.frenzy = 0; this.frenzyT = 0; this.meleeGuardT = 0; }
     this.meleeCd = Math.max(0, this.meleeCd - dt); this.meleeBuffer = Math.max(0, (this.meleeBuffer || 0) - dt); this.meleeGuardT = Math.max(0, this.meleeGuardT - dt);
@@ -728,17 +747,24 @@ export class Player {
   }
   grenadeDamage(mult) { return Math.max(250, zombieHealth(this.game.round) * mult) * (1 + this.stat('Damage') * 0.5); }   // keeps pace with the round
   grenadeBlast(t, at, P) {
-    const N = GRENADES[t], G = this.game, R = N.radius * (1 + this.stat('ExplosionRadius')), dmg = this.grenadeDamage(N.dmg);
+    const N = GRENADES[t], G = this.game, R = N.radius * (1 + this.stat('ExplosionRadius')), dmg = P && P.altDmg ? P.altDmg : this.grenadeDamage(N.dmg);
+    if (t === 6) { this.wells.push({ at: at.clone(), t: 2.2, r: R, dmg }); G.fx.ring(at, R, N.color, 0.5); this.play('S_Grapple', 0.7, 0.5); return; }   // gravity: pull first, burst later
     const near = () => G.enemies.filter((E) => !E.dead && !E.burrowed && E.pos.distanceTo(at) < R + 40 * E.bodyScale);
     this.explodeAt(at, R, dmg, 0, true, false, N.color, null);
     if (t === 1) { this.gzones.push({ at: at.clone(), r: R * 0.85, t: 6, tick: 0, dps: dmg * 0.45 }); for (const E of near()) E.applyBurn(dmg * 0.25, 4); }
     else if (t === 2) { for (const E of near()) E.applySlow(E.isBoss ? 0.35 : 0.75, E.isBoss ? 3 : 6); G.fx.ring(at, R, N.color, 0.6); }
     else if (t === 3) { const L = near(); let prev = null; for (const E of L) { if (!E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 2.5); E.applySlow(0.9, 2.5); } if (prev) G.fx.arc(prev.pos, E.pos, N.color); prev = E; } G.fx.ring(at, R, N.color, 0.4); }
-    else if (t === 4 && !(P && P.child)) for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
+    else if ((t === 4 || (t === 5 && this.stat('AbilityPower') >= 1)) && !(P && P.child)) for (let i = 0; i < (t === 5 ? 4 : 5); i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
   }
   tickGrenades(dt) {
     if (this.grenadeCd > 0) this.grenadeCd -= dt;
     const G = this.game;
+    for (let i = this.wells.length - 1; i >= 0; i--) {
+      const Z = this.wells[i]; Z.t -= dt;
+      for (const E of G.enemies) { if (E.dead || E.burrowed || E.isBoss || E.remote) continue; const d = E.pos.distanceTo(Z.at); if (d < Z.r && d > 40) { const pull = 2600 * dt * (1 - d / Z.r * 0.5); E.vel.x += (Z.at.x - E.pos.x) / d * pull; E.vel.z += (Z.at.z - E.pos.z) / d * pull; E.staggerT = Math.max(E.staggerT || 0, 0.1); } }
+      if (Math.random() < dt * 20) G.fx.glowAt(Z.at.clone().add(V3((Math.random() - 0.5) * Z.r, Math.random() * 120, (Math.random() - 0.5) * Z.r)), [0.7, 0.45, 1], 50, 0.25);
+      if (Z.t <= 0) { this.explodeAt(Z.at, Z.r * 0.75, Z.dmg, 0, true, false, [0.7, 0.45, 1], null); this.wells.splice(i, 1); }
+    }
     for (let i = this.gzones.length - 1; i >= 0; i--) {
       const Z = this.gzones[i]; Z.t -= dt; Z.tick -= dt;
       if (Z.tick <= 0) {
@@ -773,6 +799,7 @@ export class Player {
       return;
     }
     const f = this.forward();
+    this.meleeHitting = true;
     let base = W.dmg * (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy')) * (heavy ? 1.6 : 1) * (1 + 0.08 * Math.max(0, G.round - 1));
     let killed = 0, dealt = 0;
     for (const E of T) {
@@ -807,9 +834,14 @@ export class Player {
   // top sources of damage this run, biggest first: [{ who, total, hits, max, pct }]
   damageReport() { const L = this.dmgLog || {}, all = Object.keys(L).reduce((n, k) => n + L[k].total, 0) || 1; return Object.keys(L).map((k) => ({ who: k, total: Math.round(L[k].total), hits: L[k].hits, max: Math.round(L[k].max), pct: Math.round(L[k].total / all * 100) })).sort((a, b) => b.total - a.total); }
   heal(a) { if (!this.dead && a > 0) this.health = Math.min(this.maxHealth, this.health + a); }
+  // healing earned by fighting (kills, lifesteal) comes out of a small bucket that refills at 8 health a second,
+  // so a horde of a hundred is not a hundred heals
+  combatHeal(a) { const h = Math.min(a, this.healBucket); if (h > 0) { this.healBucket -= h; this.heal(h); } }
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
+    if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
+    if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
     // the same goes for blasts: several markers going off together count once, not once each
@@ -920,22 +952,37 @@ export class Player {
     this.fireCd -= dt;
     this.bloom = interpTo(this.bloom, 0, dt, 5);
     if (this.reloading) { this.reloadT -= dt; if (this.reloadT <= 0) this.finishReload(); }
+    for (const S of this.weapons) if (S.altCd > 0) S.altCd -= dt;
+    this.aimHold = this.aiming && this.fireCd <= 0 ? this.aimHold + dt : 0;
+    if (this.swapBuffT > 0) this.swapBuffT -= dt;
+    if (this.echoT > 0) { this.echoT -= dt; if (this.echoT <= 0 && !this.reloading && this.slot.def >= 0) this.fireWeapon(true); }   // Echo Chamber's second shot
     if (!this.fireHeld || this.inMenu() || this.dead) return;
-    if (!this.W.auto && this.fireConsumed) return;
+    if (!this.W.auto && !(this.stat('FullAuto') > 0) && this.fireConsumed) return;
     if (this.fireCd <= 0 && this.game.vm.switchT <= 0.05) { this.fireWeapon(); this.fireConsumed = true; }
   }
-  fireWeapon() {
+  fireWeapon(echo = false) {
     const S = this.slot;
     if (S.def < 0 || this.reloading) return;
     const G = this.game, W = DATA.weapons[S.def];
-    if (S.ammo <= 0) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
-    const rate = W.rate * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.1 * S.tier);
-    this.fireCd = 1 / rate;
-    if (Math.random() >= this.stat('AmmoSave')) S.ammo--;
+    if (!echo && S.ammo <= 0) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
+    if (!echo && this.aiming && S.altCd <= 0 && this.altKind() && this.fireAlt(S, W)) return;   // aiming down the sights fires the gun's alt mode when it is ready
+    const rate = W.rate * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1);
+    const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= mag / 3;
+    if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = this.stat('Multishot');
     let pellets = W.pellets + Math.floor(multi);
     if (Math.random() < multi - Math.floor(multi)) pellets++;
-    const damage = W.dmg * (1 + 0.75 * S.tier);
+    let damage = W.dmg * (1 + 0.2 * S.tier);
+    if (echo) damage *= 0.5;
+    else {
+      if (full) damage *= 1 + this.stat('FirstShot');                       // Opening Hand
+      if (this.aimHold > 0.7) damage *= 1 + this.stat('SteadyAim');         // Steady Aim
+      if (this.stat('EchoShot') > 0) this.echoT = 0.085;
+    }
+    if (last) damage *= 1 + this.stat('LastRounds');                         // Closer
+    if (S.hot > 0) { damage *= 1.35; S.hot--; }                              // a perfect active reload
+    if (this.aiming && this.cls.id === 'sniper') damage *= 1.15;
+    this.aimHold = 0;
     const pierce = W.pierce + Math.round(this.stat('Pierce')) + (S.tier >= 3 ? 1 : 0);
     const muzzle = G.vm.muzzleWorld();
     const eye = G.camera.position.clone();
@@ -943,7 +990,7 @@ export class Player {
     const aim = this.aimPoint(eye, baseDir);
     let projDir = aim.clone().sub(muzzle).normalize();
     if (projDir.dot(baseDir) < 0.5) projDir = baseDir.clone();
-    const spread = this.spreadDeg() * D2R;
+    const spread = this.deadeyeT > 0 ? 0 : this.spreadDeg() * D2R;
     const continuous = W.mode === 'Beam' || W.mode === 'Flame';
     const procCoef = continuous ? 0.25 : 1 / Math.max(1, pellets);
     let tracer = lerp3(hexRGB(W.color), [1, 0.96, 0.8], 0.5);
@@ -973,7 +1020,7 @@ export class Player {
       case 'Energy': kick = continuous ? 0.04 : 0.4; break; default: kick = 0.3;
     }
     this.bloom = Math.min(this.bloom + (continuous ? 0.02 : 0.15), 1.5);
-    this.fireFeedback(W, kick, continuous);
+    this.fireFeedback(W, echo ? kick * 0.5 : kick, continuous);
     if (S.ammo <= 0) this.startReload();
   }
   fireFeedback(W, kick, continuous) {
@@ -1039,6 +1086,14 @@ export class Player {
     }
     if (width > 0) G.fx.tracer(muzzle, final, color, width, W.mode === 'Beam' ? 0.05 : 0.06);
     else if (W.mode === 'Flame') G.fx.glowAt(final, lin(1, 0.45, 0.1), 80, 0.15);
+    // Ricochet Rounds: the bullet skips on to whoever is nearest
+    let skips = hits > 0 && width > 0 && W.mode === 'Hitscan' ? Math.round(this.stat('Ricochet')) : 0, at0 = final;
+    while (skips-- > 0) {
+      let nx = null, nd = 750; for (const E of G.enemies) { if (E.dead || E.burrowed || ignore.has(E)) continue; const d = E.pos.distanceTo(at0); if (d < nd && G.phys.lineOfSight(at0, E.pos)) { nd = d; nx = E; } }
+      if (!nx) break;
+      const to = nx.pos.clone(); to.y += (nx.hitH || 100) * 0.1; G.fx.tracer(at0, to, color, 2, 0.08);
+      this.dealDamage(nx, damage * 0.6, to, to.clone().sub(at0).normalize(), false, procCoef * 0.5, false, W.critBonus, W.burn, W.slow, 0); ignore.add(nx); at0 = to;
+    }
   }
   fireChain(start, dir, damage, W) {
     const G = this.game, col = hexRGB(W.color);
@@ -1079,6 +1134,8 @@ export class Player {
     let m = 1 + this.stat('Damage') + this.rage;
     const gl = Meta.gunLevel(this.W.name); if (gl >= 3) m += 0.1; if (gl >= 5) m += 0.1;
     if (!this.grounded) m += this.stat('AirDamage');
+    if (this.swapBuffT > 0) m += 0.2;
+    if (E && E.markT > 0) m += E.markAmt || 0;
     m += this.stat('SpeedDamage') * this.vel.length() / 1000;
     if (this.sliding || this.slideDmgWindow > 0) m += this.stat('SlideDamage');
     if (this.health < this.maxHealth * 0.35) m += this.stat('LowHealthDamage');
@@ -1089,7 +1146,7 @@ export class Player {
     if (!E || E.dead) return 0;
     const G = this.game;
     const mult = this.damageMult(E);
-    const crit = Math.random() < 0.05 + this.stat('CritChance') + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0);
+    const crit = Math.random() < 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0);
     let dmg = base * mult;
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
@@ -1119,7 +1176,8 @@ export class Player {
     G.hud.floater(at.clone().add(V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15)), `${Math.round(dealt)}${crit ? '!' : ''}`, c, crit || head ? 1.3 : 0.95);
     if (!fromProc && !killed) this.addMoney(Math.max(1, Math.round(10 * Math.min(1, procCoef * 1.5))) + moneyPerHit, true);
     const steal = this.stat('Lifesteal');
-    if (steal > 0) this.heal(dealt * steal);
+    if (steal > 0) this.combatHeal(dealt * steal);
+    if (head && !killed && this.stat('HeadMark') > 0) { E.markT = 5; E.markAmt = this.stat('HeadMark'); }
     if (!killed) {
       if (burn > 0) E.applyBurn(burn * mult, 3);
       if (slow > 0) E.applySlow(slow, 2);
@@ -1187,7 +1245,13 @@ export class Player {
     this.play('S_Kill', 0.6, 1, 0.08);
     G.fx.coins(E.pos, clamp(Math.floor(pay / 40), 1, 8));
     if (E.isBoss) this.addShake(1.5);
-    G.hud.floater(E.pos.clone().add(V3(0, 80, 0)), `+$${pay}`, [1, 0.85, 0.25], headshot ? 1.2 : 1);
+    G.hud.floater(E.pos.clone().add(V3(0, 80, 0)), `+$${cash(pay)}`, [1, 0.85, 0.25], headshot ? 1.2 : 1);
+    const S = this.slot;
+    if (S.def >= 0 && this.stat('KillReload') > 0) S.ammo = Math.min(this.magSize(S), S.ammo + Math.round(this.stat('KillReload')));
+    if (this.deadeyeT > 0) this.deadeyeT += this.stat('DeadeyeExtend');
+    if (this.meleeHitting) { if (this.cls.id === 'brawler') this.combatHeal(5); if (this.stat('MeleeAbilityReset') > 0) this.abilityCd = Math.max(0, this.abilityCd - 1); }
+    if (this.procDepth < 2 && this.stat('Shrapnel') > 0 && !E.lastHitExplosive && S.def >= 0) { this.procDepth++; this.explodeAt(E.pos, 260, DATA.weapons[S.def].dmg * DATA.weapons[S.def].pellets * (1 + 0.2 * S.tier) * this.stat('Shrapnel'), 0, true, false, [0.8, 0.8, 0.85], E); this.procDepth--; }
+    if (this.procDepth < 2 && E.lastHitExplosive && this.stat('BlastChain') > 0) { this.procDepth++; this.explodeAt(E.pos, 300, this.power() * 1.2 * this.stat('BlastChain') * 2, 0, true, false, [1, 0.6, 0.25], E); this.procDepth--; }
     if (this.procDepth < 2) {
       this.runProcs('OnKill', E, E.pos, 0, 1);
       if (E.elite || E.isBoss) this.runProcs('OnEliteKill', E, E.pos, 0, 1);
@@ -1197,7 +1261,7 @@ export class Player {
     if (this.dead || this.procDepth > 2) return;
     const hitT = trigger === 'OnHit' || trigger === 'OnCrit' || trigger === 'OnHeadshot';
     const cm = 1 + this.stat('ProcChance');
-    for (const i of this.upgradeOrder) {
+    for (const [i, stk] of this.eff) {
       const U = DATA.upgrades[i];
       if (U.trigger !== trigger || !U.fx) continue;
       if (this.procCd[i] > 0) continue;
@@ -1205,13 +1269,13 @@ export class Player {
       if (hitT) ch *= procCoef;
       if (U.chance < 1 && Math.random() >= ch) continue;
       if (U.cd > 0) this.procCd[i] = U.cd;
-      this.executeProc(U, this.upgradeStacks[i], target, at, hitT ? base : this.power(), trigger);
+      this.executeProc(U, stk, target, at, hitT ? base : this.power(), trigger);
     }
   }
   tickProcs(dt) {
     for (let i = 0; i < this.procCd.length; i++) this.procCd[i] = Math.max(0, this.procCd[i] - dt);
     if (this.game.phase !== 'Round') return;
-    for (const i of this.upgradeOrder) {
+    for (const [i, stk] of this.eff) {
       const U = DATA.upgrades[i];
       if (U.trigger !== 'Periodic') continue;
       this.periodic[i] -= dt;
@@ -1219,7 +1283,7 @@ export class Player {
       this.periodic[i] = Math.max(0.2, U.cd);
       const near = this.findNearestEnemy(this.pos, 1200, null);
       if (['Chain', 'Freeze', 'Explode'].includes(U.fx) && !near) continue;
-      this.executeProc(U, this.upgradeStacks[i], near, near ? near.pos : this.pos, this.power(), 'Periodic');
+      this.executeProc(U, stk, near, near ? near.pos : this.pos, this.power(), 'Periodic');
     }
   }
   executeProc(U, stacks, target, at, base, trigger) {
@@ -1265,7 +1329,7 @@ export class Player {
         else { for (const E of near(Me, 550, null)) E.applySlow(s, 2.5); G.fx.ring(Me.clone().add(V3(0, -80, 0)), 550, lin(0.6, 0.9, 1), 0.4); }
         break;
       }
-      case 'Heal': this.heal(mag); break;
+      case 'Heal': this.combatHeal(mag); break;
       case 'Money': this.addMoney(Math.round(mag), true); break;
       case 'Shield': this.overshield = Math.min(this.maxHealth, this.overshield + mag); break;
       case 'Missile': {
@@ -1356,7 +1420,10 @@ export class Player {
       // the casino has no menus: every station is played or bought from in the world
       case 'ArmsRoulette': I.wheelUse(this); break;
       case 'Slots': I.slotUse(this); break;
-      case 'UpgradeCounter': case 'StatBooth': case 'HighRoller': if (this.focusWare) this.focusWare.buy(this); break;
+      case 'Chest': this.openChest(I); break;
+      case 'MysteryBox': I.boxUse(this); break;
+      case 'HighRoller': this.benchUpgrade(); break;
+      case 'Turret': I.bind(this); break;
       default: this.openMenu(I); break;
     }
   }
@@ -1547,14 +1614,14 @@ export class Player {
     const d = this.bjTotal(M.dealer), natural = me === 21 && M.hand.length === 2;
     M.stage = 3;
     let pay = 0;
-    if (me > 21) { M.result = `Bust. Lost $${M.stake.toLocaleString()}`; M.resultColor = '#ff4d40'; }
+    if (me > 21) { M.result = `Bust. Lost $${cash(M.stake)}`; M.resultColor = '#ff4d40'; }
     else if (d > 21 || me > d) pay = Math.round(M.stake * (natural ? 2.5 : 2) * (1 + 0.05 * this.luck));
     else if (me === d) { pay = M.stake; M.result = 'Push. Stake returned.'; M.resultColor = '#d9d9e6'; }
-    else { M.result = `Dealer wins. Lost $${M.stake.toLocaleString()}`; M.resultColor = '#ff4d40'; }
+    else { M.result = `Dealer wins. Lost $${cash(M.stake)}`; M.resultColor = '#ff4d40'; }
     if (pay > M.stake) {
-      M.result = `${natural ? 'Blackjack! ' : ''}Won $${pay.toLocaleString()}`; M.resultColor = '#66ff73';
+      M.result = `${natural ? 'Blackjack! ' : ''}Won $${cash(pay)}`; M.resultColor = '#66ff73';
       const big = pay >= 5000; this.play(big ? 'S_Jackpot' : 'S_Win', 0.9);
-      if (big) this.game.banner(`BIG WIN  $${pay.toLocaleString()}`, lin(1, 0.85, 0.2), 2.5);
+      if (big) this.game.banner(`BIG WIN  $${cash(pay)}`, lin(1, 0.85, 0.2), 2.5);
     } else if (pay === 0) this.play('S_Lose', 0.8);
     this.money += pay;
   }
@@ -1610,19 +1677,142 @@ export class Player {
     this.play('S_Upgrade', 0.7);
     this.toast(`${T.name}  (level ${this.tonicLevels[i]})`, '#ffb359');
   }
-  vaultUpgrade(gamble) {
+  // ---------------------------------------------------------------- classes
+  setClass(id) {
+    this.cls = classById(id);
+    if (this.cls.id === 'gunslinger') this.maxSlots = 3;
+    if (this.cls.id === 'bomber') this.grenades = [0, 0, 1, 4];
+    this.abilityCd = 0;
+    const old = this.maxHealth; this.recompute(); this.health += Math.max(0, this.maxHealth - old);
+  }
+  gunCount() { let n = 0; for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def >= 0) n++; return n; }
+  grenadeMax() { return (this.cls.id === 'bomber' ? 6 : GRENADE_MAX) + Math.round(this.stat('GrenadeCap')); }
+  abilityMax() { return this.cls.id === 'sniper' ? this.grappleCooldown() : this.cls.cd / (1 + Math.max(0, this.stat('AbilityCooldown'))); }
+  abilityReady() { return this.cls.id === 'sniper' ? (this.grappleCd > 0 ? 1 - this.grappleCd / this.grappleCooldown() : 1) : (this.abilityCd > 0 ? 1 - this.abilityCd / this.abilityMax() : 1); }
+  useAbility() {
+    const G = this.game, id = this.cls.id;
+    if (id === 'sniper') { if (this.grappling) this.endGrapple(false); else this.startGrapple(); return; }
+    if (this.abilityCd > 0) { this.toast(`${this.cls.ability} recharging (${this.abilityCd.toFixed(1)}s)`, '#b3b3b3'); return; }
+    const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
+    if (id === 'gunslinger') {
+      this.deadeyeT = 5 + this.stat('AbilityDuration'); this.abilityCd = this.abilityMax();
+      this.play('S_PowerUp', 0.8, 1.3); this.fovKick += 6; G.banner('DEADEYE', lin(1, 0.8, 0.35), 1.2);
+    } else if (id === 'brawler') {
+      const f = safeN2(flat(dir.clone())); if (f.lengthSq() < 0.1) return;
+      this.rushT = 0.36; this.rushDir.copy(f); this.rushHits.clear(); this.abilityCd = this.abilityMax();
+      if (this.sliding) this.endSlide(); if (this.wallRunning) this.endWallRun();
+      this.play('S_Dash', 0.9, 0.7); this.fovKick += 10; this.addShake(0.3);
+    } else if (id === 'bomber') {
+      const from = this.eye().addScaledVector(dir, 40).add(V3(0, -12, 0));
+      G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1100).add(V3(0, 280, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: GRENADES[5].radius, gtype: 5, gravity: 1, bounces: 2, bounceDamp: 0.35, fuse: 1.5, life: 4, kind: 'Grenade', radius: 18, color: GRENADES[5].color, procCoef: 0, fromProc: true });
+      this.abilityCd = this.abilityMax(); this.play('S_Dash', 0.6, 0.9); if (G.vm.jolt) G.vm.jolt(1.6);
+    } else if (id === 'engineer') {
+      // where you are looking, on the ground
+      const eye = G.camera.position.clone(), hit = G.phys.raycast(eye, dir, 750);
+      let at = hit ? hit.point.clone().addScaledVector(dir, hit.normal.y > 0.6 ? 0 : -70) : eye.clone().addScaledVector(dir, 420);
+      const down = G.phys.raycast(at.clone().add(V3(0, 60, 0)), V3(0, -1, 0), 1500); if (!down) { this.toast('No room for the turret there', '#ccc'); return; }
+      at = down.point;
+      const allowed = 1 + Math.round(this.stat('TurretCount'));
+      if (this.turrets.length < allowed) this.turrets.push(new Turret(G, at, this.turrets.length > 0));
+      else { const T = this.turrets[this.turretNext % this.turrets.length]; this.turretNext++; T.place(at); }
+      this.abilityCd = this.abilityMax(); this.play('S_MagIn', 0.9, 0.6);
+    }
+  }
+  tickAbility(dt) {
+    const G = this.game;
+    if (this.abilityCd > 0) this.abilityCd -= dt;
+    if (this.deadeyeT > 0) { this.deadeyeT -= dt; if (this.deadeyeT <= 0) this.play('S_Deny', 0.4, 0.7); }
+    if (this.rushGuardT > 0) this.rushGuardT -= dt;
+    if (this.rushT > 0) {
+      // Bull Rush: a straight charge. Everything it touches is hit once, hard, and thrown aside.
+      this.rushT -= dt;
+      this.vel.x = this.rushDir.x * 2500; this.vel.z = this.rushDir.z * 2500; if (this.vel.y < 0) this.vel.y *= 0.5;
+      const W = MELEE[this.meleeDef], pw = this.stat('AbilityPower');
+      const dmg = W.dmg * (1 + this.stat('MeleeDamage')) * 2.2 * (1 + pw) * (1 + 0.08 * Math.max(0, G.round - 1));
+      for (const E of G.enemies) {
+        if (E.dead || E.burrowed || this.rushHits.has(E)) continue;
+        if (Math.hypot(E.pos.x - this.pos.x, E.pos.z - this.pos.z) > 150 + (E.hitR || E.radius) || Math.abs(E.pos.y - this.pos.y) > 260) continue;
+        this.rushHits.add(E); this.meleeHitting = true;
+        this.dealDamage(E, dmg, E.pos, this.rushDir, false, 1, false, 0, 0, 0, 0, [1, 0.6, 0.3]);
+        if (!E.dead && !E.isBoss) { E.applyKnock(this.rushDir.clone().multiplyScalar(700).add(V3(0, 320, 0))); if (pw > 0) E.staggerT = Math.max(E.staggerT || 0, 1.2); }
+        this.addShake(0.25); G.hitstop = Math.max(G.hitstop || 0, 0.03);
+      }
+      if (this.rushT <= 0) { this.vel.x *= 0.35; this.vel.z *= 0.35; this.rushGuardT = 3; }
+    }
+    // Engineer: standing by the turret
+    this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;
+  }
+  // ---------------------------------------------------------------- gun modifiers (workbench)
+  altKind() { for (const a of ALT_STATS) if (this.stat(a) > 0) return a; return null; }
+  fireAlt(S, W) {
+    const G = this.game, kind = this.altKind(), pw = this.power();
+    const muzzle = G.vm.muzzleWorld(), eye = G.camera.position.clone(), dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
+    const shell = (gtype, speed, altDmg, radius) => G.projectiles.spawn({ pos: muzzle.clone(), vel: dir.clone().multiplyScalar(speed).add(V3(0, 160, 0)), damage: 0, splash: radius, gtype, altDmg, gravity: 1, bounces: 0, fuse: 3, life: 4, kind: 'Grenade', radius: 12, color: GRENADES[gtype].color, procCoef: 0, fromProc: true });
+    if (kind === 'AltLauncher') { shell(7, 2400, pw * 5, 320); S.altCd = 5; this.play('S_Explosion', 0.35, 1.8); }
+    else if (kind === 'AltGravity') { shell(6, 2000, pw * 4, 520); S.altCd = 10; this.play('S_Grapple', 0.8, 0.6); }
+    else if (kind === 'AltRail') { this.fireHitscan(eye, dir, 12000, pw * 6, 99, 1, W, 14, [0.6, 0.9, 1], muzzle); S.altCd = 6; this.play('S_Crit', 0.9, 0.5); }
+    else if (kind === 'AltBuck') { for (let k = 0; k < 8; k++) this.fireHitscan(eye, vrandCone(dir, 7 * D2R), 1600, pw * 0.5, 0, 0.12, W, 3, [1, 0.9, 0.6], muzzle); S.altCd = 3; this.play('S_Explosion', 0.3, 2.2); }
+    else return false;
+    this.fireCd = 0.35; this.fireFeedback(W, 1.8, false); this.aimHold = 0;
+    return true;
+  }
+  activeReload() {
+    if (this.arFail) return;
+    const p = 1 - this.reloadT / Math.max(0.01, this.reloadDur), S = this.slot;
+    if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
+    else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
+  }
+  benchCost(S) { return Math.round([2500, 5000, 9000, 15000][Math.min(3, S.mods.length)] * this.priceMult()); }
+  benchUpgrade() {
     const S = this.slot;
     if (S.def < 0) return;
-    if (S.tier >= 3) { this.toast('Already max tier', '#ccc'); return; }
-    const full = Math.round(VAULT_COST[S.tier] * this.priceMult());
-    if (!this.spend(gamble ? Math.floor(full / 2) : full)) return;
-    if (gamble && Math.random() >= Math.min(0.45 + 0.03 * this.luck, 0.75)) { this.toast('The gamble failed. Money gone.', '#ff4d40'); this.play('S_Lose', 0.8); return; }
-    S.tier++; S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
-    this.game.vm.setWeapon(S.def, S.tier, true);
-    this.play('S_Upgrade', 0.9);
+    const W = DATA.weapons[S.def];
+    if (S.mods.length >= 4) { this.toast(`${W.name} has all four modifiers`, '#ccc'); return; }
+    const u = rollGunMod(S.mods, W, this.cls.id, this.luck);
+    if (u < 0) { this.toast('Nothing more this gun can take', '#ccc'); return; }
+    if (!this.spend(this.benchCost(S))) return;
+    S.mods.push(u); S.tier = S.mods.length;
+    this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
+    this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
+    this.play('S_Upgrade', 0.9); this.benchUses++;
     if (S.tier >= 3) Meta.bump('tier3');
-    this.toast(`${DATA.weapons[S.def].name} is now tier ${S.tier}`, '#ff59e6');
+    this.game.hud.gotUpgrade(u, 1, `${W.name} modifier`);
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
+  }
+  // ---------------------------------------------------------------- chests and tonics
+  chestPrice(tier) { const n = this.chestsOpened; return Math.round([100, 250, 500, 1000][tier] * (1 + 0.15 * n + 0.006 * n * n) * this.priceMult()); }
+  openChest(I) {
+    if (I.opened) return;
+    // each chest holds one of two rarities; luck tips it toward the better one
+    const lo = I.tier, hiChance = Math.min(0.75, 0.3 + 0.03 * this.luck), rarity = Math.random() < hiChance ? lo + 1 : lo;
+    const u = rollBuff(rarity, this.upgradeStacks, this.cls.id);
+    if (u < 0) { this.toast('Nothing left for you in there', '#ccc'); return; }
+    if (!this.spend(this.chestPrice(I.tier))) return;
+    this.chestsOpened++; I.setOpened(true);
+    this.addUpgrade(u);
+    const U = DATA.upgrades[u];
+    this.play(rarityIndex(U.rarity) >= 3 ? 'S_Jackpot' : 'S_Upgrade', 0.9);
+    this.game.fx.flash(I.pos.clone().add(V3(0, 60, 0)), lin(1, 0.85, 0.4), 140, 0.4, true);
+    if (rarityIndex(U.rarity) >= 3) this.game.banner(U.name.toUpperCase(), lin(1, 0.75, 0.25), 2.5);
+    Meta.bump('chests');
+  }
+  rollTonic() { const w = [5, 5, 4, 4, 4, 3, 1, 1.5], ok = (k) => this.tonicLevels[k] < Math.min(TONICS[k].max, 10) && !(k === 6 && this.maxSlots >= 3); let t = 0; for (let k = 0; k < 8; k++) if (ok(k)) t += w[k]; let r = Math.random() * t; for (let k = 0; k < 8; k++) if (ok(k)) { r -= w[k]; if (r <= 0) return k; } return 0; }
+  gainTonic(i) {
+    // a drink off the dead: one level of that tonic (if it is already full, another one that is not)
+    if (this.tonicLevels[i] >= TONICS[i].max || (i === 6 && this.maxSlots >= 3)) { const open = TONICS.map((T, k) => k).filter((k) => this.tonicLevels[k] < TONICS[k].max && !(k === 6 && this.maxSlots >= 3)); if (!open.length) { this.addMoney(300, true); this.toast('Every tonic is maxed  +$30', '#ffd23a'); return; } i = open[randInt(0, open.length - 1)]; }
+    const T = TONICS[i];
+    this.tonicLevels[i]++;
+    const B = this.booth;
+    switch (i) {
+      case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
+      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: this.addLuck(2); break; case 6: this.maxSlots = 3; break;
+      case 7: B[STAT.ExtraJumps] += 1; B[STAT.DashCharges] += 1; break; default: break;
+    }
+    const old = this.maxHealth;
+    this.recompute();
+    if (this.maxHealth > old) this.health += this.maxHealth - old;
+    this.play('S_Upgrade', 0.7);
+    this.game.hud.gotTonic(i, this.tonicLevels[i]);
   }
 
   // Menu content for the HUD: the on-screen lines stay minimal (options, prices, results); anything that
@@ -1681,7 +1871,7 @@ export class Player {
           lines.push({ kind: 'cards', label: done ? `DEALER  ${this.bjTotal(M.dealer)}` : 'DEALER', cards: M.dealer, hide: done ? -1 : 1 });
           lines.push({ kind: 'cards', label: `YOU  ${this.bjTotal(M.hand)}${M.reroll ? '  (LUCK SWAP)' : ''}`, cards: M.hand, hide: -1 });
           if (!done) {
-            add(`Stake $${M.stake.toLocaleString()}`, bone);
+            add(`Stake $${cash(M.stake)}`, bone);
             opt('1', 'Hit'); opt('2', 'Stand');
             if (M.hand.length === 2) opt('3', 'Double', { price: M.stake });
             footer = '[Tab] Forfeit';

@@ -1,0 +1,90 @@
+// Classes, and how the upgrade pool is split.
+//   * buffs: come from chests and bosses. Class-weighted: perks that suit your class turn up more often, ones that
+//     don't turn up less, and each class has perks nobody else can find.
+//   * gun modifiers: come only from the workbench and live on one gun. Anything that changes how a gun behaves
+//     (extra projectiles, pierce, on-hit effects, reload tricks, alt-fire) is in this pool.
+import { DATA, RARITIES, rarityIndex } from './data.js';
+import { Meta } from './meta.js';
+
+export const CLASSES = [
+  { id: 'gunslinger', name: 'Gunslinger', ability: 'Deadeye', short: 'DEADEYE', cd: 20, hex: '#ffcd5a',
+    blurb: 'Rifles and SMGs, and a third gun on the belt.',
+    kit: ['Carries three guns', '+10% fire rate, +15% reload speed', 'F - Deadeye: 5 seconds of faster fire, free ammo and no spread'],
+    stats: [['FireRate', 0.1], ['ReloadSpeed', 0.15]] },
+  { id: 'brawler', name: 'Brawler', ability: 'Bull Rush', short: 'RUSH', cd: 7, hex: '#ff6a4d',
+    blurb: 'Lives in melee range.',
+    kit: ['+50% melee damage, +15% swing speed, +40 max health', 'Melee kills heal you', 'F - Bull Rush: charge through a crowd, untouchable, hitting everything in the way'],
+    stats: [['MeleeDamage', 0.5], ['MeleeSpeed', 0.15], ['MaxHealth', 40]] },
+  { id: 'engineer', name: 'Engineer', ability: 'Turret', short: 'TURRET', cd: 3, hex: '#6ec8ff',
+    blurb: 'Builds a turret and gives it a gun.',
+    kit: ['F - place your turret, or call it to a new spot', 'Press E on the turret to bind the gun you are holding to it', '+6 armor'],
+    stats: [['Armor', 6]] },
+  { id: 'sniper', name: 'Sniper', ability: 'Grapple', short: 'HOOK', cd: 3, hex: '#8fe08f',
+    blurb: 'High ground and head shots.',
+    kit: ['The only class with the grapple hook (F)', '+40% headshot damage', 'Aimed shots deal +15% damage'],
+    stats: [['HeadshotDamage', 0.4]] },
+  { id: 'bomber', name: 'Bomber', ability: 'Satchel Charge', short: 'SATCHEL', cd: 9, hex: '#ffa23a',
+    blurb: 'Everything is a blast radius.',
+    kit: ['Carries 6 grenades, starts with 4, and finds them more often', '+25% explosion radius', 'F - Satchel Charge: a heavy bomb, no grenade needed'],
+    stats: [['ExplosionRadius', 0.25]] },
+];
+export const classById = (id) => CLASSES.find((C) => C.id === id) || CLASSES[0];
+
+// ---- tag every upgrade once
+const GUN_STATS = ['Pierce', 'Multishot', 'Spread', 'MagSize', 'ReserveAmmo', 'AmmoSave', 'FireRate', 'ReloadSpeed', 'ExplosionRadius', 'Knockback',
+  'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'EchoShot', 'Ricochet', 'LastRounds', 'FirstShot', 'FullAuto', 'KillReload', 'SteadyAim', 'Shrapnel'];
+const GUN_TRIGGERS = ['OnHit', 'OnReload', 'OnCrit', 'OnHeadshot'];
+export const ALT_STATS = ['AltLauncher', 'AltGravity', 'AltRail', 'AltBuck'];
+const FIT = {
+  brawler: { stats: ['MaxHealth', 'Armor', 'Thorns', 'DashDamage', 'SlamDamage', 'Lifesteal', 'LowHealthDamage', 'HealthRegen'], trig: ['OnHurt'], fx: [], melee: true },
+  sniper: { stats: ['HeadshotDamage', 'CritChance', 'CritDamage', 'BossDamage', 'EliteDamage', 'GrappleCooldown', 'AirDamage', 'Pierce', 'SteadyAim', 'FirstShot', 'AltRail', 'Spread'], trig: ['OnGrapple', 'OnHeadshot', 'OnCrit'], fx: [] },
+  gunslinger: { stats: ['FireRate', 'ReloadSpeed', 'MagSize', 'AmmoSave', 'Damage', 'SpeedDamage', 'MoveSpeed', 'Multishot', 'FullAuto', 'EchoShot', 'KillReload', 'ActiveReload', 'LastRounds', 'Ricochet', 'AltBuck'], trig: ['OnReload'], fx: [] },
+  bomber: { stats: ['ExplosionRadius', 'Knockback', 'AltLauncher', 'AltGravity', 'Shrapnel'], trig: [], fx: ['Explode', 'Missile', 'Nova', 'Shockwave', 'Ignite'] },
+  engineer: { stats: ['ProcChance', 'ReserveAmmo', 'Armor', 'PickupRange'], trig: ['Periodic'], fx: ['Shield', 'Chain', 'Freeze'] },
+};
+for (const u of DATA.upgrades) {
+  const names = u.mods.map((m) => m[0]), melee = names.some((n) => n.startsWith('Melee'));
+  u.cls = (CLASSES.find((C) => C.name === u.insp) || {}).id || null;           // class perk: only that class is offered it
+  u.gun = !u.cls && !melee && u.rarity !== 'Cursed' && (names.some((n) => GUN_STATS.includes(n)) || GUN_TRIGGERS.includes(u.trigger));
+  u.alt = names.find((n) => ALT_STATS.includes(n)) || null;
+  u.grapple = names.includes('GrappleCooldown') || u.trigger === 'OnGrapple';
+  u.fits = [];
+  for (const id in FIT) { const F = FIT[id]; if ((F.melee && melee) || names.some((n) => F.stats.includes(n)) || F.trig.includes(u.trigger) || (u.fx && F.fx.includes(u.fx))) u.fits.push(id); }
+}
+// how likely this class is to be offered this upgrade, relative to a neutral one
+export function classWeight(u, cls) {
+  if (u.cls) return u.cls === cls ? 2.2 : 0;
+  if (u.grapple && cls !== 'sniper') return 0;          // nobody else has a hook to improve
+  if (u.fits.includes(cls)) return 2.5;
+  return u.fits.length ? 0.4 : 1;
+}
+const pick = (pool) => { let t = 0; for (const p of pool) t += p[1]; let r = Math.random() * t; for (const p of pool) { r -= p[1]; if (r <= 0) return p[0]; } return pool.length ? pool[pool.length - 1][0] : -1; };
+
+// a buff of this rarity (falls to the tier below when that tier is spent)
+export function rollBuff(rarity, stacks, cls) {
+  for (let tier = rarity; tier >= 0; tier--) {
+    const pool = [];
+    DATA.upgrades.forEach((u, i) => { if (u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls); if (w > 0) pool.push([i, w]); });
+    if (pool.length) return pick(pool);
+  }
+  return -1;
+}
+// a modifier for one gun. `mods` is what that gun already has, W its weapon definition.
+const RW = [12, 30, 28, 16, 7];   // the bench favours modifiers that change how a gun plays over plain numbers
+export function rollGunMod(mods, W, cls, luck = 0) {
+  const have = {}; for (const m of mods) have[m] = (have[m] || 0) + 1;
+  const hasAlt = mods.some((m) => DATA.upgrades[m].alt), cont = W.mode === 'Beam' || W.mode === 'Flame';
+  const pool = [];
+  DATA.upgrades.forEach((u, i) => {
+    if (!u.gun || (have[i] || 0) >= (u.rarity === 'Common' ? 1 : Math.min(u.stacks, 2))) return;
+    if (u.alt && hasAlt) return;
+    const names = u.mods.map((m) => m[0]);
+    if (names.includes('FullAuto') && W.auto) return;
+    if (cont && names.some((n) => ['EchoShot', 'FullAuto', 'FirstShot', 'LastRounds', 'SteadyAim', 'Ricochet', 'Multishot', 'ActiveReload'].includes(n))) return;
+    if (names.includes('ExplosionRadius') && !(W.splash > 0)) return;
+    const ri = rarityIndex(u.rarity);
+    pool.push([i, RW[ri] * (1 + 0.04 * luck * ri) * Math.max(0.4, classWeight(u, cls))]);
+  });
+  return pool.length ? pick(pool) : -1;
+}
+export const RARITY_NAME = RARITIES;

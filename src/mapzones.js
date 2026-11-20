@@ -529,135 +529,35 @@ export function BuildPlaza(M, GM) {
 	SpawnAt(V(1200., 1300., 0.), 4);
 }
 
-export function BuildCasino(M, GM) {
+export function BuildPlazaCentre(M, GM) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Blocker, Ramp, Floor, Wall, Lamp, Sign, Building, StreetLamp, Barrel, Crate, Cactus, PalmTree, DeadTree, Car, Wagon, Headstone, Boxcar, Mesa, JumpPad, Billboard, Station, WallBuy, Door, SpawnAt, AddInstance, Foliage, SurfaceDecal, RotFromXY, Arch, Wedge, Pyramid, Oct, Ring, Mausoleum, Fountain, GasPump, BoxYaw } = M;
-	// Shell: X[-900,900] Y[-1100,1100], entrance on the -X wall.
-	let H = 900.;
-	let NoGap = [];
-	let Entrance = [];
-	Entrance.push(V2(840., 1360.));
-	Wall(V2(-900., -1100.), V2(-900., 1100.), H, 80., Pal.CasinoRed, Entrance, false);
-	Wall(V2(900., -1100.), V2(900., 1100.), H, 80., Pal.CasinoRed, NoGap, false);
-	Wall(V2(-900., -1100.), V2(900., -1100.), H, 80., Pal.CasinoRed, NoGap, false);
-	Wall(V2(-900., 1100.), V2(900., 1100.), H, 80., Pal.CasinoRed, NoGap, false);
-	Box(V(-900., 0., 660.), V(80., 520., 480.), Pal.CasinoRed, true, false); // lintel
-	Box(V(0., 0., H + 20.), V(1900., 2300., 40.), Pal.CasinoBlack, true, false);
-	Box(V(0., 0., 3.), V(1720., 2120., 4.), Pal.Carpet, false, false);
-	for (let i = -3; i <= 3; ++i)
-	{
-		Box(V(i * 240., 0., 6.), V(30., 2100., 2.), Pal.Gold, false, false);
-	}
-	// Gold trim bands and marquee bulbs on the facade
-	Box(V(-948., 0., 860.), V(16., 2300., 40.), Pal.Gold, true, false);
-	Box(V(-948., 0., 440.), V(16., 2300., 20.), Pal.Gold, false, false);
-	for (let i = 0; i < 22; ++i)
-	{
-		Glow(V(-960., -1050. + i * 100., 820.), V(22.), Pal.Bulb, 2);
-	}
-	for (let i = 0; i < 4; ++i)
-	{
-		let Y = (i < 2 ? -1. : 1.) * (i % 2 ? 800. : 450.);
-		Cyl(V(-980., Y, 450.), 80., 900., Pal.Gold, true, true);
-	}
-	// Entrance canopy (walkable)
-	Box(V(-1080., 0., 440.), V(360., 900., 30.), Pal.CasinoBlack, true, false);
-	Glow(V(-1080., 0., 422.), V(320., 860., 4.), Pal.Bulb);
-	Box(V(-1240., -420., 210.), V(30., 30., 420.), Pal.Gold);
-	Box(V(-1240., 420., 210.), V(30., 30., 420.), Pal.Gold);
-	Sign(V(-1262., 0., 470.), 180., "ALWAYS OPEN", FC(255, 220, 140), 34.);
-
-	// Rooftop sign, dice and card
-	Box(V(-850., 0., 1120.), V(40., 1800., 360.), Pal.CasinoBlack, true, false);
-	Glow(V(-874., 0., 1290.), V(4., 1760., 14.), Pal.Neon);
-	Glow(V(-874., 0., 950.), V(4., 1760., 14.), Pal.Neon);
-	Sign(V(-878., 0., 1150.), 180., "THE LUCKY STIFF", FC(255, 200, 70), 190.);
-	Sign(V(-878., 0., 1010.), 180., "CASINO  -  HOTEL  -  CREMATORIUM", FC(255, 120, 170), 50.);
-	BoxRot(V(300., -500., 1080.), V(260.), Pal.Cream, R(20., 30., 10.), true);
-	BoxRot(V(500., -150., 1060.), V(220.), Pal.CasinoRed, R(-15., 70., 25.), true);
-	Glow(V(300., -500., 1080.).add(R(20., 30., 10.).RotateVector(V(132., 0, 0))), V(4., 60., 60.), 0x111111, 0, R(20., 30., 10.));
-	Box(V(300., 600., 1150.), V(20., 380., 500.), Pal.Cream, true, false, -20.);
-	BoxRot(V(300., 600., 1150.).add(R(0., -20., 0.).RotateVector(V(-12., 0, 0))), V(4., 140., 140.), Pal.CasinoRed, R(0., -20., 45.), false);
-	Lamp(V(-1100., 0., 1150.), LC(1., 0.45, 0.65), 50., 2400., false);
-	Lamp(V(-1300., 0., 300.), LC(1., 0.75, 0.4), 20., 1400., false);
-
-	// Interior lights
-	Lamp(V(-400., -500., 700.), LC(1., 0.6, 0.4), 14., 1300., true);
-	Lamp(V(-400., 500., 700.), LC(1., 0.4, 0.6), 14., 1300., true);
-	Lamp(V(400., -500., 700.), LC(0.6, 1., 0.6), 14., 1300., true);
-	Lamp(V(400., 500., 700.), LC(1., 0.85, 0.4), 14., 1300., true);
-	Cyl(V(0., 0., 760.), 500., 20., Pal.Gold, false, false);
-	for (let i = 0; i < 12; ++i)
-	{
-		let D = R(0., i * 30., 0.).Vector();
-		Glow(V(0., 0., 700.).add(D.mul(230.)), V(18., 18., 80.), 0xFFF2CC, 1);
-	}
-
-	// ---- interior dressing: patterned carpet, panelled walls, neon, a tiered chandelier, card tables and signage
-	{
-		const Wood = 0x3A2218, Velvet = 0x4A0A1A, Plum = 0x3A1030, Teal = 0x2FD8C8;
-		// carpet: a harlequin of diamonds inside a gold border, with a medallion in the middle
-		for (let i = -5; i <= 5; ++i) for (let j = -6; j <= 6; ++j)
-		{
-			if (((i + j) & 1) == 0) Box(V(i * 150., j * 150., 5.), V(106., 106., 2.), ((i * 3 + j) & 2) ? Plum : Velvet, false, false, 45.);
-		}
-		for (const s of [-1, 1]) { Box(V(s * 840., 0., 7.), V(14., 2080., 3.), Pal.Gold, false, false); Box(V(0., s * 1040., 7.), V(1690., 14., 3.), Pal.Gold, false, false); }
-		Cyl(V(120., 0., 7.), 520., 3., Pal.Gold, false, false); Cyl(V(120., 0., 8.), 480., 3., Pal.CasinoBlack, false, false); Cyl(V(120., 0., 9.), 300., 3., Pal.CasinoRed, false, false);
-		for (let i = 0; i < 8; ++i) { const D = R(0., i * 45., 0.).Vector(); Box(V(120., 0., 10.).add(D.mul(195.)), V(120., 26., 2.), Pal.Gold, false, false, i * 45.); }
-		// walls: dark wood wainscot, gold rails, padded panels, and a line of marquee bulbs under the ceiling
-		for (const s of [-1, 1])
-		{
-			// the entrance is in the -X wall (Y -260..260): the wainscot stops either side of it
-			if (s > 0) { Box(V(s * 852., 0., 110.), V(16., 2100., 220.), Wood, false, false); Box(V(s * 850., 0., 226.), V(22., 2100., 14.), Pal.Gold, false, false); }
-			else for (const e of [-1, 1]) { Box(V(s * 852., e * 665., 110.), V(16., 770., 220.), Wood, false, false); Box(V(s * 850., e * 665., 226.), V(22., 770., 14.), Pal.Gold, false, false); }
-			Box(V(0., s * 1052., 110.), V(1700., 16., 220.), Wood, false, false); Box(V(0., s * 1050., 226.), V(1700., 22., 14.), Pal.Gold, false, false);
-			for (let k = -4; k <= 4; ++k) { if (s < 0 && Math.abs(k) <= 1) continue; Box(V(s * 853., k * 220., 520.), V(10., 170., 440.), Velvet, false, false); Box(V(s * 851., k * 220., 520.), V(8., 186., 456.), Pal.Gold, false, false); }
-			for (let k = -3; k <= 3; ++k) { Box(V(k * 220., s * 1053., 520.), V(170., 10., 440.), Velvet, false, false); Box(V(k * 220., s * 1051., 520.), V(186., 8., 456.), Pal.Gold, false, false); }
-			for (let k = 0; k < 21; ++k) { Glow(V(s * 846., -1000. + k * 100., 800.), V(18.), Pal.Bulb, 2); if (k < 17) Glow(V(-800. + k * 100., s * 1046., 800.), V(18.), Pal.Bulb, 2); }
-			Glow(V(s * 848., 0., 850.), V(6., 2080., 10.), s > 0 ? Pal.Neon : Teal, 2); Glow(V(0., s * 1048., 850.), V(1680., 6., 10.), s > 0 ? Teal : Pal.Neon, 2);
-		}
-		// ceiling: coffers and a three-tier chandelier
-		for (let k = -3; k <= 3; ++k) { Box(V(k * 260., 0., 868.), V(40., 2100., 40.), Wood, false, false); Box(V(0., k * 320., 874.), V(1700., 40., 30.), Wood, false, false); }
-		for (let t = 0; t < 3; ++t)
-		{
-			const r = 380. - t * 120., z = 720. - t * 90.;
-			Cyl(V(120., 0., z), r * 2., 14., Pal.Gold, false, false); Cyl(V(120., 0., z - 2.), r * 2. - 40., 16., Pal.CasinoBlack, false, false);
-			for (let k = 0; k < 14 - t * 3; ++k) { const D = R(0., k * 360. / (14 - t * 3), 0.).Vector(); Glow(V(120., 0., z - 34.).add(D.mul(r - 14.)), V(16., 16., 60.), 0xFFF2CC, 2); Glow(V(120., 0., z - 76.).add(D.mul(r - 14.)), V(12.), Teal, 1); }
-		}
-		Box(V(120., 0., 810.), V(10., 10., 160.), Pal.Gold, false, false); Glow(V(120., 0., 500.), V(60.), 0xFFE9A8, 3);
-		Lamp(V(120., 0., 560.), LC(1., 0.8, 0.5), 18., 1500., false);
-		// two card tables where the blackjack table stood: felt, a wood rail, stools, chips and a fanned hand
-		for (const ty of [-260., 260.])
-		{
-			const T = V(120., ty, 0.);
-			Cyl(T.add(V(0, 0, 45.)), 60., 90., Wood, true, true); Cyl(T.add(V(0, 0, 96.)), 300., 14., Wood, true, false); Cyl(T.add(V(0, 0, 104.)), 268., 6., Pal.Felt, false, false);
-			for (let k = 0; k < 5; ++k) { const D = R(0., k * 72. + 20., 0.).Vector(); Cyl(T.add(D.mul(210.)).add(V(0, 0, 30.)), 20., 60., Pal.Gold, false, false); Cyl(T.add(D.mul(210.)).add(V(0, 0, 66.)), 70., 14., Pal.CasinoRed, false, false); }
-			for (let k = 0; k < 4; ++k) { const D = R(0., k * 90. + 45., 0.).Vector(); for (let c = 0; c < 3 + (k % 3); ++c) Cyl(T.add(D.mul(90.)).add(V(0, 0, 110. + c * 6.)), 26., 5., [0xc8211b, 0xf2e8d5, 0x1f8a4c, 0x2a2a3c][(k + c) % 4], false, false); }
-			for (let c = -2; c <= 2; ++c) Box(T.add(V(-150., c * 22., 109.)), V(44., 30., 1.5), 0xfff4d8, false, false, c * 12.);
-		}
-		// velvet ropes at the door, and potted palms in the corners
-		for (const s of [-1, 1]) { for (const x of [-760., -560.]) { Cyl(V(x, s * 330., 55.), 16., 110., Pal.Gold, false, false); Ball(V(x, s * 330., 116.), 26., Pal.Gold, false); } Box(V(-660., s * 330., 96.), V(200., 10., 12.), Pal.CasinoRed, false, false); }
-		for (const [px, py] of [[-800., -1000.], [-800., 1000.], [800., -1000.], [800., 1000.]]) { Cyl(V(px, py, 40.), 90., 80., Pal.Gold, false, false); for (let k = 0; k < 6; ++k) Box(V(px, py, 170.), V(18., 150., 150.), Pal.Leaf, false, false, k * 30.); }
-		// what is where, in neon
-		Sign(V(50., 1040., 470.), -90., "SLOTS", FC(255, 205, 90), 80.);
-		Lamp(V(50., 800., 420.), LC(1., 0.7, 0.3), 10., 900., false); Lamp(V(-100., -800., 420.), LC(1., 0.4, 0.6), 10., 900., false);
-	}
-
-	GM.CasinoBounds = BOX(V(-900., -1100., -200.), V(900., 1100., 1200.));
-	GM.CasinoOutside = V(-1550., 0., 120.);
-
-	// Casino doors (opened by the game mode on casino nights)
-	Station('Door', V(-900., 0., 0.), 0., -1, -1, "The Lucky Stiff", V(70., 520., 420.));
-
-	// Stations
-	Station('Slots', V(-300., 950., 0.), -90., 750, -1, "Fortune Slots");
-	Station('Slots', V(50., 950., 0.), -90., 750, -1, "Fortune Slots");
-	Station('Slots', V(400., 950., 0.), -90., 750, -1, "Fortune Slots");
-	Station('ArmsRoulette', V(-100., -990., 0.), 90., 950, -1, "Arms Roulette");
-	Station('UpgradeCounter', V(780., -450., 0.), 180., 0, -1, "Pawn Counter");
-	Station('StatBooth', V(780., 450., 0.), 180., 0, -1, "Tonic Bar");
-	Station('HighRoller', V(550., -1040., 0.), 90., 5000, -1, "Workbench");
-	Station('ExitBell', V(-720., 600., 0.), 0., 0, -1, "Last Call");
-	Station('AmmoCrate', V(-720., -600., 0.), 0., 0, -1, "Ammo");
+  // The casino is gone. The square is open ground around a dead clock tower: the workbench and an ammo crate
+  // stand at its foot, and the mystery box starts here before it wanders.
+  const Stone = 0x4a4750, StoneD = 0x2e2c34, Iron = 0x1e1e24;
+  Cyl(V(0., 0., 4.), 1500., 8., 0x5a5560, false, false); Cyl(V(0., 0., 7.), 1380., 8., 0x45424c, false, false);
+  for (let k = 0; k < 12; ++k) { const a = k * 30 * Math.PI / 180; Box(V(Math.cos(a) * 610., Math.sin(a) * 610., 9.), V(240., 14., 6.), StoneD, false, false, k * 30); }
+  // the tower: a square shaft, buttressed, its clock stopped and its crown broken off
+  Box(V(0., 0., 30.), V(520., 520., 60.), StoneD, true, true);
+  Box(V(0., 0., 760.), V(340., 340., 1400.), Stone, true, true);
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { Box(V(sx * 190., sy * 190., 420.), V(90., 90., 840.), StoneD, true, false); Box(V(sx * 190., sy * 190., 860.), V(70., 70., 60.), Iron, false, false); }
+  Box(V(0., 0., 1470.), V(400., 400., 30.), StoneD, true, false);
+  BoxRot(V(60., -40., 1560.), V(260., 300., 180.), Stone, R(0., 14., 9.), true);
+  BoxRot(V(-120., 90., 1620.), V(120., 140., 220.), StoneD, R(8., -20., -14.), false);
+  for (const [nx, ny, yaw] of [[1, 0, 0], [-1, 0, 180], [0, 1, 90], [0, -1, -90]]) {
+    Cyl(V(nx * 174., ny * 174., 1180.), 230., 8., 0xb8ad94, false, false, R(nx ? 90. : 0., 0., ny ? 90. : 0.));
+    Cyl(V(nx * 178., ny * 178., 1180.), 250., 4., Iron, false, false, R(nx ? 90. : 0., 0., ny ? 90. : 0.));
+    Box(V(nx * 181., ny * 181., 1215.), nx ? V(4., 8., 80.) : V(8., 4., 80.), Iron, false, false);
+    Box(V(nx * 181. + (nx ? 0 : 24.), ny * 181. + (ny ? 0 : 24.), 1190.), nx ? V(4., 60., 8.) : V(60., 4., 8.), Iron, false, false);
+    Glow(V(nx * 176., ny * 176., 700.), nx ? V(6., 60., 140.) : V(60., 6., 140.), 0xff9a4a, 0);   // a lit slit window on each face
+  }
+  // a gibbet arm and its chain, because this town did its hanging here
+  Box(V(330., 0., 1000.), V(360., 26., 26.), 0x3a2a22, true, false); Box(V(200., 0., 900.), V(26., 26., 220.), 0x3a2a22, false, false, 0.);
+  Box(V(480., 0., 860.), V(6., 6., 260.), Iron, false, false); Cyl(V(480., 0., 700.), 70., 90., Iron, false, false);
+  for (const [x, y] of [[700., 700.], [-700., 700.], [700., -700.], [-700., -700.]]) StreetLamp(V(x, y, 0.), 0.);
+  for (const [x, y, s] of [[-540., -220., 1.], [-600., -60., 0.8], [520., 420., 0.9]]) Headstone(V(x, y, 0.), s * 40.);
+  DeadTree(V(-820., 520., 0.), 520.); DeadTree(V(860., -480., 0.), 440.);
+  Station('HighRoller', V(-40., -620., 0.), -90., 2500, -1, "Workbench");
+  Station('AmmoCrate', V(-620., 60., 0.), 180., 250, -1, "Ammo");
 }
 
 export function BuildMesa(M, GM) {

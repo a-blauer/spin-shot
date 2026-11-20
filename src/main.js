@@ -1,4 +1,5 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
+import { CLASSES } from './classes.js';
 import { DIFFS, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
@@ -285,8 +286,9 @@ function renderLobby() {
   for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : esc2(T.text)}</span></div>`; }
   h += '</section>';
   // map
+  h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`).join('') + '</section>';
   h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
-  h += '<section><h3>MAP</h3><div class="lbpick sel"><b>Deadwater Gulch</b><span>Motel, main street and the Lucky Stiff casino</span></div><div class="lbpick locked"><b>More maps</b><span>Coming later</span></div></section></div>';
+  h += '<section><h3>MAP</h3><div class="lbpick sel"><b>Deadwater Gulch</b><span>A dead town, its outskirts and the Badlands beyond</span></div><div class="lbpick locked"><b>More maps</b><span>Coming later</span></div></section></div>';
   h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : '<button id="lbstart" class="lbstart">START GAME</button>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
@@ -298,12 +300,14 @@ function renderLobby() {
   if (q('#lbjoin')) q('#lbjoin').onclick = async (e) => { e.stopPropagation(); if (lobbyBusy) return; lobbyBusy = true; const n = saveName(), code = q('#lcode').value; lobbyMsg = 'Joining...'; renderLobby(); try { await Net.join(code, n); lobbyMsg = ''; } catch (err) { lobbyMsg = err && err.message === 'code' ? 'Enter the lobby code your friend sees.' : 'No lobby found with that code.'; } lobbyBusy = false; renderLobby(); };
   if (q('#lbleave')) q('#lbleave').onclick = (e) => { e.stopPropagation(); Net.leave(); lobbyMsg = ''; renderLobby(); };
   q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
+  lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 function beginRun() {
   if (Net.role !== 'client') setDifficulty(Meta.difficulty());
+  if (game.round === 0) game.player.setClass(Meta.cls());
   lobby.style.display = 'none'; locker.style.display = 'none';
   // apply the chosen starting weapon to a fresh run
   const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
@@ -396,7 +400,6 @@ if (TOUCH) {
   btn('taim', 'AIM', '', () => { touchAim = !touchAim; });
   btn('treload', 'RELOAD', 'sm', () => { edges.reload = 1; });
   btn('tuse', 'USE', 'sm', () => { edges.interact = 1; });
-  btn('tbar', 'BARR', 'sm', () => { edges.barricade = 1; });
   btn('tmelee', 'MELEE', '', () => { edges.melee = 1; });
   btn('tgren', 'NADE', 'sm', () => { edges.grenade = 1; });
   btn('thook', 'HOOK', 'sm', () => { edges.grapple = 1; });

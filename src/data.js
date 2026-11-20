@@ -2,6 +2,9 @@
 import content from './content.json';
 
 export const DATA = content;
+// Money is kept in tenths so small payouts still add up; everything the player sees is shown divided by ten.
+export const cash = (x) => Math.max(0, Math.round((+x || 0) / 10)).toLocaleString();
+export const cost10 = (x) => Math.max(10, Math.round(x / 10) * 10);   // prices are whole numbers of what is shown
 // economy guard: common stat sticks cap at 5 copies, uncommons at 4
 for (const u of DATA.upgrades) { if (u.rarity === 'Common') u.stacks = Math.min(u.stacks, 5); else if (u.rarity === 'Uncommon') u.stacks = Math.min(u.stacks, 4); }
 // Every upgrade belongs to a suit. Owning 3 / 6 / 9 different upgrades of one suit gives that suit's set bonus.
@@ -25,7 +28,10 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   'WallRunTime', 'SlideBoost', 'AirControl', 'Damage', 'FireRate', 'ReloadSpeed', 'MagSize', 'ReserveAmmo', 'CritChance', 'CritDamage', 'HeadshotDamage',
   'Pierce', 'Multishot', 'Spread', 'ExplosionRadius', 'Knockback', 'AirDamage', 'SpeedDamage', 'SlideDamage', 'LowHealthDamage', 'BossDamage', 'EliteDamage',
   'MoneyGain', 'LuckFind', 'CasinoDiscount', 'Interest', 'Lifesteal', 'Thorns', 'SlamDamage', 'ProcChance', 'PickupRange', 'DashDamage', 'Revives', 'AmmoSave',
-  'MeleeDamage', 'MeleeSpeed', 'MeleeRange', 'MeleeKnock', 'MeleeLifesteal', 'MeleeCleave', 'MeleeArc', 'MeleeBleed', 'MeleeMoney', 'MeleeCrit', 'MeleeBurn', 'MeleeShock', 'MeleeAmmo', 'MeleeDashReset', 'MeleeGuard', 'MeleeExecute', 'MeleeFrenzy'];
+  'MeleeDamage', 'MeleeSpeed', 'MeleeRange', 'MeleeKnock', 'MeleeLifesteal', 'MeleeCleave', 'MeleeArc', 'MeleeBleed', 'MeleeMoney', 'MeleeCrit', 'MeleeBurn', 'MeleeShock', 'MeleeAmmo', 'MeleeDashReset', 'MeleeGuard', 'MeleeExecute', 'MeleeFrenzy',
+  // gun modifiers (workbench) and class perks
+  'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'EchoShot', 'Ricochet', 'LastRounds', 'FirstShot', 'FullAuto', 'KillReload', 'SteadyAim', 'Shrapnel',
+  'AbilityCooldown', 'AbilityPower', 'AbilityDuration', 'MeleeAbilityReset', 'RushGuard', 'TurretRate', 'TurretDamage', 'TurretCount', 'TurretShock', 'TurretAura', 'DeadeyeExtend', 'SwapReload', 'HeadMark', 'AdsCrit', 'GrenadeCap', 'BlastChain'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = ['Shambler', 'Sprinter', 'Crawler', 'Bloater', 'Spitter', 'Leaper', 'Wisp', 'Brute', 'Screamer', 'Burrower', 'Gilded', 'Riot', 'Priest'];
@@ -95,9 +101,9 @@ export const effRound = (r) => 1 + (Math.max(1, r) - 1) * DF.slope;
 export const zombieHealth = (r0) => { const r = effRound(r0); return 0.6 * DF.hp * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
 const oldCount = (x) => 1.05 * (x <= 5 ? 6 + (x - 1) * 4.5 : 24 + (x - 5) * 5);
 // kill pay shrinks as the horde grows so a round is worth about what it was
-export const payScale = (r) => Math.max(0.3, Math.min(1.7, oldCount(1 + (Math.max(1, r) - 1) * 1.7) / zombieCount(r)));   // a round pays the same on every difficulty: fewer enemies, more each
-export const zombieCount = (r) => Math.round((8 + r * 6 + r * r * 1.1) * DF.count);   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
-export const maxAlive = (r) => Math.max(10, Math.round(Math.min(64, 16 + r * 3.4) * DF.alive));
+export const payScale = (r) => Math.max(0.3, Math.min(2.2, oldCount(1 + (Math.max(1, r) - 1) * 1.25) / zombieCount(r)));   // what a round is worth climbs slowly, and the same on every difficulty   // a round pays the same on every difficulty: fewer enemies, more each
+export const zombieCount = (r) => Math.round((9 + r * 2 + 0.35 * Math.pow(r, 2.35)) * DF.count);   // a slow start: 11 in round 1, 34 by round 5, 107 by 10, 242 in round 15 (Nightmare)   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
+export const maxAlive = (r) => Math.max(8, Math.round(Math.min(64, 11 + r * 3.5) * DF.alive));
 export const rarityPrice = (r) => [1000, 2000, 3500, 6000, 10000, 2500][r] || 1000;
 
 // colour helpers: content colours are sRGB hex; the renderer works in sRGB directly

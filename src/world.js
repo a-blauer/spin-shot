@@ -616,7 +616,7 @@ export class World {
     this.scene.add(I.group);
     if (type === 'Door') {
       this.doors.push(I);
-    } else if (type !== 'WallBuy' && type !== 'ExitBell') {
+    } else if (type !== 'WallBuy' && type !== 'ExitBell' && type !== 'MysteryBox' && type !== 'Chest') {
       const ext = (type === 'UpgradeCounter' || type === 'StatBooth') ? V(60, 170, 120) : V(60, 70, 120);
       this.game.NavBlockBox({ min: loc.sub(ext), max: loc.add(ext) }, 1);
       I.solid = true;
@@ -651,7 +651,7 @@ export class World {
     this.AddZone('Main Street', V2(-6000, -2000), V2(-2000, 6000));
     this.AddZone('Chapel Hill', V2(-2000, -6000), V2(2000, -2000));
     this.AddZone('Rail Yard', V2(-2000, 2000), V2(2000, 6000));
-    this.AddZone('Casino Plaza', V2(-2000, -2000), V2(2000, 2000));
+    this.AddZone('Clocktower Square', V2(-2000, -2000), V2(2000, 2000));
     this.AddZone('Boneyard Mesa', V2(2000, -6000), V2(6000, 6000));
     GM.casinoZone = this.AddZone('The Lucky Stiff', V2(-900, -1100), V2(900, 1100), false);
     GM.zones[GM.casinoZone].unlocked = true;
@@ -685,13 +685,46 @@ export class World {
     Z.BuildChapel(M, gmShim);
     Z.BuildRailYard(M, gmShim);
     Z.BuildPlaza(M, gmShim);
-    Z.BuildCasino(M, gmShim);
+    Z.BuildPlazaCentre(M, gmShim);
     Z.BuildMesa(M, gmShim);
     Z.BuildOutskirts(M, gmShim);
     Z.BuildBadlands(M, gmShim);
     Z.BuildDoors(M, gmShim);
     Z.BuildVault(M, gmShim);
+    this.placeLoot();
     this.finish();
+  }
+
+  // Chests and mystery-box spots. Each sits on open ground beside something solid, clear of doors and spawn pits.
+  // The spread is fixed (same seed every run): cheap chests in town, better ones further out, the best on the
+  // Badlands' corner towers where only the skyway reaches.
+  placeLoot() {
+    const GM = this.game, taken = [];
+    const free = (x, y, pad) => { const [cx, cy] = GM.cellOf(x, y); for (let a = -pad; a <= pad; a++) for (let b = -pad; b <= pad; b++) if (!GM.navFree(cx + a, cy + b)) return false; return true; };
+    const wallDir = (x, y) => { const [cx, cy] = GM.cellOf(x, y); let sx = 0, sy = 0, n = 0; for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) if (!GM.navFree(cx + a, cy + b)) { sx += a; sy += b; n++; } return n ? [sx, sy, n] : null; };
+    const clear = (x, y, d) => taken.every((t) => Math.hypot(t[0] - x, t[1] - y) > d) && GM.spawnPoints.every((S) => Math.hypot(S.pos.x - x, S.pos.z - y) > 320) && GM.interactables.every((I) => Math.hypot(I.pos.x - x, I.pos.z - y) > 520);
+    const find = (zi, ringOnly, spacing) => {
+      const Z = GM.zones[zi];
+      for (let tries = 0; tries < 600; tries++) {
+        const x = FMath.FRandRange(Z.min.X + 300, Z.max.X - 300), y = FMath.FRandRange(Z.min.Y + 300, Z.max.Y - 300);
+        if (ringOnly && Math.max(Math.abs(x), Math.abs(y)) < 11000) continue;
+        if (GM.zoneAt({ x, y: 0, z: y }) !== zi) continue;
+        if (!free(x, y, 1)) continue;
+        const wd = wallDir(x, y); if (!wd || wd[2] < 4) continue;                     // wants something at its back
+        if (!clear(x, y, spacing)) continue;
+        taken.push([x, y]);
+        return [x, y, Math.atan2(-wd[1], -wd[0]) * 180 / Math.PI];                  // face away from the wall
+      }
+      return null;
+    };
+    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); if (s) this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest'); };
+    const PLAN = { 0: [0, 0], 1: [0, 1], 2: [0, 1], 3: [0, 1], 4: [0, 0], 5: [0, 1], 7: [1, 1, 2], 8: [1, 1, 2], 9: [1, 2, 2], 10: [1, 2, 2], 11: [2, 2, 2, 2] };
+    for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, +zi === 11);
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) this.Station('Chest', V(sx * 12800 - sx * 180, sy * 12800 + sy * 180, 636), sx > 0 ? 180 : 0, 0, 3, 'Chest');   // reliquaries on the corner towers
+    // where the mystery box can turn up: one spot per district, starting in the square
+    GM.boxSpots = [{ pos: V(60, 640, 0).to3(), yaw: 90, zone: 4 }];
+    for (const zi of [1, 2, 3, 5, 7, 8, 9, 10]) { const s = find(zi, false, 900); if (s) GM.boxSpots.push({ pos: V(s[0], s[1], 0).to3(), yaw: s[2], zone: zi }); }
+    GM.box = this.Station('MysteryBox', V(60, 640, 0), 90, 950, -1, 'Mystery Box');
   }
 
   finish() {

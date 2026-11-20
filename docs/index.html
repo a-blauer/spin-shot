@@ -75,8 +75,9 @@ body:not(.ready) #title .menu { display: none; }
 #lobby .dim { color: #9a8f86; font-size: 15px; margin: 6px 0; } #lobby .msg { color: #ff9a4d; min-height: 20px; margin: 8px 0 0; font-size: 16px; }
 #lobby .lbchar { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; } #lobby .lbchar span { display: block; font-size: 12px; letter-spacing: 2px; color: #9a8f86; } #lobby .lbchar b { font-size: 17px; }
 #lobby .lbpick { padding: 7px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.06); border: 2px solid transparent; border-radius: 6px; cursor: pointer; } #lobby .lbpick b { display: block; } #lobby .lbpick span { font-size: 14px; color: #c9bfae; }
+#lobby .lbkit { margin: 6px 0 0 16px; padding: 0; font-size: 12px; color: #d9cfbd; } #lobby .lbkit li { margin: 2px 0; }
 #lobby .lbpick.sel { border-color: #ffcd5a; background: rgba(255,205,90,0.12); } #lobby .lbpick.locked { opacity: 0.5; cursor: default; } #lobby .lbpick.locked span { color: #ff9a4d; }
-#lobby .lbstart { display: block; width: 100%; font-size: 30px; padding: 12px; } #lobby .lbstart.wait { text-align: center; font-family: "Big Shoulders Display"; letter-spacing: 3px; color: #c9bfae; border: 2px dashed #6a4a52; box-sizing: border-box; animation: pulse 1.6s ease-in-out infinite; }
+#lobby .lbstart { display: block; width: 100%; font-size: 30px; padding: 12px; } #lobby .lbstart { position: sticky; bottom: -14px; z-index: 2; } #lobby .lbstart.wait { text-align: center; font-family: "Big Shoulders Display"; letter-spacing: 3px; color: #c9bfae; border: 2px dashed #6a4a52; box-sizing: border-box; animation: pulse 1.6s ease-in-out infinite; }
 #locker { z-index: 7 !important; }
 #coop { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(560px, 92vw); max-height: 86vh; overflow: auto; cursor: default; background: rgba(20,10,16,0.97); border: 2px solid #ffcd5a; padding: 18px 26px; z-index: 6; color: #f2e8d5; font-family: "Barlow Condensed", sans-serif; font-size: 19px; }
 #coop h2 { font-family: "Big Shoulders Display"; font-size: 40px; margin: 0 0 10px; color: #ffcd5a; letter-spacing: 2px; }
