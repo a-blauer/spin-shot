@@ -77,9 +77,15 @@ export function rollWeaponOfRarity(rarity, exA, exB) {
   }
   return pool.length ? pool[randInt(0, pool.length - 1)] : 1;
 }
-export const zombieHealth = (r) => (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9));
-export const zombieCount = (r) => Math.round(1.05 * (r <= 5 ? [6, 9, 13, 18, 24][Math.max(0, r - 1)] : Math.min(24 + (r - 5) * 5, 220)));   // 50% bigger hordes; kill pay is cut by a third to match
-export const maxAlive = (r) => Math.min(28, Math.max(13, 10 + r * 2));
+// The level is 15 rounds. Difficulty formulas were written for 25, so they read an effective round that covers the same climb.
+export const effRound = (r) => 1 + (Math.max(1, r) - 1) * 1.7;
+// hordes: far more bodies each round, each one 40% weaker than before
+export const zombieHealth = (r0) => { const r = effRound(r0); return 0.6 * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
+const oldCount = (x) => 1.05 * (x <= 5 ? 6 + (x - 1) * 4.5 : 24 + (x - 5) * 5);
+// kill pay shrinks as the horde grows so a round is worth about what it was
+export const payScale = (r) => Math.max(0.3, Math.min(1, oldCount(effRound(r)) / zombieCount(r)));
+export const zombieCount = (r) => Math.round(8 + r * 6 + r * r * 1.1);   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
+export const maxAlive = (r) => Math.round(Math.min(64, 16 + r * 3.4));
 export const rarityPrice = (r) => [1000, 2000, 3500, 6000, 10000, 2500][r] || 1000;
 
 // colour helpers: content colours are sRGB hex; the renderer works in sRGB directly

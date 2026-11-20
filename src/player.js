@@ -186,7 +186,7 @@ export class Player {
 
   // ------------------------------------------------------------------ economy
   priceMult() { return this.game.priceMult(); }
-  slotPrice() { return Math.round((750 + 250 * this.slotPulls) * this.priceMult()); }
+  slotPrice() { return Math.round((750 + 250 * this.slotPulls) * this.priceMult() * (1 + 0.18 * Math.max(0, this.game.round - 1)) / 50) * 50; }   // dearer every round
   tonicPrice(i) { const T = TONICS[i]; return Math.round((T.base + T.step * this.tonicLevels[i]) * this.priceMult()); }
   addMoney(amount, mult) {
     if (amount <= 0) return;
@@ -300,7 +300,7 @@ export class Player {
   }
   addPitch(deg) { this.pitch = clamp(this.pitch + deg * D2R, -89 * D2R, 89 * D2R); }
   addYaw(deg) { this.yaw -= deg * D2R; }
-  addShake(a) { this.shake = Math.min(this.shake + a, 2.5); }
+  addShake(a) { this.shake = Math.min(this.shake + a * 0.5, 1.6); }   // half the old strength
   addKick(p, y) { this.camKickVel.x += p * 22; this.camKickVel.y += y * 22; }
   inputDir() {
     const d = this.forward().multiplyScalar(this.inFwd).add(this.right().multiplyScalar(this.inRight));
@@ -944,7 +944,7 @@ export class Player {
     this.addKick(kick * 1.7 * ads, frandRange(-0.5, 0.5) * kick * ads);
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
     // every shot is felt: a shake, a punch of the view, a flash on the world in front of you, and a buzz on phones
-    this.addShake(continuous ? 0.03 : 0.1 + kick * 0.22);
+    this.addShake(continuous ? 0.02 : 0.06 + kick * 0.16);
     this.fovKick += continuous ? 0.15 : Math.min(4, 0.6 + kick * 1.1);
     if (!continuous) {
       const G = this.game, e = this.eye(), f = this.forward();
@@ -1622,7 +1622,7 @@ export class Player {
         footer = `[E] Page ${M.page + 1}/2   [Tab] Leave`;
         break;
       case 'Vault': {
-        title = 'WEAPON VAULT';
+        title = 'WORKBENCH';
         help.push({ kind: 'info', text: 'Raises the tier of the weapon you are holding (max 3). Each tier: +75% damage, a bigger magazine and faster fire. Tier 3 adds pierce. Gamble pays half price for a chance at the upgrade; if it fails the money is lost.', color: dim });
         const S = this.slot;
         if (S.def >= 0) {

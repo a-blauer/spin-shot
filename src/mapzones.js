@@ -3,7 +3,7 @@ import { V, V2, R, LC, FC, BOX, Pal, FMath } from './mapkit.js';
 export function BuildGroundAndBounds(M, GM) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Blocker, Ramp, Floor, Wall, Lamp, Sign, Building, StreetLamp, Barrel, Crate, Cactus, PalmTree, DeadTree, Car, Wagon, Headstone, Boxcar, Mesa, JumpPad, Billboard, Station, WallBuy, Door, SpawnAt, AddInstance, Foliage, SurfaceDecal, RotFromXY, Arch, Wedge, Pyramid, Oct, Ring, Mausoleum, Fountain, GasPump, BoxYaw } = M;
 	// Ground slab
-	Box(V(0., 0., -50.), V(12600., 12600., 100.), Pal.Sand, true, false);
+	Box(V(0., 0., -50.), V(21600., 21600., 100.), Pal.Sand, true, false);
 	Floor(V2(-6000., -6000.), V2(-2000., -2000.), 1., Pal.Concrete);
 	Floor(V2(-6000., -2000.), V2(-2000., 6000.), 1., Pal.Sidewalk);
 	Floor(V2(-4600., -2000.), V2(-3400., 6000.), 2., Pal.Asphalt);
@@ -34,18 +34,18 @@ export function BuildGroundAndBounds(M, GM) {
 		Floor(C.sub(V2(160., 120.)), C.add(V2(160., 120.)), 2., Pal.GrassDark);
 	}
 
-	// Outer perimeter: tall canyon walls
+	// Outer perimeter: tall canyon walls, now out past the outskirts
 	let NoGaps = [];
-	Wall(V2(-6100., -6100.), V2(-6100., 6100.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(6100., -6100.), V2(6100., 6100.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(-6100., -6100.), V2(6100., -6100.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(-6100., 6100.), V2(6100., 6100.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-10600., -10600.), V2(-10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(10600., -10600.), V2(10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-10600., -10600.), V2(10600., -10600.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-10600., 10600.), V2(10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
 	// Cliff tops: stacked rock strata resting on the canyon walls, stepping in as they rise
 	const CliffCols = [Pal.RockA, Pal.RockB, Pal.RedRock];
-	for (let i = 0; i < 26; ++i)
+	for (let i = 0; i < 44; ++i)
 	{
-		let T = -6200. + i * 500. + FMath.FRandRange(-60., 60.);
-		const sides = [[-6150., T, 1], [6150., T, 1], [T, -6150., 0], [T, 6150., 0]];
+		let T = -10700. + i * 500. + FMath.FRandRange(-60., 60.);
+		const sides = [[-10650., T, 1], [10650., T, 1], [T, -10650., 0], [T, 10650., 0]];
 		for (let s2 = 0; s2 < 4; ++s2)
 		{
 			const [cx, cy, alongY] = sides[s2];
@@ -78,6 +78,22 @@ export function BuildGroundAndBounds(M, GM) {
 	Wall(V2(2000., -6000.), V2(2000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);     // Chapel | Mesa
 	Wall(V2(2000., -2000.), V2(2000., 2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Plaza | Mesa
 	Wall(V2(2000., 2000.), V2(2000., 6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);       // Rail | Mesa
+	// Old town | outskirts (where the canyon wall used to be), one wall per pair of districts
+	const None = [];
+	Wall(V2(-6000., -6000.), V2(-6000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);   // Motel | Shanty Row
+	Wall(V2(-6000., -2000.), V2(-6000., 6000.), 520., 80., Pal.Adobe, Gap(3800., 4200.), true);    // Main | Shanty Row
+	Wall(V2(-6000., -6000.), V2(-2000., -6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);   // Motel | Stockyards
+	Wall(V2(-2000., -6000.), V2(2000., -6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);    // Chapel | Stockyards
+	Wall(V2(2000., -6000.), V2(6000., -6000.), 520., 80., Pal.Adobe, None, true);                  // Mesa | Stockyards
+	Wall(V2(6000., -6000.), V2(6000., 6000.), 520., 80., Pal.Adobe, Gap(5800., 6200.), true);      // Mesa | Refinery
+	Wall(V2(-6000., 6000.), V2(-2000., 6000.), 520., 80., Pal.Adobe, None, true);                  // Main | Ghost Rails
+	Wall(V2(-2000., 6000.), V2(2000., 6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Rail | Ghost Rails
+	Wall(V2(2000., 6000.), V2(6000., 6000.), 520., 80., Pal.Adobe, None, true);                    // Mesa | Ghost Rails
+	// between the outskirts districts
+	Wall(V2(-6000., -10500.), V2(-6000., -6000.), 520., 80., Pal.Adobe, Gap(2300., 2700.), true);  // Shanty Row | Stockyards
+	Wall(V2(6000., -6000.), V2(10500., -6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);    // Stockyards | Refinery
+	Wall(V2(6000., 6000.), V2(6000., 10500.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Refinery | Ghost Rails
+	Wall(V2(-10500., 6000.), V2(-6000., 6000.), 520., 80., Pal.Adobe, Gap(2300., 2700.), true);    // Ghost Rails | Shanty Row
 }
 
 export function BuildDoors(M, GM) {
@@ -91,6 +107,17 @@ export function BuildDoors(M, GM) {
 	Door(V(2000., -4000., 0.), 0., 1500, 2, 5);
 	Door(V(2000., 4000., 0.), 0., 1500, 3, 5);
 	Door(V(2000., 0., 0.), 0., 1500, 4, 5);
+	// outskirts
+	Door(V(-6000., -4000., 0.), 0., 1500, 0, 7);
+	Door(V(-6000., 2000., 0.), 0., 1750, 1, 7);
+	Door(V(-4000., -6000., 0.), 90., 1500, 0, 8);
+	Door(V(0., -6000., 0.), 90., 2000, 2, 8);
+	Door(V(6000., 0., 0.), 0., 2500, 5, 9);
+	Door(V(0., 6000., 0.), 90., 2000, 3, 10);
+	Door(V(-6000., -8000., 0.), 0., 2000, 7, 8);
+	Door(V(8000., -6000., 0.), 90., 2500, 8, 9);
+	Door(V(6000., 8000., 0.), 0., 2500, 9, 10);
+	Door(V(-8000., 6000., 0.), 90., 2000, 10, 7);
 }
 
 export function BuildMotel(M, GM) {
@@ -568,10 +595,9 @@ export function BuildCasino(M, GM) {
 	Station('Slots', V(50., 950., 0.), -90., 750, -1, "Fortune Slots");
 	Station('Slots', V(400., 950., 0.), -90., 750, -1, "Fortune Slots");
 	Station('ArmsRoulette', V(-100., -990., 0.), 90., 950, -1, "Arms Roulette");
-	Station('MoneyTable', V(150., 0., 0.), 0., 0, -1, "Double or Nothing");
 	Station('UpgradeCounter', V(780., -450., 0.), 180., 0, -1, "Pawn Counter");
 	Station('StatBooth', V(780., 450., 0.), 180., 0, -1, "Tonic Bar");
-	Station('HighRoller', V(550., -1040., 0.), 90., 5000, -1, "High Roller Vault");
+	Station('HighRoller', V(550., -1040., 0.), 90., 5000, -1, "Workbench");
 	Station('ExitBell', V(-720., 600., 0.), 0., 0, -1, "Last Call");
 	Station('AmmoCrate', V(-720., -600., 0.), 0., 0, -1, "Ammo");
 }
@@ -673,7 +699,7 @@ export function BuildMesa(M, GM) {
 
 // The vault: a round counting room far outside the town, reached only through the hatch that opens when the
 // Gravedigger dies. A roulette floor, a ring of columns, chip stacks and hanging lamps.
-export const VAULT = { X: 0, Y: 9800, R: 1500 };
+export const VAULT = { X: 0, Y: 16000, R: 1500 };
 export function BuildVault(M, GM) {
   const { Box, Glow, Cyl, Ball, Lamp, Sign } = M;
   const C = V(VAULT.X, VAULT.Y, 0.), R0 = VAULT.R;
@@ -713,4 +739,63 @@ export function BuildVault(M, GM) {
     Lamp(P.add(V(0, 0, -80.)), LC(1., 0.75, 0.35), 16., 1800., false);
   }
   Sign(C.add(V(-R0 + 60., 0, 620.)), 0., "THE HOUSE ALWAYS WINS", FC(255, 205, 90), 90.);
+}
+
+// The outskirts: four districts built for moving fast. Blocks of flat-roofed buildings at mixed heights with ramps up,
+// plank bridges between neighbours, and masts, water towers and cranes to grapple from. Laid out on a street grid so
+// there is always open ground between blocks.
+export function BuildOutskirts(M, GM) {
+  const { Box, Cyl, Glow, Floor, Ramp, StreetLamp, Barrel, Crate, Cactus, Car, SpawnAt, Lamp } = M;
+  const DOORS = [[-6000, -4000], [-6000, 2000], [-4000, -6000], [0, -6000], [6000, 0], [0, 6000], [-6000, -8000], [8000, -6000], [6000, 8000], [-8000, 6000]];
+  const ZONES = [
+    { z: 7, x0: -10500, y0: -10500, x1: -6000, y1: 6000, ground: 0x8a6f52, walls: [0x9c6b4a, 0x7a5a48, 0xb08a5a, 0x6a5a52], roof: 0x4a3a34, trim: 0x3a2a26 },
+    { z: 8, x0: -6000, y0: -10500, x1: 10500, y1: -6000, ground: 0x7a7a52, walls: [0x8a3a2a, 0xa8926a, 0x6a4a3a, 0x9a8a72], roof: 0x3a3430, trim: 0xc8b48a },
+    { z: 9, x0: 6000, y0: -6000, x1: 10500, y1: 10500, ground: 0x5a5a62, walls: [0x6a7078, 0x4a5058, 0x8a4a2a, 0x7a8088], roof: 0x2a2c32, trim: 0xe0ac2a },
+    { z: 10, x0: -10500, y0: 6000, x1: 6000, y1: 10500, ground: 0x6e6a5a, walls: [0x5a6a5a, 0x7a6a4a, 0x8a7a6a, 0x4a4a52], roof: 0x33302c, trim: 0x8a8a90 },
+  ];
+  const rnd = (a, b) => FMath.FRandRange(a, b), CELL = 1500;
+  for (const Z of ZONES) {
+    Floor(V2(Z.x0, Z.y0), V2(Z.x1, Z.y1), 1., Z.ground);
+    const nx = Math.floor((Z.x1 - Z.x0 - 600) / CELL), ny = Math.floor((Z.y1 - Z.y0 - 600) / CELL), ox = (Z.x1 - Z.x0 - nx * CELL) / 2, oy = (Z.y1 - Z.y0 - ny * CELL) / 2;
+    const grid = [], free = [];
+    for (let i = 0; i < nx; ++i) for (let j = 0; j < ny; ++j) {
+      const cx = Z.x0 + ox + (i + 0.5) * CELL, cy = Z.y0 + oy + (j + 0.5) * CELL;
+      if (DOORS.some(([dx, dy]) => Math.hypot(cx - dx, cy - dy) < 1300)) { free.push([cx, cy]); continue; }
+      const roll = rnd(0, 1);
+      if (roll < 0.6) {
+        const w = rnd(620, 1000), d = rnd(620, 1000), H = [380, 380, 560, 560, 820, 1100, 1500][Math.floor(rnd(0, 6.99))], col = Z.walls[Math.floor(rnd(0, 3.99))];
+        const bx = cx + rnd(-120, 120), by = cy + rnd(-120, 120);
+        Box(V(bx, by, H * 0.5), V(w, d, H), col);                                             // the building
+        Box(V(bx, by, H + 8.), V(w + 24., d + 24., 16.), Z.roof, true, false);                // roof slab
+        for (const s of [-1, 1]) { Box(V(bx + s * (w / 2 + 2.), by, H + 40.), V(16., d + 24., 50.), Z.trim, true, false); Box(V(bx, by + s * (d / 2 + 2.), H + 40.), V(w + 24., 16., 50.), Z.trim, true, false); }
+        for (let f = 1; f * 280 < H - 80; ++f) Box(V(bx, by, f * 280.), V(w + 6., d + 6., 12.), Z.trim, false, false);   // floor bands
+        const top = rnd(0, 1);
+        if (top < 0.3) { for (const [lx, ly] of [[-50, -50], [50, -50], [-50, 50], [50, 50]]) Box(V(bx + lx, by + ly, H + 110.), V(14., 14., 190.), Z.trim, true, false); Cyl(V(bx, by, H + 300.), 210., 200., 0x8a5a3a, true, false); Cyl(V(bx, by, H + 410.), 230., 20., Z.roof, true, false); }   // water tower
+        else if (top < 0.65) { Box(V(bx + w * 0.3, by - d * 0.3, H + 320.), V(18., 18., 620.), 0x2a2a30, true, false); Box(V(bx + w * 0.3, by - d * 0.3, H + 560.), V(160., 12., 12.), 0x2a2a30, true, false); Glow(V(bx + w * 0.3, by - d * 0.3, H + 640.), V(26., 26., 26.), 0xFF3A2A, 3); }   // radio mast with a beacon
+        else if (top < 0.85) { Box(V(bx, by + d * 0.3, H + 60.), V(180., 120., 90.), 0x6a707c, true, false); Box(V(bx - w * 0.25, by - d * 0.2, H + 45.), V(110., 110., 60.), 0x5a606c, true, false); }   // rooftop units
+        if (H <= 560 && rnd(0, 1) < 0.6) { const side = rnd(0, 1) < 0.5 ? -1 : 1; Ramp(V(bx + side * (w / 2 + 40.), by - d / 2 + 60., 0.), V(bx + side * (w / 2 + 40.), by + d / 2 - 60., H + 16.), 110., Z.trim); }   // a way up from the street
+        grid.push({ i, j, bx, by, w, d, H });
+      } else {
+        free.push([cx, cy]);
+        if (roll < 0.72) {   // crane: the best grapple point on the block
+          for (const [lx, ly] of [[-90, -90], [90, -90], [-90, 90], [90, 90]]) Box(V(cx + lx, cy + ly, 700.), V(26., 26., 1400.), 0xe0ac2a, true, true);
+          for (let f = 1; f <= 4; ++f) Box(V(cx, cy, f * 300.), V(210., 210., 14.), 0xe0ac2a, false, false);
+          Box(V(cx, cy, 1420.), V(240., 240., 40.), 0x2a2a30, true, false); Box(V(cx + 420., cy, 1470.), V(1100., 40., 40.), 0xe0ac2a, true, false); Box(V(cx - 260., cy, 1470.), V(260., 120., 100.), 0x4a4a52, true, false);
+          Box(V(cx + 900., cy, 1300.), V(8., 8., 300.), 0x2a2a30, false, false); Box(V(cx + 900., cy, 1130.), V(50., 50., 50.), 0x2a2a30, true, false);
+        } else if (roll < 0.86) { for (let k = 0; k < 4; ++k) { const px = cx + rnd(-350, 350), py = cy + rnd(-350, 350); if (k % 2) Crate(V(px, py, 0.), rnd(70, 130)); else Barrel(V(px, py, 0.), [0x8a3a2a, 0x3a5a6a, 0x6a6a3a][k % 3]); } }
+        else if (roll < 0.93) Car(V(cx + rnd(-200, 200), cy + rnd(-200, 200), 0.), rnd(0, 360), [0x8a3a2a, 0x3a5a6a, 0x8a7a4a][Math.floor(rnd(0, 2.99))]);
+        else Cactus(V(cx + rnd(-300, 300), cy + rnd(-300, 300), 0.), rnd(180, 320));
+      }
+    }
+    // plank bridges between neighbouring roofs of similar height
+    for (const A of grid) for (const B of grid) {
+      if (!((B.i === A.i + 1 && B.j === A.j) || (B.j === A.j + 1 && B.i === A.i)) || Math.abs(A.H - B.H) > 200) continue;
+      const along = B.i !== A.i, h = Math.min(A.H, B.H) + 22.;
+      if (along) { const x0 = A.bx + A.w / 2, x1 = B.bx - B.w / 2, y = (A.by + B.by) / 2; if (x1 > x0 && Math.abs(A.by - B.by) < 300) Box(V((x0 + x1) / 2, y, h), V(x1 - x0 + 60., 90., 12.), 0x6a4a32, true, false); }
+      else { const y0 = A.by + A.d / 2, y1 = B.by - B.d / 2, x = (A.bx + B.bx) / 2; if (y1 > y0 && Math.abs(A.bx - B.bx) < 300) Box(V(x, (y0 + y1) / 2, h), V(90., y1 - y0 + 60., 12.), 0x6a4a32, true, false); }
+    }
+    // spawns and a few lamps on open ground
+    free.forEach(([fx, fy], k) => { if (k % 2 === 0) SpawnAt(V(fx + rnd(-200, 200), fy + rnd(-200, 200), 0.), Z.z); else if (k % 5 === 1) StreetLamp(V(fx + 500., fy + 500., 0.), rnd(0, 360)); });
+    for (let k = 0; k < 6; ++k) SpawnAt(V(rnd(Z.x0 + 500, Z.x1 - 500), rnd(Z.y0 + 500, Z.y1 - 500), 0.), Z.z);
+  }
 }

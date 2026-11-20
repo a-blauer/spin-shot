@@ -2,7 +2,7 @@
 // drops and power-ups. Also owns every subsystem and the frame update order.
 import * as THREE from 'three';
 import { Meta } from './meta.js';
-import { DATA, zombieCount, maxAlive, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
+import { DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment } from './env.js';
@@ -311,12 +311,12 @@ export class Game {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
     if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.35);   // never leave the player with nothing to shoot
-    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.3, 2.1 - this.round * 0.11) / 0.7; this.spawnOne(); }   // 30% slower trickle
+    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.1, 1.5 - this.round * 0.1); this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {
         this.bossSpawned = true;
-        const bi = (Math.floor(this.round / 5) - 1) % 5;   // the sixth boss only appears in the vault
+        const bi = (Math.floor(this.round / 3) - 1) % 5;   // the sixth boss only appears in the vault
         this.boss = this.spawnEnemy(0, loc.add(V3(0, 200, 0)), false, bi, 1, 1, 0, false);
         const B = DATA.bosses[bi];
         this.banner(`BOSS: ${B.name.toUpperCase()}`, lin(1, 0.25, 0.15), 4);
@@ -328,7 +328,7 @@ export class Game {
   startRound() {
     this.round++;
     this.toSpawn = zombieCount(this.round);
-    this.bossRound = this.round % 5 === 0;
+    this.bossRound = this.round % 3 === 0;   // 15 rounds: a boss every third round, the Gravedigger at 15
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
     this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.spawnTimer = 1.5;
@@ -412,7 +412,7 @@ export class Game {
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   pickEnemyType() {
-    let total = 0; const W = DATA.enemies.map((D) => { let w = this.round >= D.minRound ? D.weight : 0; if (D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });
+    const er = effRound(this.round); let total = 0; const W = DATA.enemies.map((D) => { let w = er >= D.minRound ? D.weight : 0; if (D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });
     let r = Math.random() * total;
     for (let i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) return i; }
     return 0;
@@ -424,6 +424,8 @@ export class Game {
       const Z = this.zones[S.zone];
       if (!Z || !Z.unlocked || !Z.spawns) return;
       if (this.barricadeT > 0 && this.inCasino(S.pos)) return;   // no spawning behind the barricade
+      if (S.ok === undefined) { const [sx, sy] = this.cellOf(S.pos.x, S.pos.z); S.ok = this.navFree(sx, sy); }
+      if (!S.ok) return;   // a spawn mark that ended up under a building
       const d = Math.hypot(S.pos.x - PL.x, S.pos.z - PL.z);
       if (d < 800) return;
       c.push([d, i]);
@@ -471,10 +473,10 @@ export class Game {
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
     // buffs: 5% from ordinary enemies; modifier variants and elites drop more often and roll better rarities
     if (!E.isBoss) {
-      const chance = E.elite ? 0.4 : E.variant ? 0.15 : 0.05, bias = E.elite ? 2.6 : E.variant ? 1.6 : 1;
-      if (Math.random() < chance) { const r = Math.max(E.elite ? 1 : 0, rollRarity(this.player.luck, bias)), u = rollUpgradeOfRarity(r, this.player.upgradeStacks); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(-40, 0, 30)), u); }
+      const chance = E.elite ? 0.22 : E.variant ? 0.06 : 0.015;
+      if (Math.random() < chance) { const r = E.elite ? Math.max(1, Math.min(3, rollRarity(this.player.luck, 1.3))) : E.variant ? Math.min(2, rollRarity(0, 0.7)) : (Math.random() < 0.12 ? 1 : 0), u = rollUpgradeOfRarity(r, this.player.upgradeStacks); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(-40, 0, 30)), u); }
     }
-    if (!E.isBoss && Math.random() < 0.07) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
+    if (!E.isBoss && Math.random() < 0.035) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
     if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
       this.powerupsThisRound++;
       this.pickups.spawn(['MaxAmmo', 'InstaKill', 'DoublePoints', 'Nuke', 'FireSale'][randInt(0, 4)], loc);
@@ -523,6 +525,7 @@ export class Game {
     const Z = this.zones[z];
     if (!Z || Z.unlocked) return;
     Z.unlocked = true;
+    for (const C of this.zoneCeilings || []) if (C.a >= 0 && C.b >= 0 && this.zones[C.a].unlocked && this.zones[C.b].unlocked) C.blk.enabled = false;   // both sides open: nothing stops you going over
     if (z !== 0 && !silent) this.banner(`${Z.name.toUpperCase()} OPENED`, [0.95, 0.9, 0.8], 2.5);
   }
 
@@ -563,7 +566,8 @@ export class Game {
   // nav cell is walked back out to the nearest open one; anything that makes no progress for 5s is respawned.
   // Move an enemy that cannot reach the fight to open, reachable ground near the player (out of arm's reach), clawing up again.
   relocate(E) {
-    const P = this.net.targetOf(E), f = this.findFreeLocationNear(P.pos, 900, 1500) || this.findFreeLocationNear(P.pos, 500, 2200);
+    const P = this.net.targetOf(E), ahead = P.pos.clone(); if (P.vel) ahead.addScaledVector(V3(P.vel.x, 0, P.vel.z), 1.2);   // come up ahead of a running player, never on top of them
+    const f = this.findFreeLocationNear(ahead, 1200, 1900) || this.findFreeLocationNear(P.pos, 1200, 2400) || this.findFreeLocationNear(P.pos, 700, 2800);
     if (!f) return false;
     E.pos.set(f.x, f.y + E.half + 2, f.z); E.vel.set(0, 0, 0); E.emerge = 1.5; E.farT = 0; E.lostT = 0;
     return true;
@@ -579,9 +583,9 @@ export class Game {
       // nowhere to walk from here (sealed room, off the nav grid): never leave it waiting
       const [cx, cy] = this.cellOf(E.pos.x, E.pos.z), lost = !E.burrowed && this.navFree(cx, cy) && this.navDist[cy * this.navW + cx] === INF;
       E.lostT = lost ? (E.lostT || 0) + dt : 0;
-      const T = this.net.targetOf(E), far = last && Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z) > 2200;
+      const T = this.net.targetOf(E), dT = Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z), far = dT > (last ? 2200 : 4200);
       E.farT = far ? (E.farT || 0) + dt : 0;
-      if ((E.lostT > 3 || E.farT > 3 || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
+      if ((E.lostT > 3 || E.farT > (last ? 3 : 4) || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
     }
   }
   unstick(dt) {

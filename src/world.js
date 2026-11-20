@@ -153,13 +153,13 @@ export class World {
       const mid = A.add(dir.mul((s0 + s1) * 0.5));
       this.Box(V(mid.X, mid.Y, height * 0.5), V(s1 - s0, thick, height), color, true, true, yaw);
       this.Box(V(mid.X, mid.Y, height + 15), V(s1 - s0, thick + 30, 30), Pal.AdobeDark, true, false, yaw);
-      if (zoneWall) this.BlockerYaw(V(mid.X, mid.Y, height + 2500), V(s1 - s0, thick, 5000), yaw);
+      if (zoneWall) this.ZoneCeiling(mid, s1 - s0, thick, height, dir);
     };
     for (const G of sorted) {
       seg(cursor, G.X);
       if (zoneWall) {
         const mid = A.add(dir.mul((G.X + G.Y) * 0.5));
-        this.BlockerYaw(V(mid.X, mid.Y, height + 2500), V(G.Y - G.X, thick, 5000), yaw);
+        this.ZoneCeiling(mid, G.Y - G.X, thick, height, dir);
         this.Box(V(mid.X, mid.Y, height + 15), V(G.Y - G.X + 60, thick + 40, 40), Pal.WoodDark, true, false, yaw);
       }
       cursor = G.Y;
@@ -167,6 +167,16 @@ export class World {
     seg(cursor, len);
   }
   BoxYaw(center, size, color, yaw, collide = true) { this.AddInstance(0, center, size, R(0, yaw, 0), color, collide, false, false); }
+  // Invisible wall above a zone wall. It is a switchable blocker, not baked collision: when the zones on both sides
+  // are unlocked it is turned off, so you can go over the top (rooftops, grapple, wall-run) as well as through the door.
+  ZoneCeiling(mid, len, thick, height, dir) {
+    const alongX = Math.abs(dir.X) > 0.7, hx = (alongX ? len : thick) / 2, hy = (alongX ? thick : len) / 2;
+    const box = new THREE.Box3(new THREE.Vector3(mid.X - hx, height, mid.Y - hy), new THREE.Vector3(mid.X + hx, height + 5000, mid.Y + hy));
+    const zoneOf = (x, y) => this.game.zones.findIndex((Z, i) => i !== this.game.casinoZone && x >= Z.min.X && x <= Z.max.X && y >= Z.min.Y && y <= Z.max.Y);
+    const nx = alongX ? 0 : 1, ny = alongX ? 1 : 0;
+    const a = zoneOf(mid.X - nx * 250, mid.Y - ny * 250), b = zoneOf(mid.X + nx * 250, mid.Y + ny * 250);
+    (this.game.zoneCeilings = this.game.zoneCeilings || []).push({ blk: this.game.phys.addDoor(box), a, b });
+  }
   BlockerYaw(center, size, yaw) {
     const m = this._matrix(center, size, R(0, yaw, 0));
     this.colBlock.push(COLGEOS[0].clone().applyMatrix4(m));
@@ -636,7 +646,7 @@ export class World {
     this.pendingLamps = [];
     this.pendingBuildings = [];
     const GM = this.game;
-    GM.navInit(-6200, -6200, 6200, 6200, 100);
+    GM.navInit(-10800, -10800, 10800, 10800, 100);
     this.AddZone('Motel Courtyard', V2(-6000, -6000), V2(-2000, -2000));
     this.AddZone('Main Street', V2(-6000, -2000), V2(-2000, 6000));
     this.AddZone('Chapel Hill', V2(-2000, -6000), V2(2000, -2000));
@@ -645,6 +655,11 @@ export class World {
     this.AddZone('Boneyard Mesa', V2(2000, -6000), V2(6000, 6000));
     GM.casinoZone = this.AddZone('The Lucky Stiff', V2(-900, -1100), V2(900, 1100), false);
     GM.zones[GM.casinoZone].unlocked = true;
+    // the outskirts: four districts wrapped around the old town, about tripling the map
+    this.AddZone('Shanty Row', V2(-10500, -10500), V2(-6000, 6000));
+    this.AddZone('Stockyards', V2(-6000, -10500), V2(10500, -6000));
+    this.AddZone('Refinery', V2(6000, -6000), V2(10500, 10500));
+    this.AddZone('Ghost Rails', V2(-10500, 6000), V2(6000, 10500));
     // bind methods for the translated zone builders
     const M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp',
@@ -669,6 +684,7 @@ export class World {
     Z.BuildPlaza(M, gmShim);
     Z.BuildCasino(M, gmShim);
     Z.BuildMesa(M, gmShim);
+    Z.BuildOutskirts(M, gmShim);
     Z.BuildDoors(M, gmShim);
     Z.BuildVault(M, gmShim);
     this.finish();

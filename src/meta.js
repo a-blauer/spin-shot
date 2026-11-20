@@ -3,13 +3,13 @@
 import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
 
-export const GUN_LEVELS = [20, 60, 140, 280, 500];           // kills needed for levels 1..5
+export const GUN_LEVELS = [150, 500, 1200, 2500, 5000];           // kills needed for levels 1..5
 export const GUN_TRAITS = ['+10% reload speed', '+15% magazine size', '+10% damage', '+8% crit chance', '+10% damage and a gold finish'];
 
 // starting weapon choices for the lobby loadout; `need` is [lifetime stat, amount]
 export const STARTERS = [
-  { w: 'Tin Star' }, { w: 'Penny Pusher' }, { w: 'Back-Alley', need: ['kills', 300], text: 'Kill 300 enemies' },
-  { w: 'Sawbuck', need: ['bestRound', 8], text: 'Reach round 8' }, { w: 'Quarter Horse', need: ['bosses', 1], text: 'Defeat a boss' },
+  { w: 'Tin Star' }, { w: 'Penny Pusher' }, { w: 'Back-Alley', need: ['kills', 3600], text: 'Kill 3,600 enemies' },
+  { w: 'Sawbuck', need: ['bestRound', 5], text: 'Reach round 5' }, { w: 'Quarter Horse', need: ['bosses', 4], text: 'Defeat 4 bosses' },
 ];
 export const SKINS = [
   { id: 'drifter', name: 'Drifter', glove: 0x4E3324, gloveL: 0x6E4A32, cuff: 0xC9A46A, sleeve: 0xB0603A, stripe: 0xE8C24A },
@@ -22,24 +22,24 @@ export const SKINS = [
 
 // stat = lifetime counter (or best value) the achievement reads; reward lists what it unlocks
 export const ACHIEVEMENTS = [
-  { id: 'kills25', name: 'First Steps', desc: 'Kill 25 enemies', stat: 'kills', need: 25, skin: 'undertaker' },
-  { id: 'kills250', name: 'Exterminator', desc: 'Kill 250 enemies', stat: 'kills', need: 250, upgrades: ['Chain Reaction'] },
-  { id: 'kills1000', name: 'Thousand', desc: 'Kill 1,000 enemies', stat: 'kills', need: 1000, upgrades: ['Storm Crown'] },
-  { id: 'head100', name: 'Sharpshooter', desc: 'Get 100 headshot kills', stat: 'headshots', need: 100, upgrades: ['Ace of Spades'] },
-  { id: 'air100', name: 'Airborne', desc: 'Get 100 kills while in the air', stat: 'airKills', need: 100, upgrades: ["Hermes' Wings", 'Overdrive'] },
-  { id: 'elite25', name: 'Elite Hunter', desc: 'Kill 25 elites', stat: 'eliteKills', need: 25, upgrades: ['Double Down'] },
-  { id: 'round5', name: 'Round 5', desc: 'Reach round 5', stat: 'bestRound', need: 5, guns: ['Fireworks Finale'] },
-  { id: 'round10', name: 'Round 10', desc: 'Reach round 10', stat: 'bestRound', need: 10, guns: ['Railroad Spike'], upgrades: ['Royal Flush'] },
-  { id: 'round15', name: 'Round 15', desc: 'Reach round 15', stat: 'bestRound', need: 15, guns: ['Black Cat'] },
-  { id: 'round20', name: 'Round 20', desc: 'Reach round 20', stat: 'bestRound', need: 20, guns: ["Dead Man's Hand"], skin: 'gilded' },
-  { id: 'boss1', name: 'Boss Killer', desc: 'Defeat a boss', stat: 'bosses', need: 1, guns: ['Buzzsaw'] },
-  { id: 'boss3', name: 'Boss Hunter', desc: 'Defeat 3 bosses', stat: 'bosses', need: 3, upgrades: ['Phoenix Feather'] },
-  { id: 'slots25', name: 'Regular', desc: 'Spin the slots 25 times', stat: 'slotSpins', need: 25, guns: ['Jackpot'], skin: 'dealer' },
-  { id: 'money100k', name: 'Big Earner', desc: 'Earn $100,000 in total', stat: 'moneyEarned', need: 100000, upgrades: ['Midas Touch'] },
+  { id: 'kills25', name: 'First Steps', desc: 'Kill 300 enemies', stat: 'kills', need: 300, skin: 'undertaker' },
+  { id: 'kills250', name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, upgrades: ['Chain Reaction'] },
+  { id: 'kills1000', name: 'Thousand', desc: 'Kill 12,000 enemies', stat: 'kills', need: 12000, upgrades: ['Storm Crown'] },
+  { id: 'head100', name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, upgrades: ['Ace of Spades'] },
+  { id: 'air100', name: 'Airborne', desc: 'Get 600 kills while in the air', stat: 'airKills', need: 600, upgrades: ["Hermes' Wings", 'Overdrive'] },
+  { id: 'elite25', name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ['Double Down'] },
+  { id: 'round5', name: 'Round 5', desc: 'Reach round 3', stat: 'bestRound', need: 3, guns: ['Fireworks Finale'] },
+  { id: 'round10', name: 'Round 10', desc: 'Reach round 6', stat: 'bestRound', need: 6, guns: ['Railroad Spike'], upgrades: ['Royal Flush'] },
+  { id: 'round15', name: 'Round 15', desc: 'Reach round 9', stat: 'bestRound', need: 9, guns: ['Black Cat'] },
+  { id: 'round20', name: 'Round 20', desc: 'Reach round 12', stat: 'bestRound', need: 12, guns: ["Dead Man's Hand"], skin: 'gilded' },
+  { id: 'boss1', name: 'Boss Killer', desc: 'Defeat a boss', stat: 'bosses', need: 4, guns: ['Buzzsaw'] },
+  { id: 'boss3', name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, upgrades: ['Phoenix Feather'] },
+  { id: 'slots25', name: 'Regular', desc: 'Spin the slots 75 times', stat: 'slotSpins', need: 75, guns: ['Jackpot'], skin: 'dealer' },
+  { id: 'money100k', name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
   { id: 'luck15', name: 'Lucky', desc: 'Reach 15 luck in one run', stat: 'maxLuck', need: 15, upgrades: ['Four-Leaf Crown'] },
   { id: 'win', name: 'House Cleaner', desc: 'Beat the Last Dealer and clear Deadwater Gulch', stat: 'wins', need: 1, guns: ['The House Always Wins'] },
   { id: 'tier3', name: 'Maxed Out', desc: 'Upgrade a weapon to tier 3', stat: 'tier3', need: 1, skin: 'pinstripe' },
-  { id: 'master1', name: 'Mastery', desc: 'Get any gun to level 5', stat: 'mastered', need: 1, skin: 'bone' },
+  { id: 'master1', name: 'Mastery', desc: 'Get any gun to level 5', stat: 'mastered', need: 2, skin: 'bone' },
 ];
 
 const fresh = () => ({ stats: {}, ach: {}, gunXp: {}, skin: 'drifter', look: Object.assign({}, DEFAULT_LOOK), cos: {} });
@@ -63,6 +63,10 @@ export function rewardText(A) {
 export const Meta = {
   load() {
     try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') S = Object.assign(fresh(), o); if (!S.cos || typeof S.cos !== 'object') S.cos = {}; } } catch (e) { S = fresh(); }
+    // The unlock requirements were raised. Anything earned under the old, easy numbers is locked again until the new
+    // number is met; lifetime stats are kept, so nothing has to be redone from zero.
+    for (const id of Object.keys(S.ach || {})) { const A = ACHIEVEMENTS.find((a) => a.id === id); if (!A || (S.stats[A.stat] || 0) < A.need) { delete S.ach[id]; dirty = true; } }
+    for (const key of Object.keys(S.cos)) { const [slot, id] = key.split(':'), I = COSMETICS[slot] && COSMETICS[slot].find((i) => i.id === id); if (!I || !I.need || (S.stats[I.need[0]] || 0) < I.need[1]) { delete S.cos[key]; dirty = true; } }
     recompute();
   },
   save() { if (!dirty) return; dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: progress lasts for this session only */ } },

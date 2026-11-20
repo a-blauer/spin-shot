@@ -1454,9 +1454,9 @@
 "trigger": "OnHit",
 "fx": "Chain",
 "chance": 0.15,
-"mag": 0.6,
+"mag": 0.35,
 "cd": 0,
-"desc": "15% chance on hit to arc 60% damage to 3 nearby enemies.",
+"desc": "15% chance on hit to arc 35% damage to 3 nearby enemies.",
 "insp": "RoR2 Ukulele"
 },
 {
@@ -2029,9 +2029,9 @@
 "trigger": "Periodic",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 1.5,
+"mag": 0.6,
 "cd": 1.5,
-"desc": "Every 1.5s, zap nearby enemies for 150% Power.",
+"desc": "Every 1.5s, zap nearby enemies for 60% Power.",
 "insp": "RoR2 Unstable Tesla Coil"
 },
 {
@@ -2042,9 +2042,9 @@
 "trigger": "OnCrit",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 0.8,
+"mag": 0.45,
 "cd": 0,
-"desc": "Crits arc 80% damage to 3 nearby enemies.",
+"desc": "Crits arc 45% damage to 3 nearby enemies.",
 "insp": "Hades Zeus"
 },
 {
@@ -2423,9 +2423,9 @@
 "trigger": "OnGrapple",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 3.0,
+"mag": 1.5,
 "cd": 0,
-"desc": "Grappling unleashes lightning for 300% Power.",
+"desc": "Grappling unleashes lightning for 150% Power.",
 "insp": "Titanfall 2"
 },
 {
@@ -2546,9 +2546,9 @@
 "trigger": "OnHit",
 "fx": "Chain",
 "chance": 0.08,
-"mag": 1.0,
+"mag": 0.55,
 "cd": 0,
-"desc": "+40% proc chance; 8% on hit to arc for 100%.",
+"desc": "+40% proc chance; 8% on hit to arc for 55%.",
 "insp": "Balatro"
 },
 {
@@ -2652,9 +2652,9 @@
 "trigger": "Periodic",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 2.0,
+"mag": 0.8,
 "cd": 0.8,
-"desc": "Every 0.8s, lightning strikes nearby for 200% Power.",
+"desc": "Every 0.8s, lightning strikes nearby for 80% Power.",
 "insp": "RoR2 Charged Perforator"
 },
 {

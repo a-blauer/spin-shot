@@ -16,7 +16,7 @@ const lin = (r, g, b) => new THREE.Color(r, g, b).convertLinearToSRGB();
 export const RarityHex = [0xD8D8D8, 0x5BD65B, 0x4AA3FF, 0xB565F0, 0xFFB22E, 0xFF3B3B];
 
 const CASINO_ONLY = new Set(['Slots', 'ArmsRoulette', 'MoneyTable', 'UpgradeCounter', 'StatBooth', 'HighRoller', 'ExitBell']);
-export const STATION_NAMES = { Slots: 'Slots', ArmsRoulette: 'Weapon Roulette', MoneyTable: 'Blackjack', UpgradeCounter: 'Upgrades', StatBooth: 'Tonics', HighRoller: 'Weapon Vault', ExitBell: 'Barricade', AmmoCrate: 'Ammo' };
+export const STATION_NAMES = { Slots: 'Slots', ArmsRoulette: 'Weapon Roulette', MoneyTable: 'Blackjack', UpgradeCounter: 'Upgrades', StatBooth: 'Tonics', HighRoller: 'Workbench', ExitBell: 'Barricade', AmmoCrate: 'Ammo' };
 
 export class Interactable {
   constructor(game, type, loc, yaw, cost, weapon, label, size) {
@@ -255,31 +255,43 @@ export class Interactable {
         break;
       }
       case 'HighRoller': {
-        // bank vault door set into a riveted steel frame, spoked handle wheel, gold plaque
-        const Steel = lin(0.32, 0.33, 0.37), SteelD = lin(0.18, 0.18, 0.21);
-        P(null, 0, V(-20, 0, 170), V(40, 320, 340), SteelD);
-        P(null, 0, V(-2, 0, 170), V(10, 300, 320), Steel);
-        for (let i = 0; i < 8; i++) {
-          const a = i * Math.PI / 4;
-          P(null, 1, V(4, Math.cos(a) * 140, 170 + Math.sin(a) * 140), V(14, 14, 8), lin(0.6, 0.6, 0.65), R(90, 0, 0));
-        }
-        const s = this.spinner(V(8, 0, 170));
-        P(s, 1, V(0, 0, 0), V(250, 250, 26), Steel, R(90, 0, 0), 0.15);
-        P(s, 8, V(14, 0, 0), V(250, 8, 250), Gold, R(0, 90, 0), 0.6);
-        for (let i = 0; i < 12; i++) {
-          const a = i * Math.PI / 6;
-          P(s, 1, V(12, Math.cos(a) * 104, Math.sin(a) * 104), V(16, 16, 10), Gold, R(90, 0, 0), 0.6);
-        }
-        P(s, 8, V(30, 0, 0), V(130, 10, 130), lin(0.8, 0.8, 0.85), R(0, 90, 0));
-        for (let i = 0; i < 3; i++) P(s, 0, V(30, 0, 0), V(6, 130, 8), lin(0.8, 0.8, 0.85), R(i * 60, 0, 0));
-        P(s, 1, V(30, 0, 0), V(30, 30, 16), Gold, R(90, 0, 0), 0.8);
-        P(null, 0, V(4, 0, 356), V(6, 150, 46), Gold, null, 0.5);
-        P(null, 0, V(7, 0, 356), V(4, 138, 36), lin(0.12, 0.08, 0.06));
-        this.text(null, V(10, 0, 356), 0, 20, 'NO. 777', '#ffcd5a');
-        this.text(null, V(40, 0, 420), 0, 38, 'WEAPON VAULT');
-        this.spinSpeed = 8; this.spinAxis = 'roll';
-        this.useRadius = 240;
-        this.glowAt = V(140, 0, 220); this.glowCol = [1, 0.8, 0.3];
+        // WORKBENCH: where guns get upgraded. A heavy bench against a pegboard of tools, a rifle clamped in a vise under a
+        // work lamp, parts and oil to hand, and a sign with rising chevrons so it reads as "make this better" from across the room.
+        const Steel = lin(0.55, 0.57, 0.62), SteelD = lin(0.2, 0.2, 0.24), Green = lin(0.35, 0.9, 0.4);
+        P(null, 0, V(4, 0, 250), V(10, 380, 270), DarkWood);                                   // back board
+        P(null, 0, V(10, 0, 250), V(4, 350, 240), lin(0.62, 0.5, 0.34));                       // pegboard
+        for (let y = -150; y <= 150; y += 50) for (let z = 160; z <= 340; z += 45) P(null, 1, V(13, y, z), V(5, 5, 3), SteelD, R(0, 90, 0));
+        // tools on the board: hammer, wrench, saw, pliers
+        P(null, 0, V(15, -130, 250), V(5, 10, 90), Wood); P(null, 0, V(15, -130, 300), V(8, 46, 22), Steel);
+        P(null, 0, V(15, -70, 250), V(5, 12, 100), Steel); P(null, 1, V(15, -70, 306), V(30, 30, 6), Steel, R(0, 90, 0)); P(null, 1, V(17, -70, 306), V(14, 14, 7), DarkWood, R(0, 90, 0));
+        P(null, 0, V(15, 110, 262), V(4, 120, 34), Steel, R(0, 0, 0)); P(null, 0, V(15, 44, 262), V(8, 26, 44), Wood);
+        P(null, 0, V(15, 150, 200), V(5, 8, 70), Red, R(8, 0, 0)); P(null, 0, V(15, 162, 200), V(5, 8, 70), Red, R(-8, 0, 0));
+        // bench
+        P(null, 0, V(70, 0, 100), V(130, 360, 16), Wood);
+        P(null, 0, V(70, 0, 92), V(136, 366, 6), DarkWood);
+        for (const y of [-160, 160]) for (const x of [16, 124]) P(null, 0, V(x, y, 46), V(16, 16, 92), DarkWood);
+        P(null, 0, V(70, 0, 34), V(120, 330, 8), DarkWood);                                    // lower shelf
+        P(null, 0, V(60, -110, 52), V(60, 70, 28), lin(0.3, 0.42, 0.3)); P(null, 0, V(60, -30, 48), V(50, 50, 20), lin(0.5, 0.2, 0.15));   // ammo tins
+        P(null, 1, V(70, 90, 58), V(44, 44, 40), SteelD);                                      // parts bucket
+        // vise with a rifle clamped in it
+        P(null, 0, V(70, -40, 122), V(46, 60, 28), SteelD); P(null, 0, V(70, -62, 146), V(46, 14, 30), Steel); P(null, 0, V(70, -18, 146), V(46, 14, 30), Steel);
+        P(null, 1, V(104, -40, 132), V(8, 8, 46), Steel, R(0, 90, 0));
+        P(null, 0, V(70, 20, 152), V(16, 190, 20), Black); P(null, 1, V(70, 150, 156), V(9, 9, 110), SteelD, R(90, 0, 0));
+        P(null, 0, V(70, -96, 148), V(18, 70, 26), Wood, R(-8, 0, 0)); P(null, 0, V(70, 40, 136), V(12, 16, 26), Black); P(null, 0, V(70, 70, 166), V(8, 60, 10), SteelD);
+        // parts on the bench: gears, oil can, a spare barrel, bolts
+        const gear = this.spinner(V(100, 110, 112)); P(gear, 1, V(0, 0, 0), V(34, 34, 6), Gold, null, 0.4); for (let i = 0; i < 6; i++) P(gear, 0, V(0, 0, 0), V(42, 7, 6), Gold, R(0, i * 30, 0), 0.4);
+        P(null, 1, V(38, 130, 124), V(20, 20, 30), Red); P(null, 3, V(38, 130, 146), V(14, 14, 16), Red); P(null, 1, V(40, 60, 113), V(8, 8, 70), Steel, R(90, 0, 20));
+        for (let i = 0; i < 4; i++) P(null, 1, V(110, -120 + i * 13, 112), V(7, 7, 8), Steel);
+        // work lamp on an arm
+        P(null, 0, V(20, 150, 300), V(8, 8, 120), SteelD); P(null, 0, V(50, 150, 356), V(70, 8, 8), SteelD); P(null, 3, V(84, 150, 340), V(50, 50, 34), lin(0.75, 0.6, 0.2)); P(null, 2, V(84, 150, 326), V(20), lin(1, 0.9, 0.6), null, 2.2);
+        // sign: big name, plain purpose, three rising chevrons
+        P(null, 0, V(8, 0, 432), V(12, 390, 96), Black); P(null, 0, V(10, 0, 482), V(14, 400, 8), Gold, null, 0.6); P(null, 0, V(10, 0, 382), V(14, 400, 8), Gold, null, 0.6);
+        this.text(null, V(16, -40, 446), 0, 46, 'WORKBENCH', '#ffcd5a');
+        this.text(null, V(16, -40, 402), 0, 21, 'UPGRADE YOUR WEAPONS', '#f2e8d5');
+        for (let i = 0; i < 3; i++) for (const sgn of [-1, 1]) P(null, 0, V(17, 150 + sgn * 13, 404 + i * 24), V(4, 38, 9), Green, R(sgn * 38, 0, 0), 1.6 - i * 0.3);
+        this.spinSpeed = 40; this.spinAxis = 'yaw';
+        this.useRadius = 260;
+        this.glowAt = V(120, 0, 240); this.glowCol = [1, 0.8, 0.3];
         break;
       }
       case 'ExitBell': {

@@ -220,7 +220,7 @@ export const Net = {
     if (r > g.round) {
       g.round = r; g.banner(`ROUND ${r}`, [0.85, 0.08, 0.06], 3.5, 'round'); g.hud.roundFlash = 1;
       if (g.player.dead) g.player.revive(); g.player.onRoundStarted(r); Meta.best('bestRound', r);
-      g.bossRound = r % 5 === 0;
+      g.bossRound = r % 3 === 0;
     }
     if (ph !== g.phase) { if (ph === 'Intermission' && g.phase === 'Round') g.player.onRoundEnded(g.round); if (ph === 'GameOver') g.gameOver(); else g.phase = ph; }
     g.phaseTimer = num(d.pt, 0, 999); this.netRem = num(d.rem, 0, 9999);

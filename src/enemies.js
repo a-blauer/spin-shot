@@ -2,7 +2,7 @@
 // leapers pounce, screamers frenzy the horde, burrowers tunnel, priests heal, gilded ghouls flee with loot),
 // elite affixes, rooftop climbing, wind-up melee, and multi-phase boss attack patterns.
 import * as THREE from 'three';
-import { DATA, AFFIX, ENEMY_CREATURES, BOSS_CREATURES, zombieHealth, hexRGB, lerp3, lin, frandRange, randInt } from './data.js';
+import { DATA, AFFIX, ENEMY_CREATURES, BOSS_CREATURES, zombieHealth, effRound, payScale, hexRGB, lerp3, lin, frandRange, randInt } from './data.js';
 import { Puppet } from './puppet.js';
 
 const GRAV = 980 * 1.6;
@@ -27,8 +27,8 @@ export class Enemy {
     let hp = zombieHealth(this.round) * D.hp * healthMul;
     this.bodyScale = D.scale * scaleMul;
     this.baseSpeed = D.speed;
-    this.attackDamage = D.dmg * (1 + 0.06 * (this.round - 1));
-    this.money = Math.round(D.money * 0.95);
+    this.attackDamage = D.dmg * (1 + 0.035 * (effRound(this.round) - 1));
+    this.money = Math.max(4, Math.round(D.money * 0.95 * payScale(this.round)));
     this.bodyColor = hexRGB(D.body);
     if (this.ai === 'Walker') {
       const R = Math.random();
@@ -42,7 +42,7 @@ export class Enemy {
       hp = zombieHealth(this.round) * B.hp * (1 + cycle * 0.5) * healthMul;
       this.bodyScale = B.scale * scaleMul;
       this.baseSpeed = B.speed;
-      this.attackDamage = B.dmg * (1 + 0.03 * (this.round - 1));
+      this.attackDamage = B.dmg * (1 + 0.03 * (effRound(this.round) - 1));
       this.money = B.reward;
       this.bodyColor = hexRGB(B.body);
       this.attackMask = B.attacks.map((a) => ATTACKS.indexOf(a));
@@ -52,7 +52,7 @@ export class Enemy {
     if (this.elite) {
       this.affixes = forcedAffixes;
       if (!this.affixes) {
-        const count = this.round >= 20 ? 3 : this.round >= 10 ? 2 : 1;
+        const count = this.round >= 12 ? 3 : this.round >= 6 ? 2 : 1;
         const pool = [];
         for (let i = 0; i < DATA.affixes.length; i++) if (!(splitChild && i === AFFIX.Splitting)) pool.push(i);
         for (let n = 0; n < count && pool.length; n++) this.affixes |= 1 << pool.splice(randInt(0, pool.length - 1), 1)[0];
@@ -136,6 +136,11 @@ export class Enemy {
   moveToward(dir, scale = 1) {
     if (this.staggerT > 0) { this.staggerT -= 1 / 60; scale *= 0.25; }   // just been shot: stumbling
     if (this.hurry) scale *= 1.5;   // last few of the round come running
+    // Keeping up: an enemy that is far from its target and cannot see it closes the gap fast. Within 16 m, or in plain
+    // sight, it moves at its normal pace, so you can always open a gap and watch them come.
+    this.catchT = (this.catchT || 0) - 1 / 60;
+    if (this.catchT <= 0) { this.catchT = 0.4; const T = this.game.net.targetOf(this), d = Math.hypot(T.pos.x - this.pos.x, T.pos.z - this.pos.z); this.catchUp = d > 1600 && !this.canSee(T.pos) ? Math.min(2.6, 1 + (d - 1600) / 1400) : 1; }
+    scale *= this.catchUp || 1;
     let m = scale;
     if (!this.isBoss && this.ai !== 'Flyer' && this.game.player && !this.game.player.dead) {
       // surround instead of queueing: each enemy holds its own side of the player on the way in
@@ -432,7 +437,7 @@ export class Enemy {
     if (!['Spitter', 'Priest', 'Gilded'].includes(this.ai) && dist < reach + 40 && this.attackCd <= 0) {
       // take turns: only two attackers (three from round 12, four from round 22) may be mid-swing on one target at a time
       const busy = G.enemies.reduce((n, e) => n + (e !== this && !e.dead && e.windup > 0 && e.swingAt === P ? 1 : 0), 0);
-      if (busy >= (this.round >= 22 ? 4 : this.round >= 12 ? 3 : 2) || G.time - (P.lastSwingStart || -9) < 0.28) { this.attackCd = 0.25 + Math.random() * 0.35; return; }
+      if (busy >= (this.round >= 10 ? 4 : this.round >= 5 ? 3 : 2) || G.time - (P.lastSwingStart || -9) < 0.28) { this.attackCd = 0.25 + Math.random() * 0.35; return; }
       P.lastSwingStart = G.time; this.swingAt = P;
       this.attackCd = this.def.cd;
       this.windup = this.ai === 'Brute' ? 0.55 : 0.32;
