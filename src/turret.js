@@ -1,7 +1,7 @@
 // The Engineer's turret. It fires whatever gun is bound to it: press E on it while holding a gun and that gun is the
 // turret's from then on (you get back whatever it held before). With nothing bound it fires a built-in sentry gun.
 import * as THREE from 'three';
-import { DATA, hexRGB, RARITY_HEX } from './data.js';
+import { DATA, hexRGB, RARITY_HEX, zombieHealth } from './data.js';
 import { toonMaterial } from './render.js';
 import { PRIM } from './world.js';
 import { ViewModel } from './viewmodel.js';
@@ -35,7 +35,7 @@ export class Turret {
   }
   get W() { return this.bound ? DATA.weapons[this.bound.def] : SENTRY; }
   setGun(b) {
-    this.bound = b;
+    this.bound = b; this.shots = 0;
     while (this.gunG.children.length) this.gunG.remove(this.gunG.children[0]);
     if (b) {
       try { const g = ViewModel.displayModel(this.game, b.def, Math.min(3, b.tier || 0)); const bb = new THREE.Box3().setFromObject(g), c = bb.getCenter(new THREE.Vector3()); g.position.sub(c); const s = 1.5; const h = new THREE.Group(); h.add(g); h.scale.setScalar(s); h.rotation.y = Math.PI; this.gunG.add(h); this.len = (bb.max.z - bb.min.z) * s * 0.5; }
@@ -86,9 +86,11 @@ export class Turret {
     const G = this.game, cont = W.mode === 'Beam' || W.mode === 'Flame';
     const rate = (cont ? 8 : W.rate * 0.7) * (1 + P.stat('TurretRate'));
     this.cd = 1 / Math.max(0.3, rate);
+    // a bound gun still has a magazine: the turret stops to reload it
+    if (this.bound) { this.shots = (this.shots || 0) + (cont ? W.rate / 8 : 1); if (this.shots >= (W.mag || 1)) { this.shots = 0; this.cd += W.reload || 2; } }
     const tier = this.bound ? (this.bound.tier || 0) : 0;
     const round = Math.max(1, G.round);
-    let dmg = (this.bound ? W.dmg * (1 + 0.2 * tier) * (cont ? W.rate / 8 : 1) * 0.75 : SENTRY.dmg * (1 + 0.15 * (round - 1))) * (1 + P.stat('TurretDamage'));
+    let dmg = (this.bound ? W.dmg * (1 + 0.2 * tier) * (cont ? W.rate / 8 : 1) : Math.max(SENTRY.dmg * (1 + 0.15 * (round - 1)), zombieHealth(round) * 0.12)) * (1 + P.stat('TurretDamage'));
     const from = this.muzzle(), col = hexRGB(W.color || 0x9CCBFF);
     this.kick = 1;
     if (from.distanceTo(P.pos) < 3200) gunSound(G.audio, this.bound ? W.name : 'Back-Alley', 0.3, false);

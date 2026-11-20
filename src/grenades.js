@@ -6,7 +6,7 @@ export const GRENADES = [
   { name: 'Shock', color: [0.75, 0.6, 1], hex: '#c4a0ff', radius: 380, dmg: 0.5, weight: 2, desc: 'Stuns a crowd and arcs between them.' },
   { name: 'Cluster', color: [1, 0.85, 0.3], hex: '#ffd84d', radius: 260, dmg: 1.3, weight: 1.5, desc: 'Bursts into five smaller bombs.' },
   // not dropped: the Bomber's satchel and the two workbench alt-fire payloads
-  { name: 'Satchel', color: [1, 0.55, 0.15], hex: '#ffa23a', radius: 540, dmg: 3.8, weight: 0, desc: '' },
+  { name: 'Satchel', color: [1, 0.55, 0.15], hex: '#ffa23a', radius: 460, dmg: 1.8, weight: 0, desc: '' },
   { name: 'Gravity', color: [0.7, 0.45, 1], hex: '#b58cff', radius: 520, dmg: 1.5, weight: 0, desc: '' },
   { name: 'Underbarrel', color: [1, 0.8, 0.4], hex: '#ffd070', radius: 320, dmg: 1.5, weight: 0, desc: '' },
 ];

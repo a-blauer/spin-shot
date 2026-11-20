@@ -55,7 +55,14 @@ const rand = Math.random;
 export const randInt = (a, b) => a + Math.floor(rand() * (b - a + 1));
 export const frandRange = (a, b) => a + rand() * (b - a);
 
-export const luckMult = (luck) => 1 + 0.1 * Math.max(0, luck);
+export const luckMult = (luck) => 1 + 0.03 * Math.min(40, Math.max(0, luck));   // luck helps, but it tops out
+// The mystery box: Uncommon 55%, Rare 30%, Epic 11%, Legendary 4% with no luck; about 20% Legendary at the cap.
+export function rollBoxRarity(luck) {
+  const M = luckMult(luck), W = [0, 55, 30 * M, 11 * M * M, 4 * M * M * M];
+  let r = rand() * (W[1] + W[2] + W[3] + W[4]);
+  for (let i = 1; i < 5; i++) { r -= W[i]; if (r <= 0) return i; }
+  return 1;
+}
 export const luckRerollChance = (luck) => 1 - 1 / (1 + 0.06 * Math.max(0, luck));
 
 export function rollRarity(luck, bias = 1) {

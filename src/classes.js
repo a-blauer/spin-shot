@@ -13,17 +13,17 @@ export const CLASSES = [
     stats: [['FireRate', 0.1], ['ReloadSpeed', 0.15]] },
   { id: 'brawler', name: 'Brawler', ability: 'Bull Rush', short: 'RUSH', cd: 7, hex: '#ff6a4d',
     blurb: 'Lives in melee range.',
-    kit: ['+50% melee damage, +15% swing speed, +40 max health', 'Melee kills heal you', 'F - Bull Rush: charge through a crowd, untouchable, hitting everything in the way'],
+    kit: ['+50% melee damage, +15% swing speed, +40 max health', 'Melee kills heal you, and the mystery box offers you blades far more often', 'F - Bull Rush: charge through a crowd, untouchable, hitting everything in the way'],
     stats: [['MeleeDamage', 0.5], ['MeleeSpeed', 0.15], ['MaxHealth', 40]] },
   { id: 'engineer', name: 'Engineer', ability: 'Turret', short: 'TURRET', cd: 3, hex: '#6ec8ff',
     blurb: 'Builds a turret and gives it a gun.',
-    kit: ['F - place your turret, or call it to a new spot', 'Press E on the turret to bind the gun you are holding to it', '+6 armor'],
-    stats: [['Armor', 6]] },
+    kit: ['F - place your turret, or call it to a new spot', 'Press E on the turret to bind the gun you are holding to it', '+15 armor'],
+    stats: [['Armor', 15]] },
   { id: 'sniper', name: 'Sniper', ability: 'Grapple', short: 'HOOK', cd: 3, hex: '#8fe08f',
     blurb: 'High ground and head shots.',
-    kit: ['The only class with the grapple hook (F)', '+40% headshot damage', 'Aimed shots deal +15% damage'],
+    kit: ['The only class with the grapple hook (F)', '+40% headshot damage', 'Aimed shots deal +15% damage and pierce 2 more enemies'],
     stats: [['HeadshotDamage', 0.4]] },
-  { id: 'bomber', name: 'Bomber', ability: 'Satchel Charge', short: 'SATCHEL', cd: 9, hex: '#ffa23a',
+  { id: 'bomber', name: 'Bomber', ability: 'Satchel Charge', short: 'SATCHEL', cd: 12, hex: '#ffa23a',
     blurb: 'Everything is a blast radius.',
     kit: ['Carries 6 grenades, starts with 4, and finds them more often', '+25% explosion radius', 'F - Satchel Charge: a heavy bomb, no grenade needed'],
     stats: [['ExplosionRadius', 0.25]] },
@@ -47,7 +47,7 @@ for (const u of DATA.upgrades) {
   u.cls = (CLASSES.find((C) => C.name === u.insp) || {}).id || null;           // class perk: only that class is offered it
   u.gun = !u.cls && !melee && u.rarity !== 'Cursed' && (names.some((n) => GUN_STATS.includes(n)) || GUN_TRIGGERS.includes(u.trigger));
   u.alt = names.find((n) => ALT_STATS.includes(n)) || null;
-  u.grapple = names.includes('GrappleCooldown') || u.trigger === 'OnGrapple';
+  u.grapple = u.trigger === 'OnGrapple' || (names.length > 0 && names.every((n) => n === 'GrappleCooldown'));   // only perks that do nothing without a hook
   u.fits = [];
   for (const id in FIT) { const F = FIT[id]; if ((F.melee && melee) || names.some((n) => F.stats.includes(n)) || F.trig.includes(u.trigger) || (u.fx && F.fx.includes(u.fx))) u.fits.push(id); }
 }
@@ -82,8 +82,9 @@ export function rollGunMod(mods, W, cls, luck = 0) {
     if (names.includes('FullAuto') && W.auto) return;
     if (cont && names.some((n) => ['EchoShot', 'FullAuto', 'FirstShot', 'LastRounds', 'SteadyAim', 'Ricochet', 'Multishot', 'ActiveReload'].includes(n))) return;
     if (names.includes('ExplosionRadius') && !(W.splash > 0)) return;
+    if ((names.includes('FirstShot') && W.mag < 4) || (names.includes('LastRounds') && W.mag < 3)) return;   // magazine tricks need a magazine
     const ri = rarityIndex(u.rarity);
-    pool.push([i, RW[ri] * (1 + 0.04 * luck * ri) * Math.max(0.4, classWeight(u, cls))]);
+    pool.push([i, RW[ri] * (1 + 0.02 * Math.min(40, luck) * ri) * Math.max(0.4, classWeight(u, cls))]);
   });
   return pool.length ? pick(pool) : -1;
 }

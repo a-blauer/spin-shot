@@ -6,7 +6,7 @@ import { toonMaterial, hex } from './render.js';
 import { textMesh } from './text.js';
 import { PRIM } from './world.js';
 import { ViewModel } from './viewmodel.js';
-import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
+import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollBoxRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
 import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee } from './melee.js';
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
@@ -139,9 +139,9 @@ export class Interactable {
     if (!P.spend(Math.round(950 * P.priceMult()))) return;
     B.uses++;
     if (B.uses > B.limit && G.boxSpots && G.boxSpots.some((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800)) { P.money += Math.round(950 * P.priceMult()); B.state = 'leaving'; B.t = 0; G.audio.playAt('S_Lose', this.pos, 0.9); G.banner('THE BOX IS MOVING', lin(0.4, 0.75, 1), 3); return; }   // refunded, and gone
-    const r = rollRarity(P.luck, 1.25);
+    const r = rollBoxRarity(P.luck);   // never a Common: the box is always a step up from what you started with
     let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
-    if (Math.random() < 0.1 && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
+    if (Math.random() < (P.cls.id === 'brawler' ? 0.35 : 0.1) && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
     B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;
     G.audio.playAt('S_SlotPull', this.pos, 0.8, 0.8);
   }

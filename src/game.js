@@ -528,7 +528,7 @@ export class Game {
     if (E.elite) clover = 0.25 * luckFind;
     if (E.has('Gilded') || E.ai === 'Gilded') { clover = 1; this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40); }
     if (E.isBoss) {
-      for (let i = 0; i < 3; i++) this.pickups.spawn('Clover', loc.clone().add(V3(frandRange(-150, 150), 0, frandRange(-150, 150))));
+      for (let i = 0; i < 2; i++) this.pickups.spawn('Clover', loc.clone().add(V3(frandRange(-150, 150), 0, frandRange(-150, 150))));
       this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bump('bosses');

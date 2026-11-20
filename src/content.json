@@ -317,7 +317,7 @@
 "cls": "Shotgun",
 "rarity": "Uncommon",
 "mode": "Hitscan",
-"dmg": 24,
+"dmg": 30,
 "rate": 1.5,
 "mag": 6,
 "reserve": 54,
@@ -369,7 +369,7 @@
 "cls": "Shotgun",
 "rarity": "Epic",
 "mode": "Hitscan",
-"dmg": 20,
+"dmg": 26,
 "rate": 2.2,
 "mag": 8,
 "reserve": 64,
@@ -577,7 +577,7 @@
 "cls": "Energy",
 "rarity": "Rare",
 "mode": "Chain",
-"dmg": 62,
+"dmg": 72,
 "rate": 4.0,
 "mag": 20,
 "reserve": 160,
@@ -667,7 +667,7 @@
 "splash": 0,
 "pierce": 1,
 "projSpeed": 0,
-"burn": 40,
+"burn": 24,
 "slow": 0,
 "chains": 0,
 "moneyPerHit": 0,
@@ -681,7 +681,7 @@
 "cls": "Wonder",
 "rarity": "Epic",
 "mode": "Saw",
-"dmg": 170,
+"dmg": 225,
 "rate": 2.5,
 "mag": 8,
 "reserve": 64,
@@ -775,7 +775,7 @@
 "slow": 0,
 "chains": 0,
 "moneyPerHit": 0,
-"critBonus": 0.5,
+"critBonus": 0.3,
 "color": 1710618,
 "wallCost": 0,
 "desc": "Sniper with +50% crit chance."
@@ -1199,7 +1199,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Earn 3% interest on your cash each round (cap $2,000).",
+"desc": "Earn 3% interest on your cash each round (cap $200).",
 "insp": "Balatro interest"
 },
 {
@@ -1309,7 +1309,7 @@
 "chance": 0.25,
 "mag": 30,
 "cd": 0,
-"desc": "25% chance on kill to gain an extra $30.",
+"desc": "25% chance on kill to gain about $3 extra.",
 "insp": "Gunfire Reborn coin scrolls"
 },
 {
@@ -1345,7 +1345,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+20% damage per 1000 speed.",
+"desc": "+20% damage per 1000 speed above a walk.",
 "insp": "Titanfall momentum"
 },
 {
@@ -1495,7 +1495,7 @@
 "chance": 1.0,
 "mag": 8,
 "cd": 0,
-"desc": "Kills grant 8 overshield.",
+"desc": "Kills grant 8 overshield (up to 6 a second).",
 "insp": "RoR2 Topaz Brooch"
 },
 {
@@ -1710,7 +1710,7 @@
 "chance": 1.0,
 "mag": 150,
 "cd": 0,
-"desc": "+20% elite damage. Elite kills pay $150.",
+"desc": "+20% elite damage. Elite kills pay $15.",
 "insp": "Borderlands bounties"
 },
 {
@@ -1781,7 +1781,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "35% chance per shot to fire an extra projectile.",
+"desc": "+35% projectiles. The extras deal half damage.",
 "insp": "Isaac 20/20"
 },
 {
@@ -2003,9 +2003,9 @@
 "trigger": "OnKill",
 "fx": "Missile",
 "chance": 1.0,
-"mag": 1.5,
+"mag": 1.0,
 "cd": 0,
-"desc": "Kills launch a homing dagger for 150% Power.",
+"desc": "Kills launch a homing dagger for 100% Power.",
 "insp": "RoR2 Ceremonial Dagger"
 },
 {
@@ -2029,9 +2029,9 @@
 "trigger": "Periodic",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 0.6,
-"cd": 1.5,
-"desc": "Every 1.5s, zap nearby enemies for 60% Power.",
+"mag": 0.35,
+"cd": 2.0,
+"desc": "Every 2s, zap nearby enemies for 35% Power.",
 "insp": "RoR2 Unstable Tesla Coil"
 },
 {
@@ -2097,7 +2097,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+45% damage per 1000 speed, +5% speed.",
+"desc": "+45% damage per 1000 speed above a walk, +5% speed.",
 "insp": "Titanfall momentum"
 },
 {
@@ -2223,7 +2223,7 @@
 "chance": 0.2,
 "mag": 6,
 "cd": 0,
-"desc": "20% chance per hit to earn $6.",
+"desc": "20% chance per hit to earn 60 cents.",
 "insp": "Borderlands Gold weapons"
 },
 {
@@ -2366,9 +2366,9 @@
 "trigger": "OnKill",
 "fx": "Explode",
 "chance": 1.0,
-"mag": 2.5,
+"mag": 1.2,
 "cd": 0,
-"desc": "Every kill explodes for 250% Power.",
+"desc": "Every kill explodes for 120% Power.",
 "insp": "RoR2 Will-o'-the-wisp+"
 },
 {
@@ -2386,7 +2386,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+1 projectile on every shot.",
+"desc": "Doubles your projectiles. The extras deal half damage.",
 "insp": "Isaac 20/20"
 },
 {
@@ -2530,7 +2530,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+80% damage per 1000 speed, +10% speed.",
+"desc": "+80% damage per 1000 speed above a walk, +10% speed.",
 "insp": "Titanfall"
 },
 {
@@ -2579,7 +2579,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Once per round, rise from death with full health.",
+"desc": "Rise from death with full health. Recharges every third round.",
 "insp": "CoD Quick Revive"
 },
 {
@@ -2652,9 +2652,9 @@
 "trigger": "Periodic",
 "fx": "Chain",
 "chance": 1.0,
-"mag": 0.8,
-"cd": 0.8,
-"desc": "Every 0.8s, lightning strikes nearby for 80% Power.",
+"mag": 0.5,
+"cd": 1.0,
+"desc": "Every second, lightning strikes nearby for 50% Power.",
 "insp": "RoR2 Charged Perforator"
 },
 {
@@ -2670,9 +2670,9 @@
 "trigger": "OnKill",
 "fx": "Money",
 "chance": 1.0,
-"mag": 50,
+"mag": 30,
 "cd": 0,
-"desc": "+25% money; every kill pays $50 extra.",
+"desc": "+25% money; every kill pays about $3 extra.",
 "insp": "Midas"
 },
 {
@@ -3052,7 +3052,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Melee hits pay $12 extra.",
+"desc": "Melee hits pay $1.20 extra.",
 "insp": "melee"
 },
 {
@@ -3234,7 +3234,7 @@
 "insp": "melee"
 },
 {
-"name": "Executioner's Hood",
+"name": "Hangman's Mask",
 "rarity": "Legendary",
 "stacks": 1,
 "mods": [
@@ -3328,7 +3328,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Aim and fire for a point-blank blast of buckshot. 3 second cooldown.",
+"desc": "Aim and fire for a point-blank blast of buckshot. 4 second cooldown.",
 "insp": "Masterkey"
 },
 {
@@ -3534,7 +3534,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Fires one extra projectile with every shot.",
+"desc": "Fires a twin of every projectile at half damage.",
 "insp": "Gungeon"
 },
 {
@@ -3628,7 +3628,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Every melee kill takes a second off Bull Rush's cooldown.",
+"desc": "Every kill with a melee swing takes a second off Bull Rush's cooldown.",
 "insp": "Brawler"
 },
 {
@@ -3656,7 +3656,7 @@
 "mods": [
 [
 "TurretRate",
-0.25
+0.15
 ]
 ],
 "trigger": null,
@@ -3664,7 +3664,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Your turret fires 25% faster.",
+"desc": "Your turret fires 15% faster.",
 "insp": "Engineer"
 },
 {
@@ -3674,7 +3674,7 @@
 "mods": [
 [
 "TurretDamage",
-0.3
+0.2
 ]
 ],
 "trigger": null,
@@ -3682,7 +3682,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Your turret deals 30% more damage.",
+"desc": "Your turret deals 20% more damage.",
 "insp": "Engineer"
 },
 {
@@ -3790,7 +3790,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Kills during Deadeye extend it by 0.4 seconds.",
+"desc": "Kills during Deadeye extend it by 0.4 seconds, up to 4 seconds each time.",
 "insp": "Gunslinger"
 },
 {
@@ -3852,7 +3852,7 @@
 "insp": "Sniper"
 },
 {
-"name": "High Ground",
+"name": "Crow's Nest",
 "rarity": "Rare",
 "stacks": 2,
 "mods": [
@@ -3926,11 +3926,11 @@
 {
 "name": "Bigger Boom",
 "rarity": "Uncommon",
-"stacks": 4,
+"stacks": 3,
 "mods": [
 [
 "ExplosionRadius",
-0.2
+0.15
 ]
 ],
 "trigger": null,
@@ -3938,7 +3938,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+20% explosion radius.",
+"desc": "+15% explosion radius.",
 "insp": "Bomber"
 },
 {
@@ -3978,7 +3978,7 @@
 "insp": "Bomber"
 },
 {
-"name": "Chain Reaction",
+"name": "Daisy Chain",
 "rarity": "Epic",
 "stacks": 1,
 "mods": [
