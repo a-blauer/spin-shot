@@ -30,18 +30,20 @@ const matCache = new Map();
 const extCache = new Map();
 const TAPER = new THREE.CylinderGeometry(0.5, 0.62, 1, 16);   // sleeve: wider toward the elbow (bottom = first point)
 const worldMats = new Map();
+const flatCache = new WeakMap();
 const BOXG = new THREE.BoxGeometry(1, 1, 1);
 // View-model shading: the world's two-tone look plus what makes a held object read up close: a second, brighter
 // band where a face turns to the light, a hard specular glint on metal, and a cool rim along edges facing away.
-function gunMaterial(color, glow, metal) {
+const gunInv = { value: new THREE.Matrix4() };
+function gunMaterial(color, glow, metal, grain = 0) {
   return new THREE.ShaderMaterial({
-    uniforms: { sunDir: vmSun, litTint: G.litTint, shadowTint: G.shadowTint, uColor: { value: color.clone() }, uGlow: { value: glow }, uMetal: { value: metal } },
+    uniforms: { sunDir: vmSun, litTint: G.litTint, shadowTint: G.shadowTint, uColor: { value: color.clone() }, uGlow: { value: glow }, uMetal: { value: metal }, uGunInv: gunInv, uGrain: { value: grain } },
     vertexShader: /* glsl */`
-      varying vec3 vN; varying vec3 vW;
-      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+      uniform mat4 uGunInv; varying vec3 vN; varying vec3 vW; varying vec3 vL;
+      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vL = (uGunInv * w).xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: /* glsl */`
-      uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 uColor; uniform float uGlow; uniform float uMetal;
-      varying vec3 vN; varying vec3 vW;
+      uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 uColor; uniform float uGlow; uniform float uMetal; uniform float uGrain;
+      varying vec3 vN; varying vec3 vW; varying vec3 vL;
       void main() {
         vec3 n = normalize(vN), v = normalize(-vW);
         vec3 L = normalize(sunDir + vec3(-0.25, 0.55, 0.45));          // the key light is pulled up and toward the shooter so the gun is never a silhouette
@@ -50,6 +52,11 @@ function gunMaterial(color, glow, metal) {
         vec3 c = mix(uColor * mix(shadowTint.rgb, vec3(1.0), 0.25), uColor * litTint.rgb, b1);
         c *= 1.0 + b2 * mix(0.12, 0.3, uMetal);
         c *= mix(0.84, 1.0, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
+        if (uGrain > 0.5) {   // long dark streaks and the odd pale one, running the length of the gun
+          float g = sin(vL.y * 1.9 + vL.x * 0.9 + sin(vL.z * 0.22 + vL.y * 0.7) * 1.7);
+          c *= 1.0 - 0.16 * smoothstep(0.55, 0.75, g);
+          c *= 1.0 + 0.1 * smoothstep(0.8, 0.95, -g);
+        }
         float sp = pow(max(dot(n, normalize(L + v)), 0.0), mix(14.0, 48.0, uMetal));
         c += mix(uColor, vec3(1.0, 0.97, 0.9), 0.65) * smoothstep(0.52, 0.6, sp) * uMetal * 0.5;
         float rim = pow(1.0 - max(dot(n, v), 0.0), 2.6) * smoothstep(-0.3, 0.5, n.y);
@@ -61,8 +68,9 @@ function gunMaterial(color, glow, metal) {
 }
 function vmMat(color, glow) {
   const metal = color.metal === undefined ? 0.2 : color.metal;
-  const key = color.getHexString() + glow + '|' + metal;
-  if (!matCache.has(key)) matCache.set(key, gunMaterial(color, glow, metal));
+  const grain = color.grain ? 1 : 0;
+  const key = color.getHexString() + glow + '|' + metal + '|' + grain;
+  if (!matCache.has(key)) matCache.set(key, gunMaterial(color, glow, metal, grain));
   return matCache.get(key);
 }
 
@@ -158,7 +166,7 @@ export class ViewModel {
     return g;
   }
   clear() {
-    for (const p of this.parts) p.removeFromParent();
+    for (const p of this.parts) { p.removeFromParent(); if (p.userData.merged) p.geometry.dispose(); }
     this.parts = [];
     this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = this.hand = null;
     this.A = {};   // named moving parts: slide, hammer, bolt, lever, barrels, cover, charge, crank, emit, mag, pump, cyl...
@@ -297,12 +305,40 @@ export class ViewModel {
       for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(m); if (Math.abs(v.x) < 1.6 && v.z < 6 && v.y > top) top = v.y; }
     });
     this.sightTop = top > -1e8 ? top : this.sightZ;
+    if (!this.noMerge) this.mergeStatic();
+  }
+  // A detailed gun is a couple of hundred small meshes. Everything that shares a parent and a material is welded into
+  // one, so the whole gun draws in a few dozen calls. Moving parts keep their own groups and still animate.
+  mergeStatic() {
+    const keep = new Set(this.flash); for (const C of this.Cards || []) { keep.add(C.c); keep.add(C.pp); }
+    const groups = []; this.gun.traverse((o) => { if (!o.isMesh) groups.push(o); });
+    const nm = new THREE.Matrix3(), v = new THREE.Vector3();
+    for (const P of groups) {
+      const by = new Map();
+      for (const m of P.children) { if (!m.isMesh || keep.has(m) || m.children.length || !m.material.uniforms || !m.material.uniforms.uMetal) continue; if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(m); }
+      for (const [mat, list] of by) {
+        if (list.length < 2) continue;
+        let n = 0; const src = list.map((m) => { let g = flatCache.get(m.geometry); if (!g) { g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry; flatCache.set(m.geometry, g); } n += g.attributes.position.count; return g; });
+        const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let k = 0;
+        list.forEach((m, i) => {
+          m.updateMatrix(); nm.getNormalMatrix(m.matrix);
+          const p = src[i].attributes.position, q = src[i].attributes.normal;
+          for (let j = 0; j < p.count; j++, k += 3) {
+            v.fromBufferAttribute(p, j).applyMatrix4(m.matrix); pos[k] = v.x; pos[k + 1] = v.y; pos[k + 2] = v.z;
+            v.fromBufferAttribute(q, j).applyMatrix3(nm).normalize(); nor[k] = v.x; nor[k + 1] = v.y; nor[k + 2] = v.z;
+          }
+          m.removeFromParent();
+        });
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+        const M = new THREE.Mesh(g, mat); M.userData.merged = true; P.add(M); this.parts.push(M);
+      }
+    }
   }
 
   // Static copy of a weapon model (no hands, no flash) lit like the world: for wall-buy plaques.
   static displayModel(game, def, tier = 0) {
     const vm = new ViewModel(game);
-    vm.weaponDef = def; vm.weaponTier = tier;
+    vm.weaponDef = def; vm.weaponTier = tier; vm.noMerge = true;
     vm.build();
     vm.parts.forEach((o, i) => { o.userData.extra = i >= vm.gunPartCount; });
     if (vm.feel.reload === 'revolver' && vm.A.mag) vm.A.mag.visible = false;   // no speedloader on a display piece
@@ -793,6 +829,7 @@ export class ViewModel {
     const Y = rot.Y + this.swayRot.y + bobRot.y + this.recoilRot.y;
     const Rr = rot.R + this.swayRot.z + bobRot.z + this.recoilRot.z;
     this.gun.quaternion.copy(quatVM(R(P, Y, Rr)));
+    if (this.inspect) { this.gun.position.copy(P3({ X: this.inspect[0], Y: this.inspect[1], Z: this.inspect[2] })); this.gun.quaternion.copy(quatVM(R(this.inspect[3], this.inspect[4], this.inspect[5]))); if (this.hand) this.hand.visible = false; if (this.support) this.support.visible = false; }
     if (gunSpin) {   // a spin around the trigger finger: the gun turns, the hand holding it does not
       const sq = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d2r(gunSpin));
       this.gun.quaternion.multiply(sq);
@@ -835,6 +872,7 @@ export class ViewModel {
       this.flash[0].quaternion.copy(inv).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), spin));
       this.flash[2].quaternion.copy(inv);
     }
+    this.gun.updateMatrixWorld(true); gunInv.value.copy(this.gun.matrixWorld).invert();
     this.tickFlyers(dt);
     this.root.visible = !this.scoped && !this.hidden;
     this.tickMelee(dt);
