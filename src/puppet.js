@@ -275,14 +275,14 @@ export class Puppet {
     if (!this.visible || !this.feet) return;
     const flash = this.flashT > 0 ? 1 : 0;
     const t = this.tint;
-    for (const P of this.parts) {
+    for (const P of this.is3D ? [] : this.parts) {
       if (!P.visible) continue;
       this.partTransform(P, _c, _x, _y);
       _m.makeBasis(_x, _y, this.toCam).setPosition(_c);
       batch.pushMatrix(P.spr, _m, t[0], t[1], t[2], 1, flash, 0, 0);
     }
     // wounds: dark blood with pale flesh and bone showing through
-    if (this.wounds && !this.dying) for (const w of this.wounds) {
+    if (this.wounds && !this.dying && !this.is3D) for (const w of this.wounds) {
       if (!w.part.visible) continue;
       this.partTransform(w.part, _c, _x, _y);
       _c.addScaledVector(_x, w.u).addScaledVector(_y, w.v).addScaledVector(this.toCam, 3);
