@@ -255,6 +255,17 @@ export class ViewModel {
     flame.position.set(0, 0, -this.FS * 0.55);
     for (const q of [star, flame, glow]) { this.muzzle.add(q); this.parts.push(q); }
     this.flash = [star, flame, glow];
+    // Aiming down sights puts the highest point on the gun's centre line just under the crosshair, measured from the
+    // finished model, so no sight, rail or hammer ever sits on top of the aim point.
+    this.gun.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(this.gun.matrixWorld).invert(), v = new THREE.Vector3(); let top = -1e9;
+    const skip = new Set(this.flash); if (this.support) this.support.traverse((o) => skip.add(o));
+    this.gun.traverse((o) => {
+      if (!o.isMesh || skip.has(o) || !o.geometry || !o.geometry.attributes.position) return;
+      const a = o.geometry.attributes.position, m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(m); if (Math.abs(v.x) < 1.6 && v.z < 6 && v.y > top) top = v.y; }
+    });
+    this.sightTop = top > -1e8 ? top : this.sightZ;
   }
 
   // Static copy of a weapon model (no hands, no flash) lit like the world: for wall-buy plaques.
@@ -285,8 +296,8 @@ export class ViewModel {
     // UE (x back, y, z up) -> view (y, z, -x)
     const f = this.feel;
     const rx = (Math.random() * 12 - 6) * K * f.side;
-    this.recoilPosVel.add(new THREE.Vector3(rx, 14 * K * f.rise, 62 * K * f.pos).multiplyScalar(ads));
-    this.recoilRotVel.add(new THREE.Vector3(150 * K * f.rise, (Math.random() * 80 - 40) * K * f.side, (Math.random() * 180 - 90) * K * f.side).multiplyScalar(ads));
+    this.recoilPosVel.add(new THREE.Vector3(rx * 1.4, 22 * K * f.rise, 100 * K * f.pos).multiplyScalar(ads));
+    this.recoilRotVel.add(new THREE.Vector3(240 * K * f.rise, (Math.random() * 110 - 55) * K * f.side, (Math.random() * 260 - 130) * K * f.side).multiplyScalar(ads));
     if (f.shake > 0 && !continuous) this.game.player.addShake(f.shake);
     if (!continuous && f.action !== 'none') { this.actT = { pump: 0.4, bolt: 0.75, lever: 0.34, revolver: 0.18 }[f.action]; this.actDur = this.actT; this.actSnd = false; }
     if (f.action === 'revolver') this.cylTarget += Math.PI / 3;
@@ -296,9 +307,9 @@ export class ViewModel {
       const [star, flame, glow] = this.flash;
       for (const q of this.flash) q.visible = !this.scoped;
       star.userData.spin = Math.random() * Math.PI * 2;
-      star.scale.set(this.FS * J, this.FS * J, 1);
+      star.scale.set(this.FS * J * 1.3, this.FS * J * 1.3, 1);
       flame.scale.set(this.FS * 1.3 * J, this.FS * 0.55 * (0.8 + Math.random() * 0.4), 1);
-      glow.scale.set(this.FS * 3.5, this.FS * 3.5, 1);
+      glow.scale.set(this.FS * 5, this.FS * 5, 1);
     }
     if (this.cls === 'LMG' || this.cls === 'Wonder') this.spinSpeed = Math.min(this.spinSpeed + 400, 1800);
     if (!continuous && !['Launcher', 'Energy', 'Wonder'].includes(this.cls)) {
@@ -364,7 +375,7 @@ export class ViewModel {
     { const a = (0 - this.landZ) * 120 - this.landVel * 13; this.landVel += a * dt; this.landZ += this.landVel * dt; }
 
     // positions in UE-local terms (x fwd, y right, z up) then mapped
-    const ads = { X: 26, Y: 0, Z: -this.sightZ + 0.5 };
+    const ads = { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
     const pos = { X: HipPos.X + (ads.X - HipPos.X) * this.aimA, Y: HipPos.Y + (ads.Y - HipPos.Y) * this.aimA, Z: HipPos.Z + (ads.Z - HipPos.Z) * this.aimA };
     const rot = { P: 0, Y: 0, R: 0 };
     const add = (x, y, z, k) => { pos.X += x * k; pos.Y += y * k; pos.Z += z * k; };

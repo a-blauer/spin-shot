@@ -924,9 +924,16 @@ export class Player {
     const ads = this.aiming ? 0.55 : 1;
     this.addPitch(kick * 0.45 * ads * 2.5);
     this.addYaw(frandRange(-0.3, 0.3) * kick * 0.35 * ads * 2.5);
-    this.addKick(kick * 1.1 * ads, frandRange(-0.4, 0.4) * kick * ads);
+    this.addKick(kick * 1.7 * ads, frandRange(-0.5, 0.5) * kick * ads);
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
-    if (kick > 1) this.addShake(kick * 0.18);
+    // every shot is felt: a shake, a punch of the view, a flash on the world in front of you, and a buzz on phones
+    this.addShake(continuous ? 0.03 : 0.1 + kick * 0.22);
+    this.fovKick += continuous ? 0.15 : Math.min(4, 0.6 + kick * 1.1);
+    if (!continuous) {
+      const G = this.game, e = this.eye(), f = this.forward();
+      G.fx.flash(e.clone().addScaledVector(f, 150), lin(1, 0.75, 0.35), 180 + kick * 90, 0.06, true);
+      if (navigator.vibrate && this.game.touch) { try { navigator.vibrate(Math.round(Math.min(40, 8 + kick * 10))); } catch (err) { /* unsupported */ } }
+    }
     this.game.vm.fire(kick, continuous);
     // every gun has its own synthesized voice (gunsound.js); held beams and hoses tick quietly instead of blasting
     if (!continuous || Math.random() < 0.3) gunSound(this.game.audio, W.name, 1, continuous);
@@ -1035,6 +1042,12 @@ export class Player {
     const dealt = E.takeHit(dmg, at, dir || V3(0, 0, 0), head);
     if (dealt <= 0) return 0;
     const killed = E.dead;
+    // bullets shove what they hit: a stumble back in proportion to the damage, and a short freeze on a kill
+    if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {
+      const push = Math.min(420, 90 + (dealt / Math.max(1, E.maxHealth)) * 900) * (E.ai === 'Brute' ? 0.3 : 1);
+      E.vel.x += dir.x * push; E.vel.z += dir.z * push; E.staggerT = Math.max(E.staggerT || 0, Math.min(0.3, 0.08 + dealt / Math.max(1, E.maxHealth) * 0.5));
+    }
+    if (killed && !fromProc) G.hitstop = Math.max(G.hitstop || 0, head ? 0.05 : 0.028);
     this.hitMarker = 0.18; this.hitKill = killed; this.hitHead = head; this.hitScale = killed ? 1.6 : head || crit ? 1.25 : 1;
     if (!fromProc || procCoef > 0.3) {
       const heavy = head || crit || killed || base > 80;

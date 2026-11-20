@@ -296,6 +296,7 @@ function beginRun() {
   // apply the chosen starting weapon to a fresh run
   const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
   if (idx > 0 && game.round === 0 && P.weapons[0].def === 0) { P.weapons[0].def = idx; P.weapons[0].tier = 0; P.refillAll(); game.vm.setWeapon(idx, 0, false); }
+  game.touch = TOUCH;
   if (Net.role === 'client' && game.round === 0) { const a = Math.random() * 6.28; P.pos.x += Math.cos(a) * 130; P.pos.z += Math.sin(a) * 130; }   // don't spawn inside the host
   start();
 }
