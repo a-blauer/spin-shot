@@ -310,6 +310,7 @@ export class Game {
   tickRound(dt) {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
+    if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.35);   // never leave the player with nothing to shoot
     if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.3, 2.1 - this.round * 0.11) / 0.7; this.spawnOne(); }   // 30% slower trickle
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
@@ -515,7 +516,7 @@ export class Game {
     for (const E of this.enemies) E.update(dt);
     this.tickFinal(dt);
     this.net.tick(dt);
-    if (this.net.role !== 'client') { this.separate(dt); this.unstick(dt); }
+    if (this.net.role !== 'client') { this.separate(dt); this.unstick(dt); this.tickStragglers(dt); }
     this.enemies = this.enemies.filter((E) => !E.remove);
     this.projectiles.update(dt);
     this.hazards.update(dt);
@@ -534,6 +535,29 @@ export class Game {
   }
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked
   // nav cell is walked back out to the nearest open one; anything that makes no progress for 5s is respawned.
+  // Move an enemy that cannot reach the fight to open, reachable ground near the player (out of arm's reach), clawing up again.
+  relocate(E) {
+    const P = this.net.targetOf(E), f = this.findFreeLocationNear(P.pos, 900, 1500) || this.findFreeLocationNear(P.pos, 500, 2200);
+    if (!f) return false;
+    E.pos.set(f.x, f.y + E.half + 2, f.z); E.vel.set(0, 0, 0); E.emerge = 1.5; E.farT = 0; E.lostT = 0;
+    return true;
+  }
+  // the last few enemies of a round hurry, show on the HUD, and are pulled in if they are lost or far away
+  stragglers() { return this.phase === 'Round' && this.spawned >= this.toSpawn ? this.enemies.filter((E) => !E.dead && !E.isBoss) : []; }
+  tickStragglers(dt) {
+    if (this.net.role === 'client') return;
+    const P = this.player, last = this.spawned >= this.toSpawn && this.aliveCount() <= 4;
+    for (const E of this.enemies) {
+      if (E.dead || E.isBoss || E.ai === 'Flyer' || E.emerge > 0) continue;
+      E.hurry = last;
+      // nowhere to walk from here (sealed room, off the nav grid): never leave it waiting
+      const [cx, cy] = this.cellOf(E.pos.x, E.pos.z), lost = !E.burrowed && this.navFree(cx, cy) && this.navDist[cy * this.navW + cx] === INF;
+      E.lostT = lost ? (E.lostT || 0) + dt : 0;
+      const T = this.net.targetOf(E), far = last && Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z) > 2200;
+      E.farT = far ? (E.farT || 0) + dt : 0;
+      if ((E.lostT > 3 || E.farT > 3 || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
+    }
+  }
   unstick(dt) {
     for (const E of this.enemies) {
       if (E.dead || E.burrowed || E.emerging || E.ai === 'Flyer' || E.isBoss) continue;
@@ -557,9 +581,8 @@ export class Game {
       E.stuckT = (E.stuckT || 0) + dt;
       if (!E.stuckAt) E.stuckAt = E.pos.clone();
       if (E.pos.distanceTo(E.stuckAt) > 90 || E.pos.distanceTo(this.player.pos) < 450 || E.sinceHit < 2) { E.stuckT = 0; E.stuckAt.copy(E.pos); }
-      else if (E.stuckT > 5 && this.barricadeT <= 0) {
-        const sp = this.pickSpawn(false);
-        if (sp) { E.pos.copy(sp); E.vel.set(0, 0, 0); E.emerge = 1; }
+      else if (E.stuckT > 6 && !(this.barricadeT > 0)) {
+        this.relocate(E);   // dig back up near the player rather than vanishing to a far spawn
         E.stuckT = 0; E.stuckAt.copy(E.pos);
       }
     }

@@ -135,6 +135,7 @@ export class Enemy {
   }
   moveToward(dir, scale = 1) {
     if (this.staggerT > 0) { this.staggerT -= 1 / 60; scale *= 0.25; }   // just been shot: stumbling
+    if (this.hurry) scale *= 1.5;   // last few of the round come running
     let m = scale;
     if (!this.isBoss && this.ai !== 'Flyer' && this.game.player && !this.game.player.dead) {
       // surround instead of queueing: each enemy holds its own side of the player on the way in

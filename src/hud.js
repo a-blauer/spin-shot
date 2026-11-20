@@ -196,6 +196,7 @@ export class Hud {
     this.drawFloaters(game, dt);
     if (!P.dead) {
       this.drawCasinoMarker(game);
+      this.drawStragglers(game);
       this.drawCrosshair(game, P, W, H, S);
       this.drawDamageArcs(game, P, W, H, S);
       this.drawVitals(game, P, W, H, S);
@@ -491,6 +492,24 @@ export class Hud {
     this.rrect(W / 2 - tw / 2 - 22 * S, cy - 28 * S, tw + 44 * S, 56 * S, 10 * S);
     g.fillStyle = 'rgba(20,10,16,0.86)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = 'rgba(255,205,90,0.85)'; g.stroke();
     this.hints(t, W / 2, cy, size, 'center', 1);
+  }
+  // when only a handful of enemies are left, point at each one
+  drawStragglers(game) {
+    const L = game.stragglers(); if (!L.length || L.length > 4) return;
+    const S = this.S, W = this.W, H = this.H, g = this.g, m = 54 * S;
+    for (const E of L) {
+      _v.set(E.pos.x, E.pos.y + E.half + 40, E.pos.z);
+      const d = _v.distanceTo(game.player.pos);
+      _v.project(game.camera);
+      let x = (_v.x * 0.5 + 0.5) * W, y = (-_v.y * 0.5 + 0.5) * H;
+      const behind = _v.z > 1; if (behind) { x = W - x; y = H - m - 130 * S; }
+      const on = !behind && x > m && x < W - m && y > m + 70 * S && y < H - m - 130 * S;
+      x = clamp(x, m, W - m); y = clamp(y, m + 70 * S, H - m - 130 * S);
+      const r = (on ? 9 : 13) * S, bob = on ? Math.sin(this.time * 6) * 3 * S : 0;
+      g.fillStyle = INK; g.beginPath(); g.moveTo(x, y + r + 4 * S + bob); g.lineTo(x - r - 3 * S, y - r * 0.6 - 3 * S + bob); g.lineTo(x + r + 3 * S, y - r * 0.6 - 3 * S + bob); g.closePath(); g.fill();
+      g.fillStyle = '#ff4d40'; g.beginPath(); g.moveTo(x, y + r + bob); g.lineTo(x - r, y - r * 0.6 + bob); g.lineTo(x + r, y - r * 0.6 + bob); g.closePath(); g.fill();
+      if (!on) this.text(`${Math.round(d / 100)}m`, x, y + r + 22 * S, 15 * S, BONE, 'center', F_TXT, 700);
+    }
   }
   drawCasinoMarker(game) {
     const gate = game.final && game.final.gate;
