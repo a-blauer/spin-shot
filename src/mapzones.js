@@ -3,7 +3,7 @@ import { V, V2, R, LC, FC, BOX, Pal, FMath } from './mapkit.js';
 export function BuildGroundAndBounds(M, GM) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Blocker, Ramp, Floor, Wall, Lamp, Sign, Building, StreetLamp, Barrel, Crate, Cactus, PalmTree, DeadTree, Car, Wagon, Headstone, Boxcar, Mesa, JumpPad, Billboard, Station, WallBuy, Door, SpawnAt, AddInstance, Foliage, SurfaceDecal, RotFromXY, Arch, Wedge, Pyramid, Oct, Ring, Mausoleum, Fountain, GasPump, BoxYaw } = M;
 	// Ground slab
-	Box(V(0., 0., -50.), V(21600., 21600., 100.), Pal.Sand, true, false);
+	Box(V(0., 0., -50.), V(30400., 30400., 100.), Pal.Sand, true, false);
 	Floor(V2(-6000., -6000.), V2(-2000., -2000.), 1., Pal.Concrete);
 	Floor(V2(-6000., -2000.), V2(-2000., 6000.), 1., Pal.Sidewalk);
 	Floor(V2(-4600., -2000.), V2(-3400., 6000.), 2., Pal.Asphalt);
@@ -36,16 +36,21 @@ export function BuildGroundAndBounds(M, GM) {
 
 	// Outer perimeter: tall canyon walls, now out past the outskirts
 	let NoGaps = [];
-	Wall(V2(-10600., -10600.), V2(-10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(10600., -10600.), V2(10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(-10600., -10600.), V2(10600., -10600.), 950., 200., Pal.RockA, NoGaps, true);
-	Wall(V2(-10600., 10600.), V2(10600., 10600.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-15000., -15000.), V2(-15000., 15000.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(15000., -15000.), V2(15000., 15000.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-15000., -15000.), V2(15000., -15000.), 950., 200., Pal.RockA, NoGaps, true);
+	Wall(V2(-15000., 15000.), V2(15000., 15000.), 950., 200., Pal.RockA, NoGaps, true);
+	// the old canyon wall is now the line between the outskirts and the Badlands, with one gate per district
+	Wall(V2(-10600., -10600.), V2(-10600., 10600.), 520., 160., Pal.RockA, [V2(8400., 8800.)], true);     // Shanty Row | Badlands
+	Wall(V2(10600., -10600.), V2(10600., 10600.), 520., 160., Pal.RockA, [V2(12400., 12800.)], true);     // Refinery | Badlands
+	Wall(V2(-10600., -10600.), V2(10600., -10600.), 520., 160., Pal.RockA, [V2(12400., 12800.)], true);   // Stockyards | Badlands
+	Wall(V2(-10600., 10600.), V2(10600., 10600.), 520., 160., Pal.RockA, [V2(8400., 8800.)], true);       // Ghost Rails | Badlands
 	// Cliff tops: stacked rock strata resting on the canyon walls, stepping in as they rise
 	const CliffCols = [Pal.RockA, Pal.RockB, Pal.RedRock];
-	for (let i = 0; i < 44; ++i)
+	for (let i = 0; i < 61; ++i)
 	{
-		let T = -10700. + i * 500. + FMath.FRandRange(-60., 60.);
-		const sides = [[-10650., T, 1], [10650., T, 1], [T, -10650., 0], [T, 10650., 0]];
+		let T = -15100. + i * 500. + FMath.FRandRange(-60., 60.);
+		const sides = [[-15050., T, 1], [15050., T, 1], [T, -15050., 0], [T, 15050., 0]];
 		for (let s2 = 0; s2 < 4; ++s2)
 		{
 			const [cx, cy, alongY] = sides[s2];
@@ -116,6 +121,11 @@ export function BuildDoors(M, GM) {
 	Door(V(8000., -6000., 0.), 90., 2500, 8, 9);
 	Door(V(6000., 8000., 0.), 0., 2500, 9, 10);
 	Door(V(-8000., 6000., 0.), 90., 2000, 10, 7);
+	// the Badlands: any one gate opens the whole ring
+	Door(V(-10600., -2000., 0.), 0., 3000, 7, 11);
+	Door(V(2000., -10600., 0.), 90., 3000, 8, 11);
+	Door(V(10600., 2000., 0.), 0., 3000, 9, 11);
+	Door(V(-2000., 10600., 0.), 90., 3000, 10, 11);
 }
 
 export function BuildMotel(M, GM) {
@@ -747,7 +757,7 @@ export function BuildMesa(M, GM) {
 
 // The vault: a round counting room far outside the town, reached only through the hatch that opens when the
 // Gravedigger dies. A roulette floor, a ring of columns, chip stacks and hanging lamps.
-export const VAULT = { X: 0, Y: 16000, R: 1500 };
+export const VAULT = { X: 0, Y: 24000, R: 1500 };
 export function BuildVault(M, GM) {
   const { Box, Glow, Cyl, Ball, Lamp, Sign } = M;
   const C = V(VAULT.X, VAULT.Y, 0.), R0 = VAULT.R;
@@ -794,7 +804,7 @@ export function BuildVault(M, GM) {
 // there is always open ground between blocks.
 export function BuildOutskirts(M, GM) {
   const { Box, Cyl, Glow, Floor, Ramp, StreetLamp, Barrel, Crate, Cactus, Car, SpawnAt, Lamp } = M;
-  const DOORS = [[-1600, -6000], [6000, -4300], [6000, 3850], [-1450, 6000], [-6000, -8000], [8000, -6000], [6000, 8000], [-8000, 6000]];
+  const DOORS = [[-1600, -6000], [6000, -4300], [6000, 3850], [-1450, 6000], [-6000, -8000], [8000, -6000], [6000, 8000], [-8000, 6000], [-10600, -2000], [2000, -10600], [10600, 2000], [-2000, 10600]];
   const ZONES = [
     { z: 7, x0: -10500, y0: -10500, x1: -6000, y1: 6000, ground: 0x8a6f52, walls: [0x9c6b4a, 0x7a5a48, 0xb08a5a, 0x6a5a52], roof: 0x4a3a34, trim: 0x3a2a26 },
     { z: 8, x0: -6000, y0: -10500, x1: 10500, y1: -6000, ground: 0x7a7a52, walls: [0x8a3a2a, 0xa8926a, 0x6a4a3a, 0x9a8a72], roof: 0x3a3430, trim: 0xc8b48a },
@@ -847,4 +857,69 @@ export function BuildOutskirts(M, GM) {
     free.forEach(([fx, fy], k) => { if (k % 2 === 0) SpawnAt(V(fx + rnd(-200, 200), fy + rnd(-200, 200), 0.), Z.z); else if (k % 5 === 1) StreetLamp(V(fx + 500., fy + 500., 0.), rnd(0, 360)); });
     for (let k = 0; k < 6; ++k) SpawnAt(V(rnd(Z.x0 + 500, Z.x1 - 500), rnd(Z.y0 + 500, Z.y1 - 500), 0.), Z.z);
   }
+}
+
+// The Badlands: one open ring around the whole town, built for moving fast. Rock spires and arches to grapple and
+// wall-run, buttes to climb, and a skyway of plank spans on posts that circles the entire map above the ground.
+export function BuildBadlands(M, GM) {
+  const { Box, Cyl, Glow, Floor, Ramp, Cactus, DeadTree, Car, SpawnAt, StreetLamp, Lamp, Mesa } = M;
+  const rnd = (a, b) => FMath.FRandRange(a, b), ZN = 11, IN = 10700, OUT = 14900, SKY = 12800, SH = 620;
+  const GATES = [[-10600, -2000], [2000, -10600], [10600, 2000], [-2000, 10600]];
+  const Rock = [Pal.RockA, Pal.RockB, Pal.RedRock];
+  // red hardpan underfoot, in four strips round the ring
+  Floor(V2(-OUT, -OUT), V2(OUT, -IN), 1., 0x9a5a3c); Floor(V2(-OUT, IN), V2(OUT, OUT), 1., 0x9a5a3c);
+  Floor(V2(-OUT, -IN), V2(-IN, IN), 1., 0x9a5a3c); Floor(V2(IN, -IN), V2(OUT, IN), 1., 0x9a5a3c);
+  // ---- the skyway: spans with jumpable gaps, a tower at each corner, and a ramp up beside every gate
+  const span = (x0, y0, x1, y1) => {
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, alongX = Math.abs(x1 - x0) > Math.abs(y1 - y0), len = Math.abs(alongX ? x1 - x0 : y1 - y0);
+    Box(V(cx, cy, SH), alongX ? V(len, 190., 16.) : V(190., len, 16.), 0x6a4a32, true, false);
+    Box(V(cx, cy, SH - 14.), alongX ? V(len, 30., 14.) : V(30., len, 14.), 0x3a2a22, false, false);
+    for (const s of [-0.38, 0.38]) Box(V(cx + (alongX ? s * len : 0), cy + (alongX ? 0 : s * len), SH * 0.5 - 8.), V(26., 26., SH - 16.), 0x4a3426, true, true);
+  };
+  const SPAN = 1000, GAPW = 430;
+  for (const side of [0, 1, 2, 3]) {
+    for (let t = -SKY + 600; t + SPAN <= SKY - 600; t += SPAN + GAPW) {
+      const a = t, b = t + SPAN;
+      if (side === 0) span(a, -SKY, b, -SKY); else if (side === 1) span(a, SKY, b, SKY); else if (side === 2) span(-SKY, a, -SKY, b); else span(SKY, a, SKY, b);
+    }
+  }
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+    const cx = sx * SKY, cy = sy * SKY;
+    Box(V(cx, cy, SH * 0.5), V(520., 520., SH), Rock[(sx + sy + 2) % 3], true, true); Box(V(cx, cy, SH + 8.), V(700., 700., 16.), 0x6a4a32, true, false);
+    Box(V(cx, cy, SH + 420.), V(30., 30., 820.), 0x2a2a30, true, false); Glow(V(cx, cy, SH + 850.), V(60.), 0xFF8A3A, 3);       // beacon mast: a grapple point you can see from anywhere
+    Ramp(V(cx - sx * 1500., cy - sy * 360., 0.), V(cx - sx * 360., cy - sy * 360., SH + 16.), 170., 0x6a4a32);
+  }
+  for (const [gx, gy] of GATES) {
+    const ox = Math.abs(gx) > Math.abs(gy) ? Math.sign(gx) : 0, oy = ox ? 0 : Math.sign(gy);
+    // from just outside the gate, a ramp straight up onto the skyway
+    Ramp(V(gx + ox * 700., gy + oy * 700., 0.), V(gx + ox * (SKY - 10600 - 120), gy + oy * (SKY - 10600 - 120), SH + 16.), 180., 0x6a4a32);
+    for (const s of [-1, 1]) { const lx = gx + ox * 420 + (ox ? 0 : s * 420), ly = gy + oy * 420 + (ox ? s * 420 : 0); Box(V(lx, ly, 260.), V(26., 26., 520.), 0x2a2a30, true, false); Glow(V(lx, ly, 540.), V(46.), 0xFFC860, 3); }
+  }
+  // ---- the ground: spires, arches and buttes either side of the skyway line
+  const CELL = 1150, free = [];
+  for (let cx = -OUT + CELL / 2; cx < OUT; cx += CELL) for (let cy = -OUT + CELL / 2; cy < OUT; cy += CELL) {
+    const d = Math.max(Math.abs(cx), Math.abs(cy));
+    if (d < IN + 500 || d > OUT - 500) continue;
+    if (Math.abs(d - SKY) < 520) continue;                                                     // keep the skyway's run clear
+    if (GATES.some(([gx, gy]) => Math.hypot(cx - gx, cy - gy) < 2300)) { free.push([cx, cy]); continue; }
+    if (Math.abs(Math.abs(cx) - SKY) < 1700 && Math.abs(Math.abs(cy) - SKY) < 1700) { free.push([cx, cy]); continue; }   // corner towers and their ramps
+    const roll = rnd(0, 1), x = cx + rnd(-220, 220), y = cy + rnd(-220, 220);
+    if (roll < 0.26) {   // spire with a step beside it
+      const H = [520, 700, 900, 1200, 1600][Math.floor(rnd(0, 4.99))], w = rnd(260, 480), col = Rock[Math.floor(rnd(0, 2.99))], yaw = rnd(0, 90);
+      Box(V(x, y, H * 0.5), V(w, w * rnd(0.8, 1.2), H), col, true, true, yaw); Box(V(x, y, H + 7.), V(w + 40., w + 40., 14.), 0x7A3A22, true, false, yaw);
+      Box(V(x, y, H * 0.62), V(w + 16., w + 16., 14.), 0x7A3A22, false, false, yaw);
+      const sx = x + rnd(-1, 1) * (w + 90), sy = y + (rnd(0, 1) < 0.5 ? -1 : 1) * (w + 60), h2 = H * rnd(0.4, 0.6);
+      Box(V(sx, sy, h2 * 0.5), V(w * 0.7, w * 0.7, h2), Rock[Math.floor(rnd(0, 2.99))], true, true, yaw + 20.); Box(V(sx, sy, h2 + 6.), V(w * 0.7 + 30., w * 0.7 + 30., 12.), 0x7A3A22, true, false, yaw + 20.);
+      if (H >= 1200) Glow(V(x, y, H + 60.), V(40.), 0xFF8A3A, 2);
+    } else if (roll < 0.36) {   // arch
+      const along = rnd(0, 1) < 0.5, H = rnd(520, 760), g = rnd(320, 420), col = Rock[Math.floor(rnd(0, 2.99))];
+      for (const s of [-1, 1]) Box(V(x + (along ? s * g : 0), y + (along ? 0 : s * g), H * 0.5), V(240., 240., H), col, true, true);
+      Box(V(x, y, H + 60.), along ? V(g * 2 + 360., 280., 120.) : V(280., g * 2 + 360., 120.), col, true, false); Box(V(x, y, H + 126.), along ? V(g * 2 + 380., 300., 12.) : V(300., g * 2 + 380., 12.), 0x7A3A22, true, false);
+    } else if (roll < 0.44) {   // butte with a way up
+      const sz = rnd(620, 820), H = rnd(280, 420);
+      Mesa(V2(x, y), V2(sz, sz), H); Ramp(V(x - sz / 2 - 420., y, 0.), V(x - sz / 2 + 40., y, H), 150., 0x7A3A22);
+    } else if (roll < 0.5) { Box(V(x, y, 700.), V(28., 28., 1400.), 0x2a2a30, true, false); Box(V(x, y, 1380.), V(260., 14., 14.), 0x2a2a30, true, false); Glow(V(x, y, 1420.), V(50.), 0x8fdcff, 3); free.push([cx, cy]); }   // signal mast
+    else { free.push([cx, cy]); if (roll < 0.6) Cactus(V(x, y, 0.), rnd(200, 360)); else if (roll < 0.66) DeadTree(V(x, y, 0.), rnd(300, 460)); else if (roll < 0.7) Car(V(x, y, 0.), rnd(0, 360), [0x8a3a2a, 0x3a5a6a, 0x8a7a4a][Math.floor(rnd(0, 2.99))]); }
+  }
+  free.forEach(([fx, fy], k) => { if (k % 3 === 0) SpawnAt(V(fx + rnd(-250, 250), fy + rnd(-250, 250), 0.), ZN); else if (k % 9 === 1) StreetLamp(V(fx + 300., fy + 300., 0.), rnd(0, 360)); });
 }

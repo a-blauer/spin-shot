@@ -646,7 +646,7 @@ export class World {
     this.pendingLamps = [];
     this.pendingBuildings = [];
     const GM = this.game;
-    GM.navInit(-10800, -10800, 10800, 10800, 100);
+    GM.navInit(-15200, -15200, 15200, 15200, 100);
     this.AddZone('Motel Courtyard', V2(-6000, -6000), V2(-2000, -2000));
     this.AddZone('Main Street', V2(-6000, -2000), V2(-2000, 6000));
     this.AddZone('Chapel Hill', V2(-2000, -6000), V2(2000, -2000));
@@ -656,10 +656,12 @@ export class World {
     GM.casinoZone = this.AddZone('The Lucky Stiff', V2(-900, -1100), V2(900, 1100), false);
     GM.zones[GM.casinoZone].unlocked = true;
     // the outskirts: four districts wrapped around the old town, about tripling the map
-    this.AddZone('Shanty Row', V2(-10500, -10500), V2(-6000, 6000));
-    this.AddZone('Stockyards', V2(-6000, -10500), V2(10500, -6000));
-    this.AddZone('Refinery', V2(6000, -6000), V2(10500, 10500));
-    this.AddZone('Ghost Rails', V2(-10500, 6000), V2(6000, 10500));
+    this.AddZone('Shanty Row', V2(-10600, -10600), V2(-6000, 6000));
+    this.AddZone('Stockyards', V2(-6000, -10600), V2(10600, -6000));
+    this.AddZone('Refinery', V2(6000, -6000), V2(10600, 10600));
+    this.AddZone('Ghost Rails', V2(-10600, 6000), V2(6000, 10600));
+    // the Badlands: one ring right round the outside (listed last, so every inner district is matched first)
+    this.AddZone('The Badlands', V2(-15000, -15000), V2(15000, 15000));
     // bind methods for the translated zone builders
     const M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp',
@@ -686,6 +688,7 @@ export class World {
     Z.BuildCasino(M, gmShim);
     Z.BuildMesa(M, gmShim);
     Z.BuildOutskirts(M, gmShim);
+    Z.BuildBadlands(M, gmShim);
     Z.BuildDoors(M, gmShim);
     Z.BuildVault(M, gmShim);
     this.finish();
