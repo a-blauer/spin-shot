@@ -1,6 +1,7 @@
 // Sulfur-style HUD drawn on a 2D canvas: chunky condensed type with dark outlines, bone-white and saloon-gold
 // panels with clipped corners. Crosshair with spread/kick, hit markers, damage arcs, floating numbers,
 // banners, toasts, boss bar, power-up timers, casino menus (with live slot reels), inventory and death card.
+import { diff } from './data.js';
 import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
@@ -476,7 +477,7 @@ export class Hud {
     { let fs = 84 * S; const tw = this.measure(`${Math.max(r, 0)}`, fs, F_BIG); if (tw > 86 * S) fs *= (86 * S) / tw;
       this.text('ROUND', 80 * S, 70 * S, 13 * S, 'rgba(242,232,213,0.8)', 'center', F_TXT, 700, 0.1);
       this.text(`${Math.max(r, 0)}`, 80 * S, 104 * S + this.fs(fs) * 0.42, fs, col, 'center', F_BIG, 400, 0.08); }
-    const zn = game.final && game.final.active ? 'UNDER THE LUCKY STIFF' : game.zones[game.zone] ? game.zones[game.zone].name.toUpperCase() : '';
+    const zn = game.final && game.final.active ? 'UNDER THE LUCKY STIFF' : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
     let info = '', ic = BONE;
     if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? 'THE VAULT' : 'THE VAULT IS OPEN'; ic = GOLD; }
     else if (game.phase === 'Round') info = `${game.remaining()} LEFT`;

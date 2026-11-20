@@ -95,6 +95,8 @@ export const Meta = {
   setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; S.look = Object.assign({}, DEFAULT_LOOK, S.look); S.look[slot] = cosItem(slot, id).id; dirty = true; this.save(); },
   starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.need || (S.stats[T.need[0]] || 0) >= T.need[1]); },
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
+  difficulty() { return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
+  setDifficulty(i) { S.diff = i; dirty = true; this.save(); },
   setStarter(w) { if (this.starterUnlocked(w)) { S.starter = w; dirty = true; this.save(); } },
   cosCount() { let n = 0, t = 0; for (const s of SLOTS) for (const I of COSMETICS[s]) { t++; if (this.cosUnlocked(s, I.id)) n++; } return [n, t]; },
   popEvents() { return events.splice(0, events.length); },

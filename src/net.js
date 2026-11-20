@@ -1,6 +1,7 @@
 // Co-op over the artifact `room` capability. One player hosts and runs the whole simulation (rounds, spawns, enemy AI);
 // everyone else mirrors the host's enemies and sends their hits back. The lobby room carries the server list as presence.
 // Everything heard here is untrusted: numbers are coerced and clamped before use.
+import { difficulty, setDifficulty } from './data.js';
 import * as THREE from 'three';
 import { Enemy } from './enemies.js';
 import { Meta } from './meta.js';
@@ -148,7 +149,7 @@ export const Net = {
         this.ts = 0.5;
         const doors = []; g.interactables.forEach((I, i) => { if (I.type === 'Door' && I.open) doors.push(i); });
         const F = g.final, fin = F ? { g: F.gate ? [Math.round(F.gate.x), Math.round(F.gate.y), Math.round(F.gate.z)] : 0, a: F.active ? 1 : 0, d: F.done ? 1 : 0, r: Math.round(F.safeR || 0), b: F.beam ? [Math.round(F.beam.x), Math.round(F.beam.y), Math.round(F.beam.z), Math.round(F.beam.ang * 100) / 100, F.beam.spd, F.beam.n, Math.round(F.beam.dmg), Math.round((F.beam.t || 0) * 10) / 10] : 0 } : 0;
-        this.emit('s', { r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
+        this.emit('s', { df: difficulty(), r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
         if (g.phase === 'Round' && this.allDead()) g.gameOver();
       }
     } else if (performance.now() - this.lastHost > 12000) this.hostGone();
@@ -216,6 +217,7 @@ export const Net = {
   },
   onState(d) {
     const g = this.game; if (!g) return;
+    if (d.df != null && (d.df | 0) !== difficulty()) setDifficulty(num(d.df, 0, 2) | 0);   // the host's difficulty is everyone's
     const r = num(d.r, 0, 999) | 0, ph = ['PreGame', 'Round', 'Intermission', 'GameOver'].includes(d.ph) ? d.ph : 'Round';
     if (r > g.round) {
       g.round = r; g.banner(`ROUND ${r}`, [0.85, 0.08, 0.06], 3.5, 'round'); g.hud.roundFlash = 1;

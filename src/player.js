@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 import {
-  DATA, STATS, TONICS, zombieHealth, SUITS, SUIT_BONUS, SUIT_HEX, SYMBOLS, VAULT_COST, RARITIES, RARITY_HEX, rarityIndex, luckMult, luckRerollChance, rollRarity, rollUpgradeOfRarity,
+  diff, DATA, STATS, TONICS, zombieHealth, SUITS, SUIT_BONUS, SUIT_HEX, SYMBOLS, VAULT_COST, RARITIES, RARITY_HEX, rarityIndex, luckMult, luckRerollChance, rollRarity, rollUpgradeOfRarity,
   rollWeaponOfRarity, rarityPrice, hexRGB, lerp3, lin, randInt, frandRange,
 } from './data.js';
 
@@ -809,6 +809,7 @@ export class Player {
   heal(a) { if (!this.dead && a > 0) this.health = Math.min(this.maxHealth, this.health + a); }
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
+    amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
     // the same goes for blasts: several markers going off together count once, not once each

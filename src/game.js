@@ -3,7 +3,7 @@
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
-import { DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
+import { diff, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment } from './env.js';
@@ -310,7 +310,7 @@ export class Game {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
     if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.35);   // never leave the player with nothing to shoot
-    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.1, 1.5 - this.round * 0.1); this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
+    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.1, 1.5 - this.round * 0.1) * diff().spawn; this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {

@@ -78,14 +78,26 @@ export function rollWeaponOfRarity(rarity, exA, exB) {
   return pool.length ? pool[randInt(0, pool.length - 1)] : 1;
 }
 // The level is 15 rounds. Difficulty formulas were written for 25, so they read an effective round that covers the same climb.
-export const effRound = (r) => 1 + (Math.max(1, r) - 1) * 1.7;
+// Three difficulties. Nightmare is the game as it was tuned; Hard and Normal scale down from it.
+//   hp: enemy health    slope: how fast rounds ramp (health, damage, tougher types)    count: enemies per round
+//   alive: how many at once    dmg: damage you take    spawn: seconds between spawns (higher = slower)
+export const DIFFS = [
+  { name: 'Normal', hp: 0.6, slope: 1.0, count: 0.6, alive: 0.75, dmg: 0.55, spawn: 1.45, desc: 'Fewer, weaker enemies that hit for about half and ramp up gently.' },
+  { name: 'Hard', hp: 0.8, slope: 1.35, count: 0.8, alive: 0.88, dmg: 0.75, spawn: 1.2, desc: 'A real fight. Between the two.' },
+  { name: 'Nightmare', hp: 1, slope: 1.7, count: 1, alive: 1, dmg: 1, spawn: 1, desc: 'Full hordes, full damage, the steepest climb.' },
+];
+let DF = DIFFS[2], dfi = 2;
+export const setDifficulty = (i) => { dfi = Math.max(0, Math.min(2, i | 0)); DF = DIFFS[dfi]; };
+export const difficulty = () => dfi;
+export const diff = () => DF;
+export const effRound = (r) => 1 + (Math.max(1, r) - 1) * DF.slope;
 // hordes: far more bodies each round, each one 40% weaker than before
-export const zombieHealth = (r0) => { const r = effRound(r0); return 0.6 * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
+export const zombieHealth = (r0) => { const r = effRound(r0); return 0.6 * DF.hp * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
 const oldCount = (x) => 1.05 * (x <= 5 ? 6 + (x - 1) * 4.5 : 24 + (x - 5) * 5);
 // kill pay shrinks as the horde grows so a round is worth about what it was
-export const payScale = (r) => Math.max(0.3, Math.min(1, oldCount(effRound(r)) / zombieCount(r)));
-export const zombieCount = (r) => Math.round(8 + r * 6 + r * r * 1.1);   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
-export const maxAlive = (r) => Math.round(Math.min(64, 16 + r * 3.4));
+export const payScale = (r) => Math.max(0.3, Math.min(1.7, oldCount(1 + (Math.max(1, r) - 1) * 1.7) / zombieCount(r)));   // a round pays the same on every difficulty: fewer enemies, more each
+export const zombieCount = (r) => Math.round((8 + r * 6 + r * r * 1.1) * DF.count);   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
+export const maxAlive = (r) => Math.max(10, Math.round(Math.min(64, 16 + r * 3.4) * DF.alive));
 export const rarityPrice = (r) => [1000, 2000, 3500, 6000, 10000, 2500][r] || 1000;
 
 // colour helpers: content colours are sRGB hex; the renderer works in sRGB directly

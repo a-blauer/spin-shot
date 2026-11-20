@@ -1,4 +1,5 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
+import { DIFFS, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
@@ -141,6 +142,7 @@ async function boot() {
   game.settings = Object.assign(game.settings, settings);
   await game.build();
   window.__dmh = game;
+  window.__diffTest = { setDifficulty, zombieCount, maxAlive, zombieHealth };
   status('');
   document.body.classList.add('ready');
   resize();
@@ -283,6 +285,7 @@ function renderLobby() {
   for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : esc2(T.text)}</span></div>`; }
   h += '</section>';
   // map
+  h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
   h += '<section><h3>MAP</h3><div class="lbpick sel"><b>Deadwater Gulch</b><span>Motel, main street and the Lucky Stiff casino</span></div><div class="lbpick locked"><b>More maps</b><span>Coming later</span></div></section></div>';
   h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : '<button id="lbstart" class="lbstart">START GAME</button>';
   lobby.innerHTML = h;
@@ -295,10 +298,12 @@ function renderLobby() {
   if (q('#lbjoin')) q('#lbjoin').onclick = async (e) => { e.stopPropagation(); if (lobbyBusy) return; lobbyBusy = true; const n = saveName(), code = q('#lcode').value; lobbyMsg = 'Joining...'; renderLobby(); try { await Net.join(code, n); lobbyMsg = ''; } catch (err) { lobbyMsg = err && err.message === 'code' ? 'Enter the lobby code your friend sees.' : 'No lobby found with that code.'; } lobbyBusy = false; renderLobby(); };
   if (q('#lbleave')) q('#lbleave').onclick = (e) => { e.stopPropagation(); Net.leave(); lobbyMsg = ''; renderLobby(); };
   q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
+  lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 function beginRun() {
+  if (Net.role !== 'client') setDifficulty(Meta.difficulty());
   lobby.style.display = 'none'; locker.style.display = 'none';
   // apply the chosen starting weapon to a fresh run
   const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
