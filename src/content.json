@@ -3539,7 +3539,7 @@
 {
 "name": "Big Tony",
 "title": "The Pit Boss",
-"hp": 26,
+"hp": 15,
 "speed": 300,
 "dmg": 45,
 "scale": 2.8,

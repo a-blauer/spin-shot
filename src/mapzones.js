@@ -629,9 +629,6 @@ export function BuildCasino(M, GM) {
 		for (const [px, py] of [[-800., -1000.], [-800., 1000.], [800., -1000.], [800., 1000.]]) { Cyl(V(px, py, 40.), 90., 80., Pal.Gold, false, false); for (let k = 0; k < 6; ++k) Box(V(px, py, 170.), V(18., 150., 150.), Pal.Leaf, false, false, k * 30.); }
 		// what is where, in neon
 		Sign(V(50., 1040., 470.), -90., "SLOTS", FC(255, 205, 90), 80.);
-		Sign(V(-100., -1040., 470.), 90., "WEAPON ROULETTE", FC(255, 110, 170), 60.);
-		Sign(V(840., -450., 520.), 180., "UPGRADES", FC(120, 230, 220), 60.);
-		Sign(V(840., 450., 520.), 180., "TONICS", FC(255, 205, 90), 60.);
 		Lamp(V(50., 800., 420.), LC(1., 0.7, 0.3), 10., 900., false); Lamp(V(-100., -800., 420.), LC(1., 0.4, 0.6), 10., 900., false);
 	}
 

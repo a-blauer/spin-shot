@@ -1305,6 +1305,7 @@ export class Player {
         break;
       case 'AmmoCrate': if (this.spend(I.cost)) { this.refillAll(); this.toast('All ammo refilled', '#cce6ff'); } break;
       case 'ExitBell': G.ringBell(); break;
+      case 'ArmsRoulette': this.openMenu(I); this.rouletteSpin(); if (this.menu && this.menu.stage === 0) this.closeMenu(); break;   // one press: pay and spin (can't afford it: nothing opens)
       default: this.openMenu(I); break;
     }
   }
@@ -1342,8 +1343,8 @@ export class Player {
         if (M.stage === 2 && i === 0 && M.pending >= 0) {
           const W = wdef(M.pending);
           this.giveWeapon(M.pending);
-          M.result = `Took ${W.name}`; M.resultColor = RARITY_HEX[W.rarity];
           M.pending = -1; M.stage = 0;
+          this.toast(`Took ${W.name}`, RARITY_HEX[W.rarity]); this.closeMenu(); return;
         }
         break;
       case 'MoneyTable':
@@ -1380,7 +1381,10 @@ export class Player {
     const M = this.menu;
     switch (M.type) {
       case 'Slots': if (M.stage === 0) this.slotsPull(); else if (M.stage === 1) this.slotsStop(); break;
-      case 'Roulette': if (M.stage === 0) this.rouletteSpin(); else if (M.stage === 1 && !M.brake) { M.brake = true; this.play('S_SlotStop', 0.7, 0.8); } break;
+      case 'Roulette':   // E spins, the wheel stops on its own, E again claims what it landed on
+        if (M.lock > 0) break;
+        if (M.stage === 0) this.rouletteSpin(); else if (M.stage === 2) this.handleChoice(0);
+        break;
       case 'MoneyTable': if (M.stage === 3) { M.stage = 0; M.result = ''; } break;
       case 'Pawn': { const cost = Math.round(400 * (1 + this.pawnRerolls) * this.priceMult()); if (this.spend(cost)) { this.pawnRerolls++; this.rollPawn(); M.offers = this.pawnOffers; } break; }
       case 'Tonic': M.page = 1 - M.page; this.play('S_UIMove', 0.6); break;
@@ -1390,10 +1394,11 @@ export class Player {
   }
   tickMenu(dt) {
     const M = this.menu;
+    if (M && M.lock > 0) M.lock -= dt;
     if (M && M.type === 'Roulette' && M.stage === 1) {
       // the wheel: spins freely until you brake (or it times out), then coasts to a stop
       M.ang += M.spd * dt;
-      if (M.timer - dt <= 0) M.brake = true;
+      if (M.spinLen - M.timer >= M.free) M.brake = true;
       if (M.brake) { M.spd -= dt * 5.5; if (M.spd <= 0.12) { this.rouletteResolve(); return; } }
       const seg = Math.floor(M.ang / (Math.PI * 2 / M.wheel.length));
       if (seg !== M.lastSeg) { M.lastSeg = seg; this.play('S_SlotTick', 0.4, 1, 0.05); }
@@ -1465,7 +1470,7 @@ export class Player {
     const cost = Math.round(950 * this.priceMult());
     if (!this.spend(cost)) return;
     const M = this.menu;
-    M.stage = 1; M.timer = M.spinLen = 10; M.result = ''; M.reroll = false; M.brake = false; M.lastSeg = -1;
+    M.stage = 1; M.timer = M.spinLen = 10; M.result = ''; M.reroll = false; M.brake = false; M.lastSeg = -1; M.free = 1.1 + Math.random() * 1.2;   // spins freely this long, then coasts to a stop by itself
     this.play('S_SlotPull', 0.7, 0.9);
     M.wheel = [];
     for (let i = 0; i < 10; i++) M.wheel.push(rollWeaponOfRarity(rollRarity(this.luck, 1.25), this.weapons[0].def, this.weapons[1].def));
@@ -1479,6 +1484,7 @@ export class Player {
     const M = this.menu;
     M.timer = 0; M.spd = 0; M.pending = this.roulettePointed();
     this.play(M.pending < 0 ? 'S_Lose' : 'S_Win', 0.8);
+    M.lock = 0.5;   // a mashed E can't buy another spin or grab the prize before you have seen it
     if (M.pending < 0) { M.stage = 0; M.result = 'Bust. Nothing won.'; M.resultColor = '#ff4d40'; return; }
     M.stage = 2;
   }
@@ -1564,15 +1570,15 @@ export class Player {
         break;
       case 'Roulette':
         title = 'WEAPON ROULETTE';
-        help.push({ kind: 'info', text: `The wheel holds ten wedges: weapons and one or two busts. Press E to brake; it coasts a little before stopping, and you get whatever is under the pointer. Luck (${this.luck}) puts better weapons on the wheel, can remove a bust and slows the spin. Taking the weapon fills an empty slot, or replaces the one you are holding.`, color: dim });
-        if (M.stage === 0) { if (M.result) res(M.result, M.resultColor); opt('E', 'Spin', { price: Math.round(950 * this.priceMult()) }); footer = '[Tab] Leave'; }
-        else if (M.stage === 1) { lines.push({ kind: 'wheel' }); const w = this.roulettePointed(); if (w < 0) res('BUST', '#ff4d40'); else res(wdef(w).name.toUpperCase(), RARITY_HEX[wdef(w).rarity]); footer = M.brake ? '' : '[E] Brake'; }
+        help.push({ kind: 'info', text: `The wheel holds ten wedges: weapons and one or two busts. Press E to pay and spin; the wheel stops on its own, and E again claims whatever is under the pointer. Luck (${this.luck}) puts better weapons on the wheel, can remove a bust and slows the spin. Taking the weapon fills an empty slot, or replaces the one you are holding.`, color: dim });
+        if (M.stage === 0) { if (M.result) res(M.result, M.resultColor); opt('E', 'Spin again', { price: Math.round(950 * this.priceMult()) }); footer = '[Tab] Leave'; }
+        else if (M.stage === 1) { lines.push({ kind: 'wheel' }); const w = this.roulettePointed(); if (w < 0) res('BUST', '#ff4d40'); else res(wdef(w).name.toUpperCase(), RARITY_HEX[wdef(w).rarity]); footer = ''; }
         else {
           const W = DATA.weapons[M.pending];
           res(`${W.name.toUpperCase()}${M.reroll ? '  (LUCK RE-SPIN)' : ''}`, RARITY_HEX[W.rarity]);
           add(`${W.rarity} ${W.cls === 'Wonder' ? 'wonder weapon' : W.cls.toLowerCase()}. ${W.desc}`);
           lines.push({ kind: 'stats', items: [['DAMAGE', `${W.dmg}${W.pellets > 1 ? ' x' + W.pellets : ''}`], ['RATE', `${W.rate.toFixed(1)}/s`], ['MAG', `${W.mag}`]] });
-          opt('1', 'Take', { color: gold });
+          opt('E', 'Claim', { color: gold });
           footer = '[Tab] Leave it';
         }
         break;

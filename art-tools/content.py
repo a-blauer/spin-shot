@@ -262,7 +262,7 @@ AFFIX = [
 
 # name, title, hp mult, speed, dmg, scale, body, head, attacks, minion, reward, desc
 BOSS = [
- ("Big Tony", "The Pit Boss", 26, 300, 45, 2.8, 0x2E2E3A, 0xB88A6A, ["Charge", "Slam", "Summon"], 0, 2500,
+ ("Big Tony", "The Pit Boss", 15, 300, 45, 2.8, 0x2E2E3A, 0xB88A6A, ["Charge", "Slam", "Summon"], 0, 2500,
   "The casino's enforcer, still collecting debts. Charges in straight lines and calls in the floor staff."),
  ("The Abomination", "Stitched Mass", 32, 260, 55, 3.4, 0x8A5A5A, 0xC08A7A, ["Leap", "Slam", "Ring"], 1, 3500,
   "A dozen enemies sewn into one. Leaps across the map and sends out shockwave rings."),
