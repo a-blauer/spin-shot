@@ -246,8 +246,8 @@ export class Hazards {
 }
 
 // ================================================================== pickups
-const PICKUP_COLOR = { Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
-const PICKUP_ICON = { Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
+const PICKUP_COLOR = { Ammo: lin(0.5, 0.7, 1), Clover: lin(0.3, 1, 0.35), MoneyBag: lin(1, 0.8, 0.2), MaxAmmo: lin(0.4, 0.75, 1), InstaKill: lin(1, 0.2, 0.18), DoublePoints: lin(1, 0.85, 0.2), Nuke: lin(1, 0.5, 0.1), FireSale: lin(0.95, 0.35, 1) };
+const PICKUP_ICON = { Ammo: 'I_MaxAmmo', Clover: 'I_Clover', MoneyBag: 'I_MoneyBag', MaxAmmo: 'I_MaxAmmo', InstaKill: 'I_InstaKill', DoublePoints: 'I_DoublePoints', Nuke: 'I_Nuke', FireSale: 'I_FireSale' };
 
 export class Pickups {
   constructor(game, scene) { this.game = game; this.scene = scene; this.list = []; }
@@ -256,7 +256,7 @@ export class Pickups {
     const L = at.clone();
     const h = G.phys.raycastDown(L.clone().add(V3(0, 100, 0)), 1600);
     if (h) L.copy(h.point).add(V3(0, 70, 0));
-    const power = type !== 'Clover' && type !== 'MoneyBag';
+    const power = type !== 'Clover' && type !== 'MoneyBag' && type !== 'Ammo';
     const K = { type, amount, base: L, pos: L.clone(), age: 0, life: power ? 25 : 30, power, size: power ? 90 : 64, color: PICKUP_COLOR[type], spr: sprite(PICKUP_ICON[type]) };
     if (power) {
       const c = K.color;

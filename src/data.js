@@ -78,8 +78,8 @@ export function rollWeaponOfRarity(rarity, exA, exB) {
   return pool.length ? pool[randInt(0, pool.length - 1)] : 1;
 }
 export const zombieHealth = (r) => (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9));
-export const zombieCount = (r) => Math.round(1.5 * (r <= 5 ? [6, 9, 13, 18, 24][Math.max(0, r - 1)] : Math.min(24 + (r - 5) * 5, 220)));   // 50% bigger hordes; kill pay is cut by a third to match
-export const maxAlive = (r) => Math.min(40, Math.max(18, 15 + r * 3));
+export const zombieCount = (r) => Math.round(1.05 * (r <= 5 ? [6, 9, 13, 18, 24][Math.max(0, r - 1)] : Math.min(24 + (r - 5) * 5, 220)));   // 50% bigger hordes; kill pay is cut by a third to match
+export const maxAlive = (r) => Math.min(28, Math.max(13, 10 + r * 2));
 export const rarityPrice = (r) => [1000, 2000, 3500, 6000, 10000, 2500][r] || 1000;
 
 // colour helpers: content colours are sRGB hex; the renderer works in sRGB directly

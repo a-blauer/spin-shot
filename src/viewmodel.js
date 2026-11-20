@@ -18,7 +18,7 @@ function quatVM(rot) {
   const m = new THREE.Matrix4().makeBasis(P3(b), P3(c), P3(a).negate());
   return new THREE.Quaternion().setFromRotationMatrix(m);
 }
-const ViewScale = 0.4;
+const ViewScale = 0.31;   // smaller in the frame so the gun does not crowd the view
 const HipPos = { X: 31, Y: 12.5, Z: -14 };
 const Metal = hex(0x4C4E5C), MetalDark = hex(0x2A2A33), MetalLight = hex(0x8C90A0), Wood = hex(0x7A4528), WoodLight = hex(0xA8643A);
 const Glove = hex(0x4E3324), GloveLight = hex(0x6E4A32), Cuff = hex(0xC9A46A), Sleeve = hex(0xB0603A), SleeveStripe = hex(0xE8C24A), Brass = hex(0xE0A83A);

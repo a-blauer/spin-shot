@@ -14,6 +14,7 @@ const GrappleRange = 4500, GrappleSpeed = 2700, BaseGravity = 1.6;
 const RADIUS = 38, HALF = 90;
 const UP = new THREE.Vector3(0, 1, 0);
 const SLOT_STRIP = [0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 4, 0, 1, 6, 2];
+import { gunSound } from './gunsound.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wheel wedge or shop offer can be a gun index or a melee code
@@ -210,6 +211,7 @@ export class Player {
   collectPickup(type, amount) {
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${amount}`, '#ffd23a'); this.play('S_Cash', 0.8); }
+    else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
     else { this.play('S_PowerUp', 0.9); this.game.activatePowerup(type); }
   }
   onRoundStarted(r) {
@@ -767,6 +769,8 @@ export class Player {
   heal(a) { if (!this.dead && a > 0) this.health = Math.min(this.maxHealth, this.health + a); }
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
+    // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
+    if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
     if (this.inMenu()) this.closeMenu();
     const armor = this.stat('Armor');
     let dmg = amount * (armor >= 0 ? 100 / (100 + armor) : 1 + -armor / 100);
@@ -924,17 +928,8 @@ export class Player {
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
     if (kick > 1) this.addShake(kick * 0.18);
     this.game.vm.fire(kick, continuous);
-    let snd = 'S_Rifle';
-    switch (W.cls) {
-      case 'Pistol': snd = W.dmg > 60 ? 'S_Revolver' : 'S_Pistol'; break; case 'SMG': snd = 'S_SMG'; break; case 'Rifle': snd = 'S_Rifle'; break;
-      case 'Shotgun': snd = 'S_Shotgun'; break; case 'LMG': snd = 'S_LMG'; break; case 'Sniper': snd = 'S_Sniper'; break; case 'Launcher': snd = 'S_Launcher'; break;
-      default: snd = { Flame: 'S_Flame', Chain: 'S_Chain', Beam: 'S_Beam', Saw: 'S_Saw', Plasma: 'S_Plasma' }[W.mode] || 'S_Energy';
-    }
-    // each gun has its own voice: heavier hitters sit lower, small fast guns higher
-    let hsh = 0; for (let k = 0; k < W.name.length; k++) hsh = (hsh * 31 + W.name.charCodeAt(k)) & 255;
-    const pitch = Math.min(1.35, Math.max(0.7, 1.12 - Math.log10(Math.max(10, W.dmg * W.pellets)) * 0.14 + ((hsh % 7) - 3) * 0.035));
-    if (!continuous || Math.random() < 0.25) this.play(snd, continuous ? 0.5 : 0.85, pitch, 0.04);
-    if (!continuous && !['Energy'].includes(W.cls)) this.game.audio.gunPunch(Math.log10(Math.max(10, W.dmg * W.pellets)) / 3 - 0.3);
+    // every gun has its own synthesized voice (gunsound.js); held beams and hoses tick quietly instead of blasting
+    if (!continuous || Math.random() < 0.3) gunSound(this.game.audio, W.name, 1, continuous);
     const S = this.slot;
     if (S.ammo > 0 && S.ammo <= Math.max(2, Math.floor(this.magSize(S) / 6))) this.play('S_Dry', 0.35, 1.4);
   }
@@ -1116,7 +1111,7 @@ export class Player {
     Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills');
     Meta.addGunKill(this.W.name);
     if (headshot || E.elite || E.isBoss) G.hitstop = E.isBoss ? 0.12 : 0.045;
-    const pay = E.money + (headshot ? 27 : 0);
+    const pay = E.money + (headshot ? 38 : 0);
     this.addMoney(pay, true);
     this.killPulse = 1;
     this.play('S_Kill', 0.6, 1, 0.08);

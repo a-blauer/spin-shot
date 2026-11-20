@@ -310,7 +310,7 @@ export class Game {
   tickRound(dt) {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
-    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.3, 2.1 - this.round * 0.11); this.spawnOne(); }
+    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.3, 2.1 - this.round * 0.11) / 0.7; this.spawnOne(); }   // 30% slower trickle
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {
@@ -341,7 +341,7 @@ export class Game {
   endRound() {
     this.phase = 'Intermission'; this.phaseTimer = 15;
     this.player.onRoundEnded(this.round);
-    if (this.round === 2) this.openCasinoPath();
+
     this.player.onCasinoOpened();
     if (this.round % 3 === 0) this.banner(`ROUND ${this.round} CLEAR`, lin(1, 0.75, 0.2), 4);
     else this.banner(`ROUND ${this.round} CLEAR`, [0.95, 0.95, 0.92], 3);
@@ -447,6 +447,7 @@ export class Game {
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
+    if (!E.isBoss && Math.random() < 0.07) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
     if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
       this.powerupsThisRound++;
       this.pickups.spawn(['MaxAmmo', 'InstaKill', 'DoublePoints', 'Nuke', 'FireSale'][randInt(0, 4)], loc);

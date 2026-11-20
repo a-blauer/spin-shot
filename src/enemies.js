@@ -28,7 +28,7 @@ export class Enemy {
     this.bodyScale = D.scale * scaleMul;
     this.baseSpeed = D.speed;
     this.attackDamage = D.dmg * (1 + 0.06 * (this.round - 1));
-    this.money = Math.round(D.money * 2 / 3);
+    this.money = Math.round(D.money * 0.95);
     this.bodyColor = hexRGB(D.body);
     if (this.ai === 'Walker') {
       const R = Math.random();
@@ -428,12 +428,19 @@ export class Enemy {
     }
     const reach = this.def.range * Math.max(1, this.bodyScale * 0.8);
     if (!['Spitter', 'Priest', 'Gilded'].includes(this.ai) && dist < reach + 40 && this.attackCd <= 0) {
+      // take turns: only two attackers (three from round 12, four from round 22) may be mid-swing on one target at a time
+      const busy = G.enemies.reduce((n, e) => n + (e !== this && !e.dead && e.windup > 0 && e.swingAt === P ? 1 : 0), 0);
+      if (busy >= (this.round >= 22 ? 4 : this.round >= 12 ? 3 : 2) || G.time - (P.lastSwingStart || -9) < 0.28) { this.attackCd = 0.25 + Math.random() * 0.35; return; }
+      P.lastSwingStart = G.time; this.swingAt = P;
       this.attackCd = this.def.cd;
       this.windup = this.ai === 'Brute' ? 0.55 : 0.32;
       return;
     }
-    if (this.grounded && this.climb <= 0 && To.y > 170 && dist2D < 650 && this.ai !== 'Gilded') {
-      this.climb = this.ai === 'Brute' ? 4 : 2.4;
+    // jump only at a player who has been up high for a while, and only some enemies try it
+    this.highT = To.y > 230 ? (this.highT || 0) + dt : 0;
+    if (this.jumper === undefined) this.jumper = Math.random() < 0.4;
+    if (this.jumper && this.grounded && this.climb <= 0 && this.highT > 1.6 && dist2D < 520 && this.ai !== 'Gilded') {
+      this.climb = (this.ai === 'Brute' ? 8 : 5.5) + Math.random() * 3;
       const H = Math.min(To.y + 160, 1100);
       const vz = Math.sqrt(2 * GRAV * H);
       this.launch(safeN2(To).multiplyScalar(Math.min(dist2D * 1.4 + 150, 700)).add(new THREE.Vector3(0, vz, 0)));
