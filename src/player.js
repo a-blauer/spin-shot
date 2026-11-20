@@ -767,11 +767,15 @@ export class Player {
       if (this.stat('MeleeFrenzy') > 0) { this.frenzy = Math.min(5, (this.frenzy || 0) + killed); this.frenzyT = 6; }
     }
   }
+  // top sources of damage this run, biggest first: [{ who, total, hits, max, pct }]
+  damageReport() { const L = this.dmgLog || {}, all = Object.keys(L).reduce((n, k) => n + L[k].total, 0) || 1; return Object.keys(L).map((k) => ({ who: k, total: Math.round(L[k].total), hits: L[k].hits, max: Math.round(L[k].max), pct: Math.round(L[k].total / all * 100) })).sort((a, b) => b.total - a.total); }
   heal(a) { if (!this.dead && a > 0) this.health = Math.min(this.maxHealth, this.health + a); }
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
+    // the same goes for blasts: several markers going off together count once, not once each
+    else if (source && (source.kind === 'Marker' || source.kind === 'Ring') && !silent) { if (this.game.time - (this.lastBlastHit || -9) < 0.4) return; this.lastBlastHit = this.game.time; }
     if (this.inMenu()) this.closeMenu();
     const armor = this.stat('Armor');
     let dmg = amount * (armor >= 0 ? 100 / (100 + armor) : 1 + -armor / 100);
@@ -779,6 +783,18 @@ export class Player {
     if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; }
     this.health -= dmg;
     this.sinceDamage = 0;
+    // damage report: what hit you, totalled for the run and kept in order for the last few seconds
+    { let who = 'Other';
+      if (source && source.def) who = (source.isBoss ? source.boss.name : source.elite || source.variant ? source.displayName() : source.def.name) + (melee ? '' : ' (special)');
+      else if (source && source.label) who = source.label;
+      else if (source && source.hostile !== undefined) who = 'Enemy projectile';
+      else if (source && source.kind) who = { Marker: 'Blast marker', Ring: 'Shockwave ring', Fire: 'Fire on the ground' }[source.kind] || source.kind;
+      else if (melee) who = 'Enemy melee';
+      this.dmgLog = this.dmgLog || {}; this.dmgRecent = this.dmgRecent || [];
+      const L = this.dmgLog[who] || (this.dmgLog[who] = { total: 0, hits: 0, max: 0 }); L.total += dmg; L.hits++; L.max = Math.max(L.max, dmg);
+      const last = this.dmgRecent[this.dmgRecent.length - 1];
+      if (last && last.who === who && this.game.time - last.t < 1 && dmg < 5) { last.dmg += dmg; L.hits--; }   // burning ticks read as one line, not sixty
+      else { this.dmgRecent.push({ who, dmg, t: this.game.time }); if (this.dmgRecent.length > 40) this.dmgRecent.shift(); } }
     if (!silent) {
       this.hurtFlash = Math.min(1, this.hurtFlash + 0.35 + dmg / Math.max(1, this.maxHealth));
       this.game.hud.hurt(Math.min(1, dmg / 40));

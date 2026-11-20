@@ -315,7 +315,7 @@ export class Enemy {
     if (this.has('Blinking') && this.affixT <= 0 && dist > 700) { this.affixT = 4; this.blink(350, 550); }
     if (this.has('Blazing')) {
       this.fireTrail -= dt;
-      if (this.fireTrail <= 0 && this.grounded) { this.fireTrail = 0.9; G.hazards.fire(this.feet(), 12 + this.round * 1.5, 90 * this.bodyScale, 3.5); }
+      if (this.fireTrail <= 0 && this.grounded) { this.fireTrail = 0.9; const H = G.hazards.fire(this.feet(), 8 + this.round, 90 * this.bodyScale, 3.5); if (H) H.label = 'Blazing fire trail'; }
     }
     if (this.burrowed) {
       this.burrowT -= dt;
@@ -613,7 +613,7 @@ export class Enemy {
       const caught = G.enemies.filter((E) => E !== this && !E.dead && E.pos.distanceTo(loc) < 330);
       for (const E of caught) E.takeHit(this.maxHealth * 0.5, E.pos, new THREE.Vector3(), false);
     }
-    if (this.has('Volatile')) G.hazards.marker(this.feet(), this.attackDamage * 1.5, 320, 0.7, lin(1, 0.2, 0.1));
+    if (this.has('Volatile')) { const H = G.hazards.marker(this.feet(), this.attackDamage * 0.9, 280, 1.0, lin(1, 0.2, 0.1)); if (H) H.label = 'Volatile death blast'; }   // was 1.5x damage on a 0.7s fuse: too much at point-blank
     if (this.has('Splitting') && !this.splitChild) {
       for (let i = 0; i < 2; i++) {
         const out = G.findFreeLocationNear(loc, 60, 200);

@@ -30,17 +30,20 @@ const audio = new Audio('audio/');
 let game = null;
 let mode = 'title';
 let lockFailed = false;
+let lockFails = 0, lockRetry = 0;
 function requestLock() {
   if (TEST || lockFailed || ('ontouchstart' in window && matchMedia('(pointer: coarse)').matches)) return;
+  if (!glCanvas.requestPointerLock) { lockFailed = true; return; }
+  if (document.pointerLockElement) return;
+  // Browsers refuse a new lock for about a second after Esc releases one. A refusal is never treated as permanent:
+  // try again shortly, and any click in the game grabs the mouse too. Only give up if it never works at all.
+  const again = () => { lockFails++; if (lockFails >= 8) { lockFailed = true; hud.toast('Mouse lock unavailable here - open the page in its own tab for best aim', '#ffcd5a'); return; } clearTimeout(lockRetry); lockRetry = setTimeout(() => { if (mode === 'play' && !document.pointerLockElement) requestLock(); }, 1300); };
   try {
-    const p = glCanvas.requestPointerLock && glCanvas.requestPointerLock({ unadjustedMovement: true });
-    if (p && p.catch) p.catch(() => {
-      // retry without raw input, then give up and fall back to free-mouse look
-      try { const q = glCanvas.requestPointerLock(); if (q && q.catch) q.catch(() => { lockFailed = true; hud.toast('Mouse lock unavailable here - open the page in its own tab for best aim', '#ffcd5a'); }); }
-      catch (e) { lockFailed = true; }
-    });
-  } catch (e) { lockFailed = true; }
+    const p = glCanvas.requestPointerLock({ unadjustedMovement: true });
+    if (p && p.catch) p.catch(() => { try { const q = glCanvas.requestPointerLock(); if (q && q.catch) q.catch(again); } catch (e) { again(); } });
+  } catch (e) { again(); }
 }
+document.addEventListener('pointerlockchange', () => { if (document.pointerLockElement) lockFails = 0; });
 
 // ------------------------------------------------------------------ input
 const keys = new Set();
@@ -92,6 +95,7 @@ glCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
 hudCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
 addEventListener('mousedown', (e) => {
   if (mode !== 'play') return;
+  if (!TEST && !TOUCH && !lockFailed && !document.pointerLockElement) { requestLock(); return; }   // this click takes the mouse back; it does not fire
   if (e.button === 0) { mouseL = true; edges.firePressed = 1; }
   if (e.button === 2) mouseR = true;
 });
@@ -336,9 +340,11 @@ function setPaused(p) {
   if (p) { mode = 'paused'; keys.clear(); mouseL = mouseR = false; stick.x = stick.y = 0; touchFire = false; }
   else { mode = 'play'; requestLock(); }
   pauseEl.style.display = p ? 'flex' : 'none';
+  const box = pauseEl.querySelector('#pdmg');
+  if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Volume', 0, 1, 0.05, 0.8], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pbtns"><button id="presume">RESUME</button><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
@@ -412,6 +418,7 @@ function frame(now) {
   let dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   tickLocker(dt); tickLobby(dt);
+  hud.needMouse = mode === 'play' && !TEST && !TOUCH && !lockFailed && !document.pointerLockElement;
   if (window.__dmhFixedDt) dt = window.__dmhFixedDt;
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { hud.fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
   if (!game) { hud.draw(null, dt, 'title'); return; }

@@ -192,6 +192,7 @@ export class Hud {
     if (!P.dead) this.drawCornerShade(W, H, S);
     if (game.vm.scoped && !P.dead) this.drawScope(W, H, S);
     if (!P.dead) this.drawEnemyBars(game, P);
+    if (this.needMouse && !P.dead) { const S2 = this.S; this.g.fillStyle = 'rgba(20,10,16,0.75)'; this.g.fillRect(this.W / 2 - 250 * S2, this.H * 0.62, 500 * S2, 54 * S2); this.text('CLICK TO GRAB THE MOUSE', this.W / 2, this.H * 0.62 + 37 * S2, 30 * S2, GOLD, 'center', F_BIG, 400, 0.1); }
     if (game.net && game.net.active) this.drawTeam(game, W, H, S);
     this.drawFloaters(game, dt);
     if (!P.dead) {
@@ -844,6 +845,15 @@ export class Hud {
     const a = clamp((t - 0.8) * 2, 0, 1);
     const cy = H * 0.38;
     this.text(game.coopDown ? 'YOU ARE DOWN' : 'YOU DIED', W / 2, cy, 140 * S, '#d0241d', 'center', F_BIG, 400, 0.06, a);
+    // what did the damage this run, and what landed in the last few seconds
+    { const R = P.damageReport().slice(0, 6), x = 40 * S; let y = H * 0.2;
+      if (R.length && a > 0.5) {
+        this.text('DAMAGE TAKEN THIS RUN', x, y, 20 * S, GOLD, 'left', F_BIG, 400, 0.1); y += 30 * S;
+        for (const r of R) { this.text(`${r.pct}%`, x + 50 * S, y, 19 * S, BONE, 'right', F_TXT, 700); this.text(`${r.who}  -  ${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}`, x + 62 * S, y, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 600); y += 26 * S; }
+        y += 16 * S; this.text('LAST 8 SECONDS', x, y, 20 * S, '#ff5a4d', 'left', F_BIG, 400, 0.1); y += 30 * S;
+        const last = (P.dmgRecent || []).filter((d) => game.deathTime - d.t < 8).slice(-7);
+        for (const d of last) { this.text(`-${Math.round(d.dmg)}`, x + 50 * S, y, 19 * S, '#ff8a80', 'right', F_TXT, 700); this.text(`${d.who}   ${(game.deathTime - d.t).toFixed(1)}s before`, x + 62 * S, y, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 600); y += 26 * S; }
+      } }
     const survived = Math.max(0, game.round - 1);
         const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${P.money.toLocaleString()}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
