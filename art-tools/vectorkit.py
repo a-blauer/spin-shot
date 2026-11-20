@@ -239,7 +239,12 @@ class Part:
 
 def render_part(part, scale=1.0, pad=6, max_px=512):
     """Returns (svg_text, png_w, png_h, center_offset_from_pivot (units), size (units))."""
-    x0, y0, x1, y1 = poly_bounds(part.pts_all)
+    xf = getattr(part, 'xf', None)          # (sx, sy, ox, oy, dx, dy): scale about (ox, oy), then move
+    pts = part.pts_all
+    if xf:
+        sx, sy, ox, oy, dx, dy = xf
+        pts = [(ox + (x - ox) * sx + dx, oy + (y - oy) * sy + dy) for x, y in pts]
+    x0, y0, x1, y1 = poly_bounds(pts)
     x0 -= pad
     y0 -= pad
     x1 += pad
@@ -251,7 +256,8 @@ def render_part(part, scale=1.0, pad=6, max_px=512):
     pw, ph = max(4, int(math.ceil(w * s))), max(4, int(math.ceil(h * s)))
     # SVG coords: y flipped, so viewBox y from -y1 to -y0
     svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="%.2f %.2f %.2f %.2f">'
-           '<defs>%s</defs>%s</svg>') % (pw, ph, x0, -y1, w, h, ''.join(part.defs), ''.join(part.items))
+           '<defs>%s</defs>%s</svg>') % (pw, ph, x0, -y1, w, h, ''.join(part.defs),
+                                          ('<g transform="translate(%.3f %.3f) scale(%.4f %.4f) translate(%.3f %.3f)">%s</g>' % (xf[2] + xf[4], -(xf[3] + xf[5]), xf[0], xf[1], -xf[2], xf[3], ''.join(part.items))) if xf else ''.join(part.items))
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     return svg, pw, ph, (cx - part.pivot[0], cy - part.pivot[1]), (w, h)
 

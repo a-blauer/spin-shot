@@ -283,8 +283,8 @@ export class Game {
     this.final = { gate: f, active: false, done: false, beam: null, safeR: 0, t: 0 };
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.toSpawn = this.spawned;
-    this.banner('THE VAULT IS OPEN', lin(1, 0.8, 0.2), 6); this.hud.toast('Step into the light to face the Last Dealer', '#ffd24d');
-    this.audio.play('S_Jackpot', 1); this.player.addShake(2);
+    this.banner('THE CRYPT IS OPEN', lin(1, 0.8, 0.2), 6); this.hud.toast('Step into the light to face the Founder', '#ffd24d');
+    this.audio.play('S_LevelUp', 1); this.player.addShake(2);
   }
   enterVault() {
     const P = this.player, C = this.vaultCenter();
@@ -292,14 +292,14 @@ export class Game {
     P.pos.set(C.x, 100, C.z - VAULT.R + 260); P.vel.set(0, 0, 0); P.pitch = 0; P.yaw = 0; if (P.forward().z < 0) P.yaw = Math.PI;   // face the middle of the room
     P.invuln = 2; P.refillAll(); P.health = P.maxHealth;
     this.hud.hurtWhite = 0.35; this.audio.play('S_Door', 1, 0.6);
-    this.banner('THE VAULT', lin(1, 0.25, 0.15), 3);
+    this.banner('THE CRYPT', lin(1, 0.25, 0.15), 3);
   }
   startFinal() {
     const F = this.final; if (!F || F.active || F.done || this.net.role === 'client') return;
     F.active = true; F.gate = null; F.safeR = 0; F.beam = null;
     const C = this.vaultCenter();
     this.boss = this.spawnEnemy(0, V3(C.x, 300, C.z + 300), false, 5, 1, 1 + 0.5 * this.net.ghosts.size, 0, false);
-    this.banner('THE LAST DEALER', lin(1, 0.8, 0.2), 5); this.hud.toast('The house always wins', '#ff5a4d');
+    this.banner('THE FOUNDER', lin(1, 0.8, 0.2), 5); this.hud.toast('No one leaves Deadwater', '#ff5a4d');
     this.audio.play('S_BossRoar', 1, 0.7);
   }
   levelComplete() {
@@ -307,7 +307,7 @@ export class Game {
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.hazards.list.forEach((H) => { H.life = Math.min(H.life, H.age + 0.1); });
     this.victory = true; this.levelDone = true; Meta.bump('wins'); Meta.save();
-    this.audio.play('S_Jackpot', 1); this.player.addShake(2.5); this.hitstop = 0.4;
+    this.audio.play('S_LevelUp', 1); this.player.addShake(2.5); this.hitstop = 0.4;
   }
   tickFinal(dt) {
     const F = this.final, P = this.player; if (!F) return;
@@ -324,10 +324,10 @@ export class Game {
     // late arrivals (and anyone who dies and comes back) are pulled into the fight; nobody falls out of the room
     if (!P.dead && (!inside || P.pos.y < -250)) { this.enterVault(); }
     if (!inside || P.dead) return;
-    // atmosphere: embers rising, chips raining, the room shaking harder as the boss weakens
+    // atmosphere: embers rising, dust sifting down, the room shaking harder as the boss weakens
     const B = this.boss, rage = B && !B.dead ? 1 - B.health / B.maxHealth : 0;
     if (Math.random() < dt * (10 + rage * 30)) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * VAULT.R; this.fx.flash(V3(C.x + Math.cos(a) * r, 20 + Math.random() * 500, C.z + Math.sin(a) * r), lin(1, 0.35 + Math.random() * 0.3, 0.1), 14 + Math.random() * 22, 0.9, false); }
-    if (Math.random() < dt * (1.5 + rage * 5)) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * VAULT.R; this.fx.add({ pos: V3(C.x + Math.cos(a) * r, 800, C.z + Math.sin(a) * r), vel: V3(0, -300, 0), gravity: 900, life: 2.2, size0: 34, size1: 34, rot: Math.random() * 360, rotVel: 500, groundY: 2, bounce: 0.35, c0: [1, 1, 1, 1], fadeOut: 0.4, tex: 'FX_Coin', kind: 'sprite' }); }
+    if (Math.random() < dt * (1.5 + rage * 5)) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * VAULT.R; this.fx.add({ pos: V3(C.x + Math.cos(a) * r, 800, C.z + Math.sin(a) * r), vel: V3(0, -300, 0), gravity: 900, life: 2.2, size0: 34, size1: 34, rot: Math.random() * 360, rotVel: 500, groundY: 2, bounce: 0.35, c0: [1, 1, 1, 1], fadeOut: 0.4, tex: 'FX_Puff', kind: 'sprite' }); }
     if (rage > 0.66 && Math.random() < dt * 0.7) P.addShake(0.25);
     // rotating beams: jump them or stay between them
     const bm = F.beam;
@@ -432,7 +432,7 @@ export class Game {
       }
       if (!best) break;
       this.openDoor(best);
-      this.banner('PATH TO THE CASINO OPENED', lin(1, 0.8, 0.3), 4);
+      this.banner('A PATH HAS OPENED', lin(1, 0.8, 0.3), 4);
     }
   }
   setBarricade(on) {
@@ -444,7 +444,7 @@ export class Game {
     const local = !byPos, say = (t) => { if (local) { this.hud.toast(t, '#ff5a4d'); this.audio.play('S_Deny', 0.6); } };
     if (this.barricadeT > 0) { this.barricadeT = 0; this.barricadeCd = 300; this.setBarricade(false); this.banner('BARRICADE DOWN', lin(1, 0.6, 0.2), 2.5); return; }
     if (this.barricadeCd > 0) { say(`Barricade ready in ${Math.ceil(this.barricadeCd)}s`); return; }
-    if (!this.inCasino(byPos || this.player.pos)) { say('Barricade only works inside the casino'); return; }
+    if (!this.inCasino(byPos || this.player.pos)) { say('Nothing to barricade here'); return; }
     this.barricadeT = 180; this.setBarricade(true); this.banner('BARRICADE UP  -  3 MINUTES', lin(0.5, 0.9, 1), 3);
     this.evictCasino();
   }
@@ -606,7 +606,7 @@ export class Game {
   step(dt, input) {
     const P = this.player;
     if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
-    this.audio.music(this.phase === 'GameOver' ? 'off' : this.final && this.final.active ? 'boss' : this.phase === 'Round' ? (this.boss && !this.boss.dead ? 'boss' : 'fight') : this.zone === this.casinoZone ? 'casino' : 'calm');
+    this.audio.music(this.phase === 'GameOver' ? 'off' : this.final && this.final.active ? 'boss' : this.phase === 'Round' ? (this.boss && !this.boss.dead ? 'boss' : 'fight') : 'calm');
     this.tickCasino(dt);
     if (this.phase !== 'GameOver') this.update(dt);
     for (const ev of Meta.popEvents()) {
@@ -633,7 +633,7 @@ export class Game {
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
     this.audio.setListener(this.camera.position, fwd, V3(0, 1, 0));
     this.audio.loop('S_AmbWind', this.zone === this.casinoZone ? 0.05 : 0.22);
-    this.audio.loop('S_AmbCasino', this.zone === this.casinoZone ? 0.3 : 0);   // only inside, and quieter
+
   }
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked
   // nav cell is walked back out to the nearest open one; anything that makes no progress for 5s is respawned.

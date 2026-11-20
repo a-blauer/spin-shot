@@ -8,13 +8,13 @@ export const GUN_TRAITS = ['+10% reload speed', '+15% magazine size', '+10% dama
 
 // starting weapon choices for the lobby loadout; `need` is [lifetime stat, amount]
 export const STARTERS = [
-  { w: 'Tin Star' }, { w: 'Penny Pusher' }, { w: 'Back-Alley', need: ['kills', 3600], text: 'Kill 3,600 enemies' },
+  { w: 'Tin Star' }, { w: 'Copperhead' }, { w: 'Back-Alley', need: ['kills', 3600], text: 'Kill 3,600 enemies' },
   { w: 'Sawbuck', need: ['bestRound', 5], text: 'Reach round 5' }, { w: 'Quarter Horse', need: ['bosses', 4], text: 'Defeat 4 bosses' },
 ];
 export const SKINS = [
   { id: 'drifter', name: 'Drifter', glove: 0x4E3324, gloveL: 0x6E4A32, cuff: 0xC9A46A, sleeve: 0xB0603A, stripe: 0xE8C24A },
   { id: 'undertaker', name: 'Undertaker', glove: 0x1c1a20, gloveL: 0x2e2a34, cuff: 0xece6d6, sleeve: 0x24202a, stripe: 0x6a2030 },
-  { id: 'dealer', name: 'Dealer', glove: 0xece6d6, gloveL: 0xffffff, cuff: 0xece6d6, sleeve: 0x1f5a3c, stripe: 0xE8B83A },
+  { id: 'dealer', name: 'Barkeep', glove: 0xece6d6, gloveL: 0xffffff, cuff: 0xece6d6, sleeve: 0x1f5a3c, stripe: 0xE8B83A },
   { id: 'pinstripe', name: 'Pinstripe', glove: 0x2a2a3c, gloveL: 0x3c3c54, cuff: 0xf0ece0, sleeve: 0x2a2a3c, stripe: 0x8a8ab0 },
   { id: 'bone', name: 'Bone', glove: 0xe8dcc0, gloveL: 0xf6eed8, cuff: 0x3a2a30, sleeve: 0x3a2a30, stripe: 0x9c1f24 },
   { id: 'gilded', name: 'Gilded', glove: 0xE0AC2A, gloveL: 0xFFD860, cuff: 0xfff4d8, sleeve: 0x5a0f1c, stripe: 0xFFD860 },
@@ -25,19 +25,19 @@ export const ACHIEVEMENTS = [
   { id: 'kills25', name: 'First Steps', desc: 'Kill 300 enemies', stat: 'kills', need: 300, skin: 'undertaker' },
   { id: 'kills250', name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, upgrades: ['Chain Reaction'] },
   { id: 'kills1000', name: 'Thousand', desc: 'Kill 12,000 enemies', stat: 'kills', need: 12000, upgrades: ['Storm Crown'] },
-  { id: 'head100', name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, upgrades: ['Ace of Spades'] },
+  { id: 'head100', name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, upgrades: ['Death Warrant'] },
   { id: 'air100', name: 'Airborne', desc: 'Get 600 kills while in the air', stat: 'airKills', need: 600, upgrades: ["Hermes' Wings", 'Overdrive'] },
-  { id: 'elite25', name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ['Double Down'] },
+  { id: 'elite25', name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ['Split Rounds'] },
   { id: 'round5', name: 'Round 5', desc: 'Reach round 3', stat: 'bestRound', need: 3, guns: ['Fireworks Finale'] },
-  { id: 'round10', name: 'Round 10', desc: 'Reach round 6', stat: 'bestRound', need: 6, guns: ['Railroad Spike'], upgrades: ['Royal Flush'] },
+  { id: 'round10', name: 'Round 10', desc: 'Reach round 6', stat: 'bestRound', need: 6, guns: ['Railroad Spike'], upgrades: ['Outlaw\'s Nerve'] },
   { id: 'round15', name: 'Round 15', desc: 'Reach round 9', stat: 'bestRound', need: 9, guns: ['Black Cat'] },
-  { id: 'round20', name: 'Round 20', desc: 'Reach round 12', stat: 'bestRound', need: 12, guns: ["Dead Man's Hand"], skin: 'gilded' },
+  { id: 'round20', name: 'Round 20', desc: 'Reach round 12', stat: 'bestRound', need: 12, guns: ["Fan of Knives"], skin: 'gilded' },
   { id: 'boss1', name: 'Boss Killer', desc: 'Defeat a boss', stat: 'bosses', need: 4, guns: ['Buzzsaw'] },
   { id: 'boss3', name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, upgrades: ['Phoenix Feather'] },
-  { id: 'slots25', name: 'Regular', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Jackpot'], skin: 'dealer' },
+  { id: 'slots25', name: 'Regular', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Gold Rush'], skin: 'dealer' },
   { id: 'money100k', name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
   { id: 'luck15', name: 'Lucky', desc: 'Reach 15 luck in one run', stat: 'maxLuck', need: 15, upgrades: ['Four-Leaf Crown'] },
-  { id: 'win', name: 'House Cleaner', desc: 'Beat the Last Dealer and clear Deadwater Gulch', stat: 'wins', need: 1, guns: ['The House Always Wins'] },
+  { id: 'win', name: 'Town Tamer', desc: 'Beat the Founder and clear Deadwater Gulch', stat: 'wins', need: 1, guns: ['Thunderhead'] },
   { id: 'tier3', name: 'Maxed Out', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, skin: 'pinstripe' },
   { id: 'master1', name: 'Mastery', desc: 'Get any gun to level 5', stat: 'mastered', need: 2, skin: 'bone' },
 ];

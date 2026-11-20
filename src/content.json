@@ -53,7 +53,7 @@
 "desc": "Heavy revolver. Shots pierce one enemy."
 },
 {
-"name": "Penny Pusher",
+"name": "Copperhead",
 "cls": "Pistol",
 "rarity": "Common",
 "mode": "Hitscan",
@@ -79,7 +79,7 @@
 "desc": "Full-auto pistol."
 },
 {
-"name": "Snake Eyes",
+"name": "Sidewinders",
 "cls": "Pistol",
 "rarity": "Rare",
 "mode": "Hitscan",
@@ -157,7 +157,7 @@
 "desc": "Very high fire rate."
 },
 {
-"name": "Card Sharp",
+"name": "Rustler",
 "cls": "SMG",
 "rarity": "Rare",
 "mode": "Hitscan",
@@ -235,7 +235,7 @@
 "desc": "Automatic rifle."
 },
 {
-"name": "Long Odds",
+"name": "Long Rider",
 "cls": "Rifle",
 "rarity": "Rare",
 "mode": "Hitscan",
@@ -261,7 +261,7 @@
 "desc": "Battle rifle. Pierces one enemy."
 },
 {
-"name": "Jackpot",
+"name": "Gold Rush",
 "cls": "Rifle",
 "rarity": "Epic",
 "mode": "Hitscan",
@@ -313,7 +313,7 @@
 "desc": "Double-barrel shotgun."
 },
 {
-"name": "Dealer's Pump",
+"name": "Homesteader",
 "cls": "Shotgun",
 "rarity": "Uncommon",
 "mode": "Hitscan",
@@ -339,7 +339,7 @@
 "desc": "Pump-action shotgun."
 },
 {
-"name": "Full House",
+"name": "Stampede",
 "cls": "Shotgun",
 "rarity": "Rare",
 "mode": "Hitscan",
@@ -417,7 +417,7 @@
 "desc": "Belt-fed machine gun. Large magazine."
 },
 {
-"name": "Gatling Gambler",
+"name": "Thresher",
 "cls": "LMG",
 "rarity": "Epic",
 "mode": "Hitscan",
@@ -703,7 +703,7 @@
 "desc": "Bouncing saw blades. Each hits up to six enemies."
 },
 {
-"name": "The House Always Wins",
+"name": "Thunderhead",
 "cls": "Wonder",
 "rarity": "Legendary",
 "mode": "Chain",
@@ -729,7 +729,7 @@
 "desc": "Explosive chain lightning. $5 per hit."
 },
 {
-"name": "Dead Man's Hand",
+"name": "Fan of Knives",
 "cls": "Wonder",
 "rarity": "Legendary",
 "mode": "Plasma",
@@ -752,7 +752,7 @@
 "critBonus": 0.15,
 "color": 16119285,
 "wallCost": 0,
-"desc": "Throws five exploding, piercing cards."
+"desc": "Throws a fan of five exploding, piercing blades."
 },
 {
 "name": "Black Cat",
@@ -1674,7 +1674,7 @@
 "insp": "RoR2 Energy Drink"
 },
 {
-"name": "Gambler's Monocle",
+"name": "Marksman's Monocle",
 "rarity": "Uncommon",
 "stacks": 5,
 "mods": [
@@ -1935,7 +1935,7 @@
 "insp": "Gunfire Reborn"
 },
 {
-"name": "Comp Card",
+"name": "Trade License",
 "rarity": "Uncommon",
 "stacks": 5,
 "mods": [
@@ -2288,7 +2288,7 @@
 "insp": "CoD Double Tap"
 },
 {
-"name": "Marked Cards",
+"name": "Notched Rounds",
 "rarity": "Rare",
 "stacks": 3,
 "mods": [
@@ -2306,7 +2306,7 @@
 "insp": "Balatro"
 },
 {
-"name": "Croupier's Rake",
+"name": "Tax Collector",
 "rarity": "Rare",
 "stacks": 3,
 "mods": [
@@ -2372,7 +2372,7 @@
 "insp": "RoR2 Will-o'-the-wisp+"
 },
 {
-"name": "Double Down",
+"name": "Split Rounds",
 "rarity": "Epic",
 "stacks": 2,
 "mods": [
@@ -2451,7 +2451,7 @@
 "insp": "Gunfire Reborn"
 },
 {
-"name": "Lucky Seven",
+"name": "Seventh Son",
 "rarity": "Epic",
 "stacks": 2,
 "mods": [
@@ -2534,7 +2534,7 @@
 "insp": "Titanfall"
 },
 {
-"name": "Wild Card",
+"name": "Loose Wire",
 "rarity": "Epic",
 "stacks": 2,
 "mods": [
@@ -2601,7 +2601,7 @@
 "insp": "Gungeon Bottomless clip"
 },
 {
-"name": "Royal Flush",
+"name": "Outlaw's Nerve",
 "rarity": "Legendary",
 "stacks": 1,
 "mods": [
@@ -2627,7 +2627,7 @@
 "insp": "Balatro Flush"
 },
 {
-"name": "Ace of Spades",
+"name": "Death Warrant",
 "rarity": "Legendary",
 "stacks": 1,
 "mods": [
@@ -2642,7 +2642,7 @@
 "mag": 0.3,
 "cd": 0,
 "desc": "+10% crit. Crits kill non-bosses under 30% HP.",
-"insp": "Ace of Spades"
+"insp": "Death Warrant"
 },
 {
 "name": "Storm Crown",
@@ -2768,7 +2768,7 @@
 "insp": "Isaac Devil deals"
 },
 {
-"name": "Devil's Dice",
+"name": "Devil's Bargain",
 "rarity": "Cursed",
 "stacks": 1,
 "mods": [
@@ -3404,7 +3404,7 @@
 "insp": "Destiny"
 },
 {
-"name": "Opening Hand",
+"name": "Opening Shot",
 "rarity": "Uncommon",
 "stacks": 2,
 "mods": [
@@ -4292,7 +4292,7 @@
 "bosses": [
 {
 "name": "Big Tony",
-"title": "The Pit Boss",
+"title": "The Foreman",
 "hp": 15,
 "speed": 300,
 "dmg": 45,
@@ -4306,7 +4306,7 @@
 ],
 "minion": 0,
 "reward": 2500,
-"desc": "The casino's enforcer, still collecting debts. Charges in straight lines and calls in the floor staff."
+"desc": "The stockyard's enforcer, still driving the herd. Charges in straight lines and calls in his hands."
 },
 {
 "name": "The Abomination",
@@ -4345,8 +4345,8 @@
 "desc": "Births wisps from her ribcage and rains bile from the sky."
 },
 {
-"name": "The Croupier",
-"title": "Dealer of Fates",
+"name": "The Undertaker",
+"title": "Keeper of the Nails",
 "hp": 28,
 "speed": 340,
 "dmg": 40,
@@ -4360,11 +4360,11 @@
 ],
 "minion": 4,
 "reward": 4500,
-"desc": "Blinks around the map dealing razor cards. Its roulette rings close in."
+"desc": "Blinks around the map throwing coffin nails. Its rings close in."
 },
 {
 "name": "The Gravedigger",
-"title": "Owner of the House",
+"title": "Warden of Deadwater",
 "hp": 40,
 "speed": 320,
 "dmg": 60,
@@ -4381,11 +4381,11 @@
 ],
 "minion": 7,
 "reward": 7000,
-"desc": "The house itself, walking. Uses every trick in the deck."
+"desc": "The town itself, walking. Uses every trick the others had."
 },
 {
-"name": "The Last Dealer",
-"title": "The House Always Wins",
+"name": "The Founder",
+"title": "Father of Deadwater Gulch",
 "hp": 70,
 "speed": 250,
 "dmg": 55,
@@ -4395,7 +4395,7 @@
 "attacks": [],
 "minion": 1,
 "reward": 25000,
-"desc": "Waits in the vault under the Lucky Stiff. Deals cards, spins the wheel and burns the room down around you."
+"desc": "Waits in the crypt under the clock tower. Throws blades, lights the seal and burns the room down around you."
 }
 ]
 }

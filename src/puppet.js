@@ -30,6 +30,7 @@ export class Puppet {
     }
     this.top = top;
     this.heightCm = Math.max(40, top) * scale;
+    { const Hd = this.parts.find((q) => q.role === 'Head'); this.headFrac = Hd && top > 0 ? Math.min(0.9, Math.max(0.45, (Hd.rest[1] + Hd.off[1] - Hd.size[1] * 0.42) / top)) : 0.74; }   // where the head starts, as a fraction of the height: read off the art
     this.facing = Math.random() < 0.5 ? -1 : 1; this.time = 0; this.walk = Math.random() * 6;
     this.hurtT = 0; this.flashT = 0; this.windup = 0; this.lunge = 0;
     this.dying = false; this.deathT = 0; this.deathDir = 1;

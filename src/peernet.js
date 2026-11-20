@@ -4,7 +4,7 @@
 // one it is talking to. Star topology: the host's peer id is derived from the lobby code and it relays for everyone.
 import { Peer } from 'peerjs';
 
-const PREFIX = 'spinshot-v1-';
+const PREFIX = 'polyshot-v1-';
 const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 
 function makeRoom(name, asHost) {

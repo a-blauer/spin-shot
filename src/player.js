@@ -176,13 +176,13 @@ export class Player {
     for (const u of (this.slot && this.slot.mods) || []) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
     this.eff = eff;
     // suit sets: 3 / 6 / 9 different upgrades of a suit
-    const sc = { Spades: 0, Hearts: 0, Diamonds: 0, Clubs: 0 };
+    const sc = { Iron: 0, Blood: 0, Gold: 0, Wind: 0 };
     this.upgradeStacks.forEach((n, u) => { if (n > 0) sc[DATA.upgrades[u].suit]++; });
     const tiers = {}; for (const k of SUITS) tiers[k] = Math.min(3, Math.floor(sc[k] / 3));
-    this.stats[STAT.Damage] += 0.12 * tiers.Spades;
-    this.stats[STAT.MaxHealth] += 30 * tiers.Hearts; this.stats[STAT.HealthRegen] += tiers.Hearts;
-    this.stats[STAT.MoneyGain] += 0.15 * tiers.Diamonds; this.stats[STAT.LuckFind] += 0.25 * tiers.Diamonds;
-    this.stats[STAT.MoveSpeed] += 0.07 * tiers.Clubs; this.stats[STAT.DashCooldown] += 0.15 * tiers.Clubs;
+    this.stats[STAT.Damage] += 0.12 * tiers.Iron;
+    this.stats[STAT.MaxHealth] += 30 * tiers.Blood; this.stats[STAT.HealthRegen] += tiers.Blood;
+    this.stats[STAT.MoneyGain] += 0.15 * tiers.Gold; this.stats[STAT.LuckFind] += 0.25 * tiers.Gold;
+    this.stats[STAT.MoveSpeed] += 0.07 * tiers.Wind; this.stats[STAT.DashCooldown] += 0.15 * tiers.Wind;
     if (this.suitTiers) for (const k of SUITS) if (tiers[k] > this.suitTiers[k]) { this.game.banner(`${k.toUpperCase()} SET ${'I'.repeat(tiers[k])}`, lin(1, 0.8, 0.2), 3); this.toast(`${SUIT_BONUS[k]} (x${tiers[k]})`, SUIT_HEX[k]); }
     this.suitCounts = sc; this.suitTiers = tiers;
     this.maxHealth = Math.max(30, 150 + this.stat('MaxHealth'));
@@ -1014,7 +1014,7 @@ export class Player {
       const dmgP = p < W.pellets ? damage : damage * 0.5;
       const dir = spread > 0 ? vrandCone(baseDir, spread) : baseDir.clone();
       let pdir = spread > 0 ? vrandCone(projDir, spread) : projDir.clone();
-      if (W.name === "Dead Man's Hand" && pellets > 1) pdir = projDir.clone().applyAxisAngle(new THREE.Vector3().setFromMatrixColumn(G.camera.matrixWorld, 1), -(p - (pellets - 1) / 2) * 0.045).add(vrandCone(projDir, 0.006).sub(projDir)).normalize();   // dealt as a fan, left to right
+      if (W.name === "Fan of Knives" && pellets > 1) pdir = projDir.clone().applyAxisAngle(new THREE.Vector3().setFromMatrixColumn(G.camera.matrixWorld, 1), -(p - (pellets - 1) / 2) * 0.045).add(vrandCone(projDir, 0.006).sub(projDir)).normalize();   // dealt as a fan, left to right
       switch (W.mode) {
         case 'Hitscan': this.fireHitscan(eye, dir, W.range, dmgP, pierce, procCoef, W, W.cls === 'Sniper' ? 7 : 3, tracer, muzzle); break;
         case 'Beam': this.fireHitscan(eye, dir, W.range, dmgP, pierce, procCoef, W, 10, hexRGB(W.color), muzzle); break;
@@ -1822,7 +1822,7 @@ export class Player {
     this.chestsOpened++; I.setOpened(true);
     this.addUpgrade(u);
     const U = DATA.upgrades[u];
-    this.play(rarityIndex(U.rarity) >= 3 ? 'S_Jackpot' : 'S_Upgrade', 0.9);
+    this.play(rarityIndex(U.rarity) >= 3 ? 'S_LevelUp' : 'S_Upgrade', 0.9);
     this.game.fx.flash(I.pos.clone().add(V3(0, 60, 0)), lin(1, 0.85, 0.4), 140, 0.4, true);
     if (rarityIndex(U.rarity) >= 3) this.game.banner(U.name.toUpperCase(), lin(1, 0.75, 0.25), 2.5);
     Meta.bump('chests');
@@ -1911,7 +1911,7 @@ export class Player {
         break;
       case 'Pawn':
         title = 'UPGRADES';
-        help.push({ kind: 'info', text: 'Sets: every upgrade has a suit. Owning 3, 6 or 9 different upgrades of one suit gives its bonus. Spades: +12% damage. Hearts: +30 health, +1 regen. Diamonds: +15% money. Clubs: +7% speed, faster dash.', color: dim });
+        help.push({ kind: 'info', text: 'Sets: every upgrade carries a mark. Owning 3, 6 or 9 different upgrades with the same mark gives its bonus. Iron: +12% damage. Blood: +30 health, +1 regen. Gold: +15% money. Wind: +7% speed, faster dash.', color: dim });
         help.push({ kind: 'info', text: 'Four upgrades for sale. The stock changes every casino visit and luck makes rarer upgrades appear. Restock rolls four new ones and costs more each time.', color: dim });
         M.offers.forEach((u, i) => {
           if (u < 0) { opt(String(i + 1), 'Sold', { disabled: true }); return; }

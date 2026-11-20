@@ -7,18 +7,18 @@ export const cash = (x) => Math.max(0, Math.round((+x || 0) / 10)).toLocaleStrin
 export const cost10 = (x) => Math.max(10, Math.round(x / 10) * 10);   // prices are whole numbers of what is shown
 // economy guard: common stat sticks cap at 5 copies, uncommons at 4
 for (const u of DATA.upgrades) { if (u.rarity === 'Common') u.stacks = Math.min(u.stacks, 5); else if (u.rarity === 'Uncommon') u.stacks = Math.min(u.stacks, 4); }
-// Every upgrade belongs to a suit. Owning 3 / 6 / 9 different upgrades of one suit gives that suit's set bonus.
-export const SUITS = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
-export const SUIT_HEX = { Spades: '#c9c2d6', Hearts: '#ff5a5a', Diamonds: '#ffd24d', Clubs: '#7dff8a' };
-export const SUIT_BONUS = { Spades: '+12% damage', Hearts: '+30 max health, +1 regen', Diamonds: '+15% money, +25% clover find', Clubs: '+7% move speed, 15% faster dash' };
+// Every upgrade belongs to a set (Iron, Blood, Gold, Wind). Owning 3 / 6 / 9 different upgrades of one set gives its bonus.
+export const SUITS = ['Iron', 'Blood', 'Gold', 'Wind'];
+export const SUIT_HEX = { Iron: '#c9c2d6', Blood: '#ff5a5a', Gold: '#ffd24d', Wind: '#7dff8a' };
+export const SUIT_BONUS = { Iron: '+12% damage', Blood: '+30 max health, +1 regen', Gold: '+15% money, +25% clover find', Wind: '+7% move speed, 15% faster dash' };
 const H = ['MaxHealth', 'HealthRegen', 'Armor', 'Lifesteal', 'Thorns', 'Revives'], Dm = ['MoneyGain', 'LuckFind', 'CasinoDiscount', 'Interest', 'PickupRange'];
 const Cl = ['MoveSpeed', 'JumpPower', 'ExtraJumps', 'DashCharges', 'DashCooldown', 'GrappleCooldown', 'WallRunTime', 'SlideBoost', 'AirControl', 'DashDamage', 'SlideDamage', 'AirDamage', 'SpeedDamage'];
 for (const u of DATA.upgrades) {
   const m = u.mods.length ? u.mods[0][0] : null;
-  if (m && H.includes(m) || ['Heal', 'Shield'].includes(u.fx)) u.suit = 'Hearts';
-  else if (m && Dm.includes(m) || ['Money', 'Clover'].includes(u.fx)) u.suit = 'Diamonds';
-  else if (m && Cl.includes(m) || ['OnDash', 'OnSlide', 'OnGrapple', 'OnAirJump', 'OnWallRun', 'OnMantle'].includes(u.trigger) || u.fx === 'Haste') u.suit = 'Clubs';
-  else u.suit = 'Spades';
+  if (m && H.includes(m) || ['Heal', 'Shield'].includes(u.fx)) u.suit = 'Blood';
+  else if (m && Dm.includes(m) || ['Money', 'Clover'].includes(u.fx)) u.suit = 'Gold';
+  else if (m && Cl.includes(m) || ['OnDash', 'OnSlide', 'OnGrapple', 'OnAirJump', 'OnWallRun', 'OnMantle'].includes(u.trigger) || u.fx === 'Haste') u.suit = 'Wind';
+  else u.suit = 'Iron';
 }
 export const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Cursed'];
 export const RARITY_HEX = { Common: '#d8d8d8', Uncommon: '#5bd65b', Rare: '#4aa3ff', Epic: '#b565f0', Legendary: '#ffb22e', Cursed: '#ff3b3b' };

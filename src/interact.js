@@ -143,7 +143,7 @@ export class Interactable {
     let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
     if (Math.random() < (P.cls.id === 'brawler' ? 0.35 : 0.1) && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
     B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;
-    G.audio.playAt('S_SlotPull', this.pos, 0.8, 0.8);
+    G.audio.playAt('S_Door', this.pos, 0.8, 0.9);
   }
   boxTick(dt, P) {
     const B = this.box, G = this.game; B.t += dt;

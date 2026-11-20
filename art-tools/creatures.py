@@ -29,6 +29,8 @@ def part(name, role, pivot, layer):
 
 def S(p, pts, col, **kw):
     kw.setdefault('offset', OFF)
+    if not hasattr(p, 'base_col'):
+        p.base_col = col          # the first big shape drawn into a part is what it is made of
     return p.shape(pts, col, **kw)
 
 
@@ -65,47 +67,46 @@ SOCKET = '#241a20'
 
 
 def eyes(p, clip, cx, cy, gap, r, col='#f4e7a8', pupil=INK, pr=0.42, r2=None, brow=None, tilt=0.5, look=(0, -0.12)):
-    """Sunken, scowling eyes: a dark socket, a small dull eye set deep in it, a pinprick pupil, and a hard lid of
-    shadow that slants down toward the nose. Nothing round and bright is left to read as friendly."""
+    """A skull's stare. Each socket is a hard-edged slant, low at the nose and high at the temple, with one cold point
+    of light deep inside. Under them a nasal cavity and hollow cheeks. Nothing round, nothing wide: no child's face."""
     for s, rr in ((-1, r2 or r), (1, r)):
         x = cx + s * gap
-        sd = p.flat(ellipse(x, cy + rr * 0.04, rr * 1.28, rr * 1.12, n=14), SOCKET)
-        er = rr * 0.62
-        ex, ey = x - s * rr * 0.1, cy - rr * 0.16
-        p.clipped(sd, ellipse(ex, ey, er, er, n=14), mixc(col, INK, 0.14))
-        if pupil:
-            p.clipped(sd, ellipse(ex + er * look[0], ey + er * look[1], er * 0.3, er * 0.3, n=8), pupil)
-        lid = [(x - s * rr * 1.7, cy - rr * (0.1 + tilt * 0.3)), (x + s * rr * 1.7, cy + rr * (0.55 + tilt * 0.5)),
-               (x + s * rr * 1.7, cy + rr * 2.2), (x - s * rr * 1.7, cy + rr * 2.2)]
-        p.clipped(sd, lid, SOCKET, smooth=False)
-        # a heavy brow ridge above the socket
-        ridge = [(x - s * rr * 1.5, cy + rr * 0.55), (x + s * rr * 1.45, cy + rr * 1.25), (x + s * rr * 1.45, cy + rr * 1.55), (x - s * rr * 1.5, cy + rr * 1.0)]
-        p.clipped(clip, ridge, SOCKET, smooth=False, opacity=0.55)
+        sock = [(x - s * rr * 1.2, cy + rr * 0.05), (x + s * rr * 1.25, cy + rr * 0.85), (x + s * rr * 1.15, cy - rr * 0.45),
+                (x + s * rr * 0.1, cy - rr * 0.95), (x - s * rr * 0.95, cy - rr * 0.7)]
+        sd = p.flat(sock, SOCKET, smooth=False)
+        p.clipped(sd, ellipse(x + s * rr * 0.12, cy - rr * 0.12, rr * 0.3, rr * 0.3, n=8), col)
+        ridge = [(x - s * rr * 1.45, cy + rr * 0.1), (x + s * rr * 1.5, cy + rr * 1.0), (x + s * rr * 1.5, cy + rr * 1.5), (x - s * rr * 1.45, cy + rr * 0.6)]
+        p.clipped(clip, ridge, SOCKET, smooth=False, opacity=0.5)                                   # brow ridge
+        p.clipped(clip, [(x - s * rr * 0.5, cy - rr * 1.25), (x + s * rr * 1.4, cy - rr * 0.95), (x + s * rr * 0.6, cy - rr * 3.4)], INK, smooth=False, opacity=0.2)   # hollow cheek
+    if gap > r * 0.9:
+        p.clipped(clip, [(cx - r * 0.5, cy - r * 1.9), (cx, cy - r * 0.7), (cx + r * 0.5, cy - r * 1.9), (cx, cy - r * 1.55)], SOCKET, smooth=False)   # nasal cavity
 
 
 def mouth(p, clip, cx, cy, w, h, top=3, bot=0, col='#2a1216', tooth=BONE, r=None, tw=0.62, th=0.42, tongue=None):
-    """A torn dark mouth full of uneven, pointed, stained teeth, with blood along the lower lip. No tongues."""
-    w, h = w * 1.06, h * 1.12
-    d = p.flat(rrect(cx, cy, w, h, r if r is not None else min(w, h) * 0.28), col, smooth=False)
+    """A lipless grimace: corners dragged down, long uneven teeth, a thread of blood from one corner."""
+    h = h * 0.92
+    pts = [(cx - w * 0.52, cy - h * 0.1), (cx - w * 0.3, cy + h * 0.5), (cx + w * 0.3, cy + h * 0.5), (cx + w * 0.52, cy - h * 0.1),
+           (cx + w * 0.4, cy - h * 0.5), (cx - w * 0.4, cy - h * 0.5)]
+    d = p.flat(pts, col, smooth=False)
     rnd = random.Random(int(cx * 7 + cy * 13 + w * 3))
     stain = mixc(tooth, '#a8905c', 0.3)
-    p.clipped(d, rect(cx - w * 0.5, cy - h * 0.5, cx + w * 0.5, cy - h * 0.5 + h * 0.2), BLOOD, smooth=False)
     for n, up in ((top, True), (bot, False)):
         if not n:
             continue
-        n2 = n + 2
-        cw = w * 0.92 / n2
+        n2 = n + 3
+        cw = w * 0.94 / n2
         for i in range(n2):
-            if rnd.random() < 0.16:
+            if rnd.random() < 0.18:
                 continue                                   # a missing tooth
-            tx = cx - w * 0.46 + cw * (i + 0.5)
-            L = h * th * (1.0 + rnd.random() * 0.9)
-            lean = (rnd.random() - 0.5) * cw * 0.35
+            tx = cx - w * 0.47 + cw * (i + 0.5)
+            L = h * (0.5 + rnd.random() * 0.45)
+            lean = (rnd.random() - 0.5) * cw * 0.4
             if up:
-                tri = [(tx - cw * 0.44, cy + h / 2 + 2), (tx + cw * 0.44, cy + h / 2 + 2), (tx + lean, cy + h / 2 - L)]
+                tri = [(tx - cw * 0.36, cy + h * 0.52), (tx + cw * 0.36, cy + h * 0.52), (tx + lean, cy + h * 0.5 - L)]
             else:
-                tri = [(tx - cw * 0.44, cy - h / 2 - 2), (tx + cw * 0.44, cy - h / 2 - 2), (tx + lean, cy - h / 2 + L * 0.8)]
+                tri = [(tx - cw * 0.36, cy - h * 0.52), (tx + cw * 0.36, cy - h * 0.52), (tx + lean, cy - h * 0.5 + L * 0.75)]
             p.clipped(d, tri, stain if rnd.random() < 0.5 else tooth, smooth=False)
+    p.clipped(clip, [(cx + w * 0.36, cy - h * 0.45), (cx + w * 0.44, cy - h * 0.45), (cx + w * 0.41, cy - h * 1.7)], BLOOD, smooth=False)
     return d
 
 
@@ -137,9 +138,14 @@ def fist(p, c, r, col, ring=None):
 def arm(cn, side, sh, el, wr, w0, w1, col, hcol, hr, layer=3, ang=None, fingers=3, claw=None, sleeve=None, kind='hand', ring=None, flen=0.95, spread=34):
     role = ARM_F if side > 0 else ARM_B
     p = part('%s_%s' % (cn, role), role, sh, layer)
-    S(p, path_limb([sh, el, wr], [w0, (w0 + w1) / 2, w1]), col)
-    if sleeve:  # bare forearm past the sleeve
-        S(p, path_limb([lerp(el, wr, sleeve[1]), wr], [w1 * 0.9, w1 * 0.85]), sleeve[0])
+    S(p, path_limb([sh, el, wr], [w0, (w0 + w1) * 0.44, w1 * 0.8]), col)
+    out = 1 if el[0] >= sh[0] else -1
+    p.flat([(el[0], el[1] + w0 * 0.5), (el[0] + out * w0 * 1.05, el[1] - w0 * 0.15), (el[0], el[1] - w0 * 0.55)], col, smooth=False)   # the elbow juts out
+    if sleeve:  # bare forearm past the sleeve, and the sleeve ends in rags
+        c0 = lerp(el, wr, sleeve[1])
+        S(p, path_limb([c0, wr], [w1 * 0.72, w1 * 0.62]), sleeve[0])
+        for k in (-1, 0, 1):
+            p.flat([(c0[0] + k * w1 * 0.55 - w1 * 0.3, c0[1] + 2), (c0[0] + k * w1 * 0.55 + w1 * 0.3, c0[1] + 2), (c0[0] + k * w1 * 0.7, c0[1] - w1 * (0.9 + 0.35 * (k + 1)))], col, smooth=False)
     if ang is None:
         ang = math.degrees(math.atan2(wr[1] - el[1], wr[0] - el[0]))
     a = math.radians(ang)
@@ -157,12 +163,19 @@ def leg(cn, side, hip, foot, w0, w1, col, shoe, fw, fh, layer=0, knee=0.0, shin=
     p = part('%s_%s' % (cn, role), role, hip, layer)
     mid = lerp(hip, foot, 0.5)
     mid = (mid[0] + side * knee, mid[1])
-    S(p, path_limb([hip, mid, (foot[0], foot[1] + max(fh * 0.7, w1))], [w0, (w0 + w1) / 2, w1]), col)
+    S(p, path_limb([hip, mid, (foot[0], foot[1] + max(fh * 0.7, w1))], [w0, (w0 + w1) * 0.46, w1 * 0.86]), col)
+    p.flat([(mid[0] + side * w0 * 0.3, mid[1] + w0 * 0.5), (mid[0] + side * w0 * 0.95, mid[1] - w0 * 0.1), (mid[0] + side * w0 * 0.3, mid[1] - w0 * 0.6)], col, smooth=False)   # a knob of knee
+    hem = lerp(mid, foot, 0.42)
     if shin:
-        S(p, path_limb([lerp(mid, foot, 0.35), (foot[0], foot[1] + fh * 0.7)], [w1 * 0.85, w1 * 0.8]), shin)
-    if shoe:
-        S(p, blobby(foot[0] + side * fw * 0.12, foot[1] + fh * 0.5, fw, fh * 0.5, top=1.0, bottom=1.0, n=16), shoe)
-        p.flat(rect(foot[0] + side * fw * 0.12 - fw * 0.94, foot[1] - 1, foot[0] + side * fw * 0.12 + fw * 0.94, foot[1] + fh * 0.16), shade(shoe, 0.6), smooth=False)
+        S(p, path_limb([hem, (foot[0], foot[1] + fh * 0.7)], [w1 * 0.7, w1 * 0.62]), shin)
+    for k in (-1, 0, 1):   # the trouser leg ends in tatters
+        p.flat([(hem[0] + k * w1 * 0.5 - w1 * 0.28, hem[1] + 3), (hem[0] + k * w1 * 0.5 + w1 * 0.28, hem[1] + 3), (hem[0] + k * w1 * 0.66, hem[1] - w1 * (0.8 + 0.4 * (1 - k)))], col, smooth=False)
+    if shoe:   # a split, square-toed boot: hard edges, no round shoes
+        x = foot[0]
+        boot = [(x - side * fw * 0.62, foot[1]), (x + side * fw * 1.12, foot[1]), (x + side * fw * 1.18, foot[1] + fh * 0.2), (x + side * fw * 0.5, foot[1] + fh * 0.52),
+                (x + side * fw * 0.34, foot[1] + fh * 0.98), (x - side * fw * 0.56, foot[1] + fh * 0.98)]
+        P(p, boot, shoe)
+        p.flat(rect(x - fw * 1.2, foot[1] - 1, x + fw * 1.2, foot[1] + fh * 0.14), shade(shoe, 0.6), smooth=False)
     return p
 
 
@@ -349,10 +362,11 @@ def leaper():
     h = part(cn + '_Head', HEAD, (0, 130), 2)
     hd = S(h, M([(0, 232), (60, 228), (118, 196), (124, 158), (84, 126), (0, 118)]), skin)
     for s in (-1, 1):
-        S(h, ellipse(s * 66, 232, 34, 32, n=16), skin)
-        sd = h.flat(ellipse(s * 66, 234, 25, 22, n=14), SOCKET)
-        h.clipped(sd, ellipse(s * 63, 230, 14, 14, n=12), '#c9ac3c'); h.clipped(sd, rrect(s * 63, 230, 5, 24, 2), INK, smooth=False)
-        h.clipped(sd, [(s * 26, 232), (s * 106, 250), (s * 106, 270), (s * 26, 270)], SOCKET, smooth=False)
+        P(h, [(s * 36, 222), (s * 60, 252), (s * 100, 244), (s * 108, 214)], skin)                                     # a low bony brow, not a bulging eye
+        sd = h.flat([(s * 44, 222), (s * 62, 240), (s * 98, 236), (s * 100, 218), (s * 70, 212)], SOCKET, smooth=False)
+        h.clipped(sd, [(s * 60, 216), (s * 92, 226), (s * 90, 232), (s * 60, 222)], '#c9ac3c', smooth=False); h.clipped(sd, rrect(s * 76, 224, 4, 16, 1), INK, smooth=False)
+        for k in range(3):
+            h.flat([(s * (10 + k * 14), 230), (s * (22 + k * 14), 230), (s * (17 + k * 14), 252 - k * 4)], BONE, smooth=False)   # spines along the skull
     md = h.flat(M([(0, 176), (96, 184), (92, 166), (0, 150)]), '#3a1620')
     for i, x in enumerate(range(-84, 85, 14)):
         L = 14 + (i * 7 % 11)
@@ -589,7 +603,7 @@ def priest():
 
 def big_tony():
     cn = 'BigTony'
-    skin, suit, stripe = '#c89a78', '#2a2a3c', '#5a5a78'
+    skin, suit, stripe = '#a8927a', '#4a3a2e', '#3a2c22'
     parts = [leg(cn, -1, (-62, 130), (-70, 0), 40, 32, suit, '#16141c', 46, 30),
              leg(cn, 1, (62, 130), (70, 0), 40, 32, suit, '#16141c', 46, 30)]
     for lp, s in zip(parts, (-1, 1)):
@@ -599,11 +613,13 @@ def big_tony():
     for i in range(-8, 9):
         b.clipped(td, rect(i * 21 - 1.5, 90, i * 21 + 1.5, 390), stripe, smooth=False)
     b.clipped(td, M([(0, 380), (44, 380), (0, 220)]), '#f0ece0', smooth=False)           # shirt V
-    b.clipped(td, [(-13, 372), (13, 372), (17, 250), (0, 226), (-17, 250)], '#b0202c', smooth=False)   # tie
+    b.clipped(td, [(-13, 372), (13, 372), (17, 250), (0, 226), (-17, 250)], '#2a2018', smooth=False)   # apron strap
     for s in (-1, 1):
         b.clipped(td, [(s * 44, 384), (s * 96, 372), (s * 20, 214), (s * 4, 226)], shade(suit, 1.5), smooth=False)   # lapels
-    b.stroke([(-96, 300), (-40, 236), (0, 222), (40, 236), (96, 300)], GOLD, 7)
-    b.circle(0, 222, 15, GOLD); b.circle(0, 222, 7, '#b0202c')
+    b.stroke([(-96, 300), (-40, 236), (0, 222), (40, 236), (96, 300)], '#7e8494', 9)
+    b.circle(0, 222, 17, '#7e8494'); b.circle(0, 222, 8, '#2a2018')
+    b.clipped(td, M([(0, 214), (92, 206), (112, 118), (0, 110)]), '#5a3a26', smooth=False)   # leather apron
+    splat(b, td, (38, 170), 26, seed=4); splat(b, td, (-52, 150), 18, seed=9)
     b.clipped(td, rect(-190, 122, 190, 140), '#16141c', smooth=False); b.clipped(td, rrect(0, 131, 30, 22, 4), GOLD, smooth=False)
     parts.append(b)
     h = part(cn + '_Head', HEAD, (0, 366), 2)
@@ -613,10 +629,10 @@ def big_tony():
     S(h, ellipse(0, 400, 17, 13, n=12), shade(skin, 1.08))
     h.flat(rrect(0, 376, 64, 9, 4), '#3a1a1a', smooth=False)
     h.flat(rect(26, 368, 92, 380), '#7a4a2a', smooth=False); h.circle(94, 374, 8, '#ff8a30'); h.circle(94, 374, 4, '#ffe080')
-    hat(h, 0, 450, 62, 52, 116, '#22222e', band='#b0202c', dent=0.22, brim_h=12)
+    hat(h, 0, 450, 62, 52, 116, '#22222e', band='#3a2c22', dent=0.22, brim_h=12)
     parts.append(h)
-    parts.append(arm(cn, -1, (-164, 330), (-218, 240), (-206, 150), 44, 36, suit, skin, 40, kind='fist', ring=GOLD))
-    parts.append(arm(cn, 1, (164, 330), (218, 240), (206, 150), 44, 36, suit, skin, 40, kind='fist', ring=GOLD))
+    parts.append(arm(cn, -1, (-164, 330), (-218, 240), (-206, 150), 44, 36, suit, skin, 40, kind='fist', ring='#7e8494'))
+    parts.append(arm(cn, 1, (164, 330), (218, 240), (206, 150), 44, 36, suit, skin, 40, kind='fist', ring='#7e8494'))
     for a in parts[-2:]:
         s = -1 if a.role == ARM_B else 1
         a.flat(rect(s * 206 - 38, 150, s * 206 + 38, 164), '#f0ece0', smooth=False)
@@ -651,12 +667,13 @@ def abomination():
     parts.append(b)
     h = part(cn + '_Head', HEAD, (10, 340), 2)                                           # cyclops
     hd = S(h, rrect(10, 396, 124, 116, 48), b_, smooth=False)
-    h.circle(10, 412, 30, '#f3e9c8'); h.circle(12, 408, 14, '#b02a30'); h.circle(12, 408, 6, INK)
+    h.circle(10, 412, 30, SOCKET); h.circle(12, 408, 17, '#cfc39a'); h.circle(12, 408, 8, '#8a1f24'); h.circle(12, 408, 3, INK)
+    h.flat([(-24, 418), (44, 436), (44, 446), (-24, 446)], SOCKET, smooth=False)
     mouth(h, hd, 10, 360, 70, 22, top=5, bot=4, th=0.5)
     parts.append(h)
     pr = part(cn + '_Prop', PROP, (-110, 340), 1.5)                                      # pig head on the shoulder
-    pd = S(pr, rrect(-118, 376, 92, 82, 36), '#c98f98', smooth=False)
-    P(pr, [(-158, 400), (-150, 436), (-130, 412)], '#c98f98'); P(pr, [(-78, 400), (-86, 436), (-106, 412)], '#c98f98')
+    pd = S(pr, rrect(-118, 376, 92, 82, 36), '#a88a86', smooth=False)
+    P(pr, [(-158, 400), (-150, 436), (-130, 412)], '#a88a86'); P(pr, [(-78, 400), (-86, 436), (-106, 412)], '#a88a86')
     for ex in (-136, -100):
         pr.flat(ellipse(ex, 386, 10, 9, n=10), SOCKET); pr.flat([(ex - 6, 390), (ex + 6, 382), (ex + 5, 380), (ex - 7, 388)], '#8a4050', smooth=False); pr.flat([(ex - 6, 382), (ex + 6, 390), (ex + 5, 392), (ex - 7, 384)], '#8a4050', smooth=False)
     S(pr, ellipse(-118, 362, 22, 15, n=12), '#c9949c'); pr.circle(-126, 362, 4.5, '#5a2030'); pr.circle(-110, 362, 4.5, '#5a2030')
@@ -714,15 +731,15 @@ def mother_carrion():
 
 def croupier():
     cn = 'Croupier'
-    skin, vest, shirt = '#9ab8a0', '#1f5a3c', '#ece6d6'
+    skin, vest, shirt = '#9aa89c', '#1c1a22', '#cfc6b0'
     parts = [leg(cn, -1, (-24, 220), (-28, 0), 18, 14, '#1c1a22', '#101014', 28, 22),
              leg(cn, 1, (24, 220), (28, 0), 18, 14, '#1c1a22', '#101014', 28, 22)]
     b = part(cn + '_Body', BODY, (0, 220), 1)
     td = S(b, M([(0, 420), (50, 414), (60, 380), (44, 220), (0, 204)]), vest)
     b.clipped(td, M([(0, 420), (30, 420), (0, 300)]), shirt, smooth=False)
-    b.clipped(td, [(-18, 404), (0, 396), (18, 404), (18, 386), (0, 394), (-18, 386)], '#b0202c', smooth=False)
+    b.clipped(td, [(-18, 404), (0, 396), (18, 404), (18, 386), (0, 394), (-18, 386)], '#3a3440', smooth=False)
     for i in range(4):
-        b.circle(0, 280 - i * 22, 4.5, GOLD)
+        b.circle(0, 280 - i * 22, 4.5, BONE)
     b.clipped(td, M([(0, 204), (50, 204), (0, 250)]), '#1c1a22', smooth=False)
     parts.append(b)
     h = part(cn + '_Head', HEAD, (0, 414), 2)
@@ -731,8 +748,7 @@ def croupier():
     md = h.flat(M([(0, 444), (34, 450), (30, 434), (0, 428)]), '#2a1216')
     for i in range(6):
         h.clipped(md, rect(-28 + i * 10, 438, -21 + i * 10, 452), BONE, smooth=False)
-    S(h, M([(0, 492), (56, 486), (78, 470), (0, 476)]), '#2aa860', opacity=0.92)           # dealer's visor
-    h.clipped(hd, rect(-60, 486, 60, 496), '#16402a', smooth=False)
+    hat(h, 0, 494, 66, 40, 124, '#141218', band='#3a3440', brim_h=9)                        # wide flat-brimmed hat
     parts.append(h)
     parts.append(arm(cn, -1, (-52, 372), (-90, 320), (-80, 262), 12, 10, shirt, skin, 16, ang=-90, fingers=4, spread=24, flen=1.2))
     parts.append(arm(cn, 1, (52, 372), (90, 320), (80, 262), 12, 10, shirt, skin, 16, ang=-90, fingers=4, spread=24, flen=1.2))
@@ -746,11 +762,11 @@ def croupier():
                 c = (104 + math.cos(ang) * 44, 500 + math.sin(ang) * 44)
                 ux, uy = math.cos(ang), math.sin(ang)
                 card = [(c[0] - uy * 15 - ux * 24, c[1] + ux * 15 - uy * 24), (c[0] + uy * 15 - ux * 24, c[1] - ux * 15 - uy * 24), (c[0] + uy * 15 + ux * 24, c[1] - ux * 15 + uy * 24), (c[0] - uy * 15 + ux * 24, c[1] + ux * 15 + uy * 24)]
-                P(a, card, '#f4eee0')
-                a.circle(c[0], c[1], 6, '#b0202c' if k % 2 else INK)
+                P(a, [(c[0] - uy * 5 - ux * 26, c[1] + ux * 5 - uy * 26), (c[0] + uy * 5 - ux * 26, c[1] - ux * 5 - uy * 26), (c[0] + ux * 40, c[1] + uy * 40)], '#b9bcc6')   # a coffin nail
+                a.flat(rrect(c[0] - ux * 26, c[1] - uy * 26, 16, 7, 2), '#7e8494', smooth=False)
         else:
-            for k in range(5):
-                a.flat(rrect(-104, 512 + k * 9, 40, 8, 3), ('#b0202c', '#f4eee0', '#2a60b0', GOLD, '#b0202c')[k], smooth=False)
+            a.flat(rrect(-104, 536, 12, 70, 3), '#6b4a30', smooth=False)                    # a mallet
+            a.flat(rrect(-104, 574, 58, 28, 5), '#4a4e5a', smooth=False)
         parts.append(a)
     return parts
 
@@ -795,22 +811,23 @@ def gravedigger():
 
 def last_dealer():
     cn = 'LastDealer'
-    coat, trim, red = '#f2e8d5', GOLD, '#c8211b'
+    coat, trim, red = '#2c1c26', '#b08a3a', '#8a1f24'
     parts = [leg(cn, -1, (-40, 150), (-46, 0), 26, 20, '#1a0e14', '#0c0608', 40, 26),
              leg(cn, 1, (40, 150), (46, 0), 26, 20, '#1a0e14', '#0c0608', 40, 26)]
     for lp, s in zip(parts, (-1, 1)):
-        lp.flat(rect(s * 46 - 12, 20, s * 46 + 12, 150), red, smooth=False)                      # red trouser stripe
+        pass
     b = part(cn + '_Body', BODY, (0, 150), 1)
     td = S(b, M([(0, 430), (96, 424), (150, 380), (128, 250), (104, 140), (0, 124)]), coat)
-    b.clipped(td, M([(0, 430), (40, 430), (0, 250)]), '#1a0e14', smooth=False)                   # black shirt V
-    b.clipped(td, [(-11, 424), (11, 424), (15, 300), (0, 278), (-15, 300)], red, smooth=False)   # tie
+    b.clipped(td, M([(0, 430), (40, 430), (0, 250)]), '#cfc6b0', smooth=False)                   # grave-stained shirt
+    b.clipped(td, [(-11, 424), (11, 424), (15, 300), (0, 278), (-15, 300)], '#141018', smooth=False)   # black string tie
     for s in (-1, 1):
         b.clipped(td, [(s * 40, 432), (s * 92, 422), (s * 22, 262), (s * 4, 274)], trim, smooth=False)   # gold lapels
-    # slot-machine chest: three lit reels
+    # the coat hangs open on a ribcage with something still burning inside
     b.clipped(td, rrect(0, 210, 150, 58, 8), '#1a0e14', smooth=False)
     for i in (-1, 0, 1):
-        b.clipped(td, rrect(i * 46, 210, 38, 44, 5), '#fff4d8', smooth=False)
-        b.clipped(td, [(i * 46 - 11, 224), (i * 46 + 11, 224), (i * 46 - 2, 194), (i * 46 - 10, 194), (i * 46 + 1, 216), (i * 46 - 11, 216)], red, smooth=False)   # a 7
+        b.clipped(td, rrect(0, 210 + i * 17, 132 - abs(i) * 14, 9, 4), BONE, smooth=False)   # ribs
+    b.clipped(td, rect(-5, 184, 5, 236), BONE, smooth=False)
+    b.circle(0, 210, 13, '#ff5a20', opacity=0.95); b.circle(0, 210, 6, '#ffe080')
     b.clipped(td, rect(-160, 146, 160, 162), '#1a0e14', smooth=False); b.clipped(td, rrect(0, 154, 34, 22, 4), trim, smooth=False)
     parts.append(b)
     h = part(cn + '_Head', HEAD, (0, 420), 2)
@@ -821,19 +838,18 @@ def last_dealer():
     h.flat(rect(-38, 418, 38, 434), INK, smooth=False)
     for i in range(8):
         h.flat(rect(-36 + i * 9.2, 418, -30 + i * 9.2, 434), trim if i in (2, 5) else BONE, smooth=False)   # gold teeth
-    # dealer's visor and a tall crown of cards
-    P(h, [(-92, 520), (92, 520), (70, 546), (-70, 546)], '#1f8a4c'); h.flat(rect(-70, 540, 70, 552), '#0c3a20', smooth=False)
+    # a crown of rusted iron spikes
+    h.flat(rect(-66, 536, 66, 552), '#3a3440', smooth=False); h.flat(rect(-66, 548, 66, 553), trim, smooth=False)
     for k in range(-2, 3):
         cx = k * 30
-        P(h, [(cx - 15, 548), (cx + 15, 548), (cx + 17, 606 - abs(k) * 8), (cx - 17, 606 - abs(k) * 8)], '#fff4d8')
-        h.circle(cx, 580 - abs(k) * 4, 7, red if k % 2 == 0 else INK)
+        P(h, [(cx - 12, 550), (cx + 12, 550), (cx + (k * 3), 622 - abs(k) * 12)], '#4a4450')
     parts.append(h)
     parts.append(arm(cn, -1, (-132, 392), (-196, 300), (-184, 200), 34, 26, coat, BONE, 30, ang=-90, fingers=4, claw=trim, spread=24, flen=1.2))
     parts.append(arm(cn, 1, (132, 392), (196, 300), (184, 200), 34, 26, coat, BONE, 30, ang=-90, fingers=4, claw=trim, spread=24, flen=1.2))
     for a in parts[-2:]:
         s = -1 if a.role == ARM_B else 1
         a.flat(rect(s * 184 - 30, 204, s * 184 + 30, 218), trim, smooth=False)
-    # upper pair: raised, fanning cards
+    # upper pair: raised, each holding a fan of long blades
     for s, nm in ((-1, 'B'), (1, 'F')):
         a = arm(cn, s, (s * 110, 410), (s * 190, 440), (s * 196, 520), 24, 18, coat, BONE, 24, layer=0.5, ang=90, fingers=4, spread=24, flen=1.0)
         a.name = cn + '_ArmUpper' + nm
@@ -843,10 +859,53 @@ def last_dealer():
             c0 = (s * 196 + math.cos(ang) * 60, 540 + math.sin(ang) * 60)
             ux, uy = math.cos(ang), math.sin(ang)
             vx, vy = -uy, ux
-            P(a, [(c0[0] - vx * 14 - ux * 24, c0[1] - vy * 14 - uy * 24), (c0[0] + vx * 14 - ux * 24, c0[1] + vy * 14 - uy * 24), (c0[0] + vx * 14 + ux * 24, c0[1] + vy * 14 + uy * 24), (c0[0] - vx * 14 + ux * 24, c0[1] - vy * 14 + uy * 24)], '#fff4d8')
-            a.circle(c0[0], c0[1], 6, red if k % 2 == 0 else INK)
+            P(a, [(c0[0] - vx * 7 - ux * 30, c0[1] - vy * 7 - uy * 30), (c0[0] + vx * 7 - ux * 30, c0[1] + vy * 7 - uy * 30), (c0[0] + vx * 3 + ux * 20, c0[1] + vy * 3 + uy * 20), (c0[0] + ux * 46, c0[1] + uy * 46)], '#b9bcc6')
+            a.flat([(c0[0] - vx * 9 - ux * 32, c0[1] - vy * 9 - uy * 32), (c0[0] + vx * 9 - ux * 32, c0[1] + vy * 9 - uy * 32), (c0[0] + vx * 9 - ux * 26, c0[1] + vy * 9 - uy * 26), (c0[0] - vx * 9 - ux * 26, c0[1] - vy * 9 - uy * 26)], '#3a3440', smooth=False)
         parts.append(a)
     return parts
+
+
+BIPEDS = ('Shambler', 'Sprinter', 'Bloater', 'Spitter', 'Brute', 'Screamer', 'Gilded', 'Riot', 'Priest')
+BOSS_BIPEDS = ('BigTony', 'Croupier', 'Gravedigger', 'LastDealer')
+
+
+def restyle(cname, parts):
+    """Adult proportions instead of a child's: a smaller, narrower head, longer legs and arms. Then break the outline:
+    rags hanging off the hem, a shard of bone through one shoulder."""
+    if cname in BIPEDS:
+        head, legk, legw, armk = (0.74, 0.84), 1.22, 0.9, 1.12
+    elif cname in BOSS_BIPEDS:
+        head, legk, legw, armk = (0.88, 0.94), 1.08, 0.95, 1.04
+    else:
+        return parts
+    hips = [p.pivot[1] for p in parts if p.role in (LEG_F, LEG_B)]
+    dy = (legk - 1) * (max(hips) if hips else 0)
+    for p in parts:
+        px, py = p.pivot
+        if p.role == BODY and cname in BIPEDS and p.pts_all:
+            x0, y0, x1, y1 = min(q[0] for q in p.pts_all), min(q[1] for q in p.pts_all), max(q[0] for q in p.pts_all), max(q[1] for q in p.pts_all)
+            w, col = x1 - x0, shade(getattr(p, 'base_col', '#5c4a40'), 0.82)
+            for i in range(5):
+                x = x0 + w * (0.16 + 0.17 * i)
+                p.flat([(x - 10, y0 + 8), (x + 10, y0 + 8), (x + (i % 3 - 1) * 6, y0 - 14 - (i * 37) % 19)], col, smooth=False)
+            sh = [q.pivot for q in parts if q.role == ARM_F]
+            if sh:
+                sx, sy = sh[0][0] - 10, sh[0][1] - 4
+                p.flat([(sx - 9, sy), (sx + 7, sy - 4), (sx + 12, sy + 26)], BONE, smooth=False)
+                p.flat([(sx - 11, sy + 3), (sx + 9, sy - 2), (sx + 4, sy - 12), (sx - 10, sy - 9)], BLOOD, smooth=False)
+        if p.role in (LEG_F, LEG_B):
+            p.xf = (legw, legk, px, 0, 0, 0); p.pivot = (px, py * legk)
+        elif p.role == HEAD:
+            p.xf = (head[0], head[1], px, py, 0, dy); p.pivot = (px, py + dy)
+        elif p.role in (ARM_F, ARM_B):
+            p.xf = (0.94, armk, px, py, 0, dy); p.pivot = (px, py + dy)
+        else:
+            p.xf = (1, 1, px, py, 0, dy); p.pivot = (px, py + dy)
+    return parts
+
+
+def _styled(name, fn):
+    return lambda: restyle(name, fn())
 
 
 ROSTER = [
@@ -855,3 +914,4 @@ ROSTER = [
     ('Gilded', gilded), ('Riot', riot), ('Priest', priest),
     ('BigTony', big_tony), ('Abomination', abomination), ('Carrion', mother_carrion), ('Croupier', croupier), ('Gravedigger', gravedigger), ('LastDealer', last_dealer),
 ]
+ROSTER = [(n, _styled(n, f)) for n, f in ROSTER]

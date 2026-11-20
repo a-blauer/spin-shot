@@ -157,9 +157,13 @@ export class Hud {
     g.lineJoin = 'round'; g.lineWidth = Math.max(2, r * 0.45); g.strokeStyle = INK; g.stroke();
     if (fill) { g.fillStyle = fill; g.fill(); } else { g.lineWidth = Math.max(1, r * 0.18); g.strokeStyle = 'rgba(242,232,213,0.45)'; g.stroke(); }
   }
-  // card suit drawn as a flat shape (never a font glyph): 0 spade, 1 heart, 2 diamond, 3 club
+  // set marks drawn as flat shapes (never a font glyph): 0 Iron (a bullet), 1 Blood (a drop), 2 Gold (a nugget), 3 Wind (a feathered chevron)
   suit(kind, cx, cy, r, col) {
     const g = this.g; g.fillStyle = col; g.beginPath();
+    if (kind === 0) { g.moveTo(cx - r * 0.5, cy + r); g.lineTo(cx - r * 0.5, cy - r * 0.2); g.quadraticCurveTo(cx - r * 0.5, cy - r, cx, cy - r * 1.05); g.quadraticCurveTo(cx + r * 0.5, cy - r, cx + r * 0.5, cy - r * 0.2); g.lineTo(cx + r * 0.5, cy + r); g.closePath(); g.fill(); g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(cx - r * 0.5, cy + r * 0.35, r, r * 0.22); return; }
+    if (kind === 1) { g.moveTo(cx, cy - r * 1.05); g.bezierCurveTo(cx + r * 0.2, cy - r * 0.3, cx + r * 0.85, cy + r * 0.1, cx + r * 0.7, cy + r * 0.5); g.arc(cx, cy + r * 0.35, r * 0.72, 0.2, Math.PI - 0.2); g.bezierCurveTo(cx - r * 0.85, cy + r * 0.1, cx - r * 0.2, cy - r * 0.3, cx, cy - r * 1.05); g.fill(); return; }
+    if (kind === 2) { g.moveTo(cx - r * 0.9, cy + r * 0.2); g.lineTo(cx - r * 0.45, cy - r * 0.75); g.lineTo(cx + r * 0.4, cy - r * 0.85); g.lineTo(cx + r * 0.95, cy - r * 0.05); g.lineTo(cx + r * 0.5, cy + r * 0.8); g.lineTo(cx - r * 0.5, cy + r * 0.85); g.closePath(); g.fill(); g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.moveTo(cx - r * 0.45, cy - r * 0.75); g.lineTo(cx + r * 0.4, cy - r * 0.85); g.lineTo(cx, cy - r * 0.1); g.closePath(); g.fill(); return; }
+    if (kind === 3) { for (const o of [-0.55, 0.25]) { g.beginPath(); g.moveTo(cx - r * 0.8, cy + (o - 0.35) * r); g.lineTo(cx + r * 0.2, cy + (o - 0.35) * r); g.lineTo(cx + r * 0.9, cy + o * r); g.lineTo(cx + r * 0.2, cy + (o + 0.35) * r); g.lineTo(cx - r * 0.8, cy + (o + 0.35) * r); g.lineTo(cx - r * 0.2, cy + o * r); g.closePath(); g.fill(); } return; }
     if (kind === 2) { g.moveTo(cx, cy - r); g.lineTo(cx + r * 0.72, cy); g.lineTo(cx, cy + r); g.lineTo(cx - r * 0.72, cy); g.closePath(); g.fill(); return; }
     if (kind === 3) { for (const [dx, dy] of [[0, -0.45], [-0.48, 0.15], [0.48, 0.15]]) { g.moveTo(cx + dx * r + r * 0.42, cy + dy * r); g.arc(cx + dx * r, cy + dy * r, r * 0.42, 0, Math.PI * 2); } g.fill(); }
     else {
@@ -364,12 +368,13 @@ export class Hud {
     };
     plate(0, 520 * S, H - 216 * S, H, 70 * S);
     plate(W - 470 * S, W, H - 216 * S, H, -70 * S);
-    // round chip
+    // round badge
     const cx = 80 * S, cy = 104 * S, r = 62 * S;
     g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = 'rgba(22,12,18,0.85)'; g.fill();
-    g.lineWidth = 9 * S; g.strokeStyle = '#c8211b'; g.stroke();
-    g.setLineDash([14 * S, 12 * S]); g.lineWidth = 9 * S; g.strokeStyle = BONE; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
-    g.lineWidth = 2 * S; g.strokeStyle = GOLD; g.beginPath(); g.arc(cx, cy, r - 9 * S, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 7 * S; g.strokeStyle = '#8a1f1c'; g.stroke();                                   // a plain iron-red badge: no chip markings
+    g.lineWidth = 2 * S; g.strokeStyle = GOLD; g.beginPath(); g.arc(cx, cy, r + 5 * S, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 2 * S; g.strokeStyle = 'rgba(242,232,213,0.5)'; g.beginPath(); g.arc(cx, cy, r - 8 * S, 0, Math.PI * 2); g.stroke();
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8; g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 3.2 * S, 0, Math.PI * 2); g.fillStyle = GOLD; g.fill(); }   // rivets
   }
   drawVitals(game, P, W, H, S) {
     const x = 44 * S, y = H - 64 * S, w = 400 * S, h = 22 * S;
@@ -488,18 +493,18 @@ export class Hud {
     { let fs = 84 * S; const tw = this.measure(`${Math.max(r, 0)}`, fs, F_BIG); if (tw > 86 * S) fs *= (86 * S) / tw;
       this.text('ROUND', 80 * S, 70 * S, 13 * S, 'rgba(242,232,213,0.8)', 'center', F_TXT, 700, 0.1);
       this.text(`${Math.max(r, 0)}`, 80 * S, 104 * S + this.fs(fs) * 0.42, fs, col, 'center', F_BIG, 400, 0.08); }
-    const zn = game.final && game.final.active ? 'UNDER THE LUCKY STIFF' : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
+    const zn = game.final && game.final.active ? 'BENEATH DEADWATER' : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
     let info = '', ic = BONE;
-    if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? 'THE VAULT' : 'THE VAULT IS OPEN'; ic = GOLD; }
+    if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? 'THE CRYPT' : 'THE CRYPT IS OPEN'; ic = GOLD; }
     else if (game.phase === 'Round') info = `${game.remaining()} LEFT`;
     else if (game.phase === 'PreGame') info = `STARTS IN ${Math.ceil(game.phaseTimer)}`;
     else if (game.phase === 'Intermission') info = `NEXT ROUND IN ${Math.ceil(game.phaseTimer)}`;
-    else if (game.phase === 'Casino') { info = `CASINO  ${Math.ceil(game.phaseTimer)}`; ic = GOLD; }
+    else if (game.phase === 'Casino') { info = `BREAK  ${Math.ceil(game.phaseTimer)}`; ic = GOLD; }
     this.text(info, tx, y - 46 * S, 28 * S, ic, 'left', F_BIG, 400, 0.12);
     this.text(zn, tx, y - 16 * S, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 700, 0.14);
     if (false) {
       const next = 3 - (game.round % 3);
-      this.text(next === 3 ? 'CASINO NEXT' : `CASINO IN ${next}`, x, y + 34 * S, 17 * S, 'rgba(255,205,90,0.9)', 'left', F_TXT, 700, 0.14);
+      this.text('', x, y + 34 * S, 17 * S, 'rgba(255,205,90,0.9)', 'left', F_TXT, 700, 0.14);
     }
   }
   drawBoss(game, W, H, S) {
@@ -567,7 +572,7 @@ export class Hud {
     x = clamp(x, m, W - m); y = clamp(y, m + 80 * S, H - m - 120 * S);
     const bob = Math.sin(this.time * 4) * 5 * S;
     this.icon('I_Card', x, y + bob, 52 * S);
-    this.text(game.final && game.final.gate ? 'VAULT' : 'BOX', x, y + 46 * S + bob, 18 * S, GOLD, 'center', F_BIG);
+    this.text(game.final && game.final.gate ? 'CRYPT' : 'BOX', x, y + 46 * S + bob, 18 * S, GOLD, 'center', F_BIG);
     this.text(`${Math.round(d / 100)}m`, x, y + 66 * S + bob, 15 * S, BONE, 'center', F_TXT, 600);
   }
   drawFloaters(game, dt) {
@@ -913,7 +918,7 @@ export class Hud {
     g.fillStyle = 'rgba(20,10,4,0.78)'; g.fillRect(0, 0, W, H);
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
-    this.text('Deadwater Gulch is cleared. The Last Dealer is out of the game.', W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
+    this.text('Deadwater Gulch is cleared. The Founder is back in the ground.', W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
     const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);

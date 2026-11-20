@@ -118,7 +118,7 @@ export class Enemy {
   get emerging() { return this.emerge > 0; }
   has(name) { return (this.affixes & (1 << AFFIX[name])) !== 0; }
   feet() { return new THREE.Vector3(this.pos.x, this.pos.y - this.feetOffset, this.pos.z); }
-  headY() { const feet = this.pos.y - this.feetOffset, H = this.hitH || this.half * 2; return feet + H * (['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? 0.55 : this.ai === 'Flyer' ? 0.5 : this.puppet && this.puppet.is3D ? 0.83 : 0.74); }   // the head is the top quarter of what is drawn
+  headY() { const feet = this.pos.y - this.feetOffset, H = this.hitH || this.half * 2; return feet + H * (['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? 0.55 : this.ai === 'Flyer' ? 0.5 : this.puppet && this.puppet.headFrac ? this.puppet.headFrac : 0.74); }   // the head is the top quarter of what is drawn
   healthFrac() { return this.health / this.maxHealth; }
   accent() {
     for (let i = 0; i < DATA.affixes.length; i++) if (this.affixes & (1 << i)) return hexRGB(DATA.affixes[i].color);
@@ -810,7 +810,7 @@ export class Enemy {
       default: done();
     }
   }
-  // ---- The Last Dealer. Three acts by health: the deal, double down (beams, chip rain, floor staff), all in (the room burns).
+  // ---- The Founder. Three acts by health: blades, then beams and falling rubble with his hands called in, then the room burns.
   thinkFinal(dt) {
     const G = this.game, F = G.final, P = G.net.targetOf(this), C = G.vaultCenter(), R0 = 1500;
     if (!F || !P) return;
@@ -838,7 +838,7 @@ export class Enemy {
       this.fT += dt; this.stop(); face();
       switch (this.fAtk) {
         case 'roar': this.windup = 0.2; if (this.fT > 2.4) this.fAtk = ''; break;
-        case 'deal': {   // fans of cards, aimed where you are heading
+        case 'deal': {   // fans of blades, aimed where you are heading
           const n = act === 1 ? 3 : act === 2 ? 4 : 5, gap = act === 3 ? 0.34 : 0.45;
           this.windup = 0.15;
           if (this.fT > 0.6 + this.fStep * gap && this.fStep < n) {
@@ -857,18 +857,18 @@ export class Enemy {
           else if (this.fStep === 2) { if (act === 3 && this.fT > 0.5 && !this.fSecond) { this.fSecond = true; G.hazards.ring(this.feet(), dmg * 0.6, 1400, 2400, lin(1, 0.5, 0.2)); } if (this.fT > 1.1) { this.fAtk = ''; this.fSecond = false; } }
           return;   // physics runs the leap; stop() above would kill it
         }
-        case 'wheel': {   // roulette: every other wedge of the floor lights up, then the rest
+        case 'wheel': {   // the seal: every other wedge of the floor lights up, then the rest
           this.windup = 0.15;
           const waves = act === 1 ? 1 : 2;
           if (this.fStep < waves && this.fT > 0.5 + this.fStep * 1.7) {
             const par = (this.fPar = this.fStep === 0 ? randInt(0, 1) : 1 - this.fPar);
             for (let w = 0; w < 8; w++) if ((w & 1) === par) for (const r of [330, 720, 1110, 1400]) { const a = (w + 0.5) / 8 * Math.PI * 2; G.hazards.marker(new THREE.Vector3(C.x + Math.cos(a) * r, 2, C.z + Math.sin(a) * r), dmg * 0.9, 150 + r * 0.24, act === 3 ? 1.15 : 1.5, lin(1, 0.2, 0.1)); }
-            this.fStep++; G.audio.playAt('S_SlotPull', this.pos, 1, 0.7);
+            this.fStep++; G.audio.playAt('S_Door', this.pos, 1, 0.6);
           }
           if (this.fT > 0.5 + waves * 1.7 + 0.6) this.fAtk = '';
           break;
         }
-        case 'rain': {   // chips fall where you stand and where you are running to
+        case 'rain': {   // rubble falls where you stand and where you are running to
           this.windup = 0.1;
           if (this.fT > this.fStep * (act === 3 ? 0.2 : 0.28) && this.fT < 4.2) {
             this.fStep++;

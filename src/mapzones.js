@@ -273,7 +273,7 @@ export function BuildMainStreet(M, GM) {
 	Crate(V(-4950., 2650., 0.), 130.);
 
 	// Wall-run billboards down the median
-	Billboard(V(-4000., -250., 430.), 1000., 0., "THE LUCKY STIFF  >>");
+	Billboard(V(-4000., -250., 430.), 1000., 0., "CLOCKTOWER SQUARE  >>");
 	Billboard(V(-4000., 2300., 430.), 1000., 0., "ALL BETS ARE OFF");
 
 	// Water tower at the end of the street
@@ -363,7 +363,7 @@ export function BuildChapel(M, GM) {
 		Glow(V(-330., -5260. + i * 80., 140.), V(10., 10., 30.), 0xFFD27A);
 	}
 	Lamp(V(-250., -5100., 250.), LC(1., 0.7, 0.4), 12., 1000., false);
-	WallBuy("Dealer's Pump", V(-468., -4800., 0.), 0.);
+	WallBuy("Homesteader", V(-468., -4800., 0.), 0.);
 
 	// Bell tower beside the door
 	Box(V(1300., -5500., 600.), V(400., 400., 1200.), Pal.Cream);
@@ -655,22 +655,22 @@ export function BuildMesa(M, GM) {
 	SpawnAt(V(3300., 5700., 0.), 5);
 }
 
-// The vault: a round counting room far outside the town, reached only through the hatch that opens when the
-// Gravedigger dies. A roulette floor, a ring of columns, chip stacks and hanging lamps.
+// The crypt: a round chamber far below the town, reached only through the hatch that opens when the
+// Gravedigger dies. A great seal cut into the floor, a ring of columns, cairns of stacked stone and hanging lamps.
 export const VAULT = { X: 0, Y: 24000, R: 1500 };
 export function BuildVault(M, GM) {
   const { Box, Glow, Cyl, Ball, Lamp, Sign } = M;
   const C = V(VAULT.X, VAULT.Y, 0.), R0 = VAULT.R;
   Cyl(C.add(V(0, 0, -40.)), R0 * 2 + 500., 80., 0x1a0e14, true, false);                    // floor slab
   Cyl(C.add(V(0, 0, 1.)), R0 * 2 + 60., 2., 0x2a141c, false, false);
-  // roulette wedges, alternating red and black, with a gold hub
+  // the seal: wedges of pale stone and black slate round a glowing hub
   for (let i = 0; i < 16; ++i)
   {
     const a = (i + 0.5) / 16 * Math.PI * 2;
     for (let k = 1; k <= 4; ++k)
     {
       const r = k * 320.;
-      Cyl(C.add(V(Math.cos(a) * r, Math.sin(a) * r, 2.5)), 150. + k * 60., 1., (i & 1) ? 0x8a1218 : 0x0e080c, false, false);
+      Cyl(C.add(V(Math.cos(a) * r, Math.sin(a) * r, 2.5)), 150. + k * 60., 1., (i & 1) ? 0x6f6a5e : 0x121016, false, false);
     }
   }
   Glow(C.add(V(0, 0, 4.)), V(360., 360., 3.), 0xFFCD5A, 1);
@@ -683,11 +683,11 @@ export function BuildVault(M, GM) {
     Cyl(P.add(V(0, 0, 915.)), 270., 30., 0xFFCD5A, false, false);
     if (i % 4 === 0) { Glow(P.add(V(-Math.cos(a) * 130., -Math.sin(a) * 130., 520.)), V(60., 60., 90.), 0xFF4A2A, 3); Lamp(P.add(V(-Math.cos(a) * 200., -Math.sin(a) * 200., 520.)), LC(1., 0.3, 0.15), 12., 1300., false); }
   }
-  // chip stacks along the edge
+  // cairns along the edge
   for (let i = 0; i < 12; ++i)
   {
     const a = i / 12 * Math.PI * 2 + 0.13, P = C.add(V(Math.cos(a) * (R0 - 150.), Math.sin(a) * (R0 - 150.), 0)), n = 3 + (i * 7) % 5;
-    for (let k = 0; k < n; ++k) Cyl(P.add(V((k % 2) * 6., 0, 12. + k * 24.)), 120., 22., [0xc8211b, 0xf2e8d5, 0x1f8a4c, 0xFFCD5A][(i + k) % 4], k === 0, false);
+    for (let k = 0; k < n; ++k) Cyl(P.add(V((k % 2) * 9., (k % 3) * 5., 12. + k * 24.)), 120. - k * 9., 22., [0x5a5348, 0x7a7264, 0x4a443c, 0x8f8672][(i + k) % 4], k === 0, false);
   }
   // chandeliers
   for (let i = 0; i < 5; ++i)
@@ -696,7 +696,7 @@ export function BuildVault(M, GM) {
     Cyl(P, 260., 16., 0xFFCD5A, false, false); Glow(P.add(V(0, 0, -30.)), V(180., 180., 40.), 0xFFE27A, 1);
     Lamp(P.add(V(0, 0, -80.)), LC(1., 0.75, 0.35), 16., 1800., false);
   }
-  Sign(C.add(V(-R0 + 60., 0, 620.)), 0., "THE HOUSE ALWAYS WINS", FC(255, 205, 90), 90.);
+  Sign(C.add(V(-R0 + 60., 0, 620.)), 0., "NO ONE LEAVES DEADWATER", FC(255, 205, 90), 90.);
 }
 
 // The outskirts: four districts built for moving fast. Blocks of flat-roofed buildings at mixed heights with ramps up,

@@ -9,25 +9,25 @@ const P = {
   // pistols
   'Tin Star':        { crack: [3200, 0.9, 0.55, 0.045], body: [210, 70, 0.07, 0.5, 'triangle'], tail: [1800, 0.16, 0.16], mech: [0.05, 4200, 0.05, 1] },
   'Saloon Six':      { crack: [1900, 0.7, 0.8, 0.08], body: [150, 42, 0.16, 0.85, 'sine'], tail: [1100, 0.42, 0.3], mech: [0.16, 2600, 0.07, 1] },
-  'Penny Pusher':    { crack: [4600, 1.4, 0.4, 0.028], body: [300, 120, 0.04, 0.3, 'triangle'], tail: [2600, 0.07, 0.08] },
-  'Snake Eyes':      { crack: [2800, 1.1, 0.55, 0.05], body: [190, 60, 0.08, 0.5, 'triangle'], tail: [1500, 0.2, 0.18], double: 0.035 },
+  'Copperhead':    { crack: [4600, 1.4, 0.4, 0.028], body: [300, 120, 0.04, 0.3, 'triangle'], tail: [2600, 0.07, 0.08] },
+  'Sidewinders':      { crack: [2800, 1.1, 0.55, 0.05], body: [190, 60, 0.08, 0.5, 'triangle'], tail: [1500, 0.2, 0.18], double: 0.035 },
   // SMGs
   'Back-Alley':      { crack: [3600, 1.2, 0.45, 0.032], body: [240, 95, 0.05, 0.4, 'triangle'], tail: [2000, 0.09, 0.1], mech: [0.03, 5200, 0.04, 1] },
   "Hornet's Nest":   { crack: [5200, 2.2, 0.36, 0.022], body: [340, 150, 0.035, 0.28, 'sawtooth'], tail: [3000, 0.05, 0.06], tone: ['sawtooth', 620, 420, 0.03, 0.06, 0] },
-  'Card Sharp':      { crack: [4100, 3.0, 0.42, 0.03], body: [260, 100, 0.045, 0.38, 'triangle'], tail: [2400, 0.08, 0.09], tone: ['triangle', 1700, 1200, 0.05, 0.07, 0] },
+  'Rustler':      { crack: [4100, 3.0, 0.42, 0.03], body: [260, 100, 0.045, 0.38, 'triangle'], tail: [2400, 0.08, 0.09], tone: ['triangle', 1700, 1200, 0.05, 0.07, 0] },
   // rifles
   'Quarter Horse':   { crack: [2400, 0.8, 0.7, 0.06], body: [170, 52, 0.11, 0.7, 'sine'], tail: [1300, 0.36, 0.26], mech: [0.2, 2200, 0.08, 2] },
   'Lawman AR':       { crack: [3000, 1.0, 0.55, 0.04], body: [200, 70, 0.07, 0.55, 'triangle'], tail: [1700, 0.16, 0.16], mech: [0.04, 4600, 0.04, 1] },
-  'Long Odds':       { crack: [2100, 0.7, 0.78, 0.07], body: [150, 44, 0.14, 0.8, 'sine'], tail: [1000, 0.5, 0.32] },
-  'Jackpot':         { crack: [3400, 1.6, 0.5, 0.036], body: [220, 80, 0.06, 0.5, 'triangle'], tail: [1900, 0.13, 0.13], tone: ['sine', 2100, 2100, 0.09, 0.06, 0] },
+  'Long Rider':       { crack: [2100, 0.7, 0.78, 0.07], body: [150, 44, 0.14, 0.8, 'sine'], tail: [1000, 0.5, 0.32] },
+  'Gold Rush':         { crack: [3400, 1.6, 0.5, 0.036], body: [220, 80, 0.06, 0.5, 'triangle'], tail: [1900, 0.13, 0.13], tone: ['sine', 2100, 2100, 0.09, 0.06, 0] },
   // shotguns
   'Sawbuck':         { crack: [1300, 0.5, 0.95, 0.11], body: [120, 34, 0.2, 0.95, 'sine'], tail: [800, 0.5, 0.42] },
-  "Dealer's Pump":   { crack: [1100, 0.5, 1.0, 0.12], body: [105, 30, 0.24, 1.0, 'sine'], tail: [700, 0.6, 0.46], mech: [0.26, 1500, 0.16, 2] },
-  'Full House':      { crack: [1600, 0.6, 0.8, 0.08], body: [140, 44, 0.13, 0.8, 'sine'], tail: [1000, 0.3, 0.3], mech: [0.05, 3200, 0.05, 1] },
+  "Homesteader":   { crack: [1100, 0.5, 1.0, 0.12], body: [105, 30, 0.24, 1.0, 'sine'], tail: [700, 0.6, 0.46], mech: [0.26, 1500, 0.16, 2] },
+  'Stampede':      { crack: [1600, 0.6, 0.8, 0.08], body: [140, 44, 0.13, 0.8, 'sine'], tail: [1000, 0.3, 0.3], mech: [0.05, 3200, 0.05, 1] },
   "Dragon's Breath": { crack: [1000, 0.4, 0.9, 0.16], body: [110, 30, 0.22, 0.9, 'sine'], tail: [2400, 0.7, 0.4], tone: ['sawtooth', 240, 90, 0.3, 0.1, 18] },
   // LMGs
   'Iron Mule':       { crack: [2200, 0.8, 0.62, 0.05], body: [150, 50, 0.1, 0.72, 'sine'], tail: [1200, 0.2, 0.2], mech: [0.045, 3000, 0.06, 1] },
-  'Gatling Gambler': { crack: [2900, 1.2, 0.46, 0.03], body: [180, 70, 0.05, 0.5, 'triangle'], tail: [1500, 0.08, 0.1], tone: ['square', 95, 95, 0.045, 0.07, 0] },
+  'Thresher': { crack: [2900, 1.2, 0.46, 0.03], body: [180, 70, 0.05, 0.5, 'triangle'], tail: [1500, 0.08, 0.1], tone: ['square', 95, 95, 0.045, 0.07, 0] },
   // snipers
   'Widowmaker':      { crack: [2600, 0.6, 1.0, 0.07], body: [130, 30, 0.3, 1.0, 'sine'], tail: [900, 1.1, 0.5], mech: [0.45, 2000, 0.12, 2] },
   'Railroad Spike':  { crack: [1700, 0.5, 1.1, 0.1], body: [95, 24, 0.42, 1.1, 'sine'], tail: [650, 1.5, 0.6], tone: ['sine', 2900, 700, 0.5, 0.12, 0], mech: [0.6, 1300, 0.14, 1] },
@@ -42,8 +42,8 @@ const P = {
   'Hellfire Hose':   { crack: [900, 0.4, 0.3, 0.09], tail: [1700, 0.16, 0.2], tone: ['sawtooth', 130, 100, 0.09, 0.07, 24], soft: true },
   // wonder weapons
   'Buzzsaw':         { crack: [3800, 2.5, 0.4, 0.05], body: [200, 90, 0.08, 0.4, 'sawtooth'], tone: ['sawtooth', 880, 1500, 0.3, 0.2, 70] },
-  'The House Always Wins': { crack: [2600, 1.0, 0.6, 0.05], body: [180, 55, 0.12, 0.7, 'sine'], tail: [1400, 0.35, 0.25], tone: ['sine', 1320, 1980, 0.22, 0.16, 0] },
-  "Dead Man's Hand": { crack: [2300, 0.9, 0.75, 0.07], body: [150, 44, 0.15, 0.8, 'sine'], tail: [1100, 0.45, 0.3], tone: ['triangle', 330, 165, 0.35, 0.12, 0] },
+  'Thunderhead': { crack: [2600, 1.0, 0.6, 0.05], body: [180, 55, 0.12, 0.7, 'sine'], tail: [1400, 0.35, 0.25], tone: ['sine', 1320, 1980, 0.22, 0.16, 0] },
+  "Fan of Knives": { crack: [2300, 0.9, 0.75, 0.07], body: [150, 44, 0.15, 0.8, 'sine'], tail: [1100, 0.45, 0.3], tone: ['triangle', 330, 165, 0.35, 0.12, 0] },
   'Black Cat':       { crack: [1500, 0.5, 1.0, 0.1], body: [90, 22, 0.5, 1.1, 'sine'], tail: [600, 1.6, 0.55], tone: ['sawtooth', 1900, 240, 0.45, 0.14, 11] },
 };
 const FALLBACK = { crack: [2800, 1, 0.55, 0.045], body: [200, 70, 0.08, 0.5, 'triangle'], tail: [1600, 0.18, 0.16] };
@@ -56,7 +56,7 @@ let noise = null;
 // The table above still drives it: crack[0] sets how bright the bang starts, body the thump, tail the room.
 // The pitched "tone" layer is now only used by the energy and wonder weapons; on ballistic guns it sounded synthetic.
 let shaper = null, bus = null;
-const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'The House Always Wins', "Dead Man's Hand", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
+const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'Thunderhead', "Fan of Knives", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
 // ---- Recorded shots -------------------------------------------------------------------------------------------
 // Powder guns play real recordings: single shots cut from the Free Firearm Sound Library (Ben Jaszczak et al., CC0),
 // close-mic'd, two or three takes per gun so repeated fire never sounds stamped. The synth below is only the voice
@@ -65,21 +65,21 @@ const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire
 const REC = {
   'Tin Star':        ['V', 2, 1.00, 0.80],          // .38 revolver
   'Saloon Six':      ['A', 2, 0.86, 0.95],          // .45, pitched down: a hand cannon
-  'Penny Pusher':    ['R', 2, 1.04, 0.60, 1],       // .22 pistol
-  'Snake Eyes':      ['F', 2, 1.00, 0.70, 0, 0, 0.04],   // .380, two barrels
+  'Copperhead':    ['R', 2, 1.04, 0.60, 1],       // .22 pistol
+  'Sidewinders':      ['F', 2, 1.00, 0.70, 0, 0, 0.04],   // .380, two barrels
   'Back-Alley':      ['G', 3, 1.00, 0.70, 1],       // 9mm submachine gun
   "Hornet's Nest":   ['P', 3, 1.08, 0.62, 1],       // 7.62 Tokarev submachine gun
-  'Card Sharp':      ['X', 3, 1.05, 0.66, 1],       // 9mm
+  'Rustler':      ['X', 3, 1.05, 0.66, 1],       // 9mm
   'Quarter Horse':   ['I', 2, 1.00, 0.85],          // .30-30 lever action
   'Lawman AR':       ['D', 2, 1.00, 0.72, 1],       // 5.56
-  'Long Odds':       ['U', 3, 0.97, 0.85],          // 7.62x39 carbine
-  'Jackpot':         ['C', 3, 1.03, 0.70, 1],       // AK
+  'Long Rider':       ['U', 3, 0.97, 0.85],          // 7.62x39 carbine
+  'Gold Rush':         ['C', 3, 1.03, 0.70, 1],       // AK
   'Sawbuck':         ['O', 2, 0.96, 0.95],          // 12 gauge
-  "Dealer's Pump":   ['K', 2, 0.94, 1.00],          // 12 gauge pump
-  'Full House':      ['H', 2, 1.06, 0.82],          // 12 gauge
+  "Homesteader":   ['K', 2, 0.94, 1.00],          // 12 gauge pump
+  'Stampede':      ['H', 2, 1.06, 0.82],          // 12 gauge
   "Dragon's Breath": ['N', 2, 0.84, 1.00],          // 12 gauge, slowed
   'Iron Mule':       ['C', 3, 0.88, 0.78, 1],       // AK, slowed: heavier
-  'Gatling Gambler': ['T', 2, 1.04, 0.58, 1],       // .300
+  'Thresher': ['T', 2, 1.04, 0.58, 1],       // .300
   'Widowmaker':      ['W', 2, 0.96, 1.00],          // .30-06 bolt action
   'Railroad Spike':  ['M', 3, 0.78, 1.00],          // 7.62x54R, slowed
   'Dynamite Dan':    ['N', 2, 0.62, 0.85, 0, 1400], // launchers: a slowed, muffled 12 gauge reads as a tube thump

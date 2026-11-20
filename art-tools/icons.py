@@ -85,8 +85,10 @@ def dice(p, c):
     S(p, rot(rr(0, 0, 100, 100, 18), 12), c, False)
     for (x, y) in ((-26, 26), (26, -26), (0, 0), (-26, -26), (26, 26)): F(p, ellipse(*rot([(x, y)], 12)[0], 10, 10, n=10), INK, True)
 def card(p, c):
-    S(p, rot(rr(-14, 0, 70, 104, 10), 12), shade(BONE, 0.8), False); S(p, rot(rr(12, 0, 70, 104, 10), -8), BONE, False)
-    F(p, rot([(12, 30), (34, 0), (12, -30), (-10, 0)], -8), c)
+    # a sheet of paper: a few lines of writing and a wax seal
+    S(p, rot(rr(0, 0, 84, 110, 8), 7), BONE, False)
+    for i, w in enumerate((52, 44, 52)): F(p, rot([(-w / 2, 34 - i * 17), (w / 2, 34 - i * 17), (w / 2, 27 - i * 17), (-w / 2, 27 - i * 17)], 7), shade(BONE, 0.55))
+    F(p, ellipse(*rot([(14, -28)], 7)[0], 17, 17, n=12), c, True)
 def shoe(p, c):
     p.stroke([(-36, -54), (-46, 0), (-30, 42), (0, 56), (30, 42), (46, 0), (36, -54)], c, 22)
     for (x, y) in ((-42, -24), (42, -24), (-30, 30), (30, 30), (0, 52)): F(p, ellipse(x, y, 5, 5, n=8), INK, True)
@@ -155,7 +157,7 @@ G = dict(bullet=bullet, shells=shells, mag=mag, boot=boot, heart=heart, shield=s
 MAP = {
  'Underbarrel Launcher': ('barrel', STEEL, 'blast', ORANGE), 'Gravity Coil': ('magnet', PURPLE, 'star', BONE), 'Rail Capacitor': ('battery', BLUE, 'bolt', GOLD), 'Flak Tube': ('shells', STEEL, 'blast', RED),
  'Active Reload': ('mag', GOLD, 'clock', BONE), 'Echo Chamber': ('bullet', BLUE, 'bullet', BONE), 'Ricochet Rounds': ('bullet', GREEN, 'chain', GOLD), 'Closer': ('mag', RED, 'skull', BONE),
- 'Opening Hand': ('card', BONE, 'bullet', GOLD), 'Fan the Hammer': ('barrel', GOLD, 'wind', BONE), "Reaper's Feed": ('skull', BONE, 'mag', STEEL), 'Steady Aim': ('cross', GOLD, 'clock', BONE),
+ 'Opening Shot': ('bullet', GOLD, 'star', BONE), 'Fan the Hammer': ('barrel', GOLD, 'wind', BONE), "Reaper's Feed": ('skull', BONE, 'mag', STEEL), 'Steady Aim': ('cross', GOLD, 'clock', BONE),
  'Shrapnel Jacket': ('blast', STEEL, 'fang', BONE), 'Hollow Charge': ('bullet', PURPLE, 'dash', BONE), 'Twin Link': ('bullet', GOLD, 'plus', BONE), 'Drum Magazine': ('gear', STEEL, 'mag', GOLD),
  'Battering Ram': ('fist', RED, 'clock', BONE), 'Bone Breaker': ('hammer', BONE, 'blast', RED), 'Iron Gut': ('plate', RED, 'heart', RED), 'Blood Frenzy': ('fang', RED, 'dash', BONE), 'Meat Shield': ('shield', RED, 'fist', BROWN),
  'Overclocked Servos': ('gear', GOLD, 'bolt', BLUE), 'Bored-Out Barrel': ('barrel', ORANGE, 'gear', STEEL), 'Twin Mount': ('gear', BLUE, 'plus', GOLD), 'Shock Fence': ('bolt', BLUE, 'gear', STEEL), 'Field Repairs': ('hammer', GREEN, 'plus', RED),
@@ -180,21 +182,21 @@ MAP = {
  'Gasoline Can': ('bottle', RED, 'flame', ORANGE), 'Topaz Brooch': ('shield', GOLD), 'Leech Seed': ('drop', GREEN), 'Tailwind Ribbon': ('wind', PINK), 'Sticky Dynamite': ('blast', RED),
  'ATG Rocket': ('rocket', STEEL), 'Tri-Tip': ('dagger', RED, 'drop', RED), 'Quick-Draw Holster': ('barrel', BROWN, 'dash', GOLD), 'Blast Holster': ('barrel', BROWN, 'blast', ORANGE),
  'Thunderclap Boots': ('boot', PURPLE, 'bolt', GOLD), 'Parkour Tape': ('tape', GREEN), 'Hookshot Spring': ('hook', STEEL, 'spring', GOLD), 'Dash Blades': ('dash', STEEL, 'dagger', BONE),
- 'Energy Drink': ('bottle', BLUE, 'bolt', GOLD), "Gambler's Monocle": ('lens', GOLD), 'Bounty Poster': ('card', RED, 'skull', BONE), "Rabbit's Foot": ('boot', BONE, 'clover', GREEN),
+ 'Energy Drink': ('bottle', BLUE, 'bolt', GOLD), "Marksman's Monocle": ('lens', GOLD), 'Bounty Poster': ('card', RED, 'skull', BONE), "Rabbit's Foot": ('boot', BONE, 'clover', GREEN),
  'Fuel Cell': ('battery', ORANGE), 'Rebar Rounds': ('bullet', STEEL, 'dash', RED), 'Buckshot Extender': ('shells', ORANGE), 'Adrenal Gland': ('heart', ORANGE, 'bolt', GOLD),
  'Blast Powder': ('bag', RED, 'blast', ORANGE), 'Hard Hat': ('hat', GOLD), 'Cowboy Spurs': ('gear', GOLD), 'Mag Coupler': ('mag', GOLD), 'Thorny Vest': ('thorn', GREEN),
- 'High Ground': ('wing', BLUE), 'Comp Card': ('card', GOLD), 'Mantle Spikes': ('thorn', STEEL), 'Second Barrel': ('barrel', STEEL, 'blast', ORANGE),
+ 'High Ground': ('wing', BLUE), 'Trade License': ('card', GOLD), 'Mantle Spikes': ('thorn', STEEL), 'Second Barrel': ('barrel', STEEL, 'blast', ORANGE),
  'Behemoth Shell': ('shells', PURPLE, 'blast', ORANGE), 'Spirit Daggers': ('dagger', '#5ff0e0'), "Winter's Halo": ('snow', BLUE), 'Tesla Battery': ('battery', BLUE),
  'Storm Caller': ('bolt', BLUE), "Executioner's Hood": ('skull', RED), 'Vampire Fang': ('fang', BONE), 'Kinetic Converter': ('gear', GREEN, 'dash', BONE), 'Heavy Barrel': ('barrel', INK and '#5a6070'),
  'Wind Walker': ('wing', GREEN), 'Mercury Sandals': ('boot', GOLD, 'wing', BONE), 'Deadeye Glass': ('eye', RED), 'Ammo Printer': ('mag', BLUE, 'gear', BONE), 'Gilded Rounds': ('bullet', GOLD, 'coin', GOLD),
- 'Barrier Coil': ('shield', BLUE), 'Afterburner': ('dash', ORANGE, 'flame', RED), 'Fire Walker': ('boot', RED, 'flame', ORANGE), 'Overclock': ('clock', RED), 'Marked Cards': ('card', PURPLE),
- "Croupier's Rake": ('hook', GOLD, 'coin', GOLD), 'Grapple Shock': ('hook', BLUE, 'bolt', GOLD), 'Phantom Step': ('dash', PURPLE),
- 'Chain Reaction': ('blast', PURPLE), 'Double Down': ('bullet', RED, 'bullet', GOLD), 'Time Dilator': ('clock', BLUE, 'snow', BONE), 'Bloodlust Engine': ('gear', RED, 'drop', RED),
- 'Storm Anchor': ('hook', PURPLE, 'bolt', BLUE), 'Air Supremacy': ('wing', GOLD), 'Lucky Seven': ('dice', GREEN), 'Overflow Rounds': ('shells', BLUE), 'Overdrive': ('dash', RED, 'fist', GOLD),
- 'Momentum Core': ('gear', PURPLE), 'Wild Card': ('card', GREEN), 'Hex Bullets': ('bullet', PURPLE, 'eye', PURPLE),
- 'Phoenix Feather': ('feather', ORANGE, 'flame', RED), 'Bottomless Chamber': ('mag', PURPLE, 'star', GOLD), 'Royal Flush': ('card', RED, 'crown', GOLD), 'Ace of Spades': ('card', INK and '#3a3440', 'skull', BONE),
+ 'Barrier Coil': ('shield', BLUE), 'Afterburner': ('dash', ORANGE, 'flame', RED), 'Fire Walker': ('boot', RED, 'flame', ORANGE), 'Overclock': ('clock', RED), 'Notched Rounds': ('bullet', PURPLE, 'drop', RED),
+ "Tax Collector": ('hook', GOLD, 'coin', GOLD), 'Grapple Shock': ('hook', BLUE, 'bolt', GOLD), 'Phantom Step': ('dash', PURPLE),
+ 'Chain Reaction': ('blast', PURPLE), 'Split Rounds': ('bullet', RED, 'bullet', GOLD), 'Time Dilator': ('clock', BLUE, 'snow', BONE), 'Bloodlust Engine': ('gear', RED, 'drop', RED),
+ 'Storm Anchor': ('hook', PURPLE, 'bolt', BLUE), 'Air Supremacy': ('wing', GOLD), 'Seventh Son': ('clover', GREEN, 'star', GOLD), 'Overflow Rounds': ('shells', BLUE), 'Overdrive': ('dash', RED, 'fist', GOLD),
+ 'Momentum Core': ('gear', PURPLE), 'Loose Wire': ('bolt', GREEN), 'Hex Bullets': ('bullet', PURPLE, 'eye', PURPLE),
+ 'Phoenix Feather': ('feather', ORANGE, 'flame', RED), 'Bottomless Chamber': ('mag', PURPLE, 'star', GOLD), 'Outlaw\'s Nerve': ('fang', RED, 'crown', GOLD), 'Death Warrant': ('card', INK and '#3a3440', 'skull', BONE),
  'Storm Crown': ('crown', BLUE, 'bolt', GOLD), 'Midas Touch': ('fist', GOLD), "Hermes' Wings": ('wing', BONE, 'star', GOLD), 'Four-Leaf Crown': ('crown', GREEN, 'clover', GREEN),
- 'Glass Cannon': ('barrel', BLUE, 'skull', RED), 'Blood Pact': ('drop', RED, 'skull', BONE), "Devil's Dice": ('dice', RED), 'Loan Shark': ('fang', GOLD), "Berserker's Brand": ('flame', RED, 'skull', BONE),
+ 'Glass Cannon': ('barrel', BLUE, 'skull', RED), 'Blood Pact': ('drop', RED, 'skull', BONE), "Devil's Bargain": ('skull', RED, 'flame', ORANGE), 'Loan Shark': ('fang', GOLD), "Berserker's Brand": ('flame', RED, 'skull', BONE),
  'Hollow Bones': ('tooth', STEEL, 'wing', BONE), 'Cursed Coin': ('coin', PURPLE, 'skull', BONE), 'Death Wish': ('skull', PURPLE),
 }
 TONIC = [('heart', RED), ('fist', RED), ('boot', GREEN), ('cross', GOLD), ('clock', BLUE), ('clover', GREEN), ('barrel', STEEL), ('feather', BLUE)]

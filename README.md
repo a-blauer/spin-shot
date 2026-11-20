@@ -1,6 +1,6 @@
-# Spinshot
+# Polyshot
 
-First-person zombie survival roguelite with a casino. three.js, bundled with esbuild.
+First-person zombie survival roguelite set in an undead frontier town. three.js, bundled with esbuild.
 
 - **Play:** the built game is in `docs/` and is served by GitHub Pages (Settings -> Pages -> Deploy from a branch -> `main` / `docs`).
 - **Build:** `npm install`, then `./build.sh`. Output goes to `dist/`; copy it over `docs/` to publish.

@@ -53,8 +53,8 @@ export class Projectiles {
         P.body = part(g, 1, V3(0, 0, 0), V3(D * 2.2, 5, D * 2.2), P.color, 0.3);
         break;
       case 'Card':
-        P.body = part(g, 0, V3(0, 0, 0), V3(D * 1.6, 3, D * 1.1), [0.98, 0.97, 0.95], 0.4);
-        part(g, 0, V3(0, 2, 0), V3(D * 0.5, 2, D * 0.5), [0.93, 0.25, 0.33], 0.6).rotation.y = Math.PI / 4;
+        P.body = part(g, 0, V3(0, 0, 0), V3(D * 2.2, 2, D * 0.5), [0.8, 0.82, 0.86], 0.5);                 // a spinning blade: long, thin, steel
+        part(g, 0, V3(0, 0, 0), V3(D * 0.5, 2.4, D * 0.9), [0.16, 0.14, 0.16], 0.1);
         break;
       default:
         P.body = part(g, 2, V3(0, 0, 0), V3(D, D, D), P.color, 1.3);

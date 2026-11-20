@@ -653,7 +653,7 @@ export class World {
     this.AddZone('Rail Yard', V2(-2000, 2000), V2(2000, 6000));
     this.AddZone('Clocktower Square', V2(-2000, -2000), V2(2000, 2000));
     this.AddZone('Boneyard Mesa', V2(2000, -6000), V2(6000, 6000));
-    GM.casinoZone = this.AddZone('The Lucky Stiff', V2(-900, -1100), V2(900, 1100), false);
+    GM.casinoZone = this.AddZone('Clocktower Square', V2(-900, -1100), V2(900, 1100), false);
     GM.zones[GM.casinoZone].unlocked = true;
     // the outskirts: four districts wrapped around the old town, about tripling the map
     this.AddZone('Shanty Row', V2(-10600, -10600), V2(-6000, 6000));

@@ -442,9 +442,8 @@ export class ViewModel {
     const ej = this.eject ? this.gun.worldToLocal(this.eject.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3(), mz = this.muzzle ? this.gun.worldToLocal(this.muzzle.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3();
     const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
     if (this.Cards) { this.cardT = 0; for (const q of this.flash) q.visible = false; return; }
-    if (name === 'Card Sharp') this.fling(0, [3.8, 0.12, 2.6], 0xF4EEDF, 0.3, ej, V3(r(60, 95), r(45, 80), r(-10, 20)), V3(r(-4, 4), r(14, 22), r(-4, 4)), 0.6, 240);       // spent cards flick out of the breech
-    else if (name === 'Jackpot' || name === 'Penny Pusher') this.fling(1, [2.6, 0.5, 2.6], name === 'Jackpot' ? 0xFFC83C : 0xC8743A, 0.5, ej, V3(r(40, 70), r(70, 110), r(-10, 10)), V3(r(16, 26), 0, r(8, 14)), 0.65, 300);   // a coin flips off every shot
-    else if (name === 'The House Always Wins') for (let i = 0; i < 2; i++) this.fling(1, [3.4, 0.7, 3.4], i ? 0xC8211B : 0x1F8A4C, 0.5, mz, V3(r(-40, 40), r(60, 120), r(-30, 10)), V3(r(10, 20), 0, r(10, 20)), 0.7, 300);   // chips fly
+    if (name === 'Gold Rush') this.fling(2, [1.5, 1.2, 1.4], 0xFFC83C, 0.5, ej, V3(r(40, 70), r(70, 110), r(-10, 10)), V3(r(16, 26), 0, r(8, 14)), 0.65, 300);   // a fleck of gold off every shot
+    else if (name === 'Thunderhead') for (let i = 0; i < 3; i++) this.fling(2, [1, 1, 1], 0xBFEFFF, 1.3, mz, V3(r(-60, 60), r(-20, 90), r(-30, 30)), V3(0, 0, 0), 0.25, 120);   // sparks
     else if (name === 'Fireworks Finale') for (let i = 0; i < 5; i++) this.fling(2, [1.3, 1.3, 1.3], [0xFF5078, 0xFFE070, 0x60E0FF, 0x90FF70, 0xFFA040][i], 1.2, mz, V3(r(-70, 70), r(-20, 90), r(-40, 40)), V3(0, 0, 0), 0.4, 200);
     else if (cls === 'Energy' && !continuous) for (let i = 0; i < 3; i++) this.fling(2, [1, 1, 1], (this.game.data.weapons[this.weaponDef] || {}).color || 0x9CE8FF, 1.3, mz, V3(r(-60, 60), r(-30, 70), r(-30, 30)), V3(0, 0, 0), 0.22, 120);   // sparks off the emitter
     // smoke rolls off anything with a big charge
@@ -601,7 +600,7 @@ export class ViewModel {
     this.chargeA = interp(this.chargeA, In.charge || 0, dt, 30);
     let emitScale = 1 + 0.06 * Math.sin(this.time * 5.5) + 0.45 * this.emitP + 1.4 * this.chargeA;
     if (this.chargeA > 0.02) { add((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, 0, this.chargeA); add(-2.5, 0, 0, this.chargeA); }   // drawn back and humming
-    if (f.action === 'reels' || f.reload === 'slot') {
+    if (f.action === 'reels' || f.reload === 'charge') {
       // three reels: each shot knocks them on a third of a turn, one after another
       this.reelA = this.reelA || [0, 0, 0];
       for (let i = 0; i < 3; i++) { const target = (this.reelSpin || 0) * 120; this.reelA[i] += (target - this.reelA[i]) * Math.min(1, dt * (16 - i * 4)); rx('reel' + i, this.reelA[i]); }
@@ -717,7 +716,7 @@ export class ViewModel {
           pose(0, 0.1, 0.88, 1, 6, -1, -4);
           magSwap([0.08, 0.18, 0.32, 0.46, 0.6, 0.7], U(-2, -34, -8), U(-1, -4.5, -2));   // slid off to the side, never over the sights
           if (T > 0.78 && T < 0.96) { this.crankA = (this.crankA || 0) + dt * 540; this.spinSpeed = Math.max(this.spinSpeed, 500); }   // a turn of the crank to seat the first round
-          cue(0.79, () => play('S_Rack', 0.7, 0.9)); cue(0.88, () => play('S_SlotTick', 0.6));
+          cue(0.79, () => play('S_Rack', 0.7, 0.9)); cue(0.88, () => play('S_Rack', 0.4, 1.6));
           break;
         }
         case 'muzzle': {
@@ -746,32 +745,32 @@ export class ViewModel {
           cue(0.7, () => { play('S_PowerUp', 0.35, 1.6); this.jolt(0.5); });
           break;
         }
-        case 'slot': {   // pull the handle: the reels spin, the coins drop in, and it pays out a full magazine
+        case 'charge': {   // throw the lever: the rotors spin up, a fresh capacitor stack goes in, and it hums back to life
           pose(0, 0.1, 0.88, 1, -2, -1, 2);
           const lev = A.lever ? A.lever.userData.rest.clone().add(U(0, 0.5, 6)) : this.magRest.clone();
           const pull = bump(T, 0.12, 0.22, 0.26, 0.38);
           rx('lever', 62 * pull);
           supTo(lev.add(U(-5.4 * pull, 0, -2 * pull)), bump(T, 0.03, 0.12, 0.3, 0.42));
-          cue(0.14, () => play('S_SlotPull', 0.8));
+          cue(0.14, () => play('S_Rack', 0.8, 0.7));
           this.reelA = this.reelA || [0, 0, 0];
           for (let i = 0; i < 3; i++) if (T > 0.2 && T < 0.58 + i * 0.1) this.reelA[i] += dt * 1400;
-          for (let i = 0; i < 3; i++) cue(0.58 + i * 0.1, () => { play('S_SlotStop', 0.8, 1 + i * 0.1); this.jolt(0.3); this.reelA[i] = Math.round(this.reelA[i] / 120) * 120; this.reelSpin = Math.round(this.reelA[i] / 120); });
+          for (let i = 0; i < 3; i++) cue(0.58 + i * 0.1, () => { play('S_Chain', 0.35, 1 + i * 0.15); this.jolt(0.3); this.reelA[i] = Math.round(this.reelA[i] / 120) * 120; this.reelSpin = Math.round(this.reelA[i] / 120); });
           magOff.copy(U(0, 0, -16)).multiplyScalar(T < 0.3 ? sstep(0.04, 0.14, T) : 1 - sstep(0.4, 0.74, T));
-          for (const m of [0.44, 0.52, 0.6, 0.68]) cue(m, () => play('S_Coin', 0.5, 1 + m));
-          cue(0.84, () => { play('S_Jackpot', 0.4, 1.3); this.jolt(0.8); this.emitP = 1.5; });
+          cue(0.62, () => play('S_MagIn', 0.8, 0.9));
+          cue(0.84, () => { play('S_PowerUp', 0.4, 1.3); this.jolt(0.8); this.emitP = 1.5; });
           break;
         }
-        case 'deck': {   // flick the spent deck away, slap a fresh one on, and it deals itself a new hand
+        case 'deck': {   // knock the spent cassette away, slap a fresh one on, and five new blades spring into the mouth
           pose(0, 0.1, 0.86, 1, 6, -1, -3);
           const D = A.deck, home = D ? D.userData.rest.clone() : this.magRest.clone();
           const off = sstep(0.1, 0.22, T);
           const dp = OFF.clone().lerp(home.clone().add(U(0, -11, 3)), sstep(0.34, 0.52, T)).lerp(home, sstep(0.54, 0.62, T));
           if (D) { if (T < 0.3) { D.position.copy(home).add(U(-4 * off, -16 * off, 5 * off)); D.rotation.z = d2r(70 * off); D.visible = T < 0.22; } else { D.position.copy(dp); D.visible = T > 0.34; } }
-          cue(0.11, () => { play('S_UIMove', 0.8, 0.8); for (let i = 0; i < 6; i++) this.fling(0, [4, 0.12, 2.8], i % 2 ? 0xB0262C : 0xF4EEDF, 0.3, home.clone(), new THREE.Vector3(-50 - Math.random() * 60, 20 + Math.random() * 60, Math.random() * 40 - 10), new THREE.Vector3(Math.random() * 8 - 4, 10 + Math.random() * 12, Math.random() * 8 - 4), 0.7, 200); });
+          cue(0.11, () => { play('S_Switch', 0.8, 0.8); for (let i = 0; i < 3; i++) this.fling(0, [5, 0.14, 1.4], 0xC9CED8, 0.2, home.clone(), new THREE.Vector3(-50 - Math.random() * 60, 20 + Math.random() * 60, Math.random() * 40 - 10), new THREE.Vector3(Math.random() * 8 - 4, 10 + Math.random() * 12, Math.random() * 8 - 4), 0.7, 200); });
           supTo(dp.clone().add(U(-1, -4, -0.5)), bump(T, 0.28, 0.38, 0.64, 0.76));
           cue(0.61, () => { play('S_MagIn', 0.8, 1.2); this.jolt(0.7); });
           if (A.mag) A.mag.visible = wasEmpty ? T > 0.72 : (T < 0.1 || T > 0.72);          // an empty gun has no hand of cards left to show
-          cue(0.73, () => { this.cardT = 0.09; for (let i = 0; i < 5; i++) setTimeout(() => play('S_SlotTick', 0.5, 1.2 + i * 0.1), i * 35); });
+          cue(0.73, () => { this.cardT = 0.09; for (let i = 0; i < 5; i++) setTimeout(() => play('S_Rack', 0.3, 1.8 + i * 0.1), i * 35); });
           break;
         }
         default: {   // box magazines, drums and stick mags
