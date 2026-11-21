@@ -721,8 +721,10 @@ export class World {
       }
       return null;
     };
-    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); if (s) this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest'); };
-    const PLAN = { 0: [0, 0], 1: [0, 1], 2: [0, 1], 3: [0, 1], 4: [0, 0], 5: [0, 1], 7: [1, 1, 2], 8: [1, 1, 2], 9: [1, 2, 2], 10: [1, 2, 2], 11: [2, 2, 2, 2] };
+    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); return s ? this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest') : null; };
+    // a dozen to begin with; the rest arrive during the run (Game.dropChest)
+    const PLAN = { 0: [0], 1: [0], 2: [0], 3: [1], 4: [0], 5: [1], 7: [1], 8: [1], 9: [2], 10: [1], 11: [2, 2] };
+    GM.spawnChest = (zi, tier) => chest(zi, tier, zi === 11);
     for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, +zi === 11);
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) this.Station('Chest', V(sx * 12800 - sx * 180, sy * 12800 + sy * 180, 636), sx > 0 ? 180 : 0, 0, 3, 'Chest');   // reliquaries on the corner towers
     // where the mystery box can turn up: one spot per district, starting in the square

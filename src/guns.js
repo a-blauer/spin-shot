@@ -510,12 +510,12 @@ function buildGunWith(vm, W, tier, PAL) {
         for (let i = 0; i < 6; i++) { const a = d2r(i * 60); T(-20, 22, 2.3, Math.sin(a) * 3.3, PAL.steelD, Math.cos(a) * 3.3); }
         T(-20, -17, 9.6, 0, PAL.steel); T(0, 2, 9.6, 0, PAL.steel); T(19, 21, 9.6, 0, PAL.steel); T(-20, 20, 2.4, 0, PAL.steelL);
       });
-      part('crank', 10, 0, 5.4, () => { Ty(10, 5.4, 2, 6, PAL.steelD, -6.6); E([[8.9, 6.4], [11.1, 6.4], [11.1, 0.2], [8.9, 0.2]], 1.2, PAL.steelL, { y: -9.4, bevel: 0.2 }); Ty(10, 1, 2.4, 4.6, PAL.wood, -12); });   // crank, turned by the off hand
+      part('crank', 10, 0, 5.4, () => { Ty(10, 5.4, 2, 6, PAL.steelD, -6.6); E([[8.9, 6.4], [11.1, 6.4], [11.1, 0.2], [8.9, 0.2]], 1.2, PAL.steelL, { y: -9.4, bevel: 0.2 }); Ty(10, 1, 2.4, 7.2, PAL.wood, -13.2); });   // crank, turned by the off hand (the handle is a fist and a bit long)
       E([[-8, 10], [-8, 4], [-13, 4], [-13, 10]], 5, PAL.steelD, { bevel: 0.6 });
       for (const s of [-1, 1]) E([[-12, 9], [-12, 5], [-20, 5.6], [-20, 8.4]], 1.8, PAL.wood, { y: s * 3.2, bevel: 0.7 });   // spade grips
       grip(-2, 3, PAL.wood, 11, 12, 5.4, 4);
       vm.MagRoot = group(2, 0, 15); into(vm.MagRoot, () => Ty(0, 0, 6, 5.4, PAL.brass));
-      Muzzle = V(56.5, 0, 7); Support = V(10, -12.6, 0.4); Sight = 16.5;
+      Muzzle = V(56.5, 0, 7); Support = V(10, -13.4, 1.0); Sight = 16.5;
       break;
     }
     // ============================================================ SNIPERS

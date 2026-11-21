@@ -139,7 +139,7 @@ export class Interactable {
     if (!P.spend(Math.round(950 * P.priceMult()))) return;
     B.uses++;
     if (B.uses > B.limit && G.boxSpots && G.boxSpots.some((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800)) { P.money += Math.round(950 * P.priceMult()); B.state = 'leaving'; B.t = 0; G.audio.playAt('S_Lose', this.pos, 0.9); G.banner('THE BOX IS MOVING', lin(0.4, 0.75, 1), 3); return; }   // refunded, and gone
-    const r = rollBoxRarity(P.luck);   // never a Common: the box is always a step up from what you started with
+    const r = rollBoxRarity(G.round);   // never a Common: the box is always a step up from what you started with
     let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
     if (Math.random() < (P.cls.id === 'brawler' ? 0.35 : 0.1) && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
     B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;

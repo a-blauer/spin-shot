@@ -36,7 +36,6 @@ export const ACHIEVEMENTS = [
   { id: 'boss3', name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, upgrades: ['Phoenix Feather'] },
   { id: 'slots25', name: 'Regular', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Gold Rush'], skin: 'dealer' },
   { id: 'money100k', name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
-  { id: 'luck15', name: 'Lucky', desc: 'Reach 15 luck in one run', stat: 'maxLuck', need: 15, upgrades: ['Four-Leaf Crown'] },
   { id: 'win', name: 'Town Tamer', desc: 'Beat the Founder and clear Deadwater Gulch', stat: 'wins', need: 1, guns: ['Thunderhead'] },
   { id: 'tier3', name: 'Maxed Out', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, skin: 'pinstripe' },
   { id: 'master1', name: 'Mastery', desc: 'Get any gun to level 5', stat: 'mastered', need: 2, skin: 'bone' },

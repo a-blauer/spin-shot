@@ -945,24 +945,6 @@
 "insp": "RoR2 Cautious Slug"
 },
 {
-"name": "Lucky Penny",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"LuckFind",
-0.2
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+20% clover drop chance.",
-"insp": "Isaac Lucky Foot"
-},
-{
 "name": "Loose Change",
 "rarity": "Common",
 "stacks": 10,
@@ -1389,28 +1371,6 @@
 "insp": "Vampire Survivors Attractorb"
 },
 {
-"name": "Steel Toes",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"SlideDamage",
-0.15
-],
-[
-"SlideBoost",
-0.08
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+15% damage while sliding, +8% slide speed.",
-"insp": "Titanfall slide-hop"
-},
-{
 "name": "Hopper's Feather",
 "rarity": "Uncommon",
 "stacks": 3,
@@ -1714,19 +1674,6 @@
 "insp": "Borderlands bounties"
 },
 {
-"name": "Rabbit's Foot",
-"rarity": "Uncommon",
-"stacks": 3,
-"mods": [],
-"trigger": "OnEliteKill",
-"fx": "Clover",
-"chance": 0.5,
-"mag": 1,
-"cd": 0,
-"desc": "Elite kills have a 50% chance to grant +1 Luck.",
-"insp": "Isaac Rabbit's Foot"
-},
-{
 "name": "Fuel Cell",
 "rarity": "Uncommon",
 "stacks": 5,
@@ -2022,19 +1969,6 @@
 "insp": "Hades Demeter"
 },
 {
-"name": "Tesla Battery",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [],
-"trigger": "Periodic",
-"fx": "Chain",
-"chance": 1.0,
-"mag": 0.35,
-"cd": 2.0,
-"desc": "Every 2s, zap nearby enemies for 35% Power.",
-"insp": "RoR2 Unstable Tesla Coil"
-},
-{
 "name": "Storm Caller",
 "rarity": "Rare",
 "stacks": 3,
@@ -2077,28 +2011,6 @@
 "cd": 0,
 "desc": "Heal 6% of damage dealt; kills heal 3.",
 "insp": "Isaac Charm of the Vampire"
-},
-{
-"name": "Kinetic Converter",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [
-[
-"SpeedDamage",
-0.45
-],
-[
-"MoveSpeed",
-0.05
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+45% damage per 1000 speed above a walk, +5% speed.",
-"insp": "Titanfall momentum"
 },
 {
 "name": "Heavy Barrel",
@@ -2462,10 +2374,6 @@
 [
 "ProcChance",
 0.27
-],
-[
-"LuckFind",
-0.77
 ]
 ],
 "trigger": null,
@@ -2473,7 +2381,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+7% crit, +27% proc chance, +77% clover find.",
+"desc": "+7% crit chance, +27% proc chance.",
 "insp": "Balatro Oops! All 6s"
 },
 {
@@ -2702,24 +2610,6 @@
 "insp": "Hades Hermes"
 },
 {
-"name": "Four-Leaf Crown",
-"rarity": "Legendary",
-"stacks": 1,
-"mods": [
-[
-"LuckFind",
-1.5
-]
-],
-"trigger": "OnRoundStart",
-"fx": "Clover",
-"chance": 1.0,
-"mag": 1,
-"cd": 0,
-"desc": "+150% clover find; +1 Luck every round.",
-"insp": "Isaac Lucky Foot"
-},
-{
 "name": "Glass Cannon",
 "rarity": "Cursed",
 "stacks": 1,
@@ -2865,8 +2755,8 @@
 "stacks": 1,
 "mods": [
 [
-"LuckFind",
-1.5
+"MoneyGain",
+0.6
 ],
 [
 "Damage",
@@ -2878,7 +2768,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+150% clover find. -15% damage.",
+"desc": "+60% money. -15% damage.",
 "insp": "Isaac curses"
 },
 {
@@ -4162,28 +4052,6 @@
 "insp": "RoR2 Alien Head (lite)"
 },
 {
-"name": "Wool Socks",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"MoveSpeed",
-0.05
-],
-[
-"DashCooldown",
-0.08
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+5% move speed. Dash recharges 8% faster.",
-"insp": "RoR2 Paul's Goat Hoof"
-},
-{
 "name": "Canteen",
 "rarity": "Common",
 "stacks": 10,
@@ -4202,50 +4070,6 @@
 "insp": "RoR2 Rejuvenation Rack (lite)"
 },
 {
-"name": "Trail Mix",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"HealthRegen",
-1.0
-],
-[
-"MoveSpeed",
-0.03
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+1 health per second, +3% move speed.",
-"insp": "RoR2 Cautious Slug"
-},
-{
-"name": "Stitched Coat",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"MaxHealth",
-15
-],
-[
-"Armor",
-6
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+15 max health, +6 armor.",
-"insp": "Brotato armor items"
-},
-{
 "name": "Rattlesnake Skin",
 "rarity": "Common",
 "stacks": 10,
@@ -4257,73 +4081,6 @@
 "cd": 3.0,
 "desc": "Taking damage grants +25% move speed for 4s.",
 "insp": "Slay the Spire reactive relics"
-},
-{
-"name": "Prospector's Pan",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"RoundMoney",
-150
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+$15 at the end of every round.",
-"insp": "Slay the Spire Golden Idol"
-},
-{
-"name": "Bargain Bin",
-"rarity": "Common",
-"stacks": 5,
-"mods": [
-[
-"ChestRefund",
-0.06
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Chests refund 6% of their price.",
-"insp": "Slay the Spire Membership Card"
-},
-{
-"name": "Kill Tally",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"StreakDamage",
-0.015
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Each kill within 3 seconds of the last adds +1.5% damage, up to 10 kills.",
-"insp": "RoR2 Berzerker's Pauldron"
-},
-{
-"name": "Whiskey Flask",
-"rarity": "Common",
-"stacks": 10,
-"mods": [],
-"trigger": "OnMultiKill",
-"fx": "Heal",
-"chance": 1.0,
-"mag": 12,
-"cd": 0,
-"desc": "Killing 3 enemies in quick succession heals 12.",
-"insp": "Doom glory kills"
 },
 {
 "name": "Pocket Sand",
@@ -4374,94 +4131,6 @@
 "insp": "Titanfall"
 },
 {
-"name": "Wishbone",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"LuckFind",
-0.15
-],
-[
-"CritChance",
-0.02
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+15% clover drop chance, +2% crit chance.",
-"insp": "RoR2 57 Leaf Clover (lite)"
-},
-{
-"name": "Saddle Bag",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"PickupRange",
-0.4
-],
-[
-"MaxHealth",
-10
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+40% pickup range, +10 max health.",
-"insp": "Vampire Survivors Attractorb"
-},
-{
-"name": "Tumbleweed",
-"rarity": "Common",
-"stacks": 5,
-"mods": [
-[
-"DashGuard",
-0.15
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Take 15% less damage for 1.5 seconds after a dash.",
-"insp": "Hades dash boons"
-},
-{
-"name": "Strike-Anywhere Matches",
-"rarity": "Common",
-"stacks": 10,
-"mods": [],
-"trigger": "OnPickup",
-"fx": "Haste",
-"chance": 1.0,
-"mag": 0.2,
-"cd": 0,
-"desc": "Picking anything up grants +20% move speed for 4s.",
-"insp": "Dead Cells pickup mutations"
-},
-{
-"name": "Tin Cup",
-"rarity": "Common",
-"stacks": 10,
-"mods": [],
-"trigger": "OnPickup",
-"fx": "Heal",
-"chance": 1.0,
-"mag": 6,
-"cd": 0,
-"desc": "Picking anything up heals 6.",
-"insp": "Vampire Survivors floor chicken"
-},
-{
 "name": "Blood Sausage",
 "rarity": "Common",
 "stacks": 10,
@@ -4478,42 +4147,6 @@
 "cd": 0,
 "desc": "Critical hits heal 2.",
 "insp": "RoR2 Harvester's Scythe"
-},
-{
-"name": "Grit",
-"rarity": "Common",
-"stacks": 5,
-"mods": [
-[
-"SecondWind",
-0.12
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Once a round, dropping below 25% health restores 12% of your max health.",
-"insp": "Hades Lucky Tooth (lite)"
-},
-{
-"name": "Iron Nails",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"Thorns",
-25
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Enemies that hit you take 25 damage (scales each round).",
-"insp": "RoR2 Razorwire"
 },
 {
 "name": "Hobnail Boots",
@@ -4538,50 +4171,6 @@
 "insp": "Dead Cells"
 },
 {
-"name": "Padded Vest",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"Armor",
-8
-],
-[
-"HealthRegen",
-0.5
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+8 armor, +0.5 health per second.",
-"insp": "Brotato"
-},
-{
-"name": "Leather Grip",
-"rarity": "Common",
-"stacks": 10,
-"mods": [
-[
-"MeleeSpeed",
-0.08
-],
-[
-"MeleeRange",
-0.06
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+8% melee swing speed, +6% melee reach.",
-"insp": "Dead Cells"
-},
-{
 "name": "Lead Weight",
 "rarity": "Common",
 "stacks": 10,
@@ -4600,19 +4189,6 @@
 "insp": "Hades Heavy Knuckle"
 },
 {
-"name": "Bone Charm",
-"rarity": "Common",
-"stacks": 10,
-"mods": [],
-"trigger": "OnMeleeKill",
-"fx": "Heal",
-"chance": 1.0,
-"mag": 6,
-"cd": 0,
-"desc": "Melee kills heal 6.",
-"insp": "Doom glory kills"
-},
-{
 "name": "Duelist's Sash",
 "rarity": "Common",
 "stacks": 10,
@@ -4629,86 +4205,6 @@
 "cd": 0,
 "desc": "+15 armor while your blade is drawn.",
 "insp": "Dead Cells shields"
-},
-{
-"name": "Ambush",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"FullHealthDamage",
-0.35
-],
-[
-"CritChance",
-0.03
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+35% damage to enemies above 90% health, +3% crit chance.",
-"insp": "Dead Cells Ambush"
-},
-{
-"name": "Point Blank",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"CloseDamage",
-0.22
-],
-[
-"Armor",
-5
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+22% damage to enemies within 6 meters, +5 armor.",
-"insp": "RoR2 Focus Crystal"
-},
-{
-"name": "Dead Reckoning",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"FarDamage",
-0.3
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+30% damage to enemies beyond 20 meters.",
-"insp": "Gunfire Reborn"
-},
-{
-"name": "Cruel Streak",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"StatusDamage",
-0.3
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+30% damage to burning, bleeding or slowed enemies.",
-"insp": "RoR2 Death Mark"
 },
 {
 "name": "Old Guillotine",
@@ -4747,24 +4243,6 @@
 "insp": "RoR2 Infusion"
 },
 {
-"name": "Aegis Charm",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"Overheal",
-30
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Healing above full health becomes overshield (up to 30).",
-"insp": "RoR2 Aegis"
-},
-{
 "name": "Shield Generator",
 "rarity": "Uncommon",
 "stacks": 5,
@@ -4796,19 +4274,6 @@
 "insp": "Hades Zeus revenge"
 },
 {
-"name": "Powder Burn",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [],
-"trigger": "OnHurt",
-"fx": "Nova",
-"chance": 1.0,
-"mag": 1.0,
-"cd": 3.0,
-"desc": "Taking damage blasts enemies around you for 100% Power (3s cooldown).",
-"insp": "Hades Ares revenge"
-},
-{
 "name": "Cold Snap",
 "rarity": "Uncommon",
 "stacks": 5,
@@ -4822,19 +4287,6 @@
 "insp": "Gunfire Reborn shield scrolls"
 },
 {
-"name": "Capacitor",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [],
-"trigger": "OnShieldBreak",
-"fx": "Nova",
-"chance": 1.0,
-"mag": 2.0,
-"cd": 0,
-"desc": "When your overshield breaks it bursts for 200% Power.",
-"insp": "Borderlands nova shields"
-},
-{
 "name": "Showman's Cape",
 "rarity": "Uncommon",
 "stacks": 5,
@@ -4843,8 +4295,8 @@
 "fx": "Haste",
 "chance": 1.0,
 "mag": 0.3,
-"cd": 0,
-"desc": "Using your class ability grants +30% move speed for 4s.",
+"cd": 6.0,
+"desc": "Using your class ability grants +30% move speed for 4s (6s cooldown).",
 "insp": "Hades cast boons"
 },
 {
@@ -4856,22 +4308,9 @@
 "fx": "Rage",
 "chance": 1.0,
 "mag": 0.2,
-"cd": 0,
-"desc": "Using your class ability grants +20% damage for 4s.",
+"cd": 10.0,
+"desc": "Using your class ability grants +20% damage for 4s (10s cooldown).",
 "insp": "RoR2 skill-use items"
-},
-{
-"name": "Scavenger's Sack",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [],
-"trigger": "OnPickup",
-"fx": "Shield",
-"chance": 1.0,
-"mag": 10,
-"cd": 0,
-"desc": "Picking anything up grants 10 overshield.",
-"insp": "Dead Cells"
 },
 {
 "name": "Triple Threat",
@@ -4905,7 +4344,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+3% damage per kill in a streak (up to 10), +4% move speed.",
+"desc": "+3% damage per kill in a streak (up to 10 kills; streak bonuses cap at +60%), +4% move speed.",
 "insp": "RoR2 Berzerker's Pauldron"
 },
 {
@@ -4923,7 +4362,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+0.5% damage for every $100 you are carrying (up to $3,000).",
+"desc": "+0.5% damage for every $100 you are carrying (up to $2,000).",
 "insp": "Isaac Money = Power"
 },
 {
@@ -4943,28 +4382,6 @@
 "cd": 0,
 "desc": "+10% chance a chest holds the better of its two rarities.",
 "insp": "Slay the Spire chest relics"
-},
-{
-"name": "Rebate Stamp",
-"rarity": "Uncommon",
-"stacks": 3,
-"mods": [
-[
-"ChestRefund",
-0.12
-],
-[
-"MoneyGain",
-0.05
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Chests refund 12% of their price. +5% money.",
-"insp": "Slay the Spire Membership Card"
 },
 {
 "name": "Paymaster",
@@ -4987,50 +4404,6 @@
 "cd": 0,
 "desc": "+$30 at the end of every round, +2% interest.",
 "insp": "Brotato harvesting"
-},
-{
-"name": "Deflector",
-"rarity": "Uncommon",
-"stacks": 3,
-"mods": [
-[
-"BlockChance",
-0.1
-],
-[
-"Armor",
-5
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "10% chance to shrug off a hit completely. +5 armor.",
-"insp": "RoR2 Tougher Times"
-},
-{
-"name": "Stunt Harness",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"AirGuard",
-0.15
-],
-[
-"AirDamage",
-0.1
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "Take 15% less damage while airborne. +10% airborne damage.",
-"insp": "Titanfall"
 },
 {
 "name": "Smoke Pellet",
@@ -5075,28 +4448,6 @@
 "cd": 0,
 "desc": "+30% to all healing, +1 health per second.",
 "insp": "RoR2 Rejuvenation Rack"
-},
-{
-"name": "Ox Heart",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [
-[
-"MaxHealth",
-40
-],
-[
-"HealthDamage",
-0.01
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+40 max health. +1% damage per 25 max health above 150.",
-"insp": "Brotato max-HP scaling"
 },
 {
 "name": "Stopwatch",
@@ -5181,19 +4532,6 @@
 "cd": 0,
 "desc": "Melee kills grant +30% move speed for 4s.",
 "insp": "Dead Cells Vengeance"
-},
-{
-"name": "Blood Price",
-"rarity": "Uncommon",
-"stacks": 5,
-"mods": [],
-"trigger": "OnMeleeKill",
-"fx": "Money",
-"chance": 1.0,
-"mag": 40,
-"cd": 0,
-"desc": "Melee kills pay about $4 extra.",
-"insp": "Gunfire Reborn"
 },
 {
 "name": "Vulture's Due",
@@ -5389,8 +4727,8 @@
 "fx": "Shield",
 "chance": 1.0,
 "mag": 35,
-"cd": 0,
-"desc": "Using your class ability grants 35 overshield.",
+"cd": 12.0,
+"desc": "Using your class ability grants 35 overshield (12s cooldown).",
 "insp": "Hades"
 },
 {
@@ -5402,8 +4740,8 @@
 "fx": "Nova",
 "chance": 1.0,
 "mag": 2.5,
-"cd": 0,
-"desc": "Using your class ability releases a burst for 250% Power.",
+"cd": 8.0,
+"desc": "Using your class ability releases a burst for 250% Power (8s cooldown).",
 "insp": "Hades cast boons"
 },
 {
@@ -5433,41 +4771,6 @@
 "insp": "Doom"
 },
 {
-"name": "Rolling Thunder",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [],
-"trigger": "OnMultiKill",
-"fx": "Chain",
-"chance": 1.0,
-"mag": 1.5,
-"cd": 0,
-"desc": "Killing 3 enemies in quick succession arcs lightning for 150% Power.",
-"insp": "RoR2 Ukulele"
-},
-{
-"name": "War Chest",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [
-[
-"MoneyDamage",
-0.012
-],
-[
-"MoneyGain",
-0.1
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+1.2% damage for every $100 you are carrying (up to $3,000). +10% money.",
-"insp": "Isaac Money = Power"
-},
-{
 "name": "Master Key",
 "rarity": "Rare",
 "stacks": 2,
@@ -5488,46 +4791,6 @@
 "cd": 0,
 "desc": "+20% chance a chest holds the better rarity. Chests refund 10%.",
 "insp": "Slay the Spire"
-},
-{
-"name": "Magpie",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [
-[
-"PickupRange",
-0.5
-]
-],
-"trigger": "OnPickup",
-"fx": "Rage",
-"chance": 1.0,
-"mag": 0.2,
-"cd": 0,
-"desc": "Picking anything up grants +20% damage for 4s. +50% pickup range.",
-"insp": "Dead Cells"
-},
-{
-"name": "Rampage",
-"rarity": "Rare",
-"stacks": 3,
-"mods": [
-[
-"StreakDamage",
-0.05
-],
-[
-"KillHealth",
-1
-]
-],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+5% damage per kill in a streak (up to 10). Every 8 kills adds +1 max health (up to +60).",
-"insp": "RoR2 Infusion"
 },
 {
 "name": "Featherfall",
@@ -5728,7 +4991,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+2% damage for every $100 you are carrying (up to $3,000). +$50 at the end of every round.",
+"desc": "+2% damage for every $100 you are carrying (up to $2,000). +$50 at the end of every round.",
 "insp": "Isaac Money = Power"
 },
 {
@@ -5750,7 +5013,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+8% damage per kill in a streak (up to 10). +20% damage above 90% health.",
+"desc": "+8% damage per kill in a streak (streak bonuses cap at +60%). +20% damage above 90% health.",
 "insp": "Hades"
 },
 {
@@ -5781,7 +5044,7 @@
 "chance": 1.0,
 "mag": 30,
 "cd": 0,
-"desc": "Killing 3 enemies in quick succession heals 30. Heal 3% of damage dealt.",
+"desc": "Killing 3 enemies in quick succession heals up to 30. Heal 3% of damage dealt.",
 "insp": "Doom glory kills"
 },
 {
@@ -5901,7 +5164,7 @@
 "chance": 1.0,
 "mag": 2.5,
 "cd": 0,
-"desc": "+10% damage per kill in a streak (up to 10). Triple kills explode for 250% Power.",
+"desc": "+10% damage per kill in a streak (streak bonuses cap at +60%). Triple kills explode for 250% Power.",
 "insp": "Vampire Survivors"
 },
 {
@@ -5923,7 +5186,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+3% damage for every $100 you are carrying (up to $3,000). +30% money.",
+"desc": "+3% damage for every $100 you are carrying (up to $2,000). +30% money.",
 "insp": "Isaac Money = Power"
 },
 {
@@ -5992,8 +5255,8 @@
 "fx": "Rage",
 "chance": 1.0,
 "mag": 0.4,
-"cd": 0,
-"desc": "Your class ability recharges 40% faster. Using it grants +40% damage for 4s.",
+"cd": 12.0,
+"desc": "Your class ability recharges 40% faster. Using it grants +40% damage for 4s (12s cooldown).",
 "insp": "RoR2 Alien Head"
 },
 {
@@ -6011,11 +5274,11 @@
 ]
 ],
 "trigger": "OnChest",
-"fx": "Clover",
+"fx": "Shield",
 "chance": 1.0,
-"mag": 1,
+"mag": 40,
 "cd": 0,
-"desc": "+35% chance a chest holds the better rarity, chests refund 25%, and every chest gives +1 Luck.",
+"desc": "+35% chance a chest holds the better rarity, chests refund 25%, and opening one grants 40 overshield.",
 "insp": "Slay the Spire"
 },
 {
@@ -6737,7 +6000,7 @@
 "money": 600,
 "minRound": 4,
 "weight": 0.35,
-"desc": "Runs away. Drops a fortune and maybe a clover."
+"desc": "Runs away. Drops a fortune if you catch it."
 },
 {
 "name": "Riot Ghoul",
@@ -6817,7 +6080,7 @@
 },
 {
 "name": "Gilded",
-"desc": "Triple money, guaranteed clover drop.",
+"desc": "Triple money and a money bag.",
 "color": 16766720
 },
 {
@@ -6838,12 +6101,14 @@
 "head": 12094058,
 "attacks": [
 "Charge",
-"Slam",
-"Summon"
+"Sweep",
+"Hook",
+"Summon",
+"Slam"
 ],
 "minion": 0,
 "reward": 2500,
-"desc": "The stockyard's enforcer, still driving the herd. Charges in straight lines and calls in his hands."
+"desc": "The stockyard's enforcer. Sidestep his charge and he is winded; stand in his chain's line and he drags you into a swing."
 },
 {
 "name": "The Abomination",
@@ -6856,12 +6121,13 @@
 "head": 12618362,
 "attacks": [
 "Leap",
-"Slam",
+"Pools",
+"Sweep",
 "Ring"
 ],
 "minion": 1,
 "reward": 3500,
-"desc": "A dozen enemies sewn into one. Leaps across the map and sends out shockwave rings."
+"desc": "A dozen enemies sewn into one. It leaps, spits bile that poisons the ground, and sheds crawlers as it comes apart."
 },
 {
 "name": "Mother Carrion",
@@ -6874,12 +6140,13 @@
 "head": 14703194,
 "attacks": [
 "Volley",
-"Summon",
-"Barrage"
+"Dive",
+"Barrage",
+"Summon"
 ],
 "minion": 6,
 "reward": 4000,
-"desc": "Births wisps from her ribcage and rains bile from the sky."
+"desc": "Dives along a marked line and rains bile. Twice she wards herself: nothing hurts her until her wisps are dead."
 },
 {
 "name": "The Undertaker",
@@ -6891,13 +6158,14 @@
 "body": 1718826,
 "head": 15590344,
 "attacks": [
+"Ambush",
+"NailWall",
 "Teleport",
-"Ring",
-"Volley"
+"Ring"
 ],
 "minion": 4,
 "reward": 4500,
-"desc": "Blinks around the map throwing coffin nails. Its rings close in."
+"desc": "Vanishes and swings from behind you, and lays walls of nails with a single gap to find."
 },
 {
 "name": "The Gravedigger",
@@ -6910,15 +6178,18 @@
 "head": 15909424,
 "attacks": [
 "Charge",
-"Teleport",
+"Hook",
+"Sweep",
+"NailWall",
+"Pools",
 "Barrage",
-"Summon",
+"Ambush",
 "Ring",
-"Slam"
+"Summon"
 ],
 "minion": 7,
 "reward": 7000,
-"desc": "The town itself, walking. Uses every trick the others had."
+"desc": "The town itself, walking. Every trick the others had, and a ward of its own at half health."
 },
 {
 "name": "The Founder",

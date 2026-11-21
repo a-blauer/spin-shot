@@ -197,7 +197,7 @@ export class Player {
     const tiers = {}; for (const k of SUITS) tiers[k] = Math.min(3, Math.floor(sc[k] / 3));
     this.stats[STAT.Damage] += 0.12 * tiers.Iron;
     this.stats[STAT.MaxHealth] += 30 * tiers.Blood; this.stats[STAT.HealthRegen] += tiers.Blood;
-    this.stats[STAT.MoneyGain] += 0.15 * tiers.Gold; this.stats[STAT.LuckFind] += 0.25 * tiers.Gold;
+    this.stats[STAT.MoneyGain] += 0.2 * tiers.Gold;
     this.stats[STAT.MoveSpeed] += 0.07 * tiers.Wind; this.stats[STAT.DashCooldown] += 0.15 * tiers.Wind;
     if (this.suitTiers) for (const k of SUITS) if (tiers[k] > this.suitTiers[k]) { this.game.banner(`${k.toUpperCase()} SET ${'I'.repeat(tiers[k])}`, lin(1, 0.8, 0.2), 3); this.toast(`${SUIT_BONUS[k]} (x${tiers[k]})`, SUIT_HEX[k]); }
     this.suitCounts = sc; this.suitTiers = tiers;
@@ -235,13 +235,8 @@ export class Player {
     if (amount > 0) this.play('S_Buy', 0.6, 1, 0.05);
     return true;
   }
-  addLuck(n) {
-    this.luck += n;
-    Meta.best('maxLuck', this.luck);
-    this.toast(`Luck +${n}`, '#59ff73');
-    this.game.fx.flash(this.pos, lin(0.3, 1, 0.4), 70, 0.3, true);
-    this.play('S_Luck', 0.8);
-  }
+  addLuck() {}   // the luck mechanic was removed; old code paths that grant it now do nothing
+
   collectPickup(type, amount) {
     if (this.procDepth < 2) this.runProcs('OnPickup', null, this.pos, 0, 1);
     if (type === 'Clover') this.addLuck(1);
@@ -285,7 +280,7 @@ export class Player {
       this.updateCamera(dt);
       return;
     }
-    this.sinceDamage += dt;
+    this.sinceDamage += dt; if (this.sinceDash !== undefined) this.sinceDash += dt;
     if (this.streakT > 0) { this.streakT -= dt; if (this.streakT <= 0) this.streak = 0; }
     if (this.dashGuardT > 0) this.dashGuardT -= dt;
     if (this.headCritT > 0) this.headCritT -= dt;
@@ -296,9 +291,11 @@ export class Player {
     this.hasteT = Math.max(0, this.hasteT - dt); if (this.hasteT <= 0) this.haste = 0;
     this.rageT = Math.max(0, this.rageT - dt); if (this.rageT <= 0) this.rage = 0;
     this.slowT = Math.max(0, this.slowT - dt);
-    this.healBucket = Math.min(14, this.healBucket + 8 * dt);
+    // Healing in a fight (kills, lifesteal, leech, procs) all draws on one budget that refills at 2.2% of max health a
+    // second and holds 6%. It used to be 8 a second flat, which a horde of a hundred filled without you noticing.
+    this.healBucket = Math.min(Math.max(8, this.maxHealth * 0.06), this.healBucket + this.maxHealth * 0.022 * dt);
     this.shieldBucket = Math.min(16, (this.shieldBucket === undefined ? 16 : this.shieldBucket) + 6 * dt);
-    const regen = this.stat('HealthRegen') + (this.nearTurret ? 4 * this.stat('TurretAura') : 0);
+    const regen = Math.min(6, this.stat('HealthRegen')) + (this.nearTurret ? 4 * this.stat('TurretAura') : 0);   // regen in a fight tops out at 6 a second
     if (regen >= 0) this.health = Math.min(this.maxHealth, this.health + (regen + (this.sinceDamage > 5 ? 25 : 0)) * dt);
     // input edges
     const menu = this.inMenu();
@@ -314,10 +311,19 @@ export class Player {
     if (In.reload && !menu && !this.wield) { if (this.reloading && this.stat('ActiveReload') > 0) this.activeReload(); else this.startReload(); }
     if (In.interact) this.interact();
     if (In.melee && !menu) this.meleeBuffer = 0.22;
+    if (this.flowWin > 0) this.flowWin -= dt;
+    if (this.flowT > 0) { this.flowT -= dt; if (this.flowT <= 0) this.flow = 0; }
+    if (!this.wield) this.meleeCharge = 0;
     if (In.wield && !menu) this.setWield(!this.wield);
     if (this.wield) {
       if (!menu && In.fire) this.meleeBuffer = Math.max(this.meleeBuffer || 0, 0.1);          // hold fire to keep swinging
-      if (!menu && In.aim && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing(true);   // aim: a heavy blow
+      // Flow: press (not hold) fire in the instant after a swing lands and the chain speeds up and hits harder, up to four
+      // stacks. Holding the button still swings, it just never builds any.
+      if (!menu && In.firePressed && this.flowWin > 0) { this.flowWin = 0; this.flow = Math.min(4, (this.flow || 0) + 1); this.flowT = 3; this.play('S_UIMove', 0.7, 0.9 + this.flow * 0.15); }
+      // Aim: wind up a heavy blow. The longer it is held (up to 0.8s) the harder it lands; a full wind-up launches and stuns.
+      if (!menu && In.aim) { const c0 = this.meleeCharge || 0; this.meleeCharge = Math.min(1, c0 + dt / 0.8); if (c0 < 1 && this.meleeCharge >= 1) { this.play('S_Rack', 0.8, 1.5); this.game.fx.flash(this.eye().add(this.forward().multiplyScalar(90)), lin(1, 0.85, 0.4), 30, 0.2, true); } }
+      else if (this.meleeCharge > 0) { this.meleeRelease = this.meleeCharge; this.meleeReleaseT = 0.3; this.meleeCharge = 0; }
+      if (this.meleeReleaseT > 0) { this.meleeReleaseT -= dt; if (this.meleeCd <= 0 && this.meleeHitT < 0) { this.meleeReleaseT = 0; this.meleeSwing(true, this.meleeRelease); } }
       this.aiming = false;
     }
     if (In.grenade && !menu) this.throwGrenade();
@@ -368,7 +374,7 @@ export class Player {
   // ------------------------------------------------------------------ movement
   updateMoveSpeed() {
     if (this.sliding) return;
-    let s = WalkSpeed * (1 + this.stat('MoveSpeed') + this.haste + (this.wield ? 0.08 : 0));
+    let s = WalkSpeed * (1 + Math.min(1, this.stat('MoveSpeed')) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
     if (this.sprintHeld && this.inFwd > 0.1 && !this.aiming) s *= SprintMult;
     if (this.aiming) s *= 0.7;
     if (this.slowT > 0) s *= 1 - this.slowAmt;
@@ -660,7 +666,7 @@ export class Player {
     if (d.lengthSq() < 1e-4) d = this.forward();
     this.dashDir.copy(d.normalize());
     this.dashExit = Math.max(Math.hypot(this.vel.x, this.vel.z), 1100);
-    this.dashT = DashDuration; this.dashHits.clear();
+    this.dashT = DashDuration; this.dashHits.clear(); this.sinceDash = 0;
     this.invuln = Math.max(this.invuln, DashDuration + 0.12);
     if (this.grounded) { this.grounded = false; this.vel.y = 120; this.launchedT = 0.05; }
     this.gravityScale = 0;
@@ -749,10 +755,10 @@ export class Player {
     if (this.meleeHitT >= 0) { this.meleeHitT -= dt; if (this.meleeHitT < 0) this.meleeStrike(); }
     if (this.meleeBuffer > 0 && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing();
   }
-  meleeSpeed() { return 1 + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + honeSpeed(this.meleeTier || 0) + (this.wield ? 0.1 : 0); }
+  meleeSpeed() { return 1 + 0.08 * (this.flow || 0) + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + honeSpeed(this.meleeTier || 0) + (this.wield ? 0.1 : 0); }
   meleeRange() { return MELEE[this.meleeDef].range * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
   // everything that multiplies a swing before the per-hit rolls: buffs, frenzy, honing, and having the blade in hand
-  meleePower() { return (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + (this.wield ? 0.25 : 0) + this.stat('HealthMelee') * Math.max(0, this.maxHealth - 150) / 25) * honeDamage(this.meleeTier || 0); }
+  meleePower() { return (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + (this.wield ? 0.15 : 0) + this.stat('HealthMelee') * Math.max(0, this.maxHealth - 150) / 25) * honeDamage(this.meleeTier || 0); }
   meleeCleave() { return MELEE[this.meleeDef].cleave + this.stat('MeleeCleave') + honeCleave(this.meleeTier || 0); }
   honeCost() { return Math.round(HONE_COST[Math.min(HONE_MAX - 1, this.meleeTier || 0)] * this.priceMult()); }
   honeMelee() {
@@ -820,15 +826,18 @@ export class Player {
       if (Z.t <= 0) this.gzones.splice(i, 1);
     }
   }
-  meleeSwing(power = false) {
+  meleeSwing(power = false, charge = 0) {
     const W = MELEE[this.meleeDef], sp = this.meleeSpeed();
     this.meleeBuffer = 0;
     const step = power ? 2 : this.meleeComboT > 0 ? (this.meleeCombo + 1) % 3 : 0;
-    this.meleeCombo = step; this.meleeHeavy = step === 2; this.meleeBig = power;   // `big`: the wielded heavy blow, slower and harder than a chain finisher
-    const cd = W.cd / sp * (power ? 1.55 : this.meleeHeavy ? 1.2 : 1);
+    this.meleeCombo = step; this.meleeHeavy = step === 2; this.meleeBig = power; this.meleeChargeHit = power ? charge : 0;   // `big`: the wound-up heavy blow
+    // a swing thrown out of a dash is a thrust: longer, harder, and it goes through the whole line
+    this.meleeThrust = !power && (this.dashT > 0 || (this.sinceDash !== undefined && this.sinceDash < 0.3));
+    if (this.meleeThrust) this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'DASH STRIKE', [0.6, 0.9, 1], 1.1);
+    const cd = W.cd / sp * (power ? 1.3 + 0.3 * charge : this.meleeHeavy ? 1.2 : 1);
     this.meleeCd = cd; this.meleeComboT = cd + 0.55; this.meleeHitT = W.wind / sp * (power ? 1.7 : this.meleeHeavy ? 1.3 : 1);
     this.game.vm.meleeSwing(W, step, Math.max(0.16, cd * 0.8));
-    this.play('S_Dash', 0.45, (this.meleeHeavy ? 0.8 : 1.25) * (W.cd > 0.8 ? 0.7 : 1), 0.06);
+    this.play('S_Dash', 0.5, (this.meleeHeavy ? 0.8 : 1.25) * Math.max(0.6, Math.min(1.25, 1.45 - W.cd)), 0.06);   // heavier weapons cut the air lower
     // step in toward the nearest target in front so swings connect
     const T = this.meleeTargets(this.meleeRange() * 2.1, 60)[0];
     if (T) { const d = flat(T.pos.clone().sub(this.pos)); const gap = d.length() - T.radius - this.meleeRange() * 0.7; if (gap > 0) { d.normalize(); this.vel.x += d.x * Math.min(650, gap * 7); this.vel.z += d.z * Math.min(650, gap * 7); } }
@@ -836,8 +845,9 @@ export class Player {
   }
   meleeStrike() {
     const G = this.game, W = MELEE[this.meleeDef], heavy = this.meleeHeavy, big = this.meleeBig;
-    const range = this.meleeRange() * (big ? 1.15 : heavy ? 1.1 : 1), arc = W.arc * (1 + this.stat('MeleeArc')) * (heavy ? 1.15 : 1);
-    const T = this.meleeTargets(range, arc).slice(0, Math.round(this.meleeCleave() + (big ? 2 : heavy ? 1 : 0)));
+    const chg = this.meleeChargeHit || 0, thrust = this.meleeThrust;
+    const range = this.meleeRange() * (thrust ? 1.5 : big ? 1.1 + 0.15 * chg : heavy ? 1.1 : 1), arc = thrust ? 40 : W.arc * (1 + this.stat('MeleeArc')) * (heavy ? 1.15 : 1);
+    const T = this.meleeTargets(range, arc).slice(0, Math.round(this.meleeCleave() + (thrust ? 3 : big ? 1 + Math.round(2 * chg) : heavy ? 1 : 0)));
     if (!T.length) {
       const hit = G.phys.raycast(this.eye(), this.forward(), range);   // steel on stone
       if (hit) { G.fx.sparks ? G.fx.sparks(hit.point, hit.normal) : G.fx.flash(hit.point, lin(1, 0.8, 0.4), 30, 0.12, false); this.play('S_HitWall', 0.6, 1.1, 0.1); this.addShake(0.2); }
@@ -845,11 +855,11 @@ export class Player {
     }
     const f = this.forward();
     this.meleeHitting = true;
-    let base = W.dmg * this.meleePower() * (big ? 2.1 : heavy ? 1.6 : 1) * (heavy ? 1 + this.stat('MeleeHeavy') : 1) * (1 + 0.08 * Math.max(0, effRound(G.round) - 1));
+    let base = W.dmg * this.meleePower() * (1 + 0.1 * (this.flow || 0)) * (thrust ? 1.5 : big ? 1.5 + 1.4 * chg : heavy ? 1.6 : 1) * (heavy ? 1 + this.stat('MeleeHeavy') : 1) * (1 + 0.06 * Math.max(0, effRound(G.round) - 1));
     let killed = 0, dealt = 0;
     for (const E of T) {
       const dir = safeN2(flat(E.pos.clone().sub(this.pos))), at = E.pos.clone().addScaledVector(dir, -E.radius * 0.6); at.y = Math.min(E.pos.y + E.half * 0.5, this.eye().y - 10);
-      let dmg = base;
+      let dmg = base * Math.max(0.55, 1 - 0.15 * T.indexOf(E));   // the swing loses force as it passes through bodies: nearest first, 15% less each
       const ex = this.stat('MeleeExecute');
       if (ex > 0 && !E.isBoss && !E.elite && E.health / E.maxHealth < ex) dmg = Math.max(dmg, E.health + E.shield + 1);
       const hp0 = E.health + (E.shield || 0);
@@ -857,6 +867,8 @@ export class Player {
       const did = Math.max(0, hp0 - Math.max(0, E.health) - (E.shield || 0)); dealt += did;
       const bleed = (W.bleed || 0) + this.stat('MeleeBleed'); if (bleed > 0 && !E.dead) E.applyBleed(dmg * bleed);
       if (!E.dead && !E.isBoss) E.applyKnock(dir.clone().multiplyScalar(W.knock * (1 + this.stat('MeleeKnock')) * (heavy ? 1.5 : 1)).add(V3(0, heavy ? 420 : 220, 0)));
+      // a hit rocks them: ordinary enemies stumble and their next attack is put off, so trading blows is a choice you make badly
+      if (!E.dead && !E.isBoss) { const st = (heavy ? 0.7 : 0.35) * (E.elite ? 0.5 : 1); E.staggerT = Math.max(E.staggerT || 0, st); E.attackCd = Math.max(E.attackCd || 0, st + 0.25); if (big && chg >= 1) { E.staggerT = Math.max(E.staggerT, 1.0); E.applySlow(0.8, 1.2); } }
       if (heavy && !E.dead && !E.isBoss && this.S.MeleeStun) { E.staggerT = Math.max(E.staggerT || 0, this.S.MeleeStun); E.applySlow(0.9, this.S.MeleeStun); }
       const shock = (W.shock || 0) + this.stat('MeleeShock');
       if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Chain', 0.5, 1.2, 0.1); }
@@ -864,12 +876,13 @@ export class Player {
       if (E.dead) { killed++; Meta.bump('meleeKills'); }
     }
     // feel: freeze frames, a kick and a thump scaled by how hard and how many
-    G.hitstop = Math.max(G.hitstop || 0, (heavy ? 0.11 : 0.06) + Math.min(0.04, T.length * 0.01));
+    G.hitstop = Math.max(G.hitstop || 0, (heavy ? 0.11 : 0.06) + Math.min(0.04, T.length * 0.01) + (big ? 0.05 * chg : 0));
+    this.flowWin = 0.24;   // the beat to press on
     this.addShake((heavy ? 0.9 : 0.4) + Math.min(0.4, T.length * 0.1)); this.fovKick += heavy ? 6 : 3;
     this.play('S_HitFlesh2', 0.9, heavy ? 0.7 : 1, 0.08); if (heavy) this.play('S_Slam', 0.6, 1.1, 0.05);
     G.audio.gunPunch(heavy ? 0.9 : 0.45);
     if (W.quake && heavy) { G.fx.ring(V3(this.pos.x, this.pos.y - 85, this.pos.z).addScaledVector(flat(f).normalize(), 120), 380, lin(0.7, 0.55, 0.4), 0.4); for (const E of G.enemies) if (!E.dead && !T.includes(E) && E.pos.distanceTo(this.pos) < 420) { this.dealDamage(E, base * 0.4, E.pos, safeN2(flat(E.pos.clone().sub(this.pos))), false, 0, true); if (!E.isBoss) E.applyKnock(safeN2(flat(E.pos.clone().sub(this.pos))).multiplyScalar(700).add(V3(0, 380, 0))); } }
-    const leech = (W.leech || 0) + this.stat('MeleeLifesteal'); if (leech > 0) this.heal(Math.min(25, dealt * leech));
+    const leech = (W.leech || 0) + this.stat('MeleeLifesteal'); if (leech > 0) this.combatHeal(Math.min(12, dealt * leech));
     if (this.stat('MeleeGuard') > 0) this.meleeGuardT = 2;
     if (killed) {
       if (this.procDepth < 2) this.runProcs('OnMeleeKill', null, this.pos, 0, 1);
@@ -896,7 +909,8 @@ export class Player {
     if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
-    if (this.S.BlockChance && !silent && Math.random() < 1 - 1 / (1 + this.S.BlockChance)) { this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(120)), 'BLOCKED', [0.7, 0.85, 1], 1.1); this.play('S_HitWall', 0.5, 0.7, 0.1); return; }
+    const raw = amount;
+    if (this.S.BlockChance && !silent && Math.random() < Math.min(0.35, 1 - 1 / (1 + this.S.BlockChance))) { this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(120)), 'BLOCKED', [0.7, 0.85, 1], 1.1); this.play('S_HitWall', 0.5, 0.7, 0.1); return; }
     if (this.S.AirGuard && !this.grounded) amount *= 1 - Math.min(0.5, this.S.AirGuard);
     if (this.dashGuardT > 0 && this.S.DashGuard) amount *= 1 - Math.min(0.6, this.S.DashGuard);
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
@@ -904,9 +918,10 @@ export class Player {
     // the same goes for blasts: several markers going off together count once, not once each
     else if (source && (source.kind === 'Marker' || source.kind === 'Ring') && !silent) { if (this.game.time - (this.lastBlastHit || -9) < 0.4) return; this.lastBlastHit = this.game.time; }
     if (this.inMenu()) this.closeMenu();
-    const armor = this.stat('Armor') + (this.wield ? this.stat('MeleeArmor') : 0);
+    const armor = Math.min(200, this.stat('Armor') + (this.wield ? this.stat('MeleeArmor') : 0));   // 200 armor is a third of the damage; more does nothing
     let dmg = amount * (armor >= 0 ? 100 / (100 + armor) : 1 + -armor / 100);
     if (this.S.PlateArmor) dmg = Math.max(dmg * 0.4, dmg - this.S.PlateArmor);
+    dmg = Math.max(dmg, raw * 0.2);   // armor, plating, guards and the rest together never take off more than 80%
     if (this.S.HitCap) dmg = Math.min(dmg, this.maxHealth * Math.max(0.2, this.S.HitCap));
     if (this.meleeGuardT > 0) dmg *= 1 - Math.min(0.6, this.stat('MeleeGuard'));
     if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; if (this.overshield <= 0 && !silent) this.runProcs('OnShieldBreak', null, this.pos, 0, 1); }
@@ -998,7 +1013,7 @@ export class Player {
     this.fov = interpTo(this.fov, tf, dt, 12);
     // view model
     const localVel = this.vel.clone().applyAxisAngle(UP, -this.yaw);
-    G.vm.wield = !!this.wield && !this.dead;
+    G.vm.wield = !!this.wield && !this.dead; G.vm.mCharge = this.wield ? this.meleeCharge || 0 : 0;
     G.vm.update(dt, {
       look: this.lookDelta, localVel, grounded: this.grounded, sprinting: this.sprintHeld && this.inFwd > 0.1 && sp > 500, sliding: this.sliding,
       aiming: this.aiming && !this.inMenu(), wallSide: this.wallRunning ? this.wallSide : 0, reloading: this.reloading,
@@ -1239,17 +1254,20 @@ export class Player {
       if (this.S.CloseDamage || this.S.FarDamage) { const d = E.pos.distanceTo(this.pos); if (d < 650) m += this.S.CloseDamage || 0; else if (d > 2000) m += this.S.FarDamage || 0; }
     }
     if (this.S.HealthyDamage && this.health >= this.maxHealth * 0.9) m += this.S.HealthyDamage;
-    if (this.S.MoneyDamage) m += this.S.MoneyDamage * Math.min(30, this.money / 1000);
-    if (this.S.StreakDamage) m += this.S.StreakDamage * Math.min(10, this.streak || 0);
+    if (this.S.MoneyDamage) m += this.S.MoneyDamage * Math.min(20, this.money / 1000);
+    if (this.S.StreakDamage) m += Math.min(0.6, this.S.StreakDamage * Math.min(10, this.streak || 0));   // a horde keeps a streak alive for free, so it has a ceiling
     if (this.S.HealthDamage) m += this.S.HealthDamage * Math.max(0, this.maxHealth - 150) / 25;
     if (this.S.StillDamage && this.aiming && Math.hypot(this.vel.x, this.vel.z) < 160) m += this.S.StillDamage;
+    // Combination guard: every bonus above adds into one pool, and past +250% each further point counts half. Ten
+    // conditional buffs that all happen to be true at once are strong, not a different game.
+    if (m > 3.5) m = 3.5 + (m - 3.5) * 0.5;
     return Math.max(0.1, m);
   }
   dealDamage(E, base, at, dir, headshot, procCoef, fromProc, critBonus = 0, burn = 0, slow = 0, moneyPerHit = 0, numColor = WHITE) {
     if (!E || E.dead) return 0;
     const G = this.game;
     const mult = this.damageMult(E);
-    let crit = !fromProc && Math.random() < 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0);
+    let crit = !fromProc && Math.random() < Math.min(0.75, 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0));
     if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }   // Second Opinion: the shot after a headshot kill
     let dmg = base * mult;
     if (crit) dmg *= 2 + this.stat('CritDamage');
@@ -1281,7 +1299,7 @@ export class Player {
     G.hud.floater(at.clone().add(V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15)), `${Math.round(dealt)}${crit ? '!' : ''}`, c, crit || head ? 1.3 : 0.95);
     if (!fromProc && !killed) this.addMoney(Math.max(1, Math.round(10 * Math.min(1, procCoef * 1.5))) + moneyPerHit, true);
     if (crit && this.S.CritHeal) this.combatHeal(this.S.CritHeal);
-    if (!killed && E.elite && !E.isBoss && this.S.EliteExecute && E.health < E.maxHealth * Math.min(0.4, this.S.EliteExecute)) { G.hud.floater(E.pos.clone().add(V3(0, 60, 0)), 'CULLED', [1, 0.2, 0.25], 1.2); E.kill(this, false); }
+    if (!killed && E.elite && !E.isBoss && this.S.EliteExecute && E.health < E.maxHealth * Math.min(0.3, this.S.EliteExecute)) { G.hud.floater(E.pos.clone().add(V3(0, 60, 0)), 'CULLED', [1, 0.2, 0.25], 1.2); E.kill(this, false); }
     const steal = this.stat('Lifesteal');
     if (steal > 0) this.combatHeal(dealt * steal);
     if (head && !killed && this.stat('HeadMark') > 0) { E.markT = 5; E.markAmt = this.stat('HeadMark'); }
@@ -1357,7 +1375,7 @@ export class Player {
     const S = this.slot;
     if (S.def >= 0 && this.stat('KillReload') > 0) S.ammo = Math.min(this.magSize(S), S.ammo + Math.round(this.stat('KillReload')));
     if (this.deadeyeT > 0 && (this.deadeyeExt || 0) < 4) { const e = Math.min(this.stat('DeadeyeExtend'), 4 - (this.deadeyeExt || 0)); this.deadeyeT += e; this.deadeyeExt = (this.deadeyeExt || 0) + e; }   // kills stretch Deadeye, 4 seconds at most
-    if (this.meleeHitting) { if (this.cls.id === 'brawler') this.combatHeal(5); if (this.stat('MeleeAbilityReset') > 0 && !this.inRush) this.abilityCd = Math.max(0, this.abilityCd - 1); }
+    if (this.meleeHitting) { if (this.cls.id === 'brawler') this.combatHeal(3); if (this.stat('MeleeAbilityReset') > 0 && !this.inRush) this.abilityCd = Math.max(0, this.abilityCd - 1); }
     if (this.procDepth < 2 && this.stat('Shrapnel') > 0 && !E.lastHitExplosive && S.def >= 0) { this.procDepth++; this.explodeAt(E.pos, 260, DATA.weapons[S.def].dmg * DATA.weapons[S.def].pellets * (1 + 0.2 * S.tier) * this.stat('Shrapnel'), 0, true, false, [0.8, 0.8, 0.85], E); this.procDepth--; }
     if (this.procDepth < 2 && E.lastHitExplosive && this.stat('BlastChain') > 0) { this.procDepth++; this.explodeAt(E.pos, 300, this.power() * 1.2 * this.stat('BlastChain') * 2, 0, true, false, [1, 0.6, 0.25], E); this.procDepth--; }
     this.streak = (this.streakT > 0 ? (this.streak || 0) : 0) + 1; this.streakT = 3;
@@ -1783,7 +1801,7 @@ export class Player {
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
-      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: this.addLuck(2); break; case 6: this.maxSlots = 3; break;
+      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.maxSlots = 3; break;
       case 7: B[STAT.ExtraJumps] += 1; B[STAT.DashCharges] += 1; break; default: break;
     }
     const old = this.maxHealth;
@@ -1845,7 +1863,7 @@ export class Player {
       this.rushT -= dt;
       this.vel.x = this.rushDir.x * 2500; this.vel.z = this.rushDir.z * 2500; if (this.vel.y < 0) this.vel.y *= 0.5;
       const W = MELEE[this.meleeDef], pw = this.stat('AbilityPower');
-      const dmg = Math.max(W.dmg * (1 + this.stat('MeleeDamage')) * honeDamage(this.meleeTier || 0) * 2.2 * (1 + 0.08 * Math.max(0, effRound(G.round) - 1)), zombieHealth(G.round)) * (1 + pw);
+      const dmg = Math.max(W.dmg * (1 + this.stat('MeleeDamage')) * honeDamage(this.meleeTier || 0) * 2.2 * (1 + 0.06 * Math.max(0, effRound(G.round) - 1)), zombieHealth(G.round)) * (1 + pw);
       this.inRush = true;
       for (const E of G.enemies) {
         if (E.dead || E.burrowed || this.rushHits.has(E)) continue;
@@ -1907,7 +1925,7 @@ export class Player {
   openChest(I) {
     if (I.opened) return;
     // each chest holds one of two rarities; luck tips it toward the better one
-    const lo = I.tier, hiChance = Math.min(0.85, 0.3 + 0.015 * this.luck + this.stat('ChestLuck')), rarity = Math.random() < hiChance ? lo + 1 : lo;
+    const lo = I.tier, hiChance = Math.min(0.85, 0.3 + this.stat('ChestLuck')), rarity = Math.random() < hiChance ? lo + 1 : lo;
     const u = rollBuff(rarity, this.upgradeStacks, this.cls.id);
     if (u < 0) { this.toast('Nothing left for you in there', '#ccc'); return; }
     const paid = this.chestPrice(I.tier);
@@ -1931,7 +1949,7 @@ export class Player {
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
-      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: this.addLuck(2); break; case 6: this.maxSlots = 3; break;
+      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.maxSlots = 3; break;
       case 7: B[STAT.ExtraJumps] += 1; B[STAT.DashCharges] += 1; break; default: break;
     }
     const old = this.maxHealth;

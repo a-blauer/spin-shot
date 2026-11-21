@@ -232,7 +232,7 @@ MAP = {
  'Glass Cannon': ('barrel', BLUE, 'skull', RED), 'Blood Pact': ('drop', RED, 'skull', BONE), "Devil's Bargain": ('skull', RED, 'flame', ORANGE), 'Loan Shark': ('fang', GOLD), "Berserker's Brand": ('flame', RED, 'skull', BONE),
  'Hollow Bones': ('tooth', STEEL, 'wing', BONE), 'Cursed Coin': ('coin', PURPLE, 'skull', BONE), 'Death Wish': ('skull', PURPLE),
 }
-TONIC = [('heart', RED), ('fist', RED), ('boot', GREEN), ('cross', GOLD), ('clock', BLUE), ('clover', GREEN), ('barrel', STEEL), ('feather', BLUE)]
+TONIC = [('heart', RED), ('fist', RED), ('boot', GREEN), ('cross', GOLD), ('clock', BLUE), ('plate', STEEL), ('barrel', STEEL), ('feather', BLUE)]
 TILE = {'Common': '#3a343c', 'Uncommon': '#24402c', 'Rare': '#22344e', 'Epic': '#3a2452', 'Legendary': '#4e3a16', 'Cursed': '#4a1a1e'}
 
 def draw(name, spec, tile):

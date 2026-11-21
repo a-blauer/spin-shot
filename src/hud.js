@@ -1,6 +1,7 @@
 // Sulfur-style HUD drawn on a 2D canvas: chunky condensed type with dark outlines, bone-white and saloon-gold
 // panels with clipped corners. Crosshair with spread/kick, hit markers, damage arcs, floating numbers,
 // banners, toasts, boss bar, power-up timers, casino menus (with live slot reels), inventory and death card.
+import { ATTACK_LABEL } from './enemies.js';
 import { TONICS } from './data.js';
 import { cash } from './data.js';
 import { diff } from './data.js';
@@ -386,13 +387,6 @@ export class Hud {
     const mw = this.text(ms, x, my, 60 * S, GOLD, 'left', F_BIG, 400, 0.12);
     let lx = x + mw + 18 * S;
     if (game.doublePoints > 0) lx += this.text('x2', lx - 8 * S, my - 30 * S, 28 * S, GOLD, 'left', F_BIG, 400, 0.12) + 6 * S;
-    const lt = `${P.luck}`, ltw = this.measure(lt, 32 * S, F_BIG), lm = `LUCK  x${luckMult(P.luck).toFixed(1)}`, lmw = this.measure(lm, 15 * S, F_TXT, 700);
-    const pw = 48 * S + ltw + 10 * S + lmw + 14 * S, lph = Math.max(44 * S, this.fs(15 * S) * 2.6);
-    this.rrect(lx, my - 40 * S, pw, lph, 10 * S); g.fillStyle = 'rgba(12,30,14,0.75)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = 'rgba(125,255,138,0.55)'; g.stroke();
-    const mid = my - 40 * S + lph / 2;
-    this.icon('I_Clover', lx + 24 * S, mid, 32 * S);
-    this.text(lt, lx + 44 * S, mid + this.fs(32 * S) * 0.36, 32 * S, '#7dff8a', 'left', F_BIG, 400, 0.12);
-    this.text(lm, lx + 54 * S + ltw, mid + this.fs(15 * S) * 0.36, 15 * S, 'rgba(125,255,138,0.9)', 'left', F_TXT, 700, 0.1);
     // health
     this.icon('I_Heart', x + 16 * S, y - 30 * S, 36 * S);
     const hs = `${Math.ceil(P.health)}`;
@@ -439,7 +433,9 @@ export class Hud {
     for (let i = 0; i < 3; i++) { g.fillStyle = INK; g.fillRect(x - (i + 1) * 46 * S - 1, y + 14 * S, 44 * S, 16 * S); g.fillStyle = P.meleeComboT > 0 && (2 - i) <= P.meleeCombo ? ((2 - i) === 2 ? '#ffb347' : BONE) : 'rgba(255,255,255,0.14)'; g.fillRect(x - (i + 1) * 46 * S + 1, y + 16 * S, 40 * S, 12 * S); }
     this.text(MW.name.toUpperCase() + (t ? ` +${t}` : ''), x, y - 104 * S, 34 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.12);
     this.text(`${Math.round(MW.dmg * P.meleePower())} DAMAGE   HITS ${Math.round(P.meleeCleave())}`, x, y - 75 * S, 18 * S, 'rgba(242,232,213,0.8)', 'right', F_TXT, 700, 0.12);
-    this.hints('[Fire] Swing   [Aim] Heavy blow   [X] Gun', x, y + 50 * S, 18 * S, 'right');
+    this.hints('[Fire] Swing   [Aim] Hold to wind up   [X] Gun', x, y + 50 * S, 18 * S, 'right');
+    if (P.flow > 0) this.text(`FLOW x${P.flow}`, x - 150 * S, y + 28 * S, 20 * S, '#7fe3ff', 'right', F_BIG, 400, 0.12);
+    if (P.meleeCharge > 0) { const cw = 220 * S, cx = this.W / 2 - cw / 2, cy = this.H * 0.6; g.fillStyle = INK; g.fillRect(cx - 2, cy - 2, cw + 4, 10 * S + 4); g.fillStyle = P.meleeCharge >= 1 ? '#ffd24d' : BONE; g.fillRect(cx, cy, cw * P.meleeCharge, 10 * S); }
     { const n = P.grenades.length, N = n ? GRENADES[P.grenades[n - 1]] : null, label = N ? `${N.name.toUpperCase()}  x${n}` : 'NO GRENADES';
       this.text(label, x, y - 270 * S, 22 * S, N ? N.hex : 'rgba(255,255,255,0.35)', 'right', F_BIG, 400, 0.1);
       this.key('V', x - this.measure(label, 22 * S, F_BIG) - 38 * S, y - 278 * S, 22 * S); }
@@ -528,7 +524,10 @@ export class Hud {
     if (!B || B.dead || B.emerging) return;
     const w = 760 * S, x = (W - w) / 2, y = 54 * S;
     this.text(B.displayName().toUpperCase(), W / 2, y - 10 * S, 30 * S, B.enraged ? '#ff5a3a' : BONE, 'center', F_BIG, 400, 0.14);
-    this.bar(x, y, w, 18 * S, B.health / B.maxHealth, B.enraged ? '#ff3b2a' : '#c8211b', 'rgba(40,8,12,0.8)', 10);
+    this.bar(x, y, w, 18 * S, B.health / B.maxHealth, B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b', 'rgba(40,8,12,0.8)', 10);
+    // what it is doing, in words: a fight you can read is a fight you can answer
+    const say = B.ward > 0 ? 'WARDED - KILL THE WISPS' : B.exposedT > 0 ? 'STAGGERED - HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
+    if (say) this.text(say, W / 2, y + 44 * S, 20 * S, B.ward > 0 ? '#9fd0ff' : B.exposedT > 0 ? '#ffd24d' : '#ffb39a', 'center', F_TXT, 700, 0.14);
   }
   drawPowerups(game, W, H, S) {
     let x = W / 2 - 60 * S;
@@ -804,8 +803,7 @@ export class Hud {
     const qx = x + pad + tw + 30 * S, qy = y + headH * 0.5, qr = Math.max(17 * S, this.fs(0) * 0.9);
     g.beginPath(); g.arc(qx, qy, qr, 0, Math.PI * 2); g.fillStyle = M.showHelp ? GOLD : 'rgba(0,0,0,0.45)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = GOLD; g.stroke();
     this.text('?', qx, qy + qr * 0.42, qr * 1.25, M.showHelp ? INK : GOLD, 'center', F_BIG, 400, 0);
-    const lw = this.chip(`LUCK ${P.luck}`, x + w - pad, y + headH * 0.5, 18 * S, '#7dff8a', 'rgba(0,0,0,0.45)', 'right');
-    this.chip(`$${Math.floor(P.money / 10).toLocaleString()}`, x + w - pad - lw - 10 * S, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
+    this.chip(`$${Math.floor(P.money / 10).toLocaleString()}`, x + w - pad, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
     let cy = y + headH + 22 * S;
     if (showReels) { this.drawReels(P, W / 2, cy + 80 * S, S); cy += 178 * S; }
     for (const it of items) { it.draw(x + pad, cy); cy += it.h; }
@@ -858,7 +856,7 @@ export class Hud {
     this.panel(x, y, w, h, GOLD, 'rgba(20,10,16,0.95)', 18 * S);
     this.text('UPGRADES', x + pad, y + 62 * S, 52 * S, GOLD, 'left', F_BIG, 400, 0.08);
     let cx = x + w - pad;
-    for (const [lab, val, col] of [['POWER', Math.round(P.power()), BONE], ['LUCK', `${P.luck}  x${luckMult(P.luck).toFixed(1)}`, '#7dff8a'], ['HEADSHOTS', P.headshots, BONE], ['KILLS', P.kills, BONE]]) {
+    for (const [lab, val, col] of [['POWER', Math.round(P.power()), BONE], ['HEADSHOTS', P.headshots, BONE], ['KILLS', P.kills, BONE]]) {
       const vw = this.text(`${val}`, cx, y + 60 * S, 30 * S, col, 'right', F_BIG, 400, 0.1);
       const lw = this.text(lab, cx, y + 26 * S, 13 * S, 'rgba(242,232,213,0.6)', 'right', F_TXT, 700, 0.06);
       cx -= Math.max(vw, lw) + 40 * S;
@@ -915,7 +913,7 @@ export class Hud {
         for (const d of last) { this.text(`-${Math.round(d.dmg)}`, x + 50 * S, y, 19 * S, '#ff8a80', 'right', F_TXT, 700); this.text(`${d.who}   ${(game.deathTime - d.t).toFixed(1)}s before`, x + 62 * S, y, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 600); y += 26 * S; }
       } }
     const survived = Math.max(0, game.round - 1);
-        const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${cash(P.money)}`]];
+        const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     g.globalAlpha = a; this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.8)', 12 * S); g.globalAlpha = 1;
     stats.forEach(([k, v], i) => {
@@ -935,7 +933,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Deadwater Gulch is cleared. The Founder is back in the ground.', W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['LUCK', P.luck], ['PURSE', `$${cash(P.money)}`]];
+    const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });

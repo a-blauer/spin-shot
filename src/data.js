@@ -10,7 +10,7 @@ for (const u of DATA.upgrades) { if (u.rarity === 'Common') u.stacks = Math.min(
 // Every upgrade belongs to a set (Iron, Blood, Gold, Wind). Owning 3 / 6 / 9 different upgrades of one set gives its bonus.
 export const SUITS = ['Iron', 'Blood', 'Gold', 'Wind'];
 export const SUIT_HEX = { Iron: '#c9c2d6', Blood: '#ff5a5a', Gold: '#ffd24d', Wind: '#7dff8a' };
-export const SUIT_BONUS = { Iron: '+12% damage', Blood: '+30 max health, +1 regen', Gold: '+15% money, +25% clover find', Wind: '+7% move speed, 15% faster dash' };
+export const SUIT_BONUS = { Iron: '+12% damage', Blood: '+30 max health, +1 regen', Gold: '+20% money', Wind: '+7% move speed, 15% faster dash' };
 const H = ['MaxHealth', 'HealthRegen', 'Armor', 'Lifesteal', 'Thorns', 'Revives'], Dm = ['MoneyGain', 'LuckFind', 'CasinoDiscount', 'Interest', 'PickupRange'];
 const Cl = ['MoveSpeed', 'JumpPower', 'ExtraJumps', 'DashCharges', 'DashCooldown', 'GrappleCooldown', 'WallRunTime', 'SlideBoost', 'AirControl', 'DashDamage', 'SlideDamage', 'AirDamage', 'SpeedDamage'];
 for (const u of DATA.upgrades) {
@@ -47,7 +47,7 @@ export const TONICS = [
   { name: 'Quicksilver', desc: '+8% move speed', base: 1500, step: 600, max: 5 },
   { name: 'Deadeye Draught', desc: '+6% crit chance', base: 1800, step: 700, max: 6 },
   { name: 'Steady Hands', desc: '+10% fire rate and reload speed', base: 2000, step: 800, max: 6 },
-  { name: 'Lucky Liquor', desc: '+2 Luck', base: 2500, step: 1500, max: 99 },
+  { name: 'Iron Tonic', desc: '+8 armor', base: 1800, step: 700, max: 6 },
   { name: 'Mule Kick', desc: 'Carry a third weapon', base: 4000, step: 0, max: 1 },
   { name: 'Feather Fizz', desc: '+1 mid-air jump and +1 dash charge', base: 3500, step: 3000, max: 2 },
 ];
@@ -59,10 +59,12 @@ const rand = Math.random;
 export const randInt = (a, b) => a + Math.floor(rand() * (b - a + 1));
 export const frandRange = (a, b) => a + rand() * (b - a);
 
-export const luckMult = (luck) => 1 + 0.03 * Math.min(40, Math.max(0, luck));   // luck helps, but it tops out
+export const luckMult = () => 1;   // luck is gone from the game; the rounds decide how good the loot is
 // The mystery box: Uncommon 55%, Rare 30%, Epic 11%, Legendary 4% with no luck; about 20% Legendary at the cap.
-export function rollBoxRarity(luck) {
-  const M = luckMult(luck), W = [0, 55, 30 * M, 11 * M * M, 4 * M * M * M];
+// The mystery box gets better as the rounds go by: Uncommon 55 / Rare 30 / Epic 11 / Legendary 4 at the start, about
+// 37 / 32 / 19 / 12 by round twenty.
+export function rollBoxRarity(round) {
+  const M = 1 + 0.025 * Math.min(24, Math.max(0, round || 0)), W = [0, 55, 30 * M, 11 * M * M, 4 * M * M * M];
   let r = rand() * (W[1] + W[2] + W[3] + W[4]);
   for (let i = 1; i < 5; i++) { r -= W[i]; if (r <= 0) return i; }
   return 1;
@@ -99,8 +101,8 @@ export function rollWeaponOfRarity(rarity, exA, exB) {
 //   hp: enemy health    slope: how fast rounds ramp (health, damage, tougher types)    count: enemies per round
 //   alive: how many at once    dmg: damage you take    spawn: seconds between spawns (higher = slower)
 export const DIFFS = [
-  { name: 'Normal', hp: 0.6, slope: 1.0, count: 0.6, alive: 0.75, dmg: 0.55, spawn: 1.45, desc: 'Fewer, weaker enemies that hit for about half and ramp up gently.' },
-  { name: 'Hard', hp: 0.8, slope: 1.35, count: 0.8, alive: 0.88, dmg: 0.75, spawn: 1.2, desc: 'A real fight. Between the two.' },
+  { name: 'Normal', hp: 0.8, slope: 1.0, count: 0.8, alive: 0.75, dmg: 0.65, spawn: 1.45, desc: 'Smaller hordes that hit for about two thirds and ramp up gently.' },
+  { name: 'Hard', hp: 0.9, slope: 1.35, count: 0.9, alive: 0.88, dmg: 0.85, spawn: 1.2, desc: 'A real fight. Between the two.' },
   { name: 'Nightmare', hp: 1, slope: 1.7, count: 1, alive: 1, dmg: 1, spawn: 1, desc: 'Full hordes, full damage, the steepest climb.' },
 ];
 let DF = DIFFS[2], dfi = 2;
@@ -108,12 +110,13 @@ export const setDifficulty = (i) => { dfi = Math.max(0, Math.min(2, i | 0)); DF 
 export const difficulty = () => dfi;
 export const diff = () => DF;
 export const effRound = (r) => 1 + (Math.max(1, r) - 1) * DF.slope;
-// hordes: far more bodies each round, each one 40% weaker than before
-export const zombieHealth = (r0) => { const r = effRound(r0); return 0.6 * DF.hp * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
+// Health of a basic enemy. Raised across the board (Normal x1.9, Hard x1.6, Nightmare x1.4 on what it was): a starter
+// pistol now takes three body shots in round one, and a horde is something you work through rather than wipe.
+export const zombieHealth = (r0) => { const r = effRound(r0); return 0.85 * DF.hp * (r < 10 ? 150 + 100 * (r - 1) : 950 * Math.pow(1.1, r - 9)); };
 const oldCount = (x) => 1.05 * (x <= 5 ? 6 + (x - 1) * 4.5 : 24 + (x - 5) * 5);
 // kill pay shrinks as the horde grows so a round is worth about what it was
 export const payScale = (r) => Math.max(0.3, Math.min(2.2, oldCount(1 + (Math.max(1, r) - 1) * 1.25) / zombieCount(r)));   // what a round is worth climbs slowly, and the same on every difficulty   // a round pays the same on every difficulty: fewer enemies, more each
-export const zombieCount = (r) => Math.round((9 + r * 2 + 0.35 * Math.pow(r, 2.35)) * DF.count);   // a slow start: 11 in round 1, 34 by round 5, 107 by 10, 242 in round 15 (Nightmare)   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
+export const zombieCount = (r) => Math.round((14 + r * 5 + 0.35 * Math.pow(r, 2.35)) * DF.count);   // longer rounds from the start: 19 in round 1, 54 by round 5, 142 by 10, 292 in round 15 (Nightmare; Normal is 80% of that)  //   // a slow start: 11 in round 1, 34 by round 5, 107 by 10, 242 in round 15 (Nightmare)   // 15 in round 1, 65 by round 5, 178 by round 10, 345 in round 15
 export const maxAlive = (r) => Math.max(8, Math.round(Math.min(64, 11 + r * 3.5) * DF.alive));
 export const rarityPrice = (r) => [1000, 2000, 3500, 6000, 10000, 2500][r] || 1000;
 

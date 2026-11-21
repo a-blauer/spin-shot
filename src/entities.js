@@ -197,9 +197,9 @@ export class Hazards {
     this.game.net.sentHazard('marker', ground, [damage, radius, delay], color);
     return H;
   }
-  fire(ground, dps, radius, life) {
-    const H = this._add({ kind: 'Fire', pos: ground.clone(), damage: dps, radius, life, color: lin(1, 0.35, 0.05), puff: 0 });
-    H.disc = part(H.group, 1, V3(0, 2, 0), V3(radius * 2, 4, radius * 2), lin(1, 0.35, 0.05), 1.2);
+  fire(ground, dps, radius, life, color = lin(1, 0.35, 0.05)) {
+    const H = this._add({ kind: 'Fire', pos: ground.clone(), damage: dps, radius, life, color, puff: 0 });
+    H.disc = part(H.group, 1, V3(0, 2, 0), V3(radius * 2, 4, radius * 2), color, 1.2);
     this.game.net.sentHazard('fire', ground, [dps, radius, life]);
     return H;
   }
@@ -227,7 +227,8 @@ export class Hazards {
           G.fx.explosion(H.pos.clone().add(V3(0, 40, 0)), H.radius, H.color);
           G.audio.playAt('S_Explosion', H.pos, 0.8, 1.1, 0.1);
           G.shakeAt(H.pos, H.radius);
-          if (Math.hypot(P.pos.x - H.pos.x, P.pos.z - H.pos.z) < H.radius + 30 && P.pos.y < H.pos.y + 400) P.receiveDamage(H.damage, H, false);
+          // markers laid as one attack (a sweep, a wall of nails) share a group: standing where two overlap is one hit, not two
+          if (Math.hypot(P.pos.x - H.pos.x, P.pos.z - H.pos.z) < H.radius + 30 && P.pos.y < H.pos.y + 400 && !(H.gid && P.hzGroup === H.gid)) { if (H.gid) P.hzGroup = H.gid; P.receiveDamage(H.damage, H, false); }
           H.age = H.life + 1;
         }
       } else {
@@ -237,7 +238,7 @@ export class Hazards {
         if (H.puff <= 0) {
           H.puff = 0.12;
           const a = Math.random() * Math.PI * 2, r = Math.random() * H.radius * 0.8;
-          G.fx.add({ pos: H.pos.clone().add(V3(Math.cos(a) * r, 10, Math.sin(a) * r)), vel: V3(0, 120, 0), life: 0.5, size0: 40, size1: 10, c0: [1, 0.85, 0.4, 1], c1: [1, 0.3, 0.05, 1], fadeOut: 0.3, tex: 'FX_Flame', glow: 1 });
+          G.fx.add({ pos: H.pos.clone().add(V3(Math.cos(a) * r, 10, Math.sin(a) * r)), vel: V3(0, 120, 0), life: 0.5, size0: 40, size1: 10, c0: [Math.min(1, H.color[0] + 0.3), Math.min(1, H.color[1] + 0.45), Math.min(1, H.color[2] + 0.3), 1], c1: [H.color[0], H.color[1], H.color[2], 1], fadeOut: 0.3, tex: 'FX_Flame', glow: 1 });
         }
         if (Math.hypot(P.pos.x - H.pos.x, P.pos.z - H.pos.z) < H.radius && Math.abs(P.pos.y - 90 - H.pos.y) < 60) P.receiveDamage(H.damage * dt, H, false, 0, 0, true);
       }

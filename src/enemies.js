@@ -10,7 +10,11 @@ const UP = new THREE.Vector3(0, 1, 0);
 const flat = (v) => new THREE.Vector3(v.x, 0, v.z);
 const safeN2 = (v) => { const f = flat(v); const l = f.length(); return l > 1e-4 ? f.divideScalar(l) : f.set(0, 0, 0); };
 const EyeYellow = [1, 0.93, 0.48];
-const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage'];
+const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'];
+// what the boss bar calls each move while it is winding up, so a fight reads as a set of things to answer
+export const ATTACK_LABEL = { Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM - jump the ring', Volley: 'VOLLEY', Summon: 'CALLING THE HANDS', Leap: 'LEAP - move', Teleport: 'VANISHED', Ring: 'SHOCKWAVES - jump them', Barrage: 'BARRAGE - keep moving',
+  Sweep: 'SWEEP - get behind it', Hook: 'CHAIN HOOK - out of the line', Pools: 'BILE - off the green', NailWall: 'NAIL WALL - find the gap', Ambush: 'AMBUSH - it is behind you', Dive: 'DIVE - out of the line' };
+let HZ_GROUP = 1;
 
 let SERIAL = 0;
 export class Enemy {
@@ -202,6 +206,7 @@ export class Enemy {
       this.vel.y = Math.max(this.vel.y, -4000);
       const wasG = this.grounded;
       if (this.collides === false) {
+        if (this.burrowed) this.vel.y = 0;   // underground, not in free fall
         this.pos.addScaledVector(this.vel, dt);
         this.grounded = false;
       } else {
@@ -228,7 +233,13 @@ export class Enemy {
           if (top) { this.pos.y = top.point.y + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
         }
       }
-      if (this.pos.y < -1500) { const sp = G.pickSpawn(false); if (sp) this.pos.copy(sp); else this.pos.set(G.player.pos.x, 400, G.player.pos.z); this.vel.set(0, 0, 0); this.emerge = 1.4; }
+      // Out of the world. Anything under the ground that is not a Burrower mid-dig gets two seconds to sort itself out and
+      // is then put back on open ground near the player with its collision on. Nothing is ever left falling.
+      this.belowT = !this.burrowed && this.pos.y < -260 ? (this.belowT || 0) + dt : 0;
+      if (this.belowT > 2 || this.pos.y < -1500) {
+        this.collides = true; this.burrowed = false; this.belowT = 0;
+        if (!G.relocate(this)) { const sp = G.pickSpawn(false); if (sp) this.pos.set(sp.x, sp.y + this.half + 60, sp.z); else this.pos.set(G.player.pos.x, 400, G.player.pos.z); this.vel.set(0, 0, 0); this.emerge = 1.4; }
+      }
       if (this.gy_t === undefined || (this.gy_t -= dt) <= 0) { this.gy_t = 0.25; const gy = G.fx.groundY(this.pos, 4000); this.groundY = gy > -1e8 ? gy : this.pos.y - this.feetOffset; }
       if (this.grounded) this.groundY = this.pos.y - this.feetOffset;
     }
@@ -584,8 +595,10 @@ export class Enemy {
     if (this.dead || amount <= 0 || this.burrowed) return 0;
     if (this.remote) return this.game.net.sendHit(this, amount, fromDir, headshot);
     if (this.finalInv > 0) return 0;
+    if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } return 0; }
     this.netKiller = this._netHit || null;
     let dmg = amount;
+    if (this.exposedT > 0) dmg *= 1.5;   // staggered: a missed charge or a hard landing leaves a boss open
     if (this.slowT > 0) dmg *= 1.15;
     if (this.ai === 'Shield' && fromDir.lengthSq() > 0) {
       const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
@@ -683,6 +696,39 @@ export class Enemy {
     if (!P || P.dead) return;
     const Me = this.pos, Pl = P.pos, To = Pl.clone().sub(Me), dist = To.length();
     const rage = this.enraged ? 1.35 : 1;
+    if (this.wardSay > 0) this.wardSay -= dt;
+    // bile that was spat lands and stays
+    if (this.pools && this.pools.length) { for (const Q of this.pools) { Q.t -= dt; if (Q.t <= 0) { const H = G.hazards.fire(Q.at, this.attackDamage * 0.4, 215, 9, lin(0.35, 0.95, 0.2)); if (H) H.label = 'Bile pool'; } } this.pools = this.pools.filter((Q) => Q.t > 0); }
+    // ---- signature mechanics, by boss
+    const hpf = this.health / this.maxHealth;
+    if (this.bossIndex === 2 || this.bossIndex === 4) {   // Mother Carrion (and the Gravedigger once): a ward that only her wisps hold up
+      const stage = this.bossIndex === 4 ? (hpf < 0.5 ? 1 : 0) : hpf < 0.33 ? 2 : hpf < 0.66 ? 1 : 0;
+      if (stage > (this.wardStage || 0)) {
+        this.wardStage = stage; this.ward = 14; this.wardKids = []; this.bossAttack = -1; this.windup = 0; this.bossTimer = 2;
+        const wisp = DATA.enemies.findIndex((d) => d.ai === 'Flyer');
+        for (let i = 0; i < 4 + stage; i++) { const a = i / (4 + stage) * Math.PI * 2, at = Me.clone().add(new THREE.Vector3(Math.cos(a) * 420, 160, Math.sin(a) * 420)); const K = G.spawnEnemy(wisp >= 0 ? wisp : this.boss.minion, at, false, -1, 1.25, 1.6, 0, false); if (K) { K.wardOf = this; this.wardKids.push(K); } }
+        this.puppet.setTint([0.6, 0.8, 1.25]); G.audio.playAt('S_Screech', Me, 1.1, 0.8);
+        G.banner('WARDED - KILL THE WISPS', lin(0.5, 0.8, 1), 3);
+      }
+      if (this.ward > 0) {
+        this.ward -= dt; this.wardKids = this.wardKids.filter((K) => !K.dead);
+        if (!this.wardKids.length || this.ward <= 0) { this.ward = 0; this.exposedT = 3.5; this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); G.banner('THE WARD BREAKS', lin(1, 0.85, 0.4), 2); G.audio.playAt('S_Door', Me, 1, 1.4); }
+      }
+    }
+    if (this.bossIndex === 1) {   // the Abomination comes apart as it is hurt
+      const stage = hpf < 0.25 ? 3 : hpf < 0.5 ? 2 : hpf < 0.75 ? 1 : 0;
+      if (stage > (this.shedStage || 0)) {
+        this.shedStage = stage;
+        const crawler = DATA.enemies.findIndex((d) => d.ai === 'Crawler');
+        for (let i = 0; i < 3 + stage; i++) { const out = G.findFreeLocationNear(Me, 150, 500); if (out) G.spawnEnemy(crawler >= 0 ? crawler : this.boss.minion, out.add(new THREE.Vector3(0, 70, 0)), false, -1, 1, 0.7, 0, false); }
+        G.fx.dust(this.feet(), lin(0.5, 0.15, 0.15), 240); G.audio.playAt('S_Gib', Me, 1.2, 0.7); G.banner('IT IS COMING APART', lin(0.9, 0.3, 0.3), 2);
+      }
+    }
+    if (this.exposedT > 0) {   // staggered: stands there and takes half again as much
+      this.exposedT -= dt; this.stop(); this.windup = 0;
+      if (this.exposedT <= 0 && !(this.ward > 0)) this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]);
+      if (this.bossAttack < 0) return;
+    }
     if (this.bossAttack < 0) {
       this.bossTimer -= dt * rage;
       this.attackCd -= dt;
@@ -696,8 +742,12 @@ export class Enemy {
       if (To.y > 250 && this.grounded && this.climb <= 0 && Math.hypot(To.x, To.z) < 900) { this.climb = 3; this.startBossAttack(4); return; }
       this.climb -= dt;
       if (this.bossTimer <= 0) {
-        this.startBossAttack(this.attackMask[randInt(0, this.attackMask.length - 1)]);
-        this.bossTimer = frandRange(2.8, 4.2);
+        // never the same move twice running, and nothing that needs you close when you are far
+        let pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
+        for (let k = 0; k < 6 && (pick === this.lastAttack || ((ATTACKS[pick] === 'Sweep' || ATTACKS[pick] === 'Slam') && dist > 900) || (ATTACKS[pick] === 'Hook' && (dist < 450 || dist > 1900))); k++) pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
+        this.lastAttack = pick;
+        this.startBossAttack(pick);
+        this.bossTimer = frandRange(2.0, 3.2);
       }
       return;
     }
@@ -717,7 +767,11 @@ export class Enemy {
             P.receiveDamage(this.attackDamage * 1.4, this, true);
             P.applyKnockback(this.chargeDir.clone().multiplyScalar(1300).add(new THREE.Vector3(0, 500, 0)));
           }
-          if (this.bossT > 1.3) { done(); this.leapHit = false; }
+          if (this.bossT > 1.3) {
+            if (!this.leapHit) { this.exposedT = 2.4; this.puppet.setTint([1.25, 1.15, 0.6]); G.hud.floater(Me.clone().add(new THREE.Vector3(0, this.half * 0.7, 0)), 'WINDED', [1, 0.9, 0.3], 1.6); }
+            else if (this.enraged && !this.chargedTwice) { this.chargedTwice = true; this.bossStep = 0; this.bossT = 0.35; this.leapHit = false; break; }   // enraged: straight into a second one
+            done(); this.leapHit = false; this.chargedTwice = false;
+          }
         }
         break;
       case 'Slam':
@@ -775,6 +829,7 @@ export class Enemy {
           G.hazards.ring(feet, this.attackDamage * 0.5, 900, 1200, lin(1, 0.5, 0.2));
           G.audio.playAt('S_Stomp', Me, 1.2, 0.7);
           G.shakeAt(Me, 700);
+          this.exposedT = 1.1;
           done();
         } else if (this.bossT > 3) done();
         break;
@@ -807,6 +862,87 @@ export class Enemy {
         }
         if (this.bossT > 1) done();
         break;
+      case 'Sweep': {   // a wide swing: the ground in front lights up in an arc. Back off or get behind it.
+        this.stop();
+        if (this.bossStep === 0) {
+          this.bossStep = 1; this.windup = 1; this.yaw = Math.atan2(To.x, To.z);
+          const R = 300 + 95 * this.bodyScale, n = this.enraged ? 7 : 5, gid = HZ_GROUP++;
+          for (let ring = 0; ring < 2; ring++) for (let i = 0; i < n; i++) {
+            const a = this.yaw + (i / (n - 1) - 0.5) * (this.enraged ? 2.7 : 2.1), r = R * (ring ? 1 : 0.55);
+            const H = G.hazards.marker(feet.clone().add(new THREE.Vector3(Math.sin(a) * r, 0, Math.cos(a) * r)), this.attackDamage * 1.1, ring ? 195 : 150, 0.85, lin(1, 0.55, 0.15)); if (H) { H.gid = gid; H.label = 'Sweep'; }
+          }
+          G.audio.playAt('S_Snarl', Me, 1, 0.6);
+        }
+        if (this.bossStep === 1 && this.bossT > 0.85) { this.bossStep = 2; this.lungeT = 0.3; this.windup = 0; G.audio.playAt('S_Slam', Me, 0.9, 1.1); }
+        if (this.bossT > 1.3) done();
+        break;
+      }
+      case 'Hook': {   // the chain: a line on the ground, and if you are standing in it when it lands you are dragged in
+        this.stop();
+        if (this.bossStep === 0) {
+          this.bossStep = 1; this.windup = 1; this.chargeDir = safeN2(To); this.yaw = Math.atan2(To.x, To.z);
+          const gid = HZ_GROUP++;
+          for (let i = 1; i <= 10; i++) { const H = G.hazards.marker(feet.clone().addScaledVector(this.chargeDir, 60 + i * 175), this.attackDamage * 0.5, 95, 0.7, lin(0.75, 0.8, 0.9)); if (H) { H.gid = gid; H.label = 'Chain hook'; } }
+          G.audio.playAt('S_Chain', Me, 1, 0.7);
+        } else if (this.bossStep === 1 && this.bossT > 0.7) {
+          this.bossStep = 2; this.windup = 0; this.lungeT = 0.25;
+          const rel = Pl.clone().sub(Me), along = rel.x * this.chargeDir.x + rel.z * this.chargeDir.z, perp = Math.hypot(rel.x - this.chargeDir.x * along, rel.z - this.chargeDir.z * along);
+          this.hooked = along > 60 && along < 1880 && perp < 135 && Math.abs(rel.y) < 420;
+          if (this.hooked) { P.applyKnockback(this.chargeDir.clone().multiplyScalar(-Math.min(2600, 700 + along * 1.25)).add(new THREE.Vector3(0, 380, 0))); G.hud.floater(Pl.clone().add(new THREE.Vector3(0, 60, 0)), 'HOOKED', [0.8, 0.85, 1], 1.5); G.audio.playAt('S_Chain', Pl, 1, 1.2); }
+        } else if (this.bossStep === 2 && this.bossT > 1.15) {
+          if (this.hooked) { this.hooked = false; this.startBossAttack(ATTACKS.indexOf('Sweep')); } else { this.exposedT = 1.2; done(); }
+        }
+        break;
+      }
+      case 'Pools': {   // bile: blobs land where you are and where you are going, and the ground stays poisoned
+        this.windup = 1; this.stop();
+        const n = this.enraged ? 7 : 5;
+        if (this.bossStep < n && this.bossT > 0.45 + this.bossStep * 0.2) {
+          let spot = this.bossStep === 0 ? Pl.clone() : this.bossStep === 1 ? Pl.clone().addScaledVector(P.vel || new THREE.Vector3(), 0.7) : Pl.clone().add(new THREE.Vector3(frandRange(-650, 650), 0, frandRange(-650, 650)));
+          const h = G.phys.raycastDown(spot.clone().add(new THREE.Vector3(0, 600, 0)), 3000); if (h) spot = h.point.clone(); else spot.y = feet.y;
+          const H = G.hazards.marker(spot, this.attackDamage * 0.6, 200, 0.95, lin(0.35, 0.95, 0.2)); if (H) H.label = 'Bile';
+          (this.pools = this.pools || []).push({ at: spot, t: 0.95 });
+          this.bossStep++; if (this.bossStep === 1) G.audio.playAt('S_Spit', Me, 1.2, 0.6);
+        }
+        if (this.bossStep >= n && this.bossT > 0.45 + n * 0.2 + 0.4) done();
+        break;
+      }
+      case 'NailWall': {   // a row of nails across you with one gap in it, then another along you
+        this.windup = 1; this.stop();
+        const waves = this.enraged ? 3 : 2;
+        if (this.bossStep < waves && this.bossT > 0.4 + this.bossStep * 1.3) {
+          const d = safeN2(To), axis = this.bossStep % 2 === 0 ? new THREE.Vector3(d.z, 0, -d.x) : d, gap = randInt(-3, 3), gid = HZ_GROUP++;
+          const base = Pl.clone().addScaledVector(P.vel || new THREE.Vector3(), 0.3);
+          for (let i = -7; i <= 7; i++) {
+            if (i === gap) continue;
+            let spot = base.clone().addScaledVector(axis, i * 215);
+            const h = G.phys.raycastDown(spot.clone().add(new THREE.Vector3(0, 500, 0)), 2600); if (h) spot = h.point.clone(); else spot.y = feet.y;
+            const H = G.hazards.marker(spot, this.attackDamage * 0.85, 118, 1.1, lin(0.9, 0.88, 0.8)); if (H) { H.gid = gid; H.label = 'Nail wall'; }
+          }
+          this.bossStep++; G.audio.playAt('S_Rack', Me, 1.2, 0.6);
+        }
+        if (this.bossStep >= waves && this.bossT > 0.4 + waves * 1.3 + 0.6) done();
+        break;
+      }
+      case 'Ambush':   // gone, then right behind you and already swinging
+        if (this.bossStep === 0) { this.bossStep = 1; this.blink(280, 430); G.audio.playAt('S_Wings', this.pos, 1, 0.6); }
+        this.stop();
+        if (this.bossT > 0.4) this.startBossAttack(ATTACKS.indexOf('Sweep'));
+        break;
+      case 'Dive':   // she marks a line through you and comes down it
+        if (this.bossStep === 0) {
+          this.windup = 1; this.stop();
+          if (this.bossT < dt * 1.5 + 0.001) {
+            this.chargeDir = safeN2(To); const gid = HZ_GROUP++;
+            for (let i = 0; i < 8; i++) { let spot = feet.clone().addScaledVector(this.chargeDir, 180 + i * 230); const h = G.phys.raycastDown(spot.clone().add(new THREE.Vector3(0, 500, 0)), 2600); if (h) spot = h.point.clone(); const H = G.hazards.marker(spot, this.attackDamage * 1.1, 150, 0.9 + i * 0.05, lin(0.9, 0.2, 0.6)); if (H) { H.gid = gid; H.label = 'Dive'; } }
+            G.audio.playAt('S_Screech', Me, 1, 1.1);
+          }
+          if (this.bossT > 0.9) { this.bossStep = 1; this.bossT = 0; this.windup = 0; }
+        } else {
+          this.moveToward(this.chargeDir, 1); this.bossMoveOverride = 2300;
+          if (this.bossT > 0.8) { this.exposedT = 1.0; done(); }
+        }
+        break;
       default: done();
     }
   }
@@ -821,7 +957,7 @@ export class Enemy {
     // act change: roar, shove everyone back, call the floor staff
     if (act > this.fAct) {
       this.fAct = act; this.finalInv = 2.6; this.fAtk = 'roar'; this.fT = 0; this.fStep = 0; F.beam = null;
-      G.banner(act === 2 ? 'DOUBLE DOWN' : 'ALL IN', lin(1, 0.25, 0.1), 3.5); G.audio.playAt('S_BossRoar', this.pos, 1, act === 3 ? 0.6 : 0.8);
+      G.banner(act === 2 ? 'THE SEAL CRACKS' : 'DEADWATER BURNS', lin(1, 0.25, 0.1), 3.5); G.audio.playAt('S_BossRoar', this.pos, 1, act === 3 ? 0.6 : 0.8);
       G.hazards.ring(this.feet(), dmg * 0.5, 1300, 2200, lin(1, 0.3, 0.15)); G.player.addShake(2);
       this.enraged = act === 3; if (act === 3) { this.baseSpeed *= 1.45; F.safeR = R0; }
       this.fSummon = 0.5;
@@ -911,6 +1047,7 @@ export class Enemy {
     for (const T of [G.player, ...G.net.ghosts.values()]) if (!T.dead && T.pos.distanceTo(this.pos) < 380) { T.receiveDamage(dmg, this, true); T.applyKnockback(safeN2(T.pos.clone().sub(this.pos)).multiplyScalar(1100).add(new THREE.Vector3(0, 500, 0))); }
   }
   startBossAttack(a) { this.bossAttack = a; this.bossT = 0; this.bossStep = 0; this.leapHit = false; }
+  attackName() { return ATTACKS[this.bossAttack]; }
 
   draw(batches) {
     this.puppet.draw(batches.creature, batches.fx, batches.add, !this.dead);

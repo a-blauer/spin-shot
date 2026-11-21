@@ -375,8 +375,19 @@ export class Game {
   tickRound(dt) {
     this.spawnTimer -= dt;
     const alive = this.aliveCount();
-    if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.35);   // never leave the player with nothing to shoot
-    if (this.spawned < this.toSpawn && alive < maxAlive(this.round) && this.spawnTimer <= 0) { this.spawnTimer = Math.max(0.12, 1.8 - this.round * 0.11) * diff().spawn; this.spawnOne(); if (this.round >= 4) for (let k = 0; k < Math.min(4, Math.floor(this.round / 3)) && this.spawned < this.toSpawn && this.aliveCount() < maxAlive(this.round); k++) this.spawnOne(); }   // they come in packs   // 30% slower trickle
+    // Pacing. A round is a steady press, not one burst and a clean-up: a fifth of the horde comes straight away and the
+    // rest is let out evenly over the round's length (40s in round one, about two and a half minutes late on). If you kill
+    // faster than that, the crowd around you is topped back up to a floor, so there is always a fight and never a wait.
+    this.roundT = (this.roundT || 0) + dt;
+    const cap = maxAlive(this.round), span = Math.min(150, 34 + this.round * 7), allowed = Math.ceil(this.toSpawn * Math.min(1, 0.2 + 0.8 * this.roundT / span)), floor = Math.max(3, Math.round(cap * 0.4));
+    if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.3);   // never leave the player with nothing to shoot
+    if (this.spawned < this.toSpawn && alive < cap && this.spawnTimer <= 0 && (this.spawned < allowed || alive < floor)) {
+      const thin = alive < floor;   // the crowd has been cut down: refill it quickly
+      this.spawnTimer = Math.max(0.15, 1.2 - this.round * 0.07) * diff().spawn * (thin ? 0.5 : 1); this.spawnOne();
+      for (let k = 0; k < Math.min(3, 1 + Math.floor(this.round / 4)) && this.spawned < this.toSpawn && (thin ? this.aliveCount() < floor : this.spawned < allowed + 2) && this.aliveCount() < cap; k++) this.spawnOne();   // they come in packs
+    }
+    // a new chest turns up part-way through some rounds
+    if (!this.midChest && this.round >= 2 && this.killed >= this.toSpawn * 0.5) { this.midChest = true; if (this.round % 2 === 0) this.dropChest(); }
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {
@@ -390,13 +401,29 @@ export class Game {
     }
     if (this.spawned >= this.toSpawn && alive === 0 && (!this.bossRound || this.bossSpawned)) this.endRound();
   }
+  // Chests are not all there from the start: a few are, and more turn up as the rounds go by, somewhere in a district
+  // you have opened. Better ones come later. Never more than six waiting at once.
+  dropChest() {
+    if (this.net.role === 'client' || !this.spawnChest) return;
+    const waiting = this.interactables.filter((I) => { if (I.type !== 'Chest' || I.opened || Math.abs(I.pos.y) > 300) return false; const Z = this.zones[this.zoneAt(I.pos)]; return Z && Z.unlocked; }).length;   // unopened chests you can already reach
+    if (waiting >= 5) return;
+    const r = this.round, W = r < 4 ? [70, 30, 0, 0] : r < 8 ? [45, 40, 15, 0] : r < 14 ? [28, 40, 26, 6] : [18, 34, 32, 16];
+    let roll = Math.random() * 100, tier = 0; for (let i = 0; i < 4; i++) { roll -= W[i]; if (roll < 0) { tier = i; break; } }
+    const open = this.zones.map((Z, i) => i).filter((i) => this.zones[i].unlocked && this.zones[i].spawns && i !== this.casinoZone);
+    for (let k = 0; k < 6; k++) {
+      const zi = open[randInt(0, open.length - 1)], C = this.spawnChest(zi, tier);
+      if (C) { this.player.toast(`A ${['wooden', 'iron-bound', 'gilt', 'reliquary'][tier]} chest has turned up in ${this.zones[zi].name}`, ['#c9a46a', '#aab4c4', '#ffcd5a', '#c58cff'][tier]); this.audio.play('S_Door', 0.6, 1.5); this.fx.flash(C.pos.clone().add(V3(0, 80, 0)), lin(1, 0.85, 0.4), 220, 1.2, true); return C; }
+    }
+    return null;
+  }
   startRound() {
     this.round++;
     this.toSpawn = zombieCount(this.round);
     this.bossRound = this.round % 3 === 0;   // 15 rounds: a boss every third round, the Gravedigger at 15
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
-    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.grenadesThisRound = 0; this.ammoThisRound = 0; this.spawnTimer = 1.5;
+    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.grenadesThisRound = 0; this.ammoThisRound = 0; this.spawnTimer = 1.5; this.roundT = 0; this.midChest = false;
+    if (this.round >= 2) this.dropChest();
     this.phase = 'Round';
     if (this.barricadeT === undefined) this.casinoInit();
     Meta.best('bestRound', this.round);
@@ -405,7 +432,7 @@ export class Game {
     this.player.onRoundStarted(this.round);
   }
   endRound() {
-    this.phase = 'Intermission'; this.phaseTimer = 15;
+    this.phase = 'Intermission'; this.phaseTimer = 8;   // long enough to reload and look round, not long enough to get bored
     this.player.onRoundEnded(this.round);
 
     this.player.onCasinoOpened();
@@ -523,19 +550,15 @@ export class Game {
     if (this.net.role === 'host' && E.netKiller && !E.isBoss) return;   // a teammate's kill: their client pays them
     const P = this.player, loc = E.pos.clone();
     P.onEnemyKilled(E, headshot);
-    const luckFind = 1 + P.stat('LuckFind');
-    let clover = 0.025 * luckFind;
-    if (E.elite) clover = 0.25 * luckFind;
-    if (E.has('Gilded') || E.ai === 'Gilded') { clover = 1; this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40); }
+    if (E.has('Gilded') || E.ai === 'Gilded') this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40);
     if (E.isBoss) {
-      for (let i = 0; i < 2; i++) this.pickups.spawn('Clover', loc.clone().add(V3(frandRange(-150, 150), 0, frandRange(-150, 150))));
       this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bump('bosses');
       if (E.boss.name === 'The Gravedigger' && !this.won) { this.won = true; this.openVault(loc); }
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
-    } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
+    }
     // Supplies off the dead are budgeted per round, not per kill, so a horde of four hundred does not bury you in
     // them: `per` is the chance that spreads the round's allowance over the round's kills, and each kind has a cap.
     const nKills = Math.max(10, this.toSpawn || 10), sup = (allow, most) => Math.min(most, allow / nKills) * (E.elite ? 5 : E.variant ? 2.5 : 1);
@@ -650,22 +673,23 @@ export class Game {
     const f = this.findFreeLocationNear(ahead, 1200, 1900) || this.findFreeLocationNear(P.pos, 1200, 2400) || this.findFreeLocationNear(P.pos, 700, 2800);
     if (!f) return false;
     E.pos.set(f.x, f.y + E.half + 2, f.z); E.vel.set(0, 0, 0); E.emerge = 1.5; E.farT = 0; E.lostT = 0;
+    E.burrowed = false; E.collides = true; E.belowT = 0;   // a Burrower moved while underground used to keep its collision off and fall through the world for good
     return true;
   }
   // the last few enemies of a round hurry, show on the HUD, and are pulled in if they are lost or far away
   stragglers() { return this.phase === 'Round' && this.spawned >= this.toSpawn ? this.enemies.filter((E) => !E.dead && !E.isBoss) : []; }
   tickStragglers(dt) {
     if (this.net.role === 'client') return;
-    const P = this.player, last = this.spawned >= this.toSpawn && this.aliveCount() <= 4;
+    const P = this.player, last = this.spawned >= this.toSpawn && this.aliveCount() <= 6;
     for (const E of this.enemies) {
       if (E.dead || E.isBoss || E.ai === 'Flyer' || E.emerge > 0) continue;
       E.hurry = last;
       // nowhere to walk from here (sealed room, off the nav grid): never leave it waiting
       const [cx, cy] = this.cellOf(E.pos.x, E.pos.z), lost = !E.burrowed && this.navFree(cx, cy) && this.navDist[cy * this.navW + cx] === INF;
       E.lostT = lost ? (E.lostT || 0) + dt : 0;
-      const T = this.net.targetOf(E), dT = Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z), far = dT > (last ? 2200 : 4200);
+      const T = this.net.targetOf(E), dT = Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z), far = dT > (last ? 1500 : 4200);
       E.farT = far ? (E.farT || 0) + dt : 0;
-      if ((E.lostT > 3 || E.farT > (last ? 3 : 4) || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
+      if ((E.lostT > 3 || E.farT > (last ? 2 : 4) || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
     }
   }
   unstick(dt) {

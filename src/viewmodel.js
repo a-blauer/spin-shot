@@ -176,30 +176,148 @@ export class ViewModel {
   }
   // ---- melee: the off hand whips a weapon across the view. Built once per weapon, in camera space (x right, y up, -z forward).
   meleeBuild(W) {
-    if (this.mg) this.scene.remove(this.mg);
+    if (this.mg) { this.scene.remove(this.mg); this.mg.traverse((o) => { if (o.geometry && o.geometry !== BOXG && o.isMesh && o !== this.mslash) o.geometry.dispose(); }); }
     const g = new THREE.Group(), tool = new THREE.Group(); g.add(tool);
     const sk = Meta.skin(), M = (c, glow = 0) => vmMat(new THREE.Color(c), glow);
     const box = (w, h, d, c, x, y, z, glow = 0) => { const m = new THREE.Mesh(BOXG, M(c, glow)); m.scale.set(w, h, d); m.position.set(x, y, z); tool.add(m); return m; };
     const cyl = (r, h, c, x, y, z, glow = 0, r2 = r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r, h, 10), M(c, glow)); m.position.set(x, y, z); tool.add(m); return m; };
-    const steel = 0xc8ccd4, dark = 0x46464e, wood = 0x6a4a32, edge = 0xf2f4f8;
-    // handle runs up from the fist at the origin; the business end is at +y
+    const steel = 0xb9bec8, dark = 0x3c3d46, wood = 0x6a4a32, woodD = 0x4a3222, edge = 0xf4f6fa, brass = 0xd9a441, leather = 0x2c2228, iron = 0x26262c;
+    // ---- shaping kit. Blades are cut from an outline, not built from boxes: a thick body up to the grind line and a thin
+    // bright strip from there to the edge, so every blade has a visible bevel. Metal uses the gun shader (it glints).
+    const Mm = (c) => gunMaterial(new THREE.Color(c), 0, 1), Mw = (c) => vmMat(new THREE.Color(c), 0);
+    const put = (m, x, y, z) => { m.position.set(x, y, z); tool.add(m); return m; };
+    const mbox = (w, h, d, c, x, y, z, rz = 0) => { const m = new THREE.Mesh(BOXG, Mm(c)); m.scale.set(w, h, d); m.rotation.z = rz; return put(m, x, y, z); };
+    const ball = (r, c, x, y, z, glow = 0, metal = false) => put(new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), metal ? Mm(c) : M(c, glow)), x, y, z);
+    const mcyl = (r, h, c, x, y, z, r2 = r, seg = 12) => put(new THREE.Mesh(new THREE.CylinderGeometry(r2, r, h, seg), Mm(c)), x, y, z);
+    const ringY = (r, t, c, y, metal = false, x = 0, z = 0) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 6, 14), metal ? Mm(c) : Mw(c)); m.rotation.x = Math.PI / 2; return put(m, x, y, z); };
+    const outline = (pts, t, c, metal = true, hole = null) => {
+      const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath();
+      if (hole) { const h = new THREE.Path(); h.absarc(hole[0], hole[1], hole[2], 0, Math.PI * 2, true); s.holes.push(h); }
+      const g = new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: true, bevelThickness: Math.min(0.05, t * 0.3), bevelSize: 0.05, bevelSegments: 1, curveSegments: 10 }); g.translate(0, 0, -t / 2);
+      const m = new THREE.Mesh(g, metal ? Mm(c) : Mw(c)); tool.add(m); return m;
+    };
+    // a blade from samples [y, spineX, edgeX]: `grind` is how wide the bright bevel is
+    const blade = (S, tBody, grind, cBody = steel, cEdge = edge, hole = null) => {
+      const inner = S.map(([y, a, b]) => [Math.max(a + 0.02, b - grind * Math.min(1, (b - a) / (grind * 1.6))), y]);
+      outline([...S.map(([y, a]) => [a, y]), ...inner.slice().reverse()], tBody, cBody, true, hole);
+      outline([...inner, ...S.slice().reverse().map(([y, , b]) => [b, y])], tBody * 0.35, cEdge);
+    };
+    // a turned handle: rings of grip wrap, a butt cap, and the option of grain
+    const grip = (r, h, c, y0 = -1.1, wraps = 0, cWrap = leather) => { cyl(r, h, c, 0, y0 + h / 2, 0, 0, r * 0.92); for (let k = 0; k < wraps; k++) ringY(r * 1.02, 0.09, cWrap, y0 + 0.35 + k * (h - 0.7) / Math.max(1, wraps - 1)); };
+    const rivet = (x, y, z, c = brass) => { for (const s of [-1, 1]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.1, 8), Mm(c)); m.rotation.x = Math.PI / 2; put(m, x, y, s * z); } };
+    // handle runs up from the fist at the origin; the business end is at +y, the cutting edge faces +x
     switch (W.model) {
-      case 'knife': cyl(0.55, 3.4, wood, 0, 0.6, 0); box(2.2, 0.4, 0.9, 0xffcd5a, 0, 2.5, 0); box(1.5, 7.5, 0.25, steel, 0.15, 6.4, 0); box(0.5, 7.5, 0.3, edge, 0.9, 6.4, 0); box(1.1, 1.6, 0.25, steel, -0.1, 10.6, 0).rotation.z = 0.5; break;
-      case 'hatchet': cyl(0.5, 9, wood, 0, 3.4, 0); box(3.6, 2.8, 0.5, dark, 1.6, 7.2, 0); box(1, 3.6, 0.35, edge, 3.6, 7.2, 0); box(1.2, 1.2, 0.6, dark, -0.8, 7.2, 0); break;
-      case 'bat': cyl(0.5, 4, 0x2a2430, 0, 0.8, 0); cyl(0.55, 12, 0xc9a46a, 0, 8, 0, 0, 1.05); cyl(1.05, 1, 0xb08a52, 0, 14.4, 0); for (let i = 0; i < 3; i++) box(2.6, 0.25, 0.25, steel, 0, 9.5 + i * 1.6, 0).rotation.y = i * 1.1; break;
-      case 'prod': cyl(0.6, 5, 0x2a2430, 0, 1.2, 0); cyl(0.4, 10, 0xe8c81e, 0, 8.5, 0); for (const s of [-1, 1]) box(0.25, 2.2, 0.25, steel, s * 0.5, 14.4, 0); box(0.7, 0.7, 0.7, 0x7fd3ff, 0, 15.2, 0, 2.2); break;
-      case 'machete': cyl(0.55, 3.6, 0x2a2430, 0, 0.6, 0); box(2.4, 13, 0.25, steel, 0.5, 9, 0); box(0.6, 13, 0.3, edge, 1.9, 9, 0); box(2, 2.2, 0.25, steel, 0.9, 16, 0).rotation.z = 0.45; break;
-      case 'sledge': cyl(0.55, 15, wood, 0, 6.4, 0); box(6.4, 3.4, 3.4, dark, 0, 14.6, 0); box(1, 3.8, 3.8, steel, 3.2, 14.6, 0); box(1, 3.8, 3.8, steel, -3.2, 14.6, 0); break;
-      case 'brand': cyl(0.5, 4, wood, 0, 0.8, 0); cyl(0.3, 11, dark, 0, 8, 0); box(3.2, 3.2, 0.6, 0xff7a2a, 0, 14.6, 0, 2); box(1.4, 1.4, 0.8, 0xffe27a, 0, 14.6, 0, 2.6); break;
-      case 'cleaver': cyl(0.55, 3.6, wood, 0, 0.6, 0); box(4.6, 7, 0.3, steel, 1.6, 6.4, 0); box(0.6, 7, 0.36, edge, 4, 6.4, 0); box(0.9, 0.9, 0.5, 0x140d12, 0.2, 9, 0); box(2, 1.4, 0.34, 0x8a1f24, 2.6, 4.2, 0); break;
-      case 'katana': cyl(0.5, 5, 0x8a1f24, 0, 1, 0); box(2, 0.4, 2, 0xffcd5a, 0, 3.8, 0); box(1.1, 17, 0.22, steel, 0.1, 12.6, 0); box(0.4, 17, 0.26, edge, 0.7, 12.6, 0); break;
-      default: cyl(0.55, 13, wood, 0, 5.4, 0); box(1.6, 1.2, 1.2, wood, 0, -1, 0); box(5, 6, 0.4, 0xe0ac2a, 0, 15, 0, 0.5); box(4, 1.2, 0.5, 0xfff4d8, 0, 12.4, 0, 0.5); break;   // shovel
+      case 'knife': {   // Bowie: stacked-leather grip, brass guard and pommel, a clip point and a fuller
+        grip(0.56, 3.5, 0x5a3a26, -1.1, 6, 0x33201a); mcyl(0.66, 0.45, brass, 0, -1.25, 0); ball(0.34, brass, 0, -1.6, 0, 0, true);
+        mbox(3.0, 0.42, 1.0, brass, 0.15, 2.62, 0); ball(0.3, brass, 1.7, 2.62, 0, 0, true); ball(0.3, brass, -1.4, 2.62, 0, 0, true);
+        blade([[2.8, -0.72, 0.95], [3.4, -0.75, 1.1], [6.5, -0.75, 1.2], [8.6, -0.72, 1.1], [10.0, -0.42, 0.72], [11.0, -0.02, 0.3], [11.7, 0.05, 0.07]], 0.3, 0.55);
+        mbox(0.22, 4.4, 0.34, 0x8d939e, -0.3, 6.0, 0);   // fuller
+        break;
+      }
+      case 'hatchet': {   // a curved hickory haft, a wedged eye, and a bearded bit with a real edge
+        cyl(0.52, 5.2, wood, 0.0, 1.4, 0, 0, 0.48); const up = cyl(0.48, 5.4, wood, 0.18, 6.3, 0, 0, 0.46); up.rotation.z = -0.07; ball(0.62, woodD, 0, -1.25, 0); for (let k = 0; k < 4; k++) ringY(0.56, 0.09, leather, -0.6 + k * 0.5);
+        outline([[-1.0, 7.0], [-1.05, 8.6], [0.9, 8.7], [2.3, 9.3], [3.3, 9.9], [3.3, 5.6], [2.4, 6.5], [0.9, 6.95]], 1.0, dark);
+        outline([[3.3, 9.9], [4.25, 10.25], [4.6, 8.9], [4.6, 6.9], [4.2, 5.2], [3.3, 5.6]], 0.3, edge);
+        mbox(0.7, 0.35, 0.75, 0xd8c8a0, 0.2, 8.82, 0); mbox(1.9, 1.5, 1.12, iron, -0.1, 7.8, 0);   // wedge, and the eye collar
+        break;
+      }
+      case 'bat': {   // turned ash, taped grip, three wraps of wire and nails driven through the barrel
+        const pts = [[0, -1.5], [0.78, -1.45], [0.82, -1.1], [0.5, -0.75], [0.46, 4.5], [0.6, 8], [0.92, 11.5], [1.06, 14.2], [0.98, 15.3], [0.55, 15.9], [0, 16.0]].map(([x, y]) => new THREE.Vector2(x, y));
+        put(new THREE.Mesh(new THREE.LatheGeometry(pts, 14), Mw(0xc9a46a)), 0, 0, 0);
+        for (let k = 0; k < 9; k++) ringY(0.5, 0.075, k % 2 ? 0x1c1a20 : 0x34303a, -0.5 + k * 0.5);
+        for (let k = 0; k < 3; k++) { const y = 10.6 + k * 1.5, r = 0.92 + k * 0.06; const w = ringY(r + 0.06, 0.07, 0x8a8f99, y, true); w.rotation.z = 0.25 * (k - 1); }
+        for (let k = 0; k < 7; k++) { const a = k * 2.4, y = 10.2 + k * 0.72, r = 0.9 + (y - 10) * 0.03; const n = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.03, 1.5, 6), Mm(0xa9aeb8)); n.rotation.z = Math.PI / 2; n.rotation.y = -a; put(n, Math.cos(a) * (r + 0.45), y, Math.sin(a) * (r + 0.45)); ball(0.14, 0x8a8f99, Math.cos(a) * (r - 0.02), y, Math.sin(a) * (r - 0.02), 0, true); }
+        break;
+      }
+      case 'prod': {   // ribbed grip, a battery box with a switch, hazard-banded pole, coil and a forked tip with a live spark
+        grip(0.62, 4.6, 0x1c1a20, -1.2, 7, 0x34303a); mcyl(0.72, 0.4, iron, 0, -1.35, 0);
+        mbox(1.5, 2.3, 1.3, 0x2f3a2c, 0, 4.7, 0); mbox(0.3, 0.5, 0.3, 0xc8211b, 0.9, 5.2, 0); mbox(1.56, 0.25, 1.36, 0x1c1a20, 0, 5.75, 0); mbox(1.56, 0.25, 1.36, 0x1c1a20, 0, 3.65, 0);
+        cyl(0.36, 9.6, 0xe8c81e, 0, 10.6, 0); for (let k = 0; k < 4; k++) cyl(0.375, 0.7, 0x1c1a20, 0, 7.2 + k * 2.2, 0);
+        for (let k = 0; k < 8; k++) { const r = ringY(0.52, 0.07, 0xc97a3a, 13.4 + k * 0.24, true); r.rotation.z = 0.12; }
+        mcyl(0.5, 0.7, iron, 0, 15.6, 0);
+        for (const s of [-1, 1]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 2.4, 6), Mm(0xd08a4a)); t.rotation.z = -s * 0.22; put(t, s * 0.62, 17.0, 0); ball(0.13, 0xe8eef8, s * 0.88, 18.15, 0, 0, true); }
+        ball(0.34, 0x9fe2ff, 0, 18.1, 0, 2.6); ball(0.2, 0xffffff, 0, 18.1, 0, 3);
+        break;
+      }
+      case 'machete': {   // a long belly-heavy blade, riveted scales and a hooked pommel
+        outline([[-0.62, -1.5], [0.2, -1.6], [0.9, -1.2], [0.62, -0.4], [0.6, 2.9], [-0.6, 2.9]], 0.95, 0x1c1a20, false);
+        rivet(0, 0.0, 0.5); rivet(0, 1.1, 0.5); rivet(0, 2.2, 0.5); mbox(1.5, 0.3, 1.05, iron, 0, 3.05, 0);
+        blade([[3.2, -0.72, 0.62], [6.0, -0.78, 0.85], [10.0, -0.82, 1.35], [14.0, -0.7, 1.95], [16.4, -0.3, 2.2], [17.6, 0.5, 1.95], [18.3, 1.2, 1.45]], 0.26, 0.75);
+        for (let k = 0; k < 3; k++) mbox(0.12, 0.5, 0.3, 0x8d939e, -0.45, 4.2 + k * 0.7, 0);   // spine notches
+        break;
+      }
+      case 'sledge': {   // a long haft with tape and a flared butt, a chamfered steel head with struck faces and a wedge
+        cyl(0.55, 14.6, wood, 0, 5.9, 0, 0, 0.5); ball(0.7, woodD, 0, -1.45, 0); for (let k = 0; k < 7; k++) ringY(0.58, 0.085, leather, -0.7 + k * 0.52); ringY(0.6, 0.1, iron, 11.6, true);
+        mbox(5.4, 3.5, 3.5, dark, 0, 14.6, 0);
+        for (const s of [-1, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 2.35, 0.9, 8), Mm(0x6a6d78)); c.rotation.z = -s * Math.PI / 2; c.rotation.x = Math.PI / 8; put(c, s * 3.15, 14.6, 0); const f = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 0.22, 8), Mm(0xc9cdd6)); f.rotation.z = Math.PI / 2; f.rotation.x = Math.PI / 8; put(f, s * 3.7, 14.6, 0); }
+        mbox(1.5, 0.3, 1.5, 0x77452a, 0, 16.42, 0); mbox(0.9, 0.36, 0.5, 0xd8c8a0, 0, 16.5, 0);
+        for (const [x, z] of [[-1.6, 1.78], [1.6, 1.78], [-1.6, -1.78], [1.6, -1.78]]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8), Mm(0x8a8f99)); r.rotation.x = Math.PI / 2; put(r, x, 14.6, z); }
+        mbox(2.2, 0.5, 3.56, 0x7a3b24, 0.4, 13.2, 0);   // rust along the bottom edge
+        break;
+      }
+      case 'brand': {   // a wrapped wooden grip, a hand guard, a twisted iron shank and a head that is still glowing
+        grip(0.52, 4.0, wood, -1.1, 5, leather); ball(0.42, woodD, 0, -1.3, 0); { const lp = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 5, 12), Mw(leather)); put(lp, 0.5, -1.9, 0); }
+        mcyl(1.3, 0.16, iron, 0, 3.1, 0); cyl(0.26, 3.2, iron, 0, 4.9, 0);
+        for (let k = 0; k < 9; k++) { const b = new THREE.Mesh(BOXG, Mm(k > 5 ? 0x7a3a22 : iron)); b.scale.set(0.5, 0.52, 0.5); b.rotation.y = k * 0.5; put(b, 0, 6.7 + k * 0.5, 0); }
+        cyl(0.24, 3.4, 0xa8421c, 0, 12.6, 0, 0.5); cyl(0.26, 0.8, 0xff7a2a, 0, 14.0, 0, 1.4);
+        { const r = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.28, 8, 20), M(0xff8a2a, 2.2)); put(r, 0, 16.1, 0); const r2 = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.14, 6, 20), M(0xffe9a0, 3)); put(r2, 0, 16.1, 0); }
+        box(0.36, 3.3, 0.5, 0xffb347, 0, 16.1, 0, 2.6); box(2.2, 0.36, 0.5, 0xffb347, 0, 16.6, 0, 2.6); box(1.5, 0.36, 0.5, 0xffb347, 0, 15.4, 0, 2.6);   // the mark: a barred D
+        break;
+      }
+      case 'cleaver': {   // a full-tang block of steel: riveted scales, a bolster, a hang hole and old stains
+        outline([[-0.6, -1.5], [0.55, -1.6], [0.7, -0.6], [0.6, 2.7], [-0.6, 2.7]], 1.0, 0x5a3a26, false); rivet(0, -0.4, 0.52); rivet(0, 1.4, 0.52); mbox(1.5, 0.5, 1.1, iron, 0, 2.95, 0);
+        blade([[3.2, -0.75, 3.9], [3.6, -0.78, 4.9], [8.6, -0.78, 5.1], [10.0, -0.7, 4.85], [10.5, -0.3, 4.0], [10.6, 0.6, 3.0]], 0.42, 0.8, 0xa9aeb8, edge, [3.4, 9.2, 0.42]);
+        for (const [x, y, w, h] of [[3.0, 5.0, 1.5, 0.9], [3.9, 6.2, 0.8, 1.7], [2.2, 7.6, 1.1, 0.6]]) for (const s of [-1, 1]) { const b = new THREE.Mesh(BOXG, Mw(0x6e1418)); b.scale.set(w, h, 0.02); put(b, x, y, s * 0.27); }
+        mbox(0.3, 6.6, 0.5, 0x7d838e, -0.6, 6.6, 0);   // the thick spine
+        break;
+      }
+      case 'katana': {   // wrapped hilt with a cap, a round guard and collar, and a long blade with a real curve and a ridge line
+        cyl(0.5, 5.6, 0x7a1b20, 0, 1.4, 0); mcyl(0.56, 0.4, brass, 0, -1.55, 0);
+        for (let k = 0; k < 8; k++) { const d = new THREE.Mesh(BOXG, Mw(0x16131a)); d.scale.set(0.62, 0.34, 1.06); d.rotation.z = k % 2 ? 0.55 : -0.55; put(d, 0, -1.0 + k * 0.66, 0); }
+        ball(0.18, brass, 0.5, 1.5, 0.3, 0, true);
+        mcyl(1.45, 0.2, 0x2a2430, 0, 4.4, 0); mcyl(1.3, 0.24, brass, 0, 4.4, 0); mbox(1.0, 0.9, 0.6, brass, 0.1, 5.0, 0);
+        { const S = []; for (let k = 0; k <= 12; k++) { const y = 5.4 + k * 1.2, c = -0.011 * (y - 5.4) * (y - 5.4), w = k > 10 ? 1.05 * (12 - k) / 2 + 0.04 : 1.05; S.push([y, -0.5 + c + (k > 10 ? (k - 10) * 0.28 : 0), -0.5 + c + w + (k > 10 ? (k - 10) * 0.05 : 0)]); } blade(S, 0.22, 0.42); }
+        break;
+      }
+      default: {   // the gravedigger's shovel: a D-grip, a long shaft into a socket, and a pointed spade with stepped shoulders and grave dirt on it
+        { const d = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.24, 8, 14, Math.PI), Mw(woodD)); d.rotation.z = Math.PI; put(d, 0, -0.2, 0); cyl(0.24, 2.3, woodD, 0, -0.2, 0).rotation.z = Math.PI / 2; mbox(0.5, 0.9, 0.6, iron, -1.15, -0.1, 0); mbox(0.5, 0.9, 0.6, iron, 1.15, -0.1, 0); }
+        cyl(0.48, 11.4, wood, 0, 5.6, 0, 0, 0.44); mcyl(0.62, 2.6, 0x8a6a28, 0, 12.4, 0, 0.5); rivet(0, 12.0, 0.6, iron); rivet(0, 13.0, 0.56, iron);
+        outline([[-2.6, 13.6], [-2.95, 14.3], [-2.7, 18.4], [-1.6, 20.6], [0, 21.9], [1.6, 20.6], [2.7, 18.4], [2.95, 14.3], [2.6, 13.6]], 0.26, 0xc9982a);
+        outline([[-2.7, 18.4], [-1.6, 20.6], [0, 21.9], [1.6, 20.6], [2.7, 18.4], [2.1, 18.5], [1.25, 20.2], [0, 21.2], [-1.25, 20.2], [-2.1, 18.5]], 0.1, 0xfff0c8);
+        mbox(0.5, 5.6, 0.42, 0xa67c1e, 0, 16.3, 0); for (const s of [-1, 1]) mbox(1.3, 0.36, 0.7, 0x8a6a28, s * 2.2, 13.75, 0);
+        for (const [x, y, w, h] of [[-0.9, 20.0, 1.6, 1.1], [0.9, 19.2, 1.2, 1.3], [0, 20.8, 1.0, 0.7]]) for (const s of [-1, 1]) { const b = new THREE.Mesh(BOXG, Mw(0x3d2a1c)); b.scale.set(w, h, 0.02); put(b, x, y, s * 0.16); }
+        break;
+      }
     }
     // The weapon sits in a fist at the end of a full arm. The arm hangs off a shoulder pivot below the screen, so the
     // swing is the arm rotating about that shoulder, never a weapon sliding through the air.
     const ARM = 21, pivot = new THREE.Group(), hand = new THREE.Group(); hand.position.set(0, 0, -ARM); pivot.add(hand);
     g.remove(tool); hand.add(tool); tool.scale.setScalar(0.62); this.mtool = tool; this.mhand = hand;
-    const fist = new THREE.Mesh(new THREE.SphereGeometry(1.25, 10, 8), M(sk.glove)); fist.scale.set(1, 1.1, 1.15); hand.add(fist);
+    // The handle passes through the fist and the butt shows below it. `shaft` carries the model so the fist stays put
+    // while the weapon is slid down in the grip.
+    const shaft = new THREE.Group(); while (tool.children.length) shaft.add(tool.children[0]); shaft.position.y = -0.75; tool.add(shaft);
+    const fistOn = (parent, y, scale = 1) => {
+      const F = new THREE.Group(); F.position.set(0, y, 0); F.scale.setScalar(scale); parent.add(F);
+      const gl = M(sk.glove), gd = M(new THREE.Color(sk.glove).multiplyScalar(0.78).getHex());
+      for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.27 - k * 0.012, 7, 14), k % 2 ? gd : gl); f.rotation.x = Math.PI / 2; f.position.y = 0.72 - k * 0.48; F.add(f); }        // four fingers closed round the handle
+      const back = new THREE.Mesh(BOXG, gl); back.scale.set(1.25, 1.95, 0.75); back.position.set(0.12, 0, 0.72); F.add(back);                                                                                          // the back of the hand, wrist side
+      const th = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 0.9, 3, 8), gl); th.position.set(-0.5, 0.86, 0.25); th.rotation.set(0.5, 0, 1.15); F.add(th);                                                         // thumb laid over the top finger
+      const kn = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 6), gd); kn.position.set(-0.74, 0.7, 0.42); F.add(kn);
+      const wr = new THREE.Mesh(new THREE.SphereGeometry(0.78, 10, 8), gl); wr.scale.set(1, 1.15, 1); wr.position.set(0.1, -0.05, 1.3); F.add(wr);
+      return F;
+    };
+    // the fists ride the tool, not the arm, so the fingers stay round the handle however the wrist turns
+    const fist = fistOn(tool, 0, 1 / 0.62);
+    // long tools are swung with both hands: the second closes on the haft further up (only with the blade drawn; a quick swing is one-handed)
+    const TWO = { bat: 2.3, katana: 2.2, sledge: 3.6, shovel: 3.8 }[W.model] || 0;
+    if (TWO) {
+      this.mhand2 = fistOn(tool, TWO / 0.62, 0.96 / 0.62);
+      // its arm is not part of the tool: it is strung each frame from the left shoulder to wherever that fist is, so it
+      // reads as an arm in every pose
+      const a2 = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.5, 1, 10), M(sk.sleeve)); g.add(a2); this.marm2 = a2;
+      const c2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.3, 10), M(sk.cuff)); g.add(c2); this.mcuff2 = c2;
+    } else { this.mhand2 = null; this.marm2 = null; this.mcuff2 = null; }
+    this.mModel = W.model || 'shovel';
     const fore = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.5, ARM * 0.5, 10), M(sk.sleeve)); fore.rotation.x = Math.PI / 2; fore.position.set(0, 0, -ARM * 0.72); pivot.add(fore);
     const upper = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, ARM * 0.6, 10), M(sk.sleeve)); upper.rotation.x = Math.PI / 2; upper.position.set(0, 0, -ARM * 0.25); pivot.add(upper);
     const cuff = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 1.3, 10), M(sk.cuff)); cuff.rotation.x = Math.PI / 2; cuff.position.set(0, 0, -ARM + 2); pivot.add(cuff);
@@ -208,8 +326,18 @@ export class ViewModel {
     g.visible = false; this.scene.add(g); this.mg = g; this.mgName = W.name;
     if (!this.mslash) { this.mslash = flashMesh('FX_Slash', true); this.scene.add(this.mslash); }
   }
+  // string the second arm from the off-side shoulder to the second fist (view space)
+  meleeArm2() {
+    const F = this.mhand2, A = this.marm2, C = this.mcuff2; if (!A) return;
+    const on = !!this.wield && this.mg.visible; A.visible = C.visible = F.visible = on; if (!on) return;
+    this.mg.updateMatrixWorld(true);
+    const to = F.localToWorld(new THREE.Vector3(0.1, -0.05, 1.3)), from = new THREE.Vector3(-8.5, -19, 4), d = to.clone().sub(from), len = d.length(); d.normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    A.position.copy(from).addScaledVector(d, len * 0.5 - 0.6); A.quaternion.copy(q); A.scale.set(1, Math.max(1, len - 1.2), 1);
+    C.position.copy(to).addScaledVector(d, -1.5); C.quaternion.copy(q);
+  }
   meleeShow(W) { this.meleeBuild(W); this.mT = 0; this.mDur = 0.5; this.mStep = 3; }   // new weapon: flourish it once
-  meleeSwing(W, step, dur) { if (this.mgName !== W.name || !this.mg) this.meleeBuild(W); this.mT = 0; this.mDur = dur; this.mStep = step; }
+  meleeSwing(W, step, dur) { if (this.mgName !== W.name || !this.mg) this.meleeBuild(W); this.mT = 0; this.mDur = dur; this.mStep = step; this.mReach = W.range; }
   tickMelee(dt) {
     if (!this.mg) { this.mDip = 0; return; }
     const active = this.mT !== undefined && this.mT < this.mDur && !this.hidden && !this.scoped;
@@ -222,31 +350,59 @@ export class ViewModel {
         this.wRaise = Math.min(1, (this.wRaise || 0) + dt * 5);
         const r = this.wRaise, e = 1 - (1 - r) * (1 - r), bob = Math.sin((this.bobPhase || 0) * 2) * 0.3 * (this.bobAmp || 0);
         this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
-        P0.position.set(11, -15.5 - (1 - e) * 10 + bob, -1); P0.rotation.set(0.56, 0.16, 0); tool0.rotation.set(-0.95, 0, 0.42);
+        // winding up a heavy blow: the arm comes up and back over the shoulder, and trembles when it is as far as it goes
+        const c = this.mCharge || 0, cs = c * c * (3 - 2 * c), sh = c >= 1 ? Math.sin(performance.now() * 0.06) * 0.25 : 0;
+        P0.position.set(11 - cs * 1.5 + sh, -15.5 - (1 - e) * 10 + bob + cs * 5, -1 + cs * 2); P0.rotation.set(0.56 + cs * 0.62, 0.16 - cs * 0.3, 0); tool0.rotation.set(-0.95 + cs * 1.5, 0, 0.42 - cs * 0.3);
       } else { this.mg.visible = false; this.wRaise = 0; }
+      this.meleeArm2();
       return;
     }
     this.wRaise = 0;
     this.mT += dt;
     // wind back a touch, whip through, then follow through and drop away
-    const t = Math.min(1, this.mT / this.mDur), w = Math.min(1, t / 0.6), s = w < 0.12 ? -0.12 * Math.sin(w / 0.12 * Math.PI) : 1 - Math.pow(1 - (w - 0.12) / 0.88, 3), out = Math.max(0, (t - 0.72) / 0.28);
+    const t = Math.min(1, this.mT / this.mDur), w = Math.min(1, t / 0.6), wb = (this.mReach || 240) > 280 ? 0.22 : 0.12, s = w < 0.16 ? -wb * Math.sin(w / 0.16 * Math.PI) : 1 - Math.pow(1 - (w - 0.16) / 0.84, 3), out = Math.max(0, (t - 0.72) / 0.28);
     const L = (a, b) => a + (b - a) * s, P = this.mpivot, tool = this.mtool;
     this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
-    // The gun stays in the right hand. The left hand lets go of it (the support hand is hidden) and does the swinging.
-    if (this.mStep === 0) { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(L(0.8, 0.66), L(0.9, -0.8), 0); tool.rotation.set(-0.5, 0, L(0.5, -1.25)); }           // left to right
-    else if (this.mStep === 1) { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(L(0.66, 0.8), L(-0.8, 0.9), 0); tool.rotation.set(-0.5, 0, L(-1.25, 0.5)); }      // back across, right to left
-    else if (this.mStep === 2) { P.position.set(-5, -16 - out * 8, -1); P.rotation.set(L(1.25, 0.08), L(-0.1, 0), 0); tool.rotation.set(L(0.3, -1.1), 0, 0.1); }         // overhead finisher
+    // The last number in each move is which way the cutting edge has to face: 0 leads to the right, 1 to the left, 2 forward
+    // and down (chops and thrusts). The blade is turned in the hand to suit, so the edge always leads the cut.
+    // Every weapon has its own three moves (two in the chain and a finisher). They are written for the left arm, which
+    // throws a quick swing with a gun in the other hand; with the blade drawn they are mirrored onto the right.
+    const MOVE = {
+      slashA: () => [-8, -15, -1, L(0.8, 0.66), L(0.9, -0.8), 0, -0.5, 0, L(0.5, -1.25), 0],              // flat, left to right
+      slashB: () => [-8, -15, -1, L(0.66, 0.8), L(-0.8, 0.9), 0, -0.5, 0, L(-1.25, 0.5), 1],              // flat, back across
+      diagA: () => [-7, -15, -1, L(1.08, 0.36), L(0.75, -0.6), 0, L(-0.15, -0.95), 0, L(0.4, -0.95), 0],  // chop, high left to low right
+      diagB: () => [-7, -15, -1, L(1.08, 0.36), L(-0.6, 0.7), 0, L(-0.15, -0.95), 0, L(-0.95, 0.4), 1],   // chop, high right to low left
+      rise: () => [-7, -15.5, -1, L(0.3, 1.02), L(-0.7, 0.55), 0, L(-1.05, -0.2), 0, L(-1.2, 0.3), 1],    // rising cut
+      haul: () => [-6, -15, -1, L(0.74, 0.6), L(1.15, -1.0), 0, -0.32, 0, L(0.75, -1.5), 0],              // two hands, all the way round
+      haulB: () => [-6, -15, -1, L(0.6, 0.74), L(-1.0, 1.15), 0, -0.32, 0, L(-1.5, 0.75), 1],
+      over: () => [-5, -16, -1, L(1.25, 0.08), L(-0.1, 0), 0, L(0.3, -1.1), 0, 0.1, 2],                   // overhead
+      smash: () => [-4, -16, -1, L(1.42, 0.0), 0, 0, L(0.55, -1.25), 0, 0, 2],                            // overhead, from as far back as it goes
+      stab: () => [-5.5, -13.5, L(7, -8.5), 0.4, L(0.3, 0.06), 0, -1.5, 0, L(0.5, 0.1), 2],               // drawn back, then straight out
+    };
+    const SETS = { knife: ['slashA', 'slashB', 'stab'], hatchet: ['diagA', 'diagB', 'over'], bat: ['haul', 'haulB', 'over'], prod: ['stab', 'stab', 'slashA'], machete: ['diagA', 'slashB', 'over'],
+      sledge: ['haul', 'haulB', 'smash'], brand: ['stab', 'slashA', 'over'], cleaver: ['diagA', 'diagB', 'over'], katana: ['diagA', 'rise', 'over'], shovel: ['stab', 'haul', 'smash'] };
+    const name = this.mStep < 3 ? (SETS[this.mModel] || SETS.knife)[this.mStep] : null;
+    let edgeTo = -1;
+    if (name) { const m = MOVE[name](); P.position.set(m[0], m[1] - out * (name === 'stab' ? 5 : 9), m[2]); P.rotation.set(m[3], m[4], m[5]); tool.rotation.set(m[6], m[7], m[8]); edgeTo = m[9]; }
     else { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(0.6 + Math.sin(t * Math.PI) * 0.2, 0.3, 0); tool.rotation.set(-0.4, t * 6.28, -0.2); }                // new weapon: show it off
+    this.mMove = name;
     const mir = this.wield ? -1 : 1;
     if (mir < 0) { P.position.x = -P.position.x; P.rotation.y = -P.rotation.y; tool.rotation.z = -tool.rotation.z; if (this.wield) P.position.y += out * 9 * 0.75; }   // right hand, and it does not drop out of sight after
+    if (edgeTo === 2) tool.rotation.y = Math.PI / 2;                                                                    // edge forward and down
+    else if (edgeTo >= 0 && (edgeTo === 1) !== (mir < 0)) { tool.rotation.y = Math.PI; tool.rotation.z = -tool.rotation.z; }   // cutting to the left: turn the blade over
     const q = this.mslash;
     if (q && this.mStep < 3) {
       const a = Math.max(0, 1 - Math.abs(t - 0.3) / 0.16);
-      const st = mir < 0 && this.mStep < 2 ? 1 - this.mStep : this.mStep;
-      q.visible = a > 0.01; q.position.set(st === 2 ? 1 * mir : (st ? 1 : -1), st === 2 ? -1 : -2.5, -20);
-      q.scale.set(st === 2 ? 9 : 30, st === 2 ? 24 : 8, 1); q.rotation.z = st === 0 ? -0.2 : st === 1 ? Math.PI + 0.2 : Math.PI / 2;
+      // the streak follows the move: flat for a slash, tilted for a chop, upright for an overhead, a short burst for a thrust
+      const mv = this.mMove || 'slashA', reach = Math.max(0.7, Math.min(1.5, (this.mReach || 240) / 240));
+      const kind = mv === 'over' || mv === 'smash' ? 'v' : mv === 'stab' ? 's' : mv === 'diagA' || mv === 'diagB' || mv === 'rise' ? 'd' : 'h';
+      const ltr = (mv === 'slashA' || mv === 'haul' || mv === 'diagA') === (mir > 0);   // does it travel left to right on screen
+      q.visible = a > 0.01; q.position.set(kind === 'v' ? mir : kind === 's' ? 0 : ltr ? -1 : 1, kind === 'v' ? -1 : kind === 's' ? -1.5 : -2.5, -20);
+      q.scale.set((kind === 'v' ? 9 : kind === 's' ? 10 : mv.startsWith('haul') ? 36 : 30) * reach, (kind === 'v' ? 24 : kind === 's' ? 5 : 8) * reach, 1);
+      q.rotation.z = kind === 'v' ? Math.PI / 2 : kind === 's' ? 0 : (ltr ? -0.2 : Math.PI + 0.2) + (kind === 'd' ? (mv === 'rise' ? 0.6 : -0.6) * (ltr ? 1 : -1) : 0);
       q.material.uniforms.tint.value.set(1, 0.95, 0.85, a * 0.32);
     }
+    this.meleeArm2();
   }
   setWeapon(def, tier, animate) {
     if (!this.game.data.weapons[def]) return;   // an empty slot has no model to show
@@ -296,6 +452,15 @@ export class ViewModel {
     void palm;
     for (let i = 0; i < 4; i++) this.Cap(sp, V(-3.4 + i * 2.3, 2.5, -2.2), V(-3.4 + i * 2.3, 3.5, 2.2), 1.25, i === 1 ? GloveLight : Glove);
     this.Cap(sp, V(-1.6, -3.3, -1.8), V(1.4, -3.9, 2.2), 1.4, GloveLight);
+    if (gunFeel(W).action === 'crank') {
+      // A crank is held, not cupped: swap the open palm for a fist closed round the handle (which runs sideways), knuckles
+      // forward, thumb over the top. The forearm still comes up from below and behind.
+      for (const c of sp.children.slice()) { sp.remove(c); const k = this.parts.indexOf(c); if (k >= 0) this.parts.splice(k, 1); }
+      const add = (m) => { sp.add(m); this.parts.push(m); return m; };
+      for (let k = 0; k < 4; k++) { const f = add(new THREE.Mesh(new THREE.TorusGeometry(2.05, 1.12 - k * 0.04, 7, 14), vmMat(k % 2 ? GloveLight : Glove, 0))); f.rotation.y = Math.PI / 2; f.position.set(-2.55 + k * 1.7, 0, 0); }
+      const back = add(new THREE.Mesh(BOXG, vmMat(Glove, 0))); back.scale.set(7.2, 3.4, 3.6); back.position.set(0, -1.2, 2.6);
+      const th = add(new THREE.Mesh(new THREE.CapsuleGeometry(1.15, 3.6, 3, 8), vmMat(GloveLight, 0))); th.rotation.z = Math.PI / 2; th.position.set(0.6, 2.9, 0.6);
+    }
     this.Cap(sp, V(-4.6, -8.2, -11), V(-2.4, -3.8, -5), 3.7, Cuff);                  // the forearm comes up from below, so it never crosses the view when the hand works the gun
     this.Cap(sp, V(-12, -28, -48), V(-5, -8.8, -11.8), 4.2, Sleeve, 5.6);
     // muzzle flash: star facing the camera, flame along the barrel, additive glow
