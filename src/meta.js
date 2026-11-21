@@ -98,6 +98,8 @@ export const Meta = {
   setCls(id) { S.cls = id; dirty = true; this.save(); },
   difficulty() { return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
   setDifficulty(i) { S.diff = i; dirty = true; this.save(); },
+  map() { return Number.isInteger(S.map) && S.map >= 0 ? S.map : 0; },
+  setMap(i) { S.map = i; dirty = true; this.save(); },
   setStarter(w) { if (this.starterUnlocked(w)) { S.starter = w; dirty = true; this.save(); } },
   cosCount() { let n = 0, t = 0; for (const s of SLOTS) for (const I of COSMETICS[s]) { t++; if (this.cosUnlocked(s, I.id)) n++; } return [n, t]; },
   popEvents() { return events.splice(0, events.length); },

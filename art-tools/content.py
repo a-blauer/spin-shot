@@ -425,6 +425,38 @@ BOSS = [
   "Waits in the crypt under the clock tower. Throws blades, lights the seal and burns the room down around you."),
 ]
 
+# ---------------------------------------------------------------- THE OTHER MAPS
+# Every map has its own creatures and bosses; nothing from one map turns up on another.
+EN_ART = ['Shambler', 'Sprinter', 'Crawler', 'Bloater', 'Spitter', 'Leaper', 'Wisp', 'Brute', 'Screamer', 'Burrower', 'Gilded', 'Riot', 'Priest']
+BOSS_ART = ['BigTony', 'Abomination', 'Carrion', 'Croupier', 'Gravedigger', 'LastDealer']
+BOSS_EXTRA = [{}, {'mech': 'shed'}, {'mech': 'ward', 'wardStages': 2}, {'cards': 1}, {'mech': 'ward', 'wardStages': 1}, {'final': 1}]
+# map, art, then the same fields as EN, then extras: innate = affixes it always has (not shown as a variant)
+ENX = [
+ # 1. Blackwater Mine
+ (1, "PitHand", "Pit Hand", "Walker", "Humanoid", 1.0, 210, 28, 140, 1.2, 1.0, 0x6E7A6B, 0x9DB88A, 60, 1, 10.0, "A miner who never clocked off. The candle on his hat still burns.", {}),
+ (1, "Tallow", "Tallow Runner", "Runner", "Humanoid", 0.8, 530, 22, 140, 1.0, 0.95, 0xD8C9A0, 0xF0E2B8, 70, 2, 4.0, "Dipped in candle wax and quick with it.", {}),
+ (1, "PaleCrawler", "Pale Crawler", "Crawler", "Crawler", 0.6, 380, 18, 120, 0.8, 0.8, 0xC9C2C4, 0xE6DEE0, 60, 3, 3.0, "Born in the dark. No eyes; it does not need them.", {}),
+ (1, "Gasbag", "Gasbag", "Bloater", "Bloated", 2.2, 170, 45, 200, 1.0, 1.25, 0x7FA06A, 0xA9C48A, 90, 4, 2.0, "Swollen with firedamp. Goes up like a blast charge.", {'innate': ['Volatile']}),
+ (1, "Powderman", "Powderman", "Spitter", "Humanoid", 0.9, 260, 20, 1900, 2.6, 1.0, 0x8A5A3A, 0xFF8A3A, 80, 5, 2.5, "Still setting charges. Lobs lit sticks from across the cavern.", {'innate': ['Blazing']}),
+ (1, "GloomBat", "Gloom Bat", "Flyer", "Flyer", 0.5, 480, 12, 130, 0.9, 0.75, 0x3A3440, 0xFFD24A, 50, 6, 2.5, "Hangs from the roof until it hears you.", {}),
+ (1, "Rockworm", "Rockworm", "Burrower", "Crawler", 1.5, 300, 30, 150, 1.1, 1.0, 0x6A5A50, 0x9A8A80, 120, 7, 1.4, "Chews through the seam and comes up under your feet.", {}),
+ (1, "Mule", "The Mule", "Brute", "Brute", 3.4, 250, 55, 200, 1.6, 1.6, 0x5A4A40, 0x8A7A6A, 200, 8, 1.2, "Hauled ore carts alive. Plated in what it hauled.", {'innate': ['Armored']}),
+ (1, "Nugget", "Nugget Thief", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0xC9CDD6, 0xE8ECF4, 600, 3, 0.35, "Runs for the lift with a sack of silver. Catch it.", {}),
+]
+# map, art, then the same fields as BOSS (minion is a creature name), then extras
+BOSSX = [
+ (1, "ShiftBoss", "The Shift Boss", "Overseer of the Night Shift", 15, 300, 45, 2.4, 0x3A3A44, 0xB88A6A, ["Charge", "Sweep", "Slam", "Summon", "Hook"], "Pit Hand", 2500,
+  "Runs the shift with a steam drill. Sidestep the charge and he is winded.", {}),
+ (1, "Canary", "The Canary", "It Stopped Singing", 28, 240, 36, 2.4, 0xC9A82A, 0xFFE27A, ["Volley", "Dive", "Barrage", "Teleport"], "Gloom Bat", 3500,
+  "A cage with something in it that used to warn them. Twice it wards itself behind its bats.", {'mech': 'ward', 'wardStages': 2, 'wardText': 'WARDED - KILL THE BATS'}),
+ (1, "Motherlode", "The Motherlode", "The Seam That Walks", 34, 250, 55, 2.6, 0x4A6A8A, 0x8AD8FF, ["Leap", "Pools", "Sweep", "Ring"], "Pale Crawler", 4000,
+  "Ore, crystal and whoever dug too close. Breaks apart into crawlers as you chip it down.", {'mech': 'shed', 'shedText': 'THE SEAM SPLITS'}),
+ (1, "DeepKing", "The King Below", "Warden of the Lowest Level", 40, 320, 58, 2.0, 0x1A1A22, 0x6AF0C0, ["Charge", "Hook", "Sweep", "NailWall", "Pools", "Ambush", "Ring", "Summon"], "Rockworm", 7000,
+  "What the mine was dug to reach. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE BATS', 'last': 1}),
+ (1, "Baron", "Baron Blackwater", "Owner of Everything Down Here", 70, 250, 55, 4.0, 0x1a0e14, 0xC9CDD6, [], "Pit Hand", 25000,
+  "He sealed the shaft with the night shift still in it. He has been waiting at the bottom ever since.", {'final': 1}),
+]
+
 # ---------------------------------------------------------------- GENERATION
 def cstr(s):
     return 'TEXT("' + s.replace('\\', '\\\\').replace('"', '\\"') + '")'

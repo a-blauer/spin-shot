@@ -143,7 +143,7 @@ export class World {
     const c = min.add(max).mul(0.5), s = max.sub(min);
     this.AddInstance(0, V(c.X, c.Y, z), V(s.X, s.Y, 2), R(0, 0, 0), color, false, false, false);
   }
-  Wall(A, B, height, thick, color, gaps, zoneWall) {
+  Wall(A, B, height, thick, color, gaps, zoneWall, cap = Pal.AdobeDark, lintel = Pal.WoodDark) {
     const D = B.sub(A); const len = D.Size(); const dir = D.mul(1 / len);
     const yaw = Math.atan2(dir.Y, dir.X) * 180 / Math.PI;
     const sorted = [...gaps].sort((a, b) => a.X - b.X);
@@ -152,7 +152,7 @@ export class World {
       if (s1 - s0 < 1) return;
       const mid = A.add(dir.mul((s0 + s1) * 0.5));
       this.Box(V(mid.X, mid.Y, height * 0.5), V(s1 - s0, thick, height), color, true, true, yaw);
-      this.Box(V(mid.X, mid.Y, height + 15), V(s1 - s0, thick + 30, 30), Pal.AdobeDark, true, false, yaw);
+      this.Box(V(mid.X, mid.Y, height + 15), V(s1 - s0, thick + 30, 30), cap, true, false, yaw);
       if (zoneWall) this.ZoneCeiling(mid, s1 - s0, thick, height, dir);
     };
     for (const G of sorted) {
@@ -160,7 +160,7 @@ export class World {
       if (zoneWall) {
         const mid = A.add(dir.mul((G.X + G.Y) * 0.5));
         this.ZoneCeiling(mid, G.Y - G.X, thick, height, dir);
-        this.Box(V(mid.X, mid.Y, height + 15), V(G.Y - G.X + 60, thick + 40, 40), Pal.WoodDark, true, false, yaw);
+        this.Box(V(mid.X, mid.Y, height + 15), V(G.Y - G.X + 60, thick + 40, 40), lintel, true, false, yaw);
       }
       cursor = G.Y;
     }
@@ -646,6 +646,7 @@ export class World {
     this.pendingLamps = [];
     this.pendingBuildings = [];
     const GM = this.game;
+    if (GM.mapId !== 0) return this.buildMap(GM.map);
     GM.navInit(-15200, -15200, 15200, 15200, 100);
     this.AddZone('Motel Courtyard', V2(-6000, -6000), V2(-2000, -2000));
     this.AddZone('Main Street', V2(-6000, -2000), V2(-2000, 6000));
@@ -698,11 +699,27 @@ export class World {
     this.placeLoot();
     this.finish();
   }
+  // Any map but the first. The map's own file lays everything out through the same primitives; what is shared is the
+  // registration (zones, districts, doors, spawn pits), the loot placement and the last room.
+  buildMap(MAP) {
+    const GM = this.game, M = {};
+    for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
+      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
+    M.RotFromXY = RotFromXY; M.GM = GM; M.world = this;
+    M.Districts = (list) => list.forEach(([name, zs], gi) => { for (const zi of zs) { GM.zones[zi].name = name; GM.zones[zi].group = gi; } });
+    M.Spawn = (v) => { GM.playerSpawn = v.to3(); };
+    this.decor = [];
+    M.Decor = (min, max, count, kinds) => this.decor.push([min, max, count, kinds]);
+    MAP.build(M);
+    Z.BuildVault(M, null, MAP.vault);
+    this.placeLoot(MAP.loot);
+    this.finish();
+  }
 
   // Chests and mystery-box spots. Each sits on open ground beside something solid, clear of doors and spawn pits.
   // The spread is fixed (same seed every run): cheap chests in town, better ones further out, the best on the
   // Badlands' corner towers where only the skyway reaches.
-  placeLoot() {
+  placeLoot(CFG) {
     const GM = this.game, taken = [];
     const free = (x, y, pad) => { const [cx, cy] = GM.cellOf(x, y); for (let a = -pad; a <= pad; a++) for (let b = -pad; b <= pad; b++) if (!GM.navFree(cx + a, cy + b)) return false; return true; };
     const wallDir = (x, y) => { const [cx, cy] = GM.cellOf(x, y); let sx = 0, sy = 0, n = 0; for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) if (!GM.navFree(cx + a, cy + b)) { sx += a; sy += b; n++; } return n ? [sx, sy, n] : null; };
@@ -711,7 +728,7 @@ export class World {
       const Z = GM.zones[zi];
       for (let tries = 0; tries < 600; tries++) {
         const x = FMath.FRandRange(Z.min.X + 300, Z.max.X - 300), y = FMath.FRandRange(Z.min.Y + 300, Z.max.Y - 300);
-        if (ringOnly && Math.max(Math.abs(x), Math.abs(y)) < 11000) continue;
+        if (ringOnly && !CFG && Math.max(Math.abs(x), Math.abs(y)) < 11000) continue;
         if (GM.zoneAt({ x, y: 0, z: y }) !== zi) continue;
         if (!free(x, y, 1)) continue;
         const wd = wallDir(x, y); if (!wd || wd[2] < 4) continue;                     // wants something at its back
@@ -723,8 +740,17 @@ export class World {
     };
     const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); return s ? this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest') : null; };
     // a dozen to begin with; the rest arrive during the run (Game.dropChest)
-    const PLAN = { 0: [0], 1: [0], 2: [0], 3: [1], 4: [0], 5: [1], 7: [1], 8: [1], 9: [2], 10: [1], 11: [2, 2] };
+    const PLAN = CFG ? CFG.chests : { 0: [0], 1: [0], 2: [0], 3: [1], 4: [0], 5: [1], 7: [1], 8: [1], 9: [2], 10: [1], 11: [2, 2] };
     GM.spawnChest = (zi, tier) => chest(zi, tier, zi === 11);
+    if (CFG) {
+      for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, false);
+      for (const [x, y, z, yaw] of CFG.relics || []) this.Station('Chest', V(x, y, z), yaw, 0, 3, 'Chest');   // reliquaries: somewhere you have to work to reach
+      const [bx, by, byaw, bz] = CFG.box;
+      GM.boxSpots = [{ pos: V(bx, by, 0).to3(), yaw: byaw, zone: bz }];
+      for (const zi of CFG.boxZones) { const s = find(zi, false, 900); if (s) GM.boxSpots.push({ pos: V(s[0], s[1], 0).to3(), yaw: s[2], zone: zi }); }
+      GM.box = this.Station('MysteryBox', V(bx, by, 0), byaw, 950, -1, 'Mystery Box');
+      return;
+    }
     for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, +zi === 11);
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) this.Station('Chest', V(sx * 12800 - sx * 180, sy * 12800 + sy * 180, 636), sx > 0 ? 180 : 0, 0, 3, 'Chest');   // reliquaries on the corner towers
     // where the mystery box can turn up: one spot per district, starting in the square
@@ -794,6 +820,7 @@ export class World {
   }
 
   decorate() {
+    if (this.decor) return this.decorateMap();
     const zones = [
       [V2(-5900, -5900), V2(-2100, -2100), 60, ['P_Grass_0', 'P_Grass_1', 'P_Bush', 'P_Grass_2', 'P_Grass_0', 'D_Crack']],
       [V2(-5900, -1900), V2(-2100, 5900), 70, ['P_Grass_1', 'P_Tumble', 'P_Grass_2', 'D_Crack', 'D_Grime', 'P_Grass_0']],
@@ -823,6 +850,25 @@ export class World {
       if (Math.abs(XY.X) <= 950 && Math.abs(XY.Y) <= 1150) continue;
       const g = this.GroundAt(XY);
       if (g && g.n.Z > 0.85 && g.p.Z < 40) this.SurfaceDecal('FX_Blood_' + FMath.RandRange(0, 3), g.p, g.n, V2(140, 140), FMath.FRandRange(0, 360), [0.75, 0.75, 0.75, 1]);
+    }
+  }
+  // dressing for the other maps: each asks for so many of a few kinds of thing over a rectangle of its floor
+  decorateMap() {
+    for (const [mn, mx, count, kinds] of this.decor) {
+      for (let i = 0; i < count; i++) {
+        const XY = V2(FMath.FRandRange(mn.X, mx.X), FMath.FRandRange(mn.Y, mx.Y));
+        const g = this.GroundAt(XY);
+        if (!g || g.n.Z < 0.85 || g.p.Z > 40 || g.p.Z < -5) continue;
+        const kind = kinds[FMath.RandRange(0, kinds.length - 1)];
+        if (kind === 'D_Crack') this.SurfaceDecal(FMath.RandBool() ? 'D_Crack_0' : 'D_Crack_1', g.p, g.n, V2(260, 260), FMath.FRandRange(0, 360), [1, 1, 1, 0.6], 'fx');
+        else if (kind === 'D_Grime') this.SurfaceDecal('D_Grime', g.p, g.n, V2(320, 260), FMath.FRandRange(0, 360), [0, 0, 0, 0.22], 'fx');
+        else if (kind === 'P_Bones') this.SurfaceDecal('P_Bones', g.p, g.n, V2(140, 140), FMath.FRandRange(0, 360));
+        else if (kind === 'Blood') this.SurfaceDecal('FX_Blood_' + FMath.RandRange(0, 3), g.p, g.n, V2(140, 140), FMath.FRandRange(0, 360), [0.75, 0.75, 0.75, 1]);
+        else if (kind === 'P_Bush') this.Foliage(kind, g.p.sub(V(0, 0, 6)), FMath.FRandRange(80, 130), 1.3);
+        else if (kind === 'P_Tumble') this.Foliage(kind, g.p.sub(V(0, 0, 4)), FMath.FRandRange(60, 90), 1);
+        else if (Array.isArray(kind)) this.Foliage(kind[0], g.p.sub(V(0, 0, 3)), FMath.FRandRange(kind[1], kind[2]), kind[3] || 1, kind[4] || [1, 1, 1, 1]);
+        else this.Foliage(kind, g.p.sub(V(0, 0, 3)), FMath.FRandRange(40, 75), 1.2);
+      }
     }
   }
 }

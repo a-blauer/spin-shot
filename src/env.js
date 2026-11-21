@@ -5,7 +5,7 @@ import { G, hex, sprite } from './render.js';
 const C = (h) => hex(h);
 const ue2three = (x, y, z) => new THREE.Vector3(x, z, y).normalize();
 
-function base() {
+export function base() {
   return {
     fog: C(0x4e6a6a), sky: C(0x142430),
     lit: new THREE.Vector4(1, 0.98, 0.94, 1.07), shadow: new THREE.Vector4(0.56, 0.6, 0.76, 0.86),
@@ -67,8 +67,8 @@ export class Environment {
   setCasinoMood(on) { this.casino = on; }
 
   update(dt, camPos, zone) {
-    if (zone >= 0) this.zone = zone;
-    const T = zonePalette(this.zone, this.casino);
+    if (zone >= 0 || typeof zone === 'string') this.zone = zone;
+    const T = this.palette ? this.palette(base(), this.zone) : zonePalette(this.zone, this.casino);
     const k = Math.min(1, dt * 1.6);
     const P = this.cur;
     P.fog.lerp(T.fog, k); P.sky.lerp(T.sky, k); P.lit.lerp(T.lit, k); P.shadow.lerp(T.shadow, k); P.sprite.lerp(T.sprite, k);
@@ -88,6 +88,7 @@ export class Environment {
     const up = new THREE.Vector3(0, 1, 0);
     const right = new THREE.Vector3(), u = new THREE.Vector3(), c = new THREE.Vector3();
     const cloud = this.cur.fog.clone().lerp(new THREE.Color(1, 1, 1), 0.35);
+    if (this.noSky) return;
     for (const s of this.skySprites) {
       right.crossVectors(up, s.dir).normalize();
       u.crossVectors(s.dir, right).normalize();

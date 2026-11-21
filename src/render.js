@@ -159,6 +159,16 @@ export async function loadAtlas(base = '') {
   }
 }
 
+// each map's creatures are their own atlas, fetched the first time that map is played
+export async function loadCreaturePack(k, base = '') {
+  const name = 'creatures' + (k || '');
+  if (Atlas.tex[name]) return;
+  const blob = await (await fetch(base + 'atlas_' + name + '.png')).blob();
+  const t = await new THREE.TextureLoader().loadAsync(URL.createObjectURL(blob));
+  t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
+  Atlas.tex[name] = t;
+}
+
 export function sprite(name) {
   const m = Atlas.meta[name];
   if (!m) { console.warn('missing sprite', name); return Atlas.meta.FX_Disc; }

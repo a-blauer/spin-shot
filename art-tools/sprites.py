@@ -17,10 +17,11 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import vectorkit  # noqa: E402
-from creatures import ROSTER  # noqa: E402
+PACK = int(sys.argv[1]) if len(sys.argv) > 1 else 0   # 0 = Deadwater Gulch; 1.. = one pack of creatures per extra map
+ROSTER = __import__('creatures' if PACK == 0 else 'creatures_m%d' % PACK).ROSTER
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
-OUT = os.path.join(ROOT, 'RawArt', 'Sprites', 'Creatures')
+OUT = os.path.join(ROOT, 'RawArt', 'Sprites', 'Creatures' + (str(PACK) if PACK else ''))
 PREVIEW = os.path.join(ROOT, 'RawArt', 'preview')
 PX_PER_UNIT = 1.4     # texture resolution (design units are 0.5 cm)
 CM_PER_UNIT = 0.5
@@ -62,10 +63,11 @@ def build():
         x = (i % cols) * cell + (cell - im.width) // 2
         y = (i // cols) * cell + (cell - im.height) - 8
         sheet.alpha_composite(im, (x, y))
-    sheet.save(os.path.join(PREVIEW, 'creatures.png'))
+    sheet.save(os.path.join(PREVIEW, 'creatures%s.png' % (PACK or '')))
     with open(os.path.join(OUT, 'parts.json'), 'w') as f:
         json.dump(table, f, indent=1)
-    write_inl(table)
+    if PACK == 0:
+        write_inl(table)
     print('rendered %d parts for %d creatures' % (len(table), len(ROSTER)))
 
 

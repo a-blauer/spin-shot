@@ -505,7 +505,7 @@ export class Hud {
     { let fs = 84 * S; const tw = this.measure(`${Math.max(r, 0)}`, fs, F_BIG); if (tw > 86 * S) fs *= (86 * S) / tw;
       this.text('ROUND', 80 * S, 70 * S, 13 * S, 'rgba(242,232,213,0.8)', 'center', F_TXT, 700, 0.1);
       this.text(`${Math.max(r, 0)}`, 80 * S, 104 * S + this.fs(fs) * 0.42, fs, col, 'center', F_BIG, 400, 0.08); }
-    const zn = game.final && game.final.active ? 'BENEATH DEADWATER' : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
+    const zn = game.final && game.final.active ? game.map.final.under : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
     let info = '', ic = BONE;
     if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? 'THE CRYPT' : 'THE CRYPT IS OPEN'; ic = GOLD; }
     else if (game.phase === 'Round') info = `${game.remaining()} LEFT`;
@@ -932,7 +932,7 @@ export class Hud {
     g.fillStyle = 'rgba(20,10,4,0.78)'; g.fillRect(0, 0, W, H);
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
-    this.text('Deadwater Gulch is cleared. The Founder is back in the ground.', W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
+    this.text(game.map.final.win, W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
     const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);

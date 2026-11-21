@@ -6,7 +6,8 @@ import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
 import { Net } from './net.js';
 import * as THREE from 'three';
-import { loadAtlas, Atlas } from './render.js';
+import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
+import { MAPS } from './maps.js';
 import { setParts } from './puppet.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
@@ -17,6 +18,7 @@ import { Meta, ACHIEVEMENTS, SKINS, GUN_LEVELS, GUN_TRAITS, rewardText } from '.
 THREE.ColorManagement.enabled = false;
 const params = new URLSearchParams(location.search);
 const TEST = params.has('test');
+const URLMAP = params.has('map') ? +params.get('map') : -1;   // ?map=1 builds that map straight away (tests)
 Meta.load(); Meta.setUnlockAll(TEST);
 
 const glCanvas = document.getElementById('gl');
@@ -138,9 +140,11 @@ async function boot() {
   setParts(await (await fetch('parts.json')).json());
   const img = new Image(); img.src = Atlas.blobUrl.fx; await img.decode().catch(() => {});
   hud.setAtlas(img, Atlas.meta);
-  status('Building Deadwater Gulch...');
+  const map0 = MAPS[URLMAP >= 0 ? URLMAP : Meta.map()] ? (URLMAP >= 0 ? URLMAP : Meta.map()) : 0;
+  status(MAPS[map0].loading);
+  await loadCreaturePack(MAPS[map0].pack);
   await new Promise((r) => setTimeout(r, 20));
-  game = new Game(renderer, audio, hud);
+  game = new Game(renderer, audio, hud, map0);
   game.settings = Object.assign(game.settings, settings);
   await game.build();
   window.__dmh = game;
@@ -291,7 +295,8 @@ function renderLobby() {
   // map
   h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`).join('') + '</section>';
   h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
-  h += '<section><h3>MAP</h3><div class="lbpick sel"><b>Deadwater Gulch</b><span>A dead town, its outskirts and the Badlands beyond</span></div><div class="lbpick locked"><b>More maps</b><span>Coming later</span></div></section></div>';
+  const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
+  h += '<section><h3>MAP</h3>' + (client ? `<div class="lbpick sel"><b>${MAPS[curMap].name}</b><span>The host chooses</span></div>` : MAPS.map((M, i) => `<div class="lbpick ${curMap === i ? 'sel' : ''}" data-map="${i}"><b>${M.name}</b><span>${M.blurb}</span><span class="dim">${M.rounds} rounds${Meta.stat('clear_' + M.id) ? '  -  cleared on ' + DIFFS[Meta.stat('clear_' + M.id) - 1].name : ''}</span></div>`).join('')) + '</section></div>';
   h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : '<button id="lbstart" class="lbstart">START GAME</button>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
@@ -304,11 +309,17 @@ function renderLobby() {
   if (q('#lbleave')) q('#lbleave').onclick = (e) => { e.stopPropagation(); Net.leave(); lobbyMsg = ''; renderLobby(); };
   q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
   lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
-function beginRun() {
+let beginning = false;
+async function beginRun() {
+  if (beginning) return;
+  // the map is chosen in the lobby (the host's choice in co-op); if it is not the one standing, build it now
+  const hm = Net.role === 'client' ? Net.hostMap() : Meta.map(), want = MAPS[hm] ? hm : game.mapId;
+  if (want !== game.mapId && game.round === 0) { beginning = true; lobby.style.display = 'none'; await rebuildGame(want); beginning = false; }
   if (Net.role !== 'client') setDifficulty(Meta.difficulty());
   if (game.round === 0) game.player.setClass(Meta.cls());
   lobby.style.display = 'none'; locker.style.display = 'none';
@@ -326,7 +337,7 @@ function tickLobby(dt) {
     if (Net.hostStarted()) { beginRun(); return; }
     if (!Net.hostHere()) { Net.leave(); lobbyMsg = 'The host closed the lobby.'; renderLobby(); return; }
   }
-  const sig = Net.role + '|' + (Net.active ? Net.lobbyList().map((p) => p.name).join(',') : '') + '|' + !!Net.lobby + '|' + Net.tried;
+  const sig = Net.hostMap() + '|' + Net.role + '|' + (Net.active ? Net.lobbyList().map((p) => p.name).join(',') : '') + '|' + !!Net.lobby + '|' + Net.tried;
   if (sig !== lobbySig) { lobbySig = sig; renderLobby(); }
 }
 lobby.addEventListener('click', (e) => e.stopPropagation());
@@ -370,7 +381,18 @@ pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'
 pauseEl.querySelector('#prestart').onclick = () => { pauseEl.style.display = 'none'; restartRun(); };
 addEventListener('keydown', (e) => { if (e.code === 'KeyP' && game && mode === 'play' && !game.player.dead) { if (document.pointerLockElement) document.exitPointerLock(); setPaused(true); } });
 
-// ---- restart without reloading the page: build a fresh run on the same renderer, audio and assets
+// ---- a fresh game on the same renderer, audio and assets (a restart, or a different map)
+async function rebuildGame(mapId) {
+  title.style.display = 'flex'; document.body.classList.remove('ready'); status(MAPS[mapId].loading);
+  await loadCreaturePack(MAPS[mapId].pack);
+  await new Promise((r) => setTimeout(r, 30));
+  hud.toasts = []; hud.banners = []; hud.floaters = []; hud.roundBanner = null; hud.helpT = 99;
+  game = new Game(renderer, audio, hud, mapId);
+  game.settings = Object.assign(game.settings, settings);
+  await game.build();
+  window.__dmh = game;
+  status(''); document.body.classList.add('ready'); title.style.display = 'none';
+}
 let restarting = false;
 async function restartRun(toMenu) {
   if (restarting) return; restarting = true;
@@ -378,7 +400,7 @@ async function restartRun(toMenu) {
   mode = 'title'; title.style.display = 'flex'; document.body.classList.remove('ready'); status('Dealing a new hand...');
   await new Promise((r) => setTimeout(r, 30));
   hud.toasts = []; hud.banners = []; hud.floaters = []; hud.roundBanner = null; hud.helpT = 99;
-  game = new Game(renderer, audio, hud);
+  game = new Game(renderer, audio, hud, game.mapId);
   game.settings = Object.assign(game.settings, settings);
   await game.build();
   window.__dmh = game;

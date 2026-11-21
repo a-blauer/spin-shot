@@ -4,16 +4,17 @@ import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
-import { diff, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
+import { diff, difficulty, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
 import { World } from './world.js';
-import { Environment } from './env.js';
+import { Environment, base as envBase } from './env.js';
 import { Fx } from './fx.js';
 import { ViewModel, vmSun } from './viewmodel.js';
 import { Enemy } from './enemies.js';
 import { Player } from './player.js';
 import { Net } from './net.js';
 import { VAULT } from './mapzones.js';
+import { MAPS } from './maps.js';
 import { Projectiles, Hazards, Pickups } from './entities.js';
 import { G as UNI, updateCamBasis, Cam, sprite } from './render.js';
 
@@ -21,7 +22,8 @@ const INF = 1e9;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
 export class Game {
-  constructor(renderer, audio, hud) {
+  constructor(renderer, audio, hud, mapId = 0) {
+    this.mapId = MAPS[mapId] ? mapId : 0; this.map = MAPS[this.mapId];
     this.renderer = renderer;
     this.audio = audio;
     this.hud = hud;
@@ -34,7 +36,7 @@ export class Game {
     this.phys = new Physics();
     Net.attach(this);
     this.zones = []; this.spawnPoints = []; this.interactables = []; this.casinoDoors = [];
-    this.playerSpawn = V3(0, 100, 0); this.casinoBounds = null; this.casinoOutside = V3(0, 100, 0); this.casinoZone = 6;
+    this.playerSpawn = V3(0, 100, 0); this.casinoBounds = null; this.casinoOutside = V3(0, 100, 0); this.casinoZone = this.mapId === 0 ? 6 : -1;
     this.enemies = [];
     this.phase = 'PreGame'; this.phaseTimer = 6; this.round = 0;
     this.toSpawn = 0; this.spawned = 0; this.killed = 0; this.totalKills = 0; this.bossRound = false; this.bossSpawned = false; this.boss = null;
@@ -45,6 +47,7 @@ export class Game {
   async build() {
     this.fx = new Fx(this, this.scene);
     this.env = new Environment(this.scene, this.fx.batches.fx);
+    if (this.map.palette) { this.env.palette = this.map.palette; this.env.noSky = !!this.map.noSky; this.env.zone = 0; this.env.cur = this.map.palette(envBase(), 0); }
     this.world = new World(this.scene, this);
     this.world.build();
     this.projectiles = new Projectiles(this, this.scene);
@@ -57,7 +60,7 @@ export class Game {
     this.player.pos.copy(this.playerSpawn).add(V3(0, 0, 0));
     // UE yaw 60 -> forward (cos60, sin60) in UE XY -> three (x, z)
     const fx = Math.cos(60 * Math.PI / 180), fz = Math.sin(60 * Math.PI / 180);
-    this.player.yaw = Math.atan2(-fx, -fz);
+    this.player.yaw = this.map.spawnYaw !== undefined ? this.map.spawnYaw : Math.atan2(-fx, -fz);
     this.navRebuild(this.player.pos);
   }
 
@@ -283,7 +286,7 @@ export class Game {
     this.final = { gate: f, active: false, done: false, beam: null, safeR: 0, t: 0 };
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.toSpawn = this.spawned;
-    this.banner('THE CRYPT IS OPEN', lin(1, 0.8, 0.2), 6); this.hud.toast('Step into the light to face the Founder', '#ffd24d');
+    this.banner(this.map.final.open, lin(1, 0.8, 0.2), 6); this.hud.toast(this.map.final.toast, '#ffd24d');
     this.audio.play('S_LevelUp', 1); this.player.addShake(2);
   }
   enterVault() {
@@ -292,21 +295,21 @@ export class Game {
     P.pos.set(C.x, 100, C.z - VAULT.R + 260); P.vel.set(0, 0, 0); P.pitch = 0; P.yaw = 0; if (P.forward().z < 0) P.yaw = Math.PI;   // face the middle of the room
     P.invuln = 2; P.refillAll(); P.health = P.maxHealth;
     this.hud.hurtWhite = 0.35; this.audio.play('S_Door', 1, 0.6);
-    this.banner('THE CRYPT', lin(1, 0.25, 0.15), 3);
+    this.banner(this.map.final.arena, lin(1, 0.25, 0.15), 3);
   }
   startFinal() {
     const F = this.final; if (!F || F.active || F.done || this.net.role === 'client') return;
     F.active = true; F.gate = null; F.safeR = 0; F.beam = null;
     const C = this.vaultCenter();
-    this.boss = this.spawnEnemy(0, V3(C.x, 300, C.z + 300), false, 5, 1, 1 + 0.5 * this.net.ghosts.size, 0, false);
-    this.banner('THE FOUNDER', lin(1, 0.8, 0.2), 5); this.hud.toast('No one leaves Deadwater', '#ff5a4d');
+    this.boss = this.spawnEnemy(this.map.enemies[0], V3(C.x, 300, C.z + 300), false, this.map.finalBoss, 1, 1 + 0.5 * this.net.ghosts.size, 0, false);
+    this.banner(DATA.bosses[this.map.finalBoss].name.toUpperCase(), lin(1, 0.8, 0.2), 5); this.hud.toast(this.map.final.taunt, '#ff5a4d');
     this.audio.play('S_BossRoar', 1, 0.7);
   }
   levelComplete() {
     const F = this.final; if (F) { F.active = false; F.done = true; F.beam = null; F.safeR = 0; }
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.hazards.list.forEach((H) => { H.life = Math.min(H.life, H.age + 0.1); });
-    this.victory = true; this.levelDone = true; Meta.bump('wins'); Meta.save();
+    this.victory = true; this.levelDone = true; Meta.bump('wins'); Meta.bump('wins_' + this.map.id); Meta.best('clear_' + this.map.id, difficulty() + 1); Meta.save();
     this.audio.play('S_LevelUp', 1); this.player.addShake(2.5); this.hitstop = 0.4;
   }
   tickFinal(dt) {
@@ -392,8 +395,8 @@ export class Game {
       const loc = this.pickSpawn(false);
       if (loc) {
         this.bossSpawned = true;
-        const bi = (Math.floor(this.round / 3) - 1) % 5;   // the sixth boss only appears in the vault
-        this.boss = this.spawnEnemy(0, loc.add(V3(0, 200, 0)), false, bi, 1, 1, 0, false);
+        const bi = this.map.bosses[(Math.floor(this.round / 3) - 1) % this.map.bosses.length];   // the last boss only appears in the vault
+        this.boss = this.spawnEnemy(this.map.enemies[0], loc.add(V3(0, 200, 0)), false, bi, 1, 1, 0, false);
         const B = DATA.bosses[bi];
         this.banner(`BOSS: ${B.name.toUpperCase()}`, lin(1, 0.25, 0.15), 4);
         this.audio.play('S_BossRoar', 1, 0.8);
@@ -443,7 +446,7 @@ export class Game {
   // barricade (60s, then a 3 minute cooldown), thrown from the lever inside or with B.
   casinoInit() {
     for (const D of this.casinoDoors) { D.setOpen(true); this.NavBlockBox(D.navBox, -1); }
-    this.env.setCasinoMood(true);
+    this.env.setCasinoMood(this.mapId === 0);
     this.barricadeT = 0; this.barricadeCd = 0; this.fireSaleT = 0;
   }
   openCasinoPath() {
@@ -504,11 +507,13 @@ export class Game {
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   pickEnemyType() {
-    const er = effRound(this.round); let total = 0; const W = DATA.enemies.map((D) => { let w = er >= D.minRound ? D.weight : 0; if (D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });
+    const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });
     let r = Math.random() * total;
     for (let i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) return i; }
-    return 0;
+    return this.map.enemies[0];
   }
+  // this map's creature with a given behaviour (bosses call their own kind, never another map's)
+  enemyOfAI(ai, or) { const L = this.map.enemies; let i = L.find((k) => DATA.enemies[k].ai === ai); if (i === undefined && or) i = L.find((k) => DATA.enemies[k].ai === or); return i === undefined ? L[0] : i; }
   pickSpawn(fly) {
     const PL = this.player.pos;
     const c = [];
@@ -555,7 +560,7 @@ export class Game {
       this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bump('bosses');
-      if (E.boss.name === 'The Gravedigger' && !this.won) { this.won = true; this.openVault(loc); }
+      if (E.boss.last && !this.won) { this.won = true; this.openVault(loc); }
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     }
@@ -658,11 +663,11 @@ export class Game {
     // zone atmosphere
     const z = this.zoneAt(P.pos);
     if (z >= 0) this.zone = z;
-    this.env.update(dt, this.camera.position, this.inVault(P.pos) ? 7 : this.zone);
+    this.env.update(dt, this.camera.position, this.map.palette ? (this.inVault(P.pos) ? 'vault' : (this.zones[this.zone] ? this.zones[this.zone].group : this.env.zone)) : this.inVault(P.pos) ? 7 : this.zone);
     // audio listener + ambience
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
     this.audio.setListener(this.camera.position, fwd, V3(0, 1, 0));
-    this.audio.loop('S_AmbWind', this.zone === this.casinoZone ? 0.05 : 0.22);
+    this.audio.loop('S_AmbWind', this.map.wind !== undefined ? this.map.wind : this.zone === this.casinoZone ? 0.05 : 0.22);
 
   }
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked

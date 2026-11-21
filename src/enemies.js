@@ -41,7 +41,7 @@ export class Enemy {
       else this.baseSpeed = frandRange(150, 220);
     }
     if (this.isBoss) {
-      const B = this.boss = DATA.bosses[bossIndex]; if (bossIndex === 5) B.final = true;
+      const B = this.boss = DATA.bosses[bossIndex];
       const cycle = Math.max(0, Math.floor((this.round - 5) / 25));
       hp = zombieHealth(this.round) * B.hp * (1 + cycle * 0.5) * healthMul;
       this.bodyScale = B.scale * scaleMul;
@@ -51,7 +51,8 @@ export class Enemy {
       this.bodyColor = hexRGB(B.body);
       this.attackMask = B.attacks.map((a) => ATTACKS.indexOf(a));
     }
-    this.affixes = 0;
+    this.affixes = 0; this.innate = 0;
+    if (!this.isBoss && D.innate) for (const n of D.innate) this.innate |= 1 << AFFIX[n];   // what this kind of creature always is; not shown as a variant
     this.shield = 0; this.maxShield = 0;
     if (this.elite) {
       this.affixes = forcedAffixes;
@@ -72,7 +73,7 @@ export class Enemy {
       }
       if (this.affixes) { this.variant = true; this.money = Math.round(this.money * 1.5); }
     }
-    if (this.affixes) {
+    if (this.affixes | this.innate) {
       if (this.has('Hasted')) this.baseSpeed *= this.elite ? 1.6 : 1.35;
       if (this.has('Gilded')) this.money *= 3;
       if (this.has('Shielded')) { this.maxShield = hp * 0.5; this.shield = this.maxShield; }
@@ -120,7 +121,7 @@ export class Enemy {
   }
   get isBoss() { return this.bossIndex >= 0; }
   get emerging() { return this.emerge > 0; }
-  has(name) { return (this.affixes & (1 << AFFIX[name])) !== 0; }
+  has(name) { return ((this.affixes | this.innate) & (1 << AFFIX[name])) !== 0; }
   feet() { return new THREE.Vector3(this.pos.x, this.pos.y - this.feetOffset, this.pos.z); }
   headY() { const feet = this.pos.y - this.feetOffset, H = this.hitH || this.half * 2; return feet + H * (['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? 0.55 : this.ai === 'Flyer' ? 0.5 : this.puppet && this.puppet.headFrac ? this.puppet.headFrac : 0.74); }   // the head is the top quarter of what is drawn
   healthFrac() { return this.health / this.maxHealth; }
@@ -701,27 +702,27 @@ export class Enemy {
     if (this.pools && this.pools.length) { for (const Q of this.pools) { Q.t -= dt; if (Q.t <= 0) { const H = G.hazards.fire(Q.at, this.attackDamage * 0.4, 215, 9, lin(0.35, 0.95, 0.2)); if (H) H.label = 'Bile pool'; } } this.pools = this.pools.filter((Q) => Q.t > 0); }
     // ---- signature mechanics, by boss
     const hpf = this.health / this.maxHealth;
-    if (this.bossIndex === 2 || this.bossIndex === 4) {   // Mother Carrion (and the Gravedigger once): a ward that only her wisps hold up
-      const stage = this.bossIndex === 4 ? (hpf < 0.5 ? 1 : 0) : hpf < 0.33 ? 2 : hpf < 0.66 ? 1 : 0;
+    if (this.boss.mech === 'ward') {   // Mother Carrion (and the Gravedigger once): a ward that only her wisps hold up
+      const stage = this.boss.wardStages === 1 ? (hpf < 0.5 ? 1 : 0) : hpf < 0.33 ? 2 : hpf < 0.66 ? 1 : 0;
       if (stage > (this.wardStage || 0)) {
         this.wardStage = stage; this.ward = 14; this.wardKids = []; this.bossAttack = -1; this.windup = 0; this.bossTimer = 2;
-        const wisp = DATA.enemies.findIndex((d) => d.ai === 'Flyer');
+        const wisp = G.enemyOfAI('Flyer');
         for (let i = 0; i < 4 + stage; i++) { const a = i / (4 + stage) * Math.PI * 2, at = Me.clone().add(new THREE.Vector3(Math.cos(a) * 420, 160, Math.sin(a) * 420)); const K = G.spawnEnemy(wisp >= 0 ? wisp : this.boss.minion, at, false, -1, 1.25, 1.6, 0, false); if (K) { K.wardOf = this; this.wardKids.push(K); } }
         this.puppet.setTint([0.6, 0.8, 1.25]); G.audio.playAt('S_Screech', Me, 1.1, 0.8);
-        G.banner('WARDED - KILL THE WISPS', lin(0.5, 0.8, 1), 3);
+        G.banner(this.boss.wardText || 'WARDED - KILL THE WISPS', lin(0.5, 0.8, 1), 3);
       }
       if (this.ward > 0) {
         this.ward -= dt; this.wardKids = this.wardKids.filter((K) => !K.dead);
         if (!this.wardKids.length || this.ward <= 0) { this.ward = 0; this.exposedT = 3.5; this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); G.banner('THE WARD BREAKS', lin(1, 0.85, 0.4), 2); G.audio.playAt('S_Door', Me, 1, 1.4); }
       }
     }
-    if (this.bossIndex === 1) {   // the Abomination comes apart as it is hurt
+    if (this.boss.mech === 'shed') {   // the Abomination comes apart as it is hurt
       const stage = hpf < 0.25 ? 3 : hpf < 0.5 ? 2 : hpf < 0.75 ? 1 : 0;
       if (stage > (this.shedStage || 0)) {
         this.shedStage = stage;
-        const crawler = DATA.enemies.findIndex((d) => d.ai === 'Crawler');
+        const crawler = G.enemyOfAI('Crawler');
         for (let i = 0; i < 3 + stage; i++) { const out = G.findFreeLocationNear(Me, 150, 500); if (out) G.spawnEnemy(crawler >= 0 ? crawler : this.boss.minion, out.add(new THREE.Vector3(0, 70, 0)), false, -1, 1, 0.7, 0, false); }
-        G.fx.dust(this.feet(), lin(0.5, 0.15, 0.15), 240); G.audio.playAt('S_Gib', Me, 1.2, 0.7); G.banner('IT IS COMING APART', lin(0.9, 0.3, 0.3), 2);
+        G.fx.dust(this.feet(), lin(0.5, 0.15, 0.15), 240); G.audio.playAt('S_Gib', Me, 1.2, 0.7); G.banner(this.boss.shedText || 'IT IS COMING APART', lin(0.9, 0.3, 0.3), 2);
       }
     }
     if (this.exposedT > 0) {   // staggered: stands there and takes half again as much
@@ -792,7 +793,7 @@ export class Enemy {
       case 'Volley': {
         this.stop();
         if (this.bossT > 0.4 + this.bossStep * 0.35 && this.bossStep < 3) {
-          const cards = this.bossIndex === 3;
+          const cards = !!this.boss.cards;
           this.fireAt(Pl, cards ? 1700 : 1300, 0, this.attackDamage * 0.45, cards ? 0 : 80, cards ? 'Card' : 'Orb', cards ? [1, 1, 1] : lin(1, 0.3, 0.3), this.enraged ? 9 : 7, 9);
           this.bossStep++;
         }
@@ -841,7 +842,7 @@ export class Enemy {
         this.windup = 1; this.stop();
         const rings = this.enraged ? 4 : 3;
         if (this.bossStep < rings && this.bossT > 0.5 + this.bossStep * 0.75) {
-          G.hazards.ring(feet, this.attackDamage * 0.6, 800 + this.bossStep * 150, 2400, this.bossIndex === 3 ? lin(0.2, 1, 0.5) : lin(1, 0.3, 0.2));
+          G.hazards.ring(feet, this.attackDamage * 0.6, 800 + this.bossStep * 150, 2400, this.boss.cards ? lin(0.2, 1, 0.5) : lin(1, 0.3, 0.2));
           this.bossStep++;
         }
         if (this.bossStep >= rings) done();
@@ -957,7 +958,7 @@ export class Enemy {
     // act change: roar, shove everyone back, call the floor staff
     if (act > this.fAct) {
       this.fAct = act; this.finalInv = 2.6; this.fAtk = 'roar'; this.fT = 0; this.fStep = 0; F.beam = null;
-      G.banner(act === 2 ? 'THE SEAL CRACKS' : 'DEADWATER BURNS', lin(1, 0.25, 0.1), 3.5); G.audio.playAt('S_BossRoar', this.pos, 1, act === 3 ? 0.6 : 0.8);
+      G.banner(G.map.final.acts[act - 2], lin(1, 0.25, 0.1), 3.5); G.audio.playAt('S_BossRoar', this.pos, 1, act === 3 ? 0.6 : 0.8);
       G.hazards.ring(this.feet(), dmg * 0.5, 1300, 2200, lin(1, 0.3, 0.15)); G.player.addShake(2);
       this.enraged = act === 3; if (act === 3) { this.baseSpeed *= 1.45; F.safeR = R0; }
       this.fSummon = 0.5;
@@ -966,7 +967,7 @@ export class Enemy {
     this.fSummon -= dt;
     if (act >= 2 && this.fSummon <= 0 && G.enemies.filter((e) => !e.dead).length < 14) {
       this.fSummon = act === 3 ? 16 : 22;
-      for (let i = 0; i < (act === 3 ? 6 : 4); i++) { const a = Math.random() * 6.28, r = 400 + Math.random() * 700; const E = G.spawnEnemy([0, 1, 1, 5][randInt(0, 3)], new THREE.Vector3(C.x + Math.cos(a) * r, 110, C.z + Math.sin(a) * r), false, -1, 1, 0.6, 0, false); E.emerge = 1.5; }
+      for (let i = 0; i < (act === 3 ? 6 : 4); i++) { const a = Math.random() * 6.28, r = 400 + Math.random() * 700; const E = G.spawnEnemy(G.enemyOfAI(['Walker', 'Runner', 'Runner', 'Leaper'][randInt(0, 3)], 'Runner'), new THREE.Vector3(C.x + Math.cos(a) * r, 110, C.z + Math.sin(a) * r), false, -1, 1, 0.6, 0, false); E.emerge = 1.5; }
     }
     const face = () => { if (dist > 10) this.yaw = Math.atan2(To.x, To.z); };
     // ---- running an attack

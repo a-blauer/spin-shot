@@ -5830,7 +5830,9 @@
 "money": 60,
 "minRound": 1,
 "weight": 10.0,
-"desc": "The classic. Slow, hungry, endless."
+"desc": "The classic. Slow, hungry, endless.",
+"map": 0,
+"art": "Shambler"
 },
 {
 "name": "Sprinter",
@@ -5847,7 +5849,9 @@
 "money": 70,
 "minRound": 3,
 "weight": 4.0,
-"desc": "Fresh and fast. Arms flailing."
+"desc": "Fresh and fast. Arms flailing.",
+"map": 0,
+"art": "Sprinter"
 },
 {
 "name": "Gutter Crawler",
@@ -5864,7 +5868,9 @@
 "money": 60,
 "minRound": 4,
 "weight": 3.0,
-"desc": "Legless and low. Hard to hit, easy to trip over."
+"desc": "Legless and low. Hard to hit, easy to trip over.",
+"map": 0,
+"art": "Crawler"
 },
 {
 "name": "Bloater",
@@ -5881,7 +5887,9 @@
 "money": 90,
 "minRound": 5,
 "weight": 2.0,
-"desc": "Bursts in a caustic blast when killed or close."
+"desc": "Bursts in a caustic blast when killed or close.",
+"map": 0,
+"art": "Bloater"
 },
 {
 "name": "Spitter",
@@ -5898,7 +5906,9 @@
 "money": 80,
 "minRound": 6,
 "weight": 2.5,
-"desc": "Keeps its distance and lobs acid."
+"desc": "Keeps its distance and lobs acid.",
+"map": 0,
+"art": "Spitter"
 },
 {
 "name": "Leaper",
@@ -5915,7 +5925,9 @@
 "money": 80,
 "minRound": 7,
 "weight": 2.5,
-"desc": "Pounces from far away. Watch the rooftops."
+"desc": "Pounces from far away. Watch the rooftops.",
+"map": 0,
+"art": "Leaper"
 },
 {
 "name": "Carrion Wisp",
@@ -5932,7 +5944,9 @@
 "money": 50,
 "minRound": 8,
 "weight": 2.5,
-"desc": "Flying skull-bat. Ignores walls and doors."
+"desc": "Flying skull-bat. Ignores walls and doors.",
+"map": 0,
+"art": "Wisp"
 },
 {
 "name": "Brute",
@@ -5949,7 +5963,9 @@
 "money": 200,
 "minRound": 9,
 "weight": 1.2,
-"desc": "Hulking slab of meat. Ground-pounds."
+"desc": "Hulking slab of meat. Ground-pounds.",
+"map": 0,
+"art": "Brute"
 },
 {
 "name": "Screamer",
@@ -5966,7 +5982,9 @@
 "money": 120,
 "minRound": 10,
 "weight": 1.2,
-"desc": "Its shriek makes nearby enemies frenzied."
+"desc": "Its shriek makes nearby enemies frenzied.",
+"map": 0,
+"art": "Screamer"
 },
 {
 "name": "Burrower",
@@ -5983,7 +6001,9 @@
 "money": 120,
 "minRound": 11,
 "weight": 1.2,
-"desc": "Tunnels under the street to pop up beside you."
+"desc": "Tunnels under the street to pop up beside you.",
+"map": 0,
+"art": "Burrower"
 },
 {
 "name": "Gilded Ghoul",
@@ -6000,7 +6020,9 @@
 "money": 600,
 "minRound": 4,
 "weight": 0.35,
-"desc": "Runs away. Drops a fortune if you catch it."
+"desc": "Runs away. Drops a fortune if you catch it.",
+"map": 0,
+"art": "Gilded"
 },
 {
 "name": "Riot Ghoul",
@@ -6017,7 +6039,9 @@
 "money": 150,
 "minRound": 12,
 "weight": 1.0,
-"desc": "Carries a door as a shield. Flank it."
+"desc": "Carries a door as a shield. Flank it.",
+"map": 0,
+"art": "Riot"
 },
 {
 "name": "Hex Priest",
@@ -6034,7 +6058,189 @@
 "money": 160,
 "minRound": 13,
 "weight": 0.9,
-"desc": "Heals the horde. Kill it first."
+"desc": "Heals the horde. Kill it first.",
+"map": 0,
+"art": "Priest"
+},
+{
+"name": "Pit Hand",
+"ai": "Walker",
+"shape": "Humanoid",
+"hp": 1.0,
+"speed": 210,
+"dmg": 28,
+"range": 140,
+"cd": 1.2,
+"scale": 1.0,
+"body": 7240299,
+"head": 10336394,
+"money": 60,
+"minRound": 1,
+"weight": 10.0,
+"desc": "A miner who never clocked off. The candle on his hat still burns.",
+"map": 1,
+"art": "PitHand"
+},
+{
+"name": "Tallow Runner",
+"ai": "Runner",
+"shape": "Humanoid",
+"hp": 0.8,
+"speed": 530,
+"dmg": 22,
+"range": 140,
+"cd": 1.0,
+"scale": 0.95,
+"body": 14207392,
+"head": 15786680,
+"money": 70,
+"minRound": 2,
+"weight": 4.0,
+"desc": "Dipped in candle wax and quick with it.",
+"map": 1,
+"art": "Tallow"
+},
+{
+"name": "Pale Crawler",
+"ai": "Crawler",
+"shape": "Crawler",
+"hp": 0.6,
+"speed": 380,
+"dmg": 18,
+"range": 120,
+"cd": 0.8,
+"scale": 0.8,
+"body": 13222596,
+"head": 15130336,
+"money": 60,
+"minRound": 3,
+"weight": 3.0,
+"desc": "Born in the dark. No eyes; it does not need them.",
+"map": 1,
+"art": "PaleCrawler"
+},
+{
+"name": "Gasbag",
+"ai": "Bloater",
+"shape": "Bloated",
+"hp": 2.2,
+"speed": 170,
+"dmg": 45,
+"range": 200,
+"cd": 1.0,
+"scale": 1.25,
+"body": 8364138,
+"head": 11125898,
+"money": 90,
+"minRound": 4,
+"weight": 2.0,
+"desc": "Swollen with firedamp. Goes up like a blast charge.",
+"map": 1,
+"art": "Gasbag",
+"innate": [
+"Volatile"
+]
+},
+{
+"name": "Powderman",
+"ai": "Spitter",
+"shape": "Humanoid",
+"hp": 0.9,
+"speed": 260,
+"dmg": 20,
+"range": 1900,
+"cd": 2.6,
+"scale": 1.0,
+"body": 9067066,
+"head": 16747066,
+"money": 80,
+"minRound": 5,
+"weight": 2.5,
+"desc": "Still setting charges. Lobs lit sticks from across the cavern.",
+"map": 1,
+"art": "Powderman",
+"innate": [
+"Blazing"
+]
+},
+{
+"name": "Gloom Bat",
+"ai": "Flyer",
+"shape": "Flyer",
+"hp": 0.5,
+"speed": 480,
+"dmg": 12,
+"range": 130,
+"cd": 0.9,
+"scale": 0.75,
+"body": 3814464,
+"head": 16765514,
+"money": 50,
+"minRound": 6,
+"weight": 2.5,
+"desc": "Hangs from the roof until it hears you.",
+"map": 1,
+"art": "GloomBat"
+},
+{
+"name": "Rockworm",
+"ai": "Burrower",
+"shape": "Crawler",
+"hp": 1.5,
+"speed": 300,
+"dmg": 30,
+"range": 150,
+"cd": 1.1,
+"scale": 1.0,
+"body": 6969936,
+"head": 10128000,
+"money": 120,
+"minRound": 7,
+"weight": 1.4,
+"desc": "Chews through the seam and comes up under your feet.",
+"map": 1,
+"art": "Rockworm"
+},
+{
+"name": "The Mule",
+"ai": "Brute",
+"shape": "Brute",
+"hp": 3.4,
+"speed": 250,
+"dmg": 55,
+"range": 200,
+"cd": 1.6,
+"scale": 1.6,
+"body": 5917248,
+"head": 9075306,
+"money": 200,
+"minRound": 8,
+"weight": 1.2,
+"desc": "Hauled ore carts alive. Plated in what it hauled.",
+"map": 1,
+"art": "Mule",
+"innate": [
+"Armored"
+]
+},
+{
+"name": "Nugget Thief",
+"ai": "Gilded",
+"shape": "Humanoid",
+"hp": 1.6,
+"speed": 470,
+"dmg": 0,
+"range": 0,
+"cd": 1.0,
+"scale": 0.9,
+"body": 13225430,
+"head": 15265012,
+"money": 600,
+"minRound": 3,
+"weight": 0.35,
+"desc": "Runs for the lift with a sack of silver. Catch it.",
+"map": 1,
+"art": "Nugget"
 }
 ],
 "affixes": [
@@ -6108,7 +6314,9 @@
 ],
 "minion": 0,
 "reward": 2500,
-"desc": "The stockyard's enforcer. Sidestep his charge and he is winded; stand in his chain's line and he drags you into a swing."
+"desc": "The stockyard's enforcer. Sidestep his charge and he is winded; stand in his chain's line and he drags you into a swing.",
+"map": 0,
+"art": "BigTony"
 },
 {
 "name": "The Abomination",
@@ -6127,7 +6335,10 @@
 ],
 "minion": 1,
 "reward": 3500,
-"desc": "A dozen enemies sewn into one. It leaps, spits bile that poisons the ground, and sheds crawlers as it comes apart."
+"desc": "A dozen enemies sewn into one. It leaps, spits bile that poisons the ground, and sheds crawlers as it comes apart.",
+"map": 0,
+"art": "Abomination",
+"mech": "shed"
 },
 {
 "name": "Mother Carrion",
@@ -6146,7 +6357,11 @@
 ],
 "minion": 6,
 "reward": 4000,
-"desc": "Dives along a marked line and rains bile. Twice she wards herself: nothing hurts her until her wisps are dead."
+"desc": "Dives along a marked line and rains bile. Twice she wards herself: nothing hurts her until her wisps are dead.",
+"map": 0,
+"art": "Carrion",
+"mech": "ward",
+"wardStages": 2
 },
 {
 "name": "The Undertaker",
@@ -6165,7 +6380,10 @@
 ],
 "minion": 4,
 "reward": 4500,
-"desc": "Vanishes and swings from behind you, and lays walls of nails with a single gap to find."
+"desc": "Vanishes and swings from behind you, and lays walls of nails with a single gap to find.",
+"map": 0,
+"art": "Croupier",
+"cards": 1
 },
 {
 "name": "The Gravedigger",
@@ -6189,7 +6407,12 @@
 ],
 "minion": 7,
 "reward": 7000,
-"desc": "The town itself, walking. Every trick the others had, and a ward of its own at half health."
+"desc": "The town itself, walking. Every trick the others had, and a ward of its own at half health.",
+"map": 0,
+"art": "Gravedigger",
+"mech": "ward",
+"wardStages": 1,
+"last": 1
 },
 {
 "name": "The Founder",
@@ -6203,7 +6426,125 @@
 "attacks": [],
 "minion": 1,
 "reward": 25000,
-"desc": "Waits in the crypt under the clock tower. Throws blades, lights the seal and burns the room down around you."
+"desc": "Waits in the crypt under the clock tower. Throws blades, lights the seal and burns the room down around you.",
+"map": 0,
+"art": "LastDealer",
+"final": 1
+},
+{
+"name": "The Shift Boss",
+"title": "Overseer of the Night Shift",
+"hp": 15,
+"speed": 300,
+"dmg": 45,
+"scale": 2.4,
+"body": 3816004,
+"head": 12094058,
+"attacks": [
+"Charge",
+"Sweep",
+"Slam",
+"Summon",
+"Hook"
+],
+"minion": 13,
+"reward": 2500,
+"desc": "Runs the shift with a steam drill. Sidestep the charge and he is winded.",
+"map": 1,
+"art": "ShiftBoss"
+},
+{
+"name": "The Canary",
+"title": "It Stopped Singing",
+"hp": 28,
+"speed": 240,
+"dmg": 36,
+"scale": 2.4,
+"body": 13215786,
+"head": 16769658,
+"attacks": [
+"Volley",
+"Dive",
+"Barrage",
+"Teleport"
+],
+"minion": 18,
+"reward": 3500,
+"desc": "A cage with something in it that used to warn them. Twice it wards itself behind its bats.",
+"map": 1,
+"art": "Canary",
+"mech": "ward",
+"wardStages": 2,
+"wardText": "WARDED - KILL THE BATS"
+},
+{
+"name": "The Motherlode",
+"title": "The Seam That Walks",
+"hp": 34,
+"speed": 250,
+"dmg": 55,
+"scale": 2.6,
+"body": 4876938,
+"head": 9099519,
+"attacks": [
+"Leap",
+"Pools",
+"Sweep",
+"Ring"
+],
+"minion": 15,
+"reward": 4000,
+"desc": "Ore, crystal and whoever dug too close. Breaks apart into crawlers as you chip it down.",
+"map": 1,
+"art": "Motherlode",
+"mech": "shed",
+"shedText": "THE SEAM SPLITS"
+},
+{
+"name": "The King Below",
+"title": "Warden of the Lowest Level",
+"hp": 40,
+"speed": 320,
+"dmg": 58,
+"scale": 2.0,
+"body": 1710626,
+"head": 7008448,
+"attacks": [
+"Charge",
+"Hook",
+"Sweep",
+"NailWall",
+"Pools",
+"Ambush",
+"Ring",
+"Summon"
+],
+"minion": 19,
+"reward": 7000,
+"desc": "What the mine was dug to reach. Everything the others had, and a ward at half health.",
+"map": 1,
+"art": "DeepKing",
+"mech": "ward",
+"wardStages": 1,
+"wardText": "WARDED - KILL THE BATS",
+"last": 1
+},
+{
+"name": "Baron Blackwater",
+"title": "Owner of Everything Down Here",
+"hp": 70,
+"speed": 250,
+"dmg": 55,
+"scale": 4.0,
+"body": 1707540,
+"head": 13225430,
+"attacks": [],
+"minion": 13,
+"reward": 25000,
+"desc": "He sealed the shaft with the night shift still in it. He has been waiting at the bottom ever since.",
+"map": 1,
+"art": "Baron",
+"final": 1
 }
 ]
 }

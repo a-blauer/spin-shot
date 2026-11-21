@@ -44,6 +44,9 @@ def atlases():
         'creatures': ['Creatures'],
         'fx': ['FX', 'Decals', 'Props', 'Icons'],
     }
+    for k in range(1, 9):
+        if os.path.isdir(os.path.join(SPR, 'Creatures%d' % k)):
+            groups['creatures%d' % k] = ['Creatures%d' % k]
     meta = {}
     for aname, folders in groups.items():
         ims = []
@@ -56,7 +59,7 @@ def atlases():
                         im.thumbnail((256, 256), Image.LANCZOS)
                     ims.append((fn[:-4], im))
         ims.sort(key=lambda t: -t[1].height)
-        width = 4096 if aname == 'creatures' else 2048
+        width = 4096 if aname.startswith('creatures') else 2048
         place, height = pack(ims, width)
         H = 1
         while H < height:
@@ -77,6 +80,10 @@ def atlases():
 
 def parts():
     p = json.load(open(os.path.join(SPR, 'Creatures', 'parts.json')))
+    for k in range(1, 9):
+        f = os.path.join(SPR, 'Creatures%d' % k, 'parts.json')
+        if os.path.exists(f):
+            p += json.load(open(f))
     json.dump(p, open(os.path.join(PUB, 'parts.json'), 'w'))
 
 
@@ -102,9 +109,19 @@ def content():
         (n, ra, st, mods, tr, fx, chn, mag, cd, ds, insp) = u
         U.append({'name': n, 'rarity': ra, 'stacks': st, 'mods': [[m[0], m[1]] for m in mods], 'trigger': tr, 'fx': fx,
                   'chance': chn, 'mag': mag, 'cd': cd, 'desc': ds, 'insp': insp})
-    E = [dict(zip(['name', 'ai', 'shape', 'hp', 'speed', 'dmg', 'range', 'cd', 'scale', 'body', 'head', 'money', 'minRound', 'weight', 'desc'], e)) for e in c.EN]
+    EK = ['name', 'ai', 'shape', 'hp', 'speed', 'dmg', 'range', 'cd', 'scale', 'body', 'head', 'money', 'minRound', 'weight', 'desc']
+    E = [dict(zip(EK, e), map=0, art=c.EN_ART[i]) for i, e in enumerate(c.EN)]
+    for e in c.ENX:
+        d = dict(zip(EK, e[2:17]), map=e[0], art=e[1]); d.update(e[17]); E.append(d)
     A = [{'name': a[0], 'desc': a[1], 'color': a[2]} for a in c.AFFIX]
-    B = [dict(zip(['name', 'title', 'hp', 'speed', 'dmg', 'scale', 'body', 'head', 'attacks', 'minion', 'reward', 'desc'], b)) for b in c.BOSS]
+    BK = ['name', 'title', 'hp', 'speed', 'dmg', 'scale', 'body', 'head', 'attacks', 'minion', 'reward', 'desc']
+    B = []
+    for i, b in enumerate(c.BOSS):
+        d = dict(zip(BK, b), map=0, art=c.BOSS_ART[i]); d.update(c.BOSS_EXTRA[i]); B.append(d)
+    B[4]['last'] = 1
+    names = [e['name'] for e in E]
+    for b in c.BOSSX:
+        d = dict(zip(BK, b[2:14]), map=b[0], art=b[1]); d.update(b[14]); d['minion'] = names.index(d['minion']); B.append(d)
     json.dump({'weapons': W, 'upgrades': U, 'enemies': E, 'affixes': A, 'bosses': B}, open(os.path.join(WEB, 'src', 'content.json'), 'w'), indent=0)
     print('content', len(W), len(U), len(E), len(A), len(B))
 

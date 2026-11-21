@@ -28,7 +28,7 @@ export class Fx {
       sprite: new SpriteBatch(scene, 'sprite', 'fx', 3000, 4),
       fx: new SpriteBatch(scene, 'fx', 'fx', 3000, 5),
       add: new SpriteBatch(scene, 'add', 'fx', 2000, 6),
-      creature: new SpriteBatch(scene, 'sprite', 'creatures', 600, 4),
+      creature: new SpriteBatch(scene, 'sprite', 'creatures' + (game.map && game.map.pack ? game.map.pack : ''), 600, 4),
     };
     this.parts = [];
     this.decals = [];

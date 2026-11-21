@@ -51,7 +51,7 @@ export const Net = {
     this.name = cleanName(name); this.code = c;
     this.room = await this.lobby.join('spin-' + c.toLowerCase(), true); if (this.room.me) this.me = this.room.me;
     this.role = 'host'; this.hostPeer = this.me; this.wire();
-    this.started = false; await this.room.presence({ isHost: 1, name: this.name, look: Meta.lookStr(), started: 0 });
+    this.started = false; await this.room.presence({ isHost: 1, name: this.name, look: Meta.lookStr(), started: 0, map: Meta.map() });
   },
   // join by lobby code: enter the room, then wait for whoever is hosting it to show up in presence
   async join(code, name) {
@@ -270,6 +270,8 @@ export const Net = {
   lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe })); },
   hostHere() { return this.role !== 'client' || (this.room && this.room.peers().some((p) => p.peer === this.hostPeer)); },
   hostStarted() { if (this.role !== 'client' || !this.room) return false; const h = this.room.peers().find((p) => p.peer === this.hostPeer); return !!(h && h.presence && h.presence.started); },
+  setMap(i) { if (this.role === 'host' && this.room) this.room.presence({ map: i }).catch(() => {}); },
+  hostMap() { if (this.role !== 'client' || !this.room) return -1; const h = this.room.peers().find((p) => p.peer === this.hostPeer); const m = h && h.presence ? h.presence.map : -1; return Number.isInteger(m) ? m : -1; },
   refreshPresence() { if (this.room) this.room.presence({ name: this.name, look: Meta.lookStr() }).catch(() => {}); },
   team() { const out = []; for (const G of this.ghosts.values()) if (G.fresh) out.push({ name: G.name, hp: G.hp, dead: G.dead, host: G.peer === this.hostPeer }); return out; },
 };

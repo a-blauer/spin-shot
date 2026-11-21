@@ -648,11 +648,13 @@ export function BuildMesa(M, GM) {
 // The crypt: a round chamber far below the town, reached only through the hatch that opens when the
 // Gravedigger dies. A great seal cut into the floor, a ring of columns, cairns of stacked stone and hanging lamps.
 export const VAULT = { X: 0, Y: 24000, R: 1500 };
-export function BuildVault(M, GM) {
+export function BuildVault(M, GM, TH) {
   const { Box, Glow, Cyl, Ball, Lamp, Sign } = M;
+  // the last room is the same shape on every map; each map dresses it in its own colours
+  const T = Object.assign({ floor: 0x1a0e14, floor2: 0x2a141c, wedgeA: 0x6f6a5e, wedgeB: 0x121016, glow: 0xFFCD5A, colA: 0x3a1420, colB: 0x2a0e18, cap: 0xFFCD5A, slit: 0xFF4A2A, lamp: [1., 0.3, 0.15], cairn: [0x5a5348, 0x7a7264, 0x4a443c, 0x8f8672], chand: 0xFFCD5A, chandGlow: 0xFFE27A, chandLamp: [1., 0.75, 0.35], sign: 'NO ONE LEAVES DEADWATER', signCol: [255, 205, 90] }, TH || {});
   const C = V(VAULT.X, VAULT.Y, 0.), R0 = VAULT.R;
-  Cyl(C.add(V(0, 0, -40.)), R0 * 2 + 500., 80., 0x1a0e14, true, false);                    // floor slab
-  Cyl(C.add(V(0, 0, 1.)), R0 * 2 + 60., 2., 0x2a141c, false, false);
+  Cyl(C.add(V(0, 0, -40.)), R0 * 2 + 500., 80., T.floor, true, false);                    // floor slab
+  Cyl(C.add(V(0, 0, 1.)), R0 * 2 + 60., 2., T.floor2, false, false);
   // the seal: wedges of pale stone and black slate round a glowing hub
   for (let i = 0; i < 16; ++i)
   {
@@ -660,33 +662,33 @@ export function BuildVault(M, GM) {
     for (let k = 1; k <= 4; ++k)
     {
       const r = k * 320.;
-      Cyl(C.add(V(Math.cos(a) * r, Math.sin(a) * r, 2.5)), 150. + k * 60., 1., (i & 1) ? 0x6f6a5e : 0x121016, false, false);
+      Cyl(C.add(V(Math.cos(a) * r, Math.sin(a) * r, 2.5)), 150. + k * 60., 1., (i & 1) ? T.wedgeA : T.wedgeB, false, false);
     }
   }
-  Glow(C.add(V(0, 0, 4.)), V(360., 360., 3.), 0xFFCD5A, 1);
-  for (let i = 0; i < 4; ++i) { const a = i / 4 * Math.PI * 2 + 0.4; Glow(C.add(V(Math.cos(a) * (R0 - 40.), Math.sin(a) * (R0 - 40.), 4.)), V(120., 120., 3.), 0xFFCD5A, 1); }
+  Glow(C.add(V(0, 0, 4.)), V(360., 360., 3.), T.glow, 1);
+  for (let i = 0; i < 4; ++i) { const a = i / 4 * Math.PI * 2 + 0.4; Glow(C.add(V(Math.cos(a) * (R0 - 40.), Math.sin(a) * (R0 - 40.), 4.)), V(120., 120., 3.), T.glow, 1); }
   // wall of columns with gold caps, and a dark drum behind them
   for (let i = 0; i < 44; ++i)
   {
     const a = i / 44 * Math.PI * 2, P = C.add(V(Math.cos(a) * (R0 + 110.), Math.sin(a) * (R0 + 110.), 0));
-    Cyl(P.add(V(0, 0, 450.)), 235., 900., (i & 1) ? 0x3a1420 : 0x2a0e18, true, false);
-    Cyl(P.add(V(0, 0, 915.)), 270., 30., 0xFFCD5A, false, false);
-    if (i % 4 === 0) { Glow(P.add(V(-Math.cos(a) * 130., -Math.sin(a) * 130., 520.)), V(60., 60., 90.), 0xFF4A2A, 3); Lamp(P.add(V(-Math.cos(a) * 200., -Math.sin(a) * 200., 520.)), LC(1., 0.3, 0.15), 12., 1300., false); }
+    Cyl(P.add(V(0, 0, 450.)), 235., 900., (i & 1) ? T.colA : T.colB, true, false);
+    Cyl(P.add(V(0, 0, 915.)), 270., 30., T.cap, false, false);
+    if (i % 4 === 0) { Glow(P.add(V(-Math.cos(a) * 130., -Math.sin(a) * 130., 520.)), V(60., 60., 90.), T.slit, 3); Lamp(P.add(V(-Math.cos(a) * 200., -Math.sin(a) * 200., 520.)), LC(T.lamp[0], T.lamp[1], T.lamp[2]), 12., 1300., false); }
   }
   // cairns along the edge
   for (let i = 0; i < 12; ++i)
   {
     const a = i / 12 * Math.PI * 2 + 0.13, P = C.add(V(Math.cos(a) * (R0 - 150.), Math.sin(a) * (R0 - 150.), 0)), n = 3 + (i * 7) % 5;
-    for (let k = 0; k < n; ++k) Cyl(P.add(V((k % 2) * 9., (k % 3) * 5., 12. + k * 24.)), 120. - k * 9., 22., [0x5a5348, 0x7a7264, 0x4a443c, 0x8f8672][(i + k) % 4], k === 0, false);
+    for (let k = 0; k < n; ++k) Cyl(P.add(V((k % 2) * 9., (k % 3) * 5., 12. + k * 24.)), 120. - k * 9., 22., T.cairn[(i + k) % 4], k === 0, false);
   }
   // chandeliers
   for (let i = 0; i < 5; ++i)
   {
     const a = i / 4 * Math.PI * 2, r = i === 4 ? 0. : 760., P = C.add(V(Math.cos(a) * r, Math.sin(a) * r, 880.));
-    Cyl(P, 260., 16., 0xFFCD5A, false, false); Glow(P.add(V(0, 0, -30.)), V(180., 180., 40.), 0xFFE27A, 1);
-    Lamp(P.add(V(0, 0, -80.)), LC(1., 0.75, 0.35), 16., 1800., false);
+    Cyl(P, 260., 16., T.chand, false, false); Glow(P.add(V(0, 0, -30.)), V(180., 180., 40.), T.chandGlow, 1);
+    Lamp(P.add(V(0, 0, -80.)), LC(T.chandLamp[0], T.chandLamp[1], T.chandLamp[2]), 16., 1800., false);
   }
-  Sign(C.add(V(-R0 + 60., 0, 620.)), 0., "NO ONE LEAVES DEADWATER", FC(255, 205, 90), 90.);
+  Sign(C.add(V(-R0 + 60., 0, 620.)), 0., T.sign, FC(T.signCol[0], T.signCol[1], T.signCol[2]), 90.);
 }
 
 // The outskirts: four districts built for moving fast. Blocks of flat-roofed buildings at mixed heights with ramps up,

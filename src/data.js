@@ -38,8 +38,8 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   'SwapSpeed', 'DeadeyeCrit', 'DeadeyeReload', 'RushShield', 'HealthMelee', 'TurretRange', 'TurretBurn', 'TurretBlast', 'StillDamage', 'HeadCrit', 'HeadExecute', 'GrenadeDamage', 'BlastBurn', 'GrenadeSave', 'ClusterAll'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
-export const ENEMY_CREATURES = ['Shambler', 'Sprinter', 'Crawler', 'Bloater', 'Spitter', 'Leaper', 'Wisp', 'Brute', 'Screamer', 'Burrower', 'Gilded', 'Riot', 'Priest'];
-export const BOSS_CREATURES = ['BigTony', 'Abomination', 'Carrion', 'Croupier', 'Gravedigger', 'LastDealer'];
+export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);
+export const BOSS_CREATURES = DATA.bosses.map((b) => b.art);
 
 export const TONICS = [
   { name: 'Vigor Tonic', desc: '+25 max health', base: 1500, step: 600, max: 8 },
