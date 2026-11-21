@@ -706,6 +706,8 @@ export class World {
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
       'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
     M.RotFromXY = RotFromXY; M.GM = GM; M.world = this;
+    // nothing walks under a ramp: the ground beneath it is closed to the flow field (creatures hop up after you instead)
+    M.Ramp = (b, t, w, col) => { this.Ramp(b, t, w, col); const ax = Math.abs(t.X - b.X) > Math.abs(t.Y - b.Y), h = w / 2 - 30; GM.NavBlockBox({ min: V(Math.min(b.X, t.X) - (ax ? 0 : h), Math.min(b.Y, t.Y) - (ax ? h : 0), 0), max: V(Math.max(b.X, t.X) + (ax ? 0 : h), Math.max(b.Y, t.Y) + (ax ? h : 0), 150) }, 1); };
     M.Districts = (list) => list.forEach(([name, zs], gi) => { for (const zi of zs) { GM.zones[zi].name = name; GM.zones[zi].group = gi; } });
     M.Spawn = (v) => { GM.playerSpawn = v.to3(); };
     this.decor = [];

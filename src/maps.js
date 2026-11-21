@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { DATA } from './data.js';
 import { buildMine, MINE_LOOT } from './map_mine.js';
+import { buildFrost, FROST_LOOT, frostAmbient } from './map_frost.js';
 
 const C = (h) => new THREE.Color(h);
 const sun = (x, y, z) => new THREE.Vector3(x, z, y).normalize();
@@ -31,6 +32,26 @@ export const MAPS = [
     vault: { floor: 0x0c1416, floor2: 0x122024, wedgeA: 0x4a5a5e, wedgeB: 0x0a1012, glow: 0x6AF0C0, colA: 0x1c2a30, colB: 0x141e24, cap: 0xC9CDD6, slit: 0x3AE0B0, lamp: [0.3, 1.0, 0.8], cairn: [0x3a4448, 0x56646a, 0x2c3438, 0x7a8a90], chand: 0xC9CDD6, chandGlow: 0x9AF0DC, chandLamp: [0.5, 1.0, 0.85], sign: 'PROPERTY OF BARON BLACKWATER', signCol: [150, 240, 210] },
     final: { arena: 'THE BOTTOM OF THE SHAFT', open: 'THE LIFT IS RUNNING', toast: 'Step into the light to ride down to the Baron', under: 'THE BOTTOM OF THE SHAFT', acts: ['THE PROPS GIVE WAY', 'THE SEAM IS ALIGHT'], taunt: 'The shift is not over',
       win: 'Blackwater Mine is quiet. The Baron stays at the bottom.' } },
+  { id: 'frost', name: 'Frostbite Junction', blurb: 'A mountain rail depot under snow: boxcar alleys, an engine shed, a frozen lake and the open pass.', pack: 2, loading: 'Digging out the line...',
+    build: buildFrost, loot: FROST_LOOT, ambient: frostAmbient, wind: 0.34, spawnYaw: Math.PI,
+    palette(P, zone) {
+      P.sky = C(0x0c1830); P.fog = C(0x6a8fb0); P.fogStart = 800; P.fogDensity = 0.00024; P.fogMax = 0.88; P.sun = sun(0.5, -0.45, 0.6);
+      P.lit.set(0.94, 0.99, 1.08, 1.05); P.shadow.set(0.5, 0.6, 0.84, 0.86); P.sprite.setRGB(0.94, 0.99, 1.06);
+      switch (zone) {
+        case 0: P.fog = C(0x7088a6); P.lit.set(1.0, 0.98, 1.0, 1.05); break;                                          // the station: lamps on the platform
+        case 1: P.fog = C(0x5c7494); P.shadow.set(0.46, 0.56, 0.8, 0.86); break;                                      // the freight yard
+        case 2: P.fog = C(0x6a7890); P.lit.set(1.0, 0.97, 0.98, 1.05); P.shadow.set(0.54, 0.58, 0.76, 0.86); break;     // the roundhouse
+        case 3: P.fog = C(0x8aa6c6); P.fogStart = 600; P.fogDensity = 0.00032; P.fogMax = 0.92; break;                 // the pass: blowing snow
+        case 4: P.fog = C(0x7fb0c8); P.sky = C(0x102a40); P.shadow.set(0.48, 0.66, 0.86, 0.86); break;                 // the lake
+        case 5: P.fog = C(0x566c92); P.lit.set(1.0, 0.97, 0.98, 1.05); P.shadow.set(0.48, 0.54, 0.8, 0.86); break;      // bunkhouse row
+        case 'vault': P.fog = C(0x1a3050); P.sky = C(0x050a18); P.lit.set(0.92, 0.98, 1.1, 1.05); P.shadow.set(0.4, 0.5, 0.78, 0.82); P.fogStart = 1100; P.fogDensity = 0.00021; P.fogMax = 0.8; break;
+        default: break;
+      }
+      return P;
+    },
+    vault: { floor: 0x101a2a, floor2: 0x16243a, wedgeA: 0xaac0d0, wedgeB: 0x0c1220, glow: 0x4AA8E8, colA: 0x1c2a44, colB: 0x141e34, cap: 0xdfe8ee, slit: 0xFF4A3A, lamp: [1.0, 0.3, 0.25], cairn: [0xdfe8ee, 0x9fc8de, 0xb8c6d2, 0x6a7686], chand: 0x8a8f99, chandGlow: 0xFF5A4A, chandLamp: [1.0, 0.4, 0.3], sign: 'THE LINE IS CLOSED', signCol: [255, 120, 100] },
+    final: { arena: 'THE END OF THE LINE', open: 'THE LAST TRAIN IS IN', toast: 'Step into the light to ride to the end of the line', under: 'THE END OF THE LINE', acts: ['THE LINE BUCKLES', 'THE BOILERS BLOW'], taunt: 'Nothing leaves on time',
+      win: 'Frostbite Junction is dug out. The line is open.' } },
 ];
 
 MAPS.forEach((M, i) => {

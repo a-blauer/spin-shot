@@ -652,6 +652,7 @@ export class Game {
     P.update(dt, input);
     for (const E of this.enemies) E.update(dt);
     this.tickFinal(dt);
+    if (this.map.ambient && !this.inVault(P.pos)) this.map.ambient(this, dt);
     this.net.tick(dt);
     if (this.net.role !== 'client') { this.separate(dt); this.unstick(dt); this.tickStragglers(dt); }
     this.enemies = this.enemies.filter((E) => !E.remove);

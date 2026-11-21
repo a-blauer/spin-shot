@@ -442,6 +442,16 @@ ENX = [
  (1, "Rockworm", "Rockworm", "Burrower", "Crawler", 1.5, 300, 30, 150, 1.1, 1.0, 0x6A5A50, 0x9A8A80, 120, 7, 1.4, "Chews through the seam and comes up under your feet.", {}),
  (1, "Mule", "The Mule", "Brute", "Brute", 3.4, 250, 55, 200, 1.6, 1.6, 0x5A4A40, 0x8A7A6A, 200, 8, 1.2, "Hauled ore carts alive. Plated in what it hauled.", {'innate': ['Armored']}),
  (1, "Nugget", "Nugget Thief", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0xC9CDD6, 0xE8ECF4, 600, 3, 0.35, "Runs for the lift with a sack of silver. Catch it.", {}),
+ # 2. Frostbite Junction
+ (2, "Brakeman", "Brakeman", "Walker", "Humanoid", 1.0, 210, 28, 140, 1.2, 1.0, 0x3A3F52, 0x9FB4C4, 60, 1, 10.0, "Froze at his post with the lamp lit. His touch slows you.", {'innate': ['Frozen']}),
+ (2, "Snowblind", "Snowblind", "Runner", "Humanoid", 0.8, 530, 22, 140, 1.0, 0.95, 0xA9B8C6, 0xE8EEF2, 70, 2, 4.0, "Took his coat off at the end, as they do. Runs at anything warm.", {}),
+ (2, "RimeCrawler", "Rime Crawler", "Crawler", "Crawler", 0.6, 380, 18, 120, 0.8, 0.8, 0x8FA6BA, 0x8FD0F0, 60, 3, 3.0, "The drift took his legs. Ice has grown out of his back.", {'innate': ['Frozen']}),
+ (2, "Scald", "Scald", "Bloater", "Bloated", 2.2, 170, 45, 200, 1.0, 1.25, 0xB8705E, 0xFF7A2A, 90, 4, 2.0, "A fireman with a boiler's worth of steam in him. Stand back when he goes.", {}),
+ (2, "Hailer", "Hailer", "Spitter", "Humanoid", 0.9, 260, 20, 1900, 2.6, 1.0, 0x5A4A40, 0x8FD0F0, 80, 5, 2.5, "Breaks icicles off the eaves and throws them. Each one that lands slows you.", {'innate': ['Frozen']}),
+ (2, "SnowOwl", "Whiteout Owl", "Flyer", "Flyer", 0.5, 480, 12, 130, 0.9, 0.75, 0xE6ECF0, 0xFFD24A, 50, 6, 2.5, "Silent until it is on you.", {}),
+ (2, "TimberWolf", "Timber Wolf", "Leaper", "Crawler", 0.85, 440, 24, 140, 1.0, 1.1, 0x8A94A0, 0xDFF4FF, 80, 7, 2.5, "Came down out of the pass when the meat stopped running. Pounces.", {}),
+ (2, "Whitepelt", "Whitepelt", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.6, 0xDFE6EC, 0x4A5A70, 200, 8, 1.2, "What the old trappers would not name.", {}),
+ (2, "Paymaster", "Paymaster", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0x2A3550, 0xF2D25A, 600, 3, 0.35, "The company's wages, and the man who would not put them down.", {}),
 ]
 # map, art, then the same fields as BOSS (minion is a creature name), then extras
 BOSSX = [
@@ -455,6 +465,16 @@ BOSSX = [
   "What the mine was dug to reach. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE BATS', 'last': 1}),
  (1, "Baron", "Baron Blackwater", "Owner of Everything Down Here", 70, 250, 55, 4.0, 0x1a0e14, 0xC9CDD6, [], "Pit Hand", 25000,
   "He sealed the shaft with the night shift still in it. He has been waiting at the bottom ever since.", {'final': 1}),
+ (2, "Stoker", "The Stoker", "He Fed the Firebox", 15, 300, 45, 2.8, 0x7A4A3C, 0xFF6A1A, ["Charge", "Sweep", "Pools", "Slam", "Summon"], "Scald", 2500,
+  "Fed the firebox until it fed on him. He scatters live coals; sidestep the charge and he is winded.", {}),
+ (2, "Conductor", "The Conductor", "All Tickets, Please", 28, 340, 40, 2.6, 0x1C2238, 0x7AF0A0, ["Ambush", "NailWall", "Teleport", "Ring", "Volley"], "Brakeman", 3500,
+  "Every ticket was punched. He steps out of the snow behind you and throws them like knives.", {'cards': 1}),
+ (2, "Widow", "The White Widow", "Waiting on the Platform", 30, 230, 36, 2.8, 0xE6EEF4, 0x8FD0F0, ["Volley", "Dive", "Barrage", "Summon"], "Whiteout Owl", 4000,
+  "She waited for a train that is still coming. Twice she wards herself behind her owls.", {'mech': 'ward', 'wardStages': 2, 'wardText': 'WARDED - KILL THE OWLS'}),
+ (2, "Wendigo", "The Wendigo", "The Hunger of the Pass", 40, 330, 58, 2.6, 0x5A544E, 0xDFF4FF, ["Charge", "Hook", "Sweep", "Leap", "NailWall", "Ambush", "Ring", "Summon"], "Timber Wolf", 7000,
+  "What the pass is named for. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE OWLS', 'last': 1}),
+ (2, "Stationmaster", "The Stationmaster", "He Never Cleared the Line", 70, 250, 55, 4.2, 0x1C2238, 0xFF4A3A, [], "Brakeman", 25000,
+  "Every signal on the mountain is at danger because he set it there. Nothing leaves until he says.", {'final': 1}),
 ]
 
 # ---------------------------------------------------------------- GENERATION

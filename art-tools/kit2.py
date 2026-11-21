@@ -13,7 +13,7 @@ POSE = dict(L=((-60, 246), (-66, 192), -96), R=((62, 250), (60, 196), -84))
 def man(cn, H=400, w=1.0, hw=1.0, skin='#8f9d7c', top='#cdbf9f', pants='#54453c', boot='#3a2c26', slump=0.4, belly=0.0, chest=1.0,
         jaw=0.5, eye='#f1e3a0', hair=None, gaunt=1.0, teeth=(5, 4), brow=1.0, ears=True, hx=0, torn=(0.3, 0.0), bare_feet=False,
         leg_bulk=1.0, foot_w=1.0, stance=None, pose=None, sleeve=True, sleeve_to=(0.6, 0.3), claw=None, curl=(0.3, 0.2), hr=None, arm_bulk=1.0,
-        belt='#2e2420', half=None, sh=None, legs=True, neck=True):
+        belt='#2e2420', half=None, sh=None, legs=True, neck=True, gown=None):
     """A standing figure: legs, trunk, head, arms. Returns the parts by name so the caller can dress them.
     `pose` gives each arm's elbow, wrist (in 400-figure units) and hand angle; `stance` = (hip x, knee x, ankle x) for a broad build."""
     F = fig(H, w, hw); k = F['k']
@@ -23,7 +23,13 @@ def man(cn, H=400, w=1.0, hw=1.0, skin='#8f9d7c', top='#cdbf9f', pants='#54453c'
         for i, side in enumerate((-1, 1)):
             kw = dict(hip=(side * stance[0] * k, 198 * k), knee=(side * stance[1] * k, 104 * k), ank=(side * stance[2] * k, 16 * k)) if stance else {}
             m.legs.append(leg2(cn, side, F, pants, skin, torn=torn[i], boot=boot, bulk=leg_bulk, bare_foot=bare_feet, foot_w=foot_w, **kw))
-    m.b, m.td = body(cn, F, top, belly=belly, chest=chest, slump=slump, half=half)
+    if gown:   # robed: no legs, a long garment to the ground drawn under the trunk
+        m.legs = []
+        m.b = part(cn + '_Body', BODY, (0, 120 * k), 1)
+        skirt(m.b, F, **gown)
+        m.td = S(m.b, M(torso_pts(F, belly, chest, slump)), top)
+    else:
+        m.b, m.td = body(cn, F, top, belly=belly, chest=chest, slump=slump, half=half)
     if belt is not None:
         trousers_top(m.b, m.td, F, pants, belt=belt or None)
     m.h, m.hd, m.L = skull(cn, F, skin, cx=hx * k, jaw=jaw, eye=eye, hair=hair, gaunt=gaunt, teeth=teeth, brow=brow, ears=ears, neck=neck)
@@ -57,3 +63,26 @@ def bird_leg(cn, side, hipx, k, col, plume=None, seed=0):
         p.flat(path_limb([(side * (hipx + 2) * k, 12 * k), ((side * (hipx + 2) + dx) * k, 4 * k)], [4.6 * k, 3.2 * k], n_end=4), col)
         p.flat([((side * (hipx + 2) + dx - 3) * k, 6 * k), ((side * (hipx + 2) + dx + 3) * k, 6 * k), ((side * (hipx + 2) + dx * 1.45) * k, -2 * k + 2)], '#1c1614', smooth=False)
     return p
+
+
+def coat_skirts(b, k, col, w=54, flare=70, bottom=116, split=190):
+    """The skirts of a long coat, hanging open below the waist."""
+    b.flat(q(k, [(-w, 240), (w, 240), (flare, bottom), (flare * 0.6, bottom - 16), (20, split - 22), (0, split), (-20, split - 22), (-flare * 0.6, bottom - 16), (-flare, bottom)]), col, smooth=False)
+
+
+def spikes(p, pts, col, hl=None):
+    """Icicles, thorns, teeth: each (x, y, length, half-width, angle in degrees)."""
+    for (x, y, l, w, ang) in pts:
+        a = math.radians(ang); nx, ny = -math.sin(a) * w, math.cos(a) * w; e = (x + math.cos(a) * l, y + math.sin(a) * l)
+        p.flat([(x + nx, y + ny), e, (x - nx, y - ny)], col, smooth=False)
+        if hl:
+            p.flat([(x + nx, y + ny), e, (x + nx * 0.2, y + ny * 0.2)], hl, smooth=False)
+
+
+def peaked_cap(m, col, band, badge='#d8b85a'):
+    """A railwayman's or officer's cap: flat crown, band, a short shiny peak."""
+    h, X, Y = m.h, m.X, m.Y
+    P(h, [(X(-23), Y(46)), (X(-26), Y(60)), (X(-14), Y(66)), (X(14), Y(66)), (X(26), Y(60)), (X(23), Y(46))], col)
+    h.flat([(X(-23), Y(46)), (X(23), Y(46)), (X(24), Y(52)), (X(-24), Y(52))], band, smooth=False)
+    P(h, [(X(-22), Y(46.5)), (X(22), Y(46.5)), (X(19), Y(41)), (X(0), Y(39)), (X(-19), Y(41))], '#101014')
+    h.flat(ellipse(X(0), Y(55), 3.6 * m.u, 4 * m.u, n=8), badge)
