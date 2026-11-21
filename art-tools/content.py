@@ -462,6 +462,17 @@ ENX = [
  (3, "Bullfrog", "Bullfrog", "Leaper", "Crawler", 0.85, 440, 24, 140, 1.0, 1.2, 0x4A5A34, 0xD85A2A, 80, 7, 2.5, "Sits in the shallows like a boulder, and then does not.", {}),
  (3, "Mossback", "Mossback", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.6, 0x3E5A30, 0xFFB04A, 200, 8, 1.2, "Something the swamp grew in the shape of a man.", {}),
  (3, "GraveRobber", "Grave Robber", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0x3A3A30, 0xF2D25A, 600, 3, 0.35, "What he took out of the tombs is still on him. Run him down.", {}),
+ # 4. Carnival of Ash
+ (4, "Roustabout", "Roustabout", "Walker", "Humanoid", 1.0, 210, 28, 140, 1.2, 1.0, 0xCFC6AC, 0x8F8A7C, 60, 1, 10.0, "Drove the tent pegs. Still has the maul.", {}),
+ (4, "Tumbler", "Tumbler", "Runner", "Humanoid", 0.8, 540, 22, 140, 1.0, 0.95, 0x3A5A7A, 0xE8E2D6, 70, 2, 4.0, "An acrobat, still in costume, still quick.", {}),
+ (4, "Contortionist", "Contortionist", "Crawler", "Crawler", 0.6, 390, 18, 120, 0.8, 0.85, 0x5A2A5A, 0xC2B4A8, 60, 3, 3.0, "Folded the way she folded for the crowd, and stayed that way.", {}),
+ (4, "Glutton", "The Glutton", "Bloater", "Bloated", 2.2, 170, 45, 200, 1.0, 1.25, 0x7A2A5A, 0xC8A898, 90, 4, 2.0, "They paid to watch her eat. Do not be near when she is full.", {}),
+ (4, "KnifeThrower", "Knife Thrower", "Spitter", "Humanoid", 0.9, 260, 22, 1900, 2.4, 1.0, 0x2A2A34, 0xC9CDD6, 80, 5, 2.5, "He did the act blindfold. He still does, and he still does not miss by much.", {}),
+ (4, "BalloonClown", "Balloon Clown", "Flyer", "Flyer", 0.5, 460, 12, 130, 0.9, 0.8, 0xC8B83A, 0xB8322A, 50, 6, 2.5, "The balloons outlasted him. They go where they like.", {}),
+ (4, "Jack", "Jack", "Burrower", "Crawler", 1.5, 300, 30, 150, 1.1, 0.9, 0x3A5A7A, 0xE8E2D6, 120, 7, 1.4, "The box was a prop. It goes under the sawdust and comes up beside you.", {}),
+ (4, "Lion", "Mangy Lion", "Leaper", "Crawler", 0.95, 450, 26, 140, 1.0, 1.15, 0x8A7448, 0x33241A, 90, 8, 2.2, "Nobody fed him after the fire. Pounces from a long way off.", {}),
+ (4, "Strongman", "Strongman", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.5, 0xB89A86, 0xC8A04A, 200, 9, 1.2, "Lifted the bar every night, twice on Saturdays. Brings it down on you.", {}),
+ (4, "Barker", "The Barker", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0xCFC6AC, 0xF2D25A, 600, 3, 0.35, "He has the night's takings and he is not sharing.", {}),
 ]
 # map, art, then the same fields as BOSS (minion is a creature name), then extras
 BOSSX = [
@@ -495,6 +506,16 @@ BOSSX = [
   "His boat hook drags you in. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE SKEETERS', 'last': 1}),
  (3, "MotherMourn", "Mother Mourn", "The Lagoon's Own", 70, 250, 55, 4.0, 0x2A3A2E, 0xB6F06A, [], "The Drowned", 25000,
   "The lagoon took her, and then it was hers. Everything in the parish goes down to her in the end.", {'final': 1}),
+ (4, "Cannonball", "The Human Cannonball", "Fired Twice Nightly", 15, 330, 45, 2.7, 0x7A2A26, 0xFF7A2A, ["Charge", "Leap", "Slam", "Sweep", "Summon"], "Tumbler", 2500,
+  "He liked being fired out of the gun. Sidestep him when he comes and he ploughs on, winded.", {}),
+ (4, "Zora", "Madame Zora", "She Saw It Coming", 28, 300, 38, 2.7, 0x3A2A5A, 0xB58CFF, ["Ambush", "Teleport", "Volley", "NailWall", "Ring"], "Contortionist", 3500,
+  "She saw the fire in the cards and stayed for it. Never where you last saw her; deals the deck at you.", {'cards': 1}),
+ (4, "Twins", "The Twins", "Billed as Inseparable", 32, 260, 52, 3.0, 0x2A5A5A, 0x7A2A5A, ["Leap", "Pools", "Sweep", "Ring"], "Tumbler", 4000,
+  "Two of them in one coat. They come apart as you hurt them, and what comes off them runs at you.", {'mech': 'shed', 'shedText': 'THEY ARE COMING APART', 'shedAI': 'Runner'}),
+ (4, "Grin", "Grin", "The Last Clown", 40, 320, 58, 2.5, 0xC8B83A, 0xFF5A4A, ["Charge", "Hook", "Sweep", "NailWall", "Pools", "Ambush", "Ring", "Summon"], "Jack", 7000,
+  "He was never the funny one. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - POP THE BALLOONS', 'last': 1}),
+ (4, "Ringmaster", "The Ringmaster", "The Show Must Go On", 70, 250, 55, 4.0, 0x8A1C1C, 0xFF7A2A, [], "Roustabout", 25000,
+  "He would not stop the show for a fire, so the fire joined the bill. Yours is the last act.", {'final': 1}),
 ]
 
 # ---------------------------------------------------------------- GENERATION

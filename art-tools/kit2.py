@@ -86,3 +86,51 @@ def peaked_cap(m, col, band, badge='#d8b85a'):
     h.flat([(X(-23), Y(46)), (X(23), Y(46)), (X(24), Y(52)), (X(-24), Y(52))], band, smooth=False)
     P(h, [(X(-22), Y(46.5)), (X(22), Y(46.5)), (X(19), Y(41)), (X(0), Y(39)), (X(-19), Y(41))], '#101014')
     h.flat(ellipse(X(0), Y(55), 3.6 * m.u, 4 * m.u, n=8), badge)
+
+
+def big_cat(cn, fur, dark, pale, mane, eye):
+    """A lion seen from the front: a mane round a broad skull, the chest, forelegs under it, haunches past the shoulders."""
+    parts = []
+    for side in (-1, 1):
+        role = LEG_F if side > 0 else LEG_B
+        p = part('%s_%s' % (cn, role), role, (side * 50, 100), 0)
+        S(p, ellipse(side * 52, 100, 24, 34, n=14), dark)
+        p.flat(path_limb([(side * 58, 80), (side * 72, 44), (side * 64, 8)], [10, 6.5, 6], n_end=4), dark); p.flat(ellipse(side * 66, 5, 11, 6, n=8), dark)
+        parts.append(p)
+    b = part(cn + '_Body', BODY, (0, 84), 1)
+    b.flat(path_limb([(40, 120), (96, 150), (120, 110), (112, 70)], [5, 4, 3, 2.4], n_end=3), fur); b.flat(ellipse(112, 64, 9, 12, n=8), mane)     # the tail and its tuft
+    td = S(b, M([(0, 162), (26, 160), (48, 138), (52, 106), (44, 78), (24, 60), (0, 56)]), fur)
+    b.clipped(td, M([(0, 150), (14, 146), (20, 116), (14, 84), (0, 72)]), pale)
+    for i in range(4):
+        b.clipped(td, [(28, 134 - i * 12), (50, 128 - i * 12), (50, 124 - i * 12), (28, 129 - i * 12)], shade(fur, 0.6), smooth=False, opacity=0.8)
+        b.clipped(td, [(-28, 134 - i * 12), (-50, 128 - i * 12), (-50, 124 - i * 12), (-28, 129 - i * 12)], shade(fur, 0.6), smooth=False, opacity=0.8)
+    parts.append(b)
+    h = part(cn + '_Head', HEAD, (0, 132), 2)
+    rnd = random.Random(7)
+    spikes(h, [(math.cos(a) * 30, 168 + math.sin(a) * 28, 26 + rnd.uniform(0, 34), 7 + rnd.uniform(0, 5), math.degrees(a) + rnd.uniform(-14, 14)) for a in [i / 22 * 6.283 for i in range(22) if i not in (3, 4, 15)]], mane, shade(mane, 0.8))
+    S(h, blobby(0, 168, 42, 40, n=18, jitter=0.12, seed=4), mane)
+    S(h, M([(0, 128), (12, 128), (20, 118), (16, 98), (0, 92)]), dark)                                                                         # lower jaw
+    h.flat(M([(0, 122), (8, 120), (7, 104), (0, 100)]), '#7a2a30')
+    for s in (-1, 1):
+        spikes(h, [(s * 13, 122, 13, 2.6, 90), (s * 6, 124, 7, 1.8, 90)], BONE)
+    hd = S(h, M([(0, 196), (16, 194), (30, 180), (32, 160), (26, 144), (18, 134), (14, 118), (0, 114)]), fur)
+    h.clipped(hd, M([(0, 156), (9, 152), (14, 134), (13, 118), (0, 114)]), pale)
+    for s in (-1, 1):
+        S(h, ellipse(s * 26, 196, 9, 9, n=10), fur); h.flat(ellipse(s * 26, 196, 5, 5, n=8), '#3a3038')
+        h.clipped(hd, [(s * 7, 168), (s * 22, 174), (s * 24, 166), (s * 10, 161)], '#101014', smooth=False); h.clipped(hd, ellipse(s * 15.5, 167.5, 3, 2.4, n=8), eye)
+        spikes(h, [(s * 12, 120, 16, 3, -90)], BONE)
+        for j in range(3):
+            h.clipped(hd, path_limb([(s * 12, 132 - j * 3), (s * 34, 136 - j * 7)], [0.5, 0.3], n_end=2), '#e8e2d0')
+    h.clipped(hd, [(-7, 126), (7, 126), (4, 117), (-4, 117)], '#101014', smooth=False)
+    h.clipped(hd, [(-12, 122), (12, 122), (9, 113), (-9, 113)], BLOOD, smooth=False, opacity=0.7)
+    h.clipped(hd, [(14, 186), (17, 186), (24, 150), (21, 150)], '#7a3a3a', smooth=False)
+    for s in (-1, 1):
+        h.clipped(hd, [(s * 20, 158), (s * 30, 160), (s * 24, 140), (s * 17, 138)], shade(fur, 0.6), smooth=False, opacity=0.7)
+    parts.append(h)
+    for side in (-1, 1):
+        role = ARM_F if side > 0 else ARM_B
+        a = part('%s_%s' % (cn, role), role, (side * 26, 114), 3)
+        S(a, path_limb([(side * 26, 116), (side * 30, 64), (side * 26, 10)], [14, 9, 8]), fur)
+        a.flat(ellipse(side * 27, 6, 13, 7, n=10), fur); spikes(a, [(side * 27 + j * 7, 4, 9, 1.8, -90 + j * 10) for j in (-1, 0, 1)], '#1c1614')
+        parts.append(a)
+    return parts

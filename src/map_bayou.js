@@ -122,7 +122,7 @@ export function buildBayou(M) {
     // the yard at the north end: the well, a cook fire, a skiff hauled out
     Cyl(V(-5600, -700, 50), 200, 100, 0x6a6a5e, true, true); Cyl(V(-5600, -700, 102), 160, 6, 0x0e1a16, false, false); for (const s of [-1, 1]) Box(V(-5600 + s * 110, -700, 170), V(14, 14, 240), PLANK_D, false, false); Box(V(-5600, -700, 290), V(260, 20, 14), PLANK_D, false, false); Box(V(-5600, -700, 220), V(4, 4, 130), 0x7a6a4a, false, false);
     for (let k = 0; k < 6; k++) { const a = k * 1.047; Box(V(-3900 + Math.cos(a) * 70, -650 + Math.sin(a) * 70, 14), V(90, 22, 22), BARK_D, false, false, k * 60 + 90); } Glow(V(-3900, -650, 30), V(50, 50, 40), 0xFF6A2A, 3); Lamp(V(-3900, -650, 60), LC(1, 0.5, 0.2), 12, 1100, false);
-    BoxRot(V(-6500, -700, 70), V(520, 170, 80), 0x5a4632, R(0, 20, 8), true); for (const s of [-1, 1]) Box(V(-6500 + s * 160, -700 + s * 56, 24), V(30, 200, 48), PLANK_D, false, false);
+    BoxRot(V(-6500, -700, 70), V(520, 170, 80), 0x5a4632, R(0, 20, 8), true); K.solid(-6500, -700, 20, 520, 170, 150); for (const s of [-1, 1]) Box(V(-6500 + s * 160, -700 + s * 56, 24), V(30, 200, 48), PLANK_D, false, false);
     for (const [x, y] of [[-6820, -5000], [-6820, -3350], [-6820, -1850]]) { Barrel(V(x, y, 0), 0x4a3a30); Crate(V(x - 20, y + 140, 0), 100); }
     for (const [x, y] of [[-5600, -4100], [-4200, -2600], [-2800, -1000], [-4700, -400], [-6800, -2600]]) K.post(x, y, 380, LAMP, PLANK_D, 900);
     wallbuy('Sawbuck', -6896, -4100, 0); wallbuy('Homesteader', -3500, -36, -90);
@@ -161,7 +161,7 @@ export function buildBayou(M) {
     M.BlockerYaw(V(-200, 3900, 130), V(1500, 260, 260), 18); GM.NavBlockBox({ min: V(-920, 3620, 0), max: V(520, 4180, 150) }, 1);
     // the parish bell, where the flood left it; a pirogue with a hole in her
     ConeShape(V(1500, 3300, 110), V(300, 300, 280), 0x8a6a2a, false, R(28, 40, 0)); Oct(V(1500, 3300, 60), V(240, 240, 120), 0x7a5a22, true, true);
-    BoxRot(V(-1500, 5000, 40), V(460, 130, 70), 0x5a4632, R(0, -30, 10), true); BoxRot(V(600, 1900, 40), V(460, 130, 70), 0x4a3a2a, R(0, 70, -8), true);
+    BoxRot(V(-1500, 5000, 40), V(460, 130, 70), 0x5a4632, R(0, -30, 10), true); BoxRot(V(600, 1900, 40), V(460, 130, 70), 0x4a3a2a, R(0, 70, -8), true); K.solid(-1500, 5000, -30, 460, 130, 150); K.solid(600, 1900, 70, 460, 130, 150);
     for (const [x, y, z] of [[-1300, 2800, 180], [400, 2700, 240], [1500, 3900, 160], [-700, 5100, 220], [2100, 4900, 190], [-2100, 3300, 230], [800, 5100, 170]]) wisp(x, y, z);
     wallbuy('Frostbite Beam', 300, 5396, -90); wallbuy('Back-Alley', -2464, 2300, 0);
     for (const [x, y] of [[-2200, 5200], [2200, 5200], [0, 5250], [-2200, 1900], [2200, 1900], [900, 3500], [-1300, 4500]]) SpawnAt(V(x, y, 0), Z3);
@@ -185,7 +185,7 @@ export function buildBayou(M) {
       BoxRot(V(x, y, 600), V(580, 580, 14), 0x5a5a3a, R(6, 0, 0), false); Ramp(V(x - 1100, y, 0), V(x - 260, y, 388), 240, PLANK); K.lantern(x, y, 570, 0x8ad04a, 1000); }
     // a pier out into the biggest pool, half gone
     boardwalk(5600, 1500, 5900, 2300); for (const y of [1600, 1900, 2200]) for (const s of [-1, 1]) Cyl(V(5750 + s * 170, y, 40), 30, 110, BARK_D, false, false); K.post(5750, 1560, 340, LAMP, PLANK_D, 900);
-    BoxRot(V(4300, 700, 34), V(440, 130, 60), 0x5a4632, R(0, 50, 6), true); BoxRot(V(6400, 5000, 34), V(440, 130, 60), 0x4a3a2a, R(0, -20, -6), true);
+    BoxRot(V(4300, 700, 34), V(440, 130, 60), 0x5a4632, R(0, 50, 6), true); BoxRot(V(6400, 5000, 34), V(440, 130, 60), 0x4a3a2a, R(0, -20, -6), true); K.solid(4300, 700, 50, 440, 130, 150); K.solid(6400, 5000, -20, 440, 130, 150);
     for (const [x, y, h, d] of [[3000, 2300, 880, 220], [6500, 300, 900, 230], [4600, 5100, 860, 210], [6700, 4300, 820, 200], [2900, 700, 800, 190]]) cypress(x, y, h, d);
     for (const [x, y] of [[4000, 2200], [5200, 500], [4700, 3500], [6500, 3000]]) wisp(x, y, rr(150, 240));
     wallbuy('Lawman AR', 6896, 2500, 180); wallbuy('Copperhead', 3500, 36, 90);

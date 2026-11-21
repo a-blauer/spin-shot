@@ -5,6 +5,7 @@ import { DATA } from './data.js';
 import { buildMine, MINE_LOOT } from './map_mine.js';
 import { buildFrost, FROST_LOOT, frostAmbient } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient } from './map_bayou.js';
+import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient } from './map_carnival.js';
 
 const C = (h) => new THREE.Color(h);
 const sun = (x, y, z) => new THREE.Vector3(x, z, y).normalize();
@@ -73,6 +74,26 @@ export const MAPS = [
     vault: { floor: 0x0e1612, floor2: 0x16241a, wedgeA: 0x5a6a52, wedgeB: 0x0c1210, glow: 0x5AA02A, colA: 0x1c2a20, colB: 0x16201a, cap: 0x8a8a6a, slit: 0x5AA02A, lamp: [0.6, 1.0, 0.3], cairn: [0x4a5a44, 0x6a7a5a, 0x3a4636, 0x8a8a7a], chand: 0xb9974a, chandGlow: 0x8ad04a, chandLamp: [0.7, 1.0, 0.4], sign: 'ALL GO ACROSS', signCol: [170, 230, 110] },
     final: { arena: 'UNDER THE LAGOON', open: 'THE WATER PARTS', toast: 'Step into the light to go down to Mother Mourn', under: 'UNDER THE LAGOON', acts: ['THE ROOTS WAKE', 'THE LAGOON RISES'], taunt: 'All go across',
       win: 'Mourning Bayou is still. The lagoon keeps its own.' } },
+  { id: 'carnival', name: 'Carnival of Ash', blurb: 'A travelling show that burned and kept performing: the midway, the big top, a hall of mirrors, the menagerie and the wheel.', pack: 4, loading: 'Raising the big top...',
+    build: buildCarnival, loot: CARNIVAL_LOOT, ambient: carnivalAmbient, wind: 0.16, spawnYaw: Math.PI,
+    palette(P, zone) {
+      P.sky = C(0x12060a); P.fog = C(0x4a2a22); P.fogStart = 800; P.fogDensity = 0.00025; P.fogMax = 0.88; P.sun = sun(0.3, 0.5, 0.75);
+      P.lit.set(1.06, 0.98, 0.9, 1.05); P.shadow.set(0.62, 0.48, 0.52, 0.86); P.sprite.setRGB(1.04, 0.98, 0.94);
+      switch (zone) {
+        case 0: P.fog = C(0x3a2a34); P.sky = C(0x0e0612); P.shadow.set(0.56, 0.46, 0.6, 0.86); break;                      // the gate: dusk, the bulbs just on
+        case 1: P.fog = C(0x5a3420); P.lit.set(1.08, 0.98, 0.86, 1.05); P.shadow.set(0.66, 0.5, 0.46, 0.86); break;         // the midway: all bulbs
+        case 2: P.fog = C(0x4a1c1c); P.sky = C(0x1a0808); P.lit.set(1.08, 0.94, 0.86, 1.05); P.shadow.set(0.66, 0.42, 0.42, 0.86); P.fogStart = 1200; P.fogDensity = 0.0002; break;   // under canvas
+        case 3: P.fog = C(0x2a3a5a); P.sky = C(0x080a16); P.lit.set(0.96, 1.0, 1.08, 1.05); P.shadow.set(0.48, 0.54, 0.78, 0.86); P.sprite.setRGB(0.95, 1, 1.06); break;   // the mirrors: cold
+        case 4: P.fog = C(0x3e3222); P.shadow.set(0.6, 0.5, 0.42, 0.86); break;                                           // the menagerie: straw and lamp oil
+        case 5: P.fog = C(0x4a2a3e); P.sky = C(0x160814); P.shadow.set(0.6, 0.44, 0.6, 0.86); P.fogDensity = 0.00021; break;  // under the wheel
+        case 'vault': P.fog = C(0x3a1410); P.sky = C(0x0e0404); P.lit.set(1.08, 0.94, 0.84, 1.05); P.shadow.set(0.62, 0.38, 0.38, 0.82); P.fogStart = 1100; P.fogDensity = 0.00021; P.fogMax = 0.8; break;
+        default: break;
+      }
+      return P;
+    },
+    vault: { floor: 0x1a0c0c, floor2: 0x2a1410, wedgeA: 0xcfc6ac, wedgeB: 0x6a1a1a, glow: 0xD89A2A, colA: 0x7a1c1c, colB: 0xbcb49a, cap: 0xD8B85A, slit: 0xFF6A2A, lamp: [1.0, 0.45, 0.15], cairn: [0x8a2a26, 0xcfc6ac, 0x3a5a7a, 0xc8b83a], chand: 0xD8B85A, chandGlow: 0xFFB45A, chandLamp: [1.0, 0.7, 0.35], sign: 'THE SHOW MUST GO ON', signCol: [255, 200, 90] },
+    final: { arena: 'THE CENTRE RING', open: 'THE BAND STRIKES UP', toast: 'Step into the light for the last act', under: 'THE CENTRE RING', acts: ['THE CANVAS CATCHES', 'THE WHOLE SHOW BURNS'], taunt: 'The show must go on',
+      win: 'The Carnival of Ash has struck its tents. The Ringmaster has taken his last bow.' } },
 ];
 
 MAPS.forEach((M, i) => {

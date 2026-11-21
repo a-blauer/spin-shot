@@ -210,7 +210,7 @@ export function buildMine(M) {
     for (const x of [-1800, -600, 600, 1800]) lantern(x, 7300, 560, 0x8AD8FF, 1000);
     for (const [x, y] of [[-5200, 7200], [-3900, 3800], [5200, 3900], [4300, 7200], [-1500, 6800], [2600, 4000]]) fungus(x, y, (x | 0) % 2 ? 0x1fa878 : 0x1c8ccc);
     // a wrecked skiff, drums, the pipe the pump never finished laying
-    BoxRot(V(-3300, 5700, 40), V(420, 150, 70), 0x5a4632, R(0, 28, 12), true); BoxRot(V(-3300, 5700, 82), V(430, 160, 8), TIMBER_D, R(0, 28, 12), false);
+    BoxRot(V(-3300, 5700, 40), V(420, 150, 70), 0x5a4632, R(0, 28, 12), true); GM.NavBlockBox({ min: V(-3500, 5580, 0), max: V(-3100, 5820, 150) }, 1); BoxRot(V(-3300, 5700, 82), V(430, 160, 8), TIMBER_D, R(0, 28, 12), false);
     for (let i = 0; i < 7; i++) Cyl(V(1500 + i * 330, 4250, 60), 110, 320, 0x4a4e54, i % 3 === 0, false, R(90, 0, 0));
     Barrel(V(4100, 4250, 0), 0x3a4a4e); Barrel(V(4230, 4320, 0), 0x3a4a4e); Crate(V(-5300, 3800, 0), 130); Crate(V(-5450, 3840, 0), 100);
     wallbuy('Iron Mule', -2600, 3564, 90); wallbuy('Frostbite Beam', 6396, 5500, 180);
@@ -283,7 +283,7 @@ export function buildMine(M) {
     // the rail yard: a through line, a siding, trucks standing and one on its side
     rails(-6300, -4300, -900, -4300); rails(-200, -4300, 3900, -4300); rails(4600, -4300, 6300, -4300); rails(0, -4200, 0, -3560); rails(-5200, -5300, -2600, -5300);
     cart(-5200, -4300, 0, 1); cart(-4960, -4300, 0, 1); cart(-4720, -4300, 0, 2); cart(1700, -4300, 0, 0); cart(-3600, -5300, 0, 1);
-    BoxRot(V(3200, -4700, 60), V(190, 120, 100), 0x4a3a30, R(0, 30, 80), true); heap(3340, -4860, 0.6, RUST);
+    BoxRot(V(3200, -4700, 60), V(190, 120, 100), 0x4a3a30, R(0, 30, 80), true); GM.NavBlockBox({ min: V(3110, -4780, 0), max: V(3290, -4620, 150) }, 1); heap(3340, -4860, 0.6, RUST);
     // timber stacks, drums, crates: cover, and something to climb
     for (const [x, y, yaw] of [[-1500, -6900, 0], [-1500, -6500, 0], [2950, -7000, 90], [1500, -5600, 20]]) { for (let k = 0; k < 3; k++) for (let j = 0; j < 3 - k; j++) Cyl(V(x + (yaw ? 0 : (j - (2 - k) / 2) * 62), y + (yaw ? (j - (2 - k) / 2) * 62 : 0), 30 + k * 54), 60, 520, k % 2 ? TIMBER : TIMBER_D, k === 0, false, yaw ? R(90, 0, 0) : R(0, 0, 90)); M.Blocker(V(x, y, 80), yaw ? V(520, 190, 160) : V(190, 520, 160)); GM.NavBlockBox({ min: V(x - (yaw ? 260 : 95), y - (yaw ? 95 : 260), 0), max: V(x + (yaw ? 260 : 95), y + (yaw ? 95 : 260), 160) }, 1); }
     Crate(V(-3000, -7150, 0), 140); Crate(V(-2850, -7180, 0), 110); Crate(V(-3000, -7150, 140), 100); Crate(V(3500, -6300, 0), 130); Crate(V(3660, -6360, 0), 100); Crate(V(5600, -4000, 0), 120);

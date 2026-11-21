@@ -201,7 +201,7 @@ export class Enemy {
         if (cur.length() > sp) cur.setLength(sp);
         this.vel.x = cur.x; this.vel.z = cur.z;
       }
-      if (this.launched) this.launched -= dt;
+      if (this.launched > 0) this.launched = Math.max(0, this.launched - dt);   // must come back to exactly 0: everything else tests it for truth
       this.vel.y -= GRAV * dt;
       if (this.grounded && this.vel.y < -50 && !this.launched) this.vel.y = -50;
       this.vel.y = Math.max(this.vel.y, -4000);
@@ -720,7 +720,7 @@ export class Enemy {
       const stage = hpf < 0.25 ? 3 : hpf < 0.5 ? 2 : hpf < 0.75 ? 1 : 0;
       if (stage > (this.shedStage || 0)) {
         this.shedStage = stage;
-        const crawler = G.enemyOfAI('Crawler');
+        const crawler = G.enemyOfAI(this.boss.shedAI || 'Crawler');
         for (let i = 0; i < 3 + stage; i++) { const out = G.findFreeLocationNear(Me, 150, 500); if (out) G.spawnEnemy(crawler >= 0 ? crawler : this.boss.minion, out.add(new THREE.Vector3(0, 70, 0)), false, -1, 1, 0.7, 0, false); }
         G.fx.dust(this.feet(), lin(0.5, 0.15, 0.15), 240); G.audio.playAt('S_Gib', Me, 1.2, 0.7); G.banner(this.boss.shedText || 'IT IS COMING APART', lin(0.9, 0.3, 0.3), 2);
       }
