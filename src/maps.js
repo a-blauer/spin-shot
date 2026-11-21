@@ -6,6 +6,7 @@ import { buildMine, MINE_LOOT } from './map_mine.js';
 import { buildFrost, FROST_LOOT, frostAmbient } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient } from './map_bayou.js';
 import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient } from './map_carnival.js';
+import { buildWharf, WHARF_LOOT, wharfAmbient } from './map_wharf.js';
 
 const C = (h) => new THREE.Color(h);
 const sun = (x, y, z) => new THREE.Vector3(x, z, y).normalize();
@@ -94,6 +95,26 @@ export const MAPS = [
     vault: { floor: 0x1a0c0c, floor2: 0x2a1410, wedgeA: 0xcfc6ac, wedgeB: 0x6a1a1a, glow: 0xD89A2A, colA: 0x7a1c1c, colB: 0xbcb49a, cap: 0xD8B85A, slit: 0xFF6A2A, lamp: [1.0, 0.45, 0.15], cairn: [0x8a2a26, 0xcfc6ac, 0x3a5a7a, 0xc8b83a], chand: 0xD8B85A, chandGlow: 0xFFB45A, chandLamp: [1.0, 0.7, 0.35], sign: 'THE SHOW MUST GO ON', signCol: [255, 200, 90] },
     final: { arena: 'THE CENTRE RING', open: 'THE BAND STRIKES UP', toast: 'Step into the light for the last act', under: 'THE CENTRE RING', acts: ['THE CANVAS CATCHES', 'THE WHOLE SHOW BURNS'], taunt: 'The show must go on',
       win: 'The Carnival of Ash has struck its tents. The Ringmaster has taken his last bow.' } },
+  { id: 'wharf', name: 'Gallows Wharf', blurb: 'A harbour town in the rain: stall alleys, brick canyons, a hull on the stocks, a whaler at the pier and the light on the point.', pack: 5, loading: 'Coming in on the tide...',
+    build: buildWharf, loot: WHARF_LOOT, ambient: wharfAmbient, wind: 0.3, spawnYaw: Math.PI,
+    palette(P, zone) {
+      P.sky = C(0x0a1018); P.fog = C(0x3a4a58); P.fogStart = 700; P.fogDensity = 0.00028; P.fogMax = 0.9; P.sun = sun(-0.5, 0.4, 0.7);
+      P.lit.set(0.96, 1.0, 1.04, 1.05); P.shadow.set(0.5, 0.56, 0.68, 0.86); P.sprite.setRGB(0.96, 1.0, 1.04);
+      switch (zone) {
+        case 0: P.fog = C(0x404c56); P.lit.set(1.0, 1.0, 0.98, 1.05); break;                                               // the quay under gaslight
+        case 1: P.fog = C(0x3a4a50); P.shadow.set(0.48, 0.58, 0.64, 0.86); break;                                           // the fish market
+        case 2: P.fog = C(0x3a3a44); P.lit.set(1.02, 0.98, 0.96, 1.05); P.shadow.set(0.54, 0.5, 0.6, 0.86); P.fogDensity = 0.00032; break;   // warehouse row: brick and shadow
+        case 3: P.fog = C(0x4a4a48); P.lit.set(1.04, 1.0, 0.94, 1.05); P.shadow.set(0.58, 0.54, 0.56, 0.86); break;           // the shipyard: tar fires
+        case 4: P.fog = C(0x2e4654); P.sky = C(0x081018); P.shadow.set(0.44, 0.58, 0.72, 0.86); P.fogStart = 600; P.fogDensity = 0.00034; break;   // out on the water
+        case 5: P.fog = C(0x465868); P.shadow.set(0.5, 0.6, 0.72, 0.86); P.fogDensity = 0.00024; break;                       // the point
+        case 'vault': P.fog = C(0x143038); P.sky = C(0x040a0e); P.lit.set(0.94, 1.02, 1.04, 1.04); P.shadow.set(0.4, 0.56, 0.6, 0.82); P.fogStart = 1100; P.fogDensity = 0.00021; P.fogMax = 0.8; break;
+        default: break;
+      }
+      return P;
+    },
+    vault: { floor: 0x0c1418, floor2: 0x12222a, wedgeA: 0x6a6e76, wedgeB: 0x0c1014, glow: 0x2A8A78, colA: 0x3a2e26, colB: 0x2a2420, cap: 0x8a7648, slit: 0x2A8A78, lamp: [0.3, 1.0, 0.85], cairn: [0x3a3e44, 0x5a5e66, 0x2e3238, 0x8a8468], chand: 0x8a7648, chandGlow: 0xc8b85a, chandLamp: [0.9, 0.85, 0.5], sign: 'EVERY NECK HAS ITS DAY', signCol: [150, 230, 210] },
+    final: { arena: 'UNDER THE GALLOWS', open: 'THE TRAP IS SPRUNG', toast: 'Step into the light to go down through the trap', under: 'UNDER THE GALLOWS', acts: ['THE TIDE COMES IN', 'THE ROPE TIGHTENS'], taunt: 'Every neck has its day',
+      win: 'Gallows Wharf is quiet. The Hangman has taken the drop.' } },
 ];
 
 MAPS.forEach((M, i) => {

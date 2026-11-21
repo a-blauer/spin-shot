@@ -473,6 +473,16 @@ ENX = [
  (4, "Lion", "Mangy Lion", "Leaper", "Crawler", 0.95, 450, 26, 140, 1.0, 1.15, 0x8A7448, 0x33241A, 90, 8, 2.2, "Nobody fed him after the fire. Pounces from a long way off.", {}),
  (4, "Strongman", "Strongman", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.5, 0xB89A86, 0xC8A04A, 200, 9, 1.2, "Lifted the bar every night, twice on Saturdays. Brings it down on you.", {}),
  (4, "Barker", "The Barker", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0xCFC6AC, 0xF2D25A, 600, 3, 0.35, "He has the night's takings and he is not sharing.", {}),
+ # 5. Gallows Wharf
+ (5, "Deckhand", "Deckhand", "Walker", "Humanoid", 1.0, 210, 28, 140, 1.2, 1.0, 0xE8E2D0, 0x7F96A0, 60, 1, 10.0, "Went down with the ship and walked back.", {}),
+ (5, "Rigger", "Rigger", "Runner", "Humanoid", 0.8, 540, 22, 140, 1.0, 0.95, 0x8FA4A8, 0x7A2A26, 70, 2, 4.0, "Went aloft in any weather. Comes down fast.", {}),
+ (5, "Crab", "Wharf Crab", "Crawler", "Crawler", 1.0, 360, 24, 130, 0.9, 1.2, 0x8A3A2A, 0xD8B89A, 70, 3, 3.0, "The size of a cart, low to the cobbles, and it has learned what a boot is for.", {'innate': ['Armored']}),
+ (5, "Cook", "The Cook", "Bloater", "Bloated", 2.2, 170, 45, 200, 1.0, 1.25, 0xC8C2B0, 0x7F9AA0, 90, 4, 2.0, "Went into the hold for the salt pork and the hold flooded. Bursts.", {}),
+ (5, "Harpooner", "Harpooner", "Spitter", "Humanoid", 0.9, 260, 22, 2000, 2.6, 1.0, 0xC8A83A, 0xC9CDD6, 80, 5, 2.5, "Never missed a whale. You are a good deal closer.", {}),
+ (5, "Gull", "Carrion Gull", "Flyer", "Flyer", 0.5, 490, 12, 130, 0.9, 0.8, 0xD8DCD8, 0xC8A03A, 50, 6, 2.5, "Follows the boats in. Follows you.", {}),
+ (5, "Rat", "Wharf Rat", "Leaper", "Crawler", 0.8, 460, 22, 140, 1.0, 1.1, 0x5A524A, 0xFF5A4A, 80, 7, 2.6, "Grown fat on what the tide leaves. Goes for the throat from across the street.", {}),
+ (5, "Diver", "The Diver", "Brute", "Brute", 3.4, 240, 55, 200, 1.6, 1.6, 0x8A8468, 0xB86A3A, 200, 8, 1.2, "They never hauled him up. Shots off the suit do half; put them through the glass.", {'innate': ['Armored']}),
+ (5, "Smuggler", "Smuggler", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0x3A3040, 0xF2D25A, 600, 3, 0.35, "A keg of the best, duty unpaid, and he means to keep it.", {}),
 ]
 # map, art, then the same fields as BOSS (minion is a creature name), then extras
 BOSSX = [
@@ -516,6 +526,16 @@ BOSSX = [
   "He was never the funny one. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - POP THE BALLOONS', 'last': 1}),
  (4, "Ringmaster", "The Ringmaster", "The Show Must Go On", 70, 250, 55, 4.0, 0x8A1C1C, 0xFF7A2A, [], "Roustabout", 25000,
   "He would not stop the show for a fire, so the fire joined the bill. Yours is the last act.", {'final': 1}),
+ (5, "Harbourmaster", "The Harbourmaster", "Nothing Leaves Without His Say", 15, 300, 45, 2.7, 0x1C2A44, 0xB8923A, ["Charge", "Hook", "Sweep", "Slam", "Summon"], "Deckhand", 2500,
+  "His boat hook drags you in to be hit. Sidestep the charge and he is winded.", {}),
+ (5, "NetMender", "The Net-Mender", "Still Mending", 28, 320, 38, 2.6, 0x3A4640, 0xA89A70, ["Ambush", "NailWall", "Teleport", "Pools", "Ring"], "Wharf Rat", 3500,
+  "She mended for every boat on the wharf. Steps out of the rain behind you and leaves brine burning on the stones.", {}),
+ (5, "Keeper", "The Keeper", "The Light Must Not Go Out", 30, 250, 38, 2.6, 0xC8A83A, 0xFFE27A, ["Volley", "Barrage", "Teleport", "Summon"], "Carrion Gull", 4000,
+  "The lamp went out the night they needed it. He is the lamp now. Twice he wards himself behind his gulls.", {'mech': 'ward', 'wardStages': 2, 'wardText': 'WARDED - KILL THE GULLS'}),
+ (5, "Captain", "Captain Graves", "Master of the Providence", 40, 320, 58, 2.5, 0x2A1C2A, 0xB8F0E0, ["Charge", "Hook", "Sweep", "NailWall", "Pools", "Ambush", "Ring", "Summon"], "Rigger", 7000,
+  "He went down with her and brought her back. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE GULLS', 'last': 1}),
+ (5, "Hangman", "The Hangman", "The Wharf Is Named for His Work", 70, 250, 55, 4.0, 0x17151B, 0x3AA890, [], "Deckhand", 25000,
+  "Every rope on the wharf is his. He has one measured for you.", {'final': 1}),
 ]
 
 # ---------------------------------------------------------------- GENERATION
