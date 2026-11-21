@@ -91,13 +91,21 @@ body:not(.ready) #title .menu { display: none; }
 #progress h2 { font-family: "Big Shoulders Display"; font-weight: 400; font-size: 40px; color: #ffcd5a; margin: 0 0 6px; }
 #progress h3 { font-family: "Big Shoulders Display"; font-weight: 400; font-size: 20px; letter-spacing: 1px; color: #f2e8d5; margin: 6px 0 8px; }
 #progress button { font-family: "Big Shoulders Display"; font-size: 16px; padding: 6px 16px; background: #f2e8d5; color: #140d12; border: 0; border-radius: 5px; cursor: pointer; }
-#progress .pcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+#progress .pcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(262px, 1fr)); gap: 18px; align-items: start; }
 #progress .row { background: rgba(255,255,255,0.05); border-left: 4px solid #6a5a50; padding: 7px 10px; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
 #progress .row.done { border-left-color: #7dff8a; } #progress .row.locked { opacity: 0.5; } #progress .row.sel { border-left-color: #ffcd5a; }
 #progress .rt { display: flex; justify-content: space-between; gap: 10px; } #progress .rt b { font-weight: 700; font-size: 16px; color: #f2e8d5; } #progress .rt span { color: #cfc5b4; text-align: right; }
 #progress .rw { color: #ffcd5a; margin-top: 2px; } #progress .num { color: #9c9284; font-size: 12px; }
 #progress .bar { height: 6px; background: rgba(0,0,0,0.5); margin-top: 5px; } #progress .bar i { display: block; height: 100%; background: #ffcd5a; }
 #progress .skin { cursor: pointer; display: flex; gap: 12px; align-items: center; } #progress .skin .rt { flex: 1; }
+#progress .renown { background: rgba(255,205,90,0.08); border: 1px solid rgba(255,205,90,0.45); padding: 10px 14px 8px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
+#progress .renown .rk { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; } #progress .renown .rk b { font-family: "Big Shoulders Display"; font-size: 32px; font-weight: 400; letter-spacing: 1px; color: #ffcd5a; } #progress .renown .rk span { color: #cfc5b4; font-size: 15px; }
+#progress .renown .bar { height: 10px; } #progress .renown .rn { color: #ffcd5a; margin-top: 6px; }
+#progress h4 { font-family: "Big Shoulders Display"; font-weight: 400; font-size: 15px; letter-spacing: 2px; color: #c8211b; margin: 12px 0 6px; }
+#progress .rw.todo { color: #b9ad98; } #progress .num.tot { font-size: 14px; line-height: 1.5; color: #cfc5b4; }
+.med { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-left: 5px; border: 1px solid #6a5a50; vertical-align: middle; }
+#lobby .lbpick span.dim { display: block; margin: 2px 0 0; font-size: 13px; color: #9a8f86; }
+#lobby .lbrank { font-family: "Big Shoulders Display"; font-size: 21px; letter-spacing: 1px; color: #ffcd5a; margin-right: 18px; } #lobby .lbrank i { font-style: normal; font-family: "Barlow Condensed", sans-serif; font-size: 15px; letter-spacing: 0; color: #c9bfae; margin-left: 10px; }
 #progress .sw { display: flex; } #progress .sw i { width: 18px; height: 26px; display: block; }
 #pause { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; z-index: 6; }
 #pause .pbox { background: rgba(20,10,16,0.97); border: 2px solid #ffcd5a; padding: 20px 30px; min-width: 340px; }

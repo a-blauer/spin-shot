@@ -221,7 +221,7 @@ export const Net = {
     const r = num(d.r, 0, 999) | 0, ph = ['PreGame', 'Round', 'Intermission', 'GameOver'].includes(d.ph) ? d.ph : 'Round';
     if (r > g.round) {
       g.round = r; g.banner(`ROUND ${r}`, [0.85, 0.08, 0.06], 3.5, 'round'); g.hud.roundFlash = 1;
-      if (g.player.dead) g.player.revive(); g.player.onRoundStarted(r); Meta.best('bestRound', r);
+      if (g.player.dead) g.player.revive(); g.player.onRoundStarted(r); Meta.roundStarted(r, g.map.id);
       g.bossRound = r % 3 === 0;
     }
     if (ph !== g.phase) { if (ph === 'Intermission' && g.phase === 'Round') g.player.onRoundEnded(g.round); if (ph === 'GameOver') g.gameOver(); else g.phase = ph; }
@@ -231,7 +231,7 @@ export const Net = {
       const f = d.fin, F = g.final || (g.final = { gate: null, active: false, done: false, beam: null, safeR: 0, t: 0 });
       F.gate = Array.isArray(f.g) ? new THREE.Vector3(num(f.g[0]), num(f.g[1]), num(f.g[2])) : null; F.active = !!f.a; F.safeR = num(f.r, 0, 3000);
       if (Array.isArray(f.b)) { const b = f.b, old = F.beam; F.beam = { x: num(b[0]), y: num(b[1]), z: num(b[2]), ang: old && Math.abs(old.ang - num(b[3], -1e4, 1e4)) < 0.6 && old.spd === num(b[4], -3, 3) ? old.ang : num(b[3], -1e4, 1e4), spd: num(b[4], -3, 3), n: Math.max(1, Math.min(6, num(b[5], 1, 6) | 0)), dmg: num(b[6], 0, 300), t: num(b[7], 0, 60) }; } else F.beam = null;
-      if (f.d && !F.done) { F.done = true; g.victory = true; g.levelDone = true; Meta.bump('wins'); Meta.save(); g.audio.play('S_Jackpot', 1); }
+      if (f.d && !F.done) { F.done = true; g.victory = true; g.levelDone = true; Meta.won(g.map.id, difficulty()); g.audio.play('S_Jackpot', 1); }
     }
     if (Array.isArray(d.doors)) for (const i of d.doors.slice(0, 64)) this.openDoorIdx(num(i, 0, 999));
   },

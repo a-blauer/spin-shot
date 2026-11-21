@@ -79,7 +79,7 @@ export function rollGunMod(mods, W, cls, luck = 0) {
   const hasAlt = mods.some((m) => DATA.upgrades[m].alt), cont = W.mode === 'Beam' || W.mode === 'Flame';
   const pool = [];
   DATA.upgrades.forEach((u, i) => {
-    if (!u.gun || (have[i] || 0) >= (u.rarity === 'Common' ? 1 : Math.min(u.stacks, 2))) return;
+    if (!u.gun || (have[i] || 0) >= (u.rarity === 'Common' ? 1 : Math.min(u.stacks, 2)) || Meta.upgradeLocked(u.name)) return;
     if (u.alt && hasAlt) return;
     const names = u.mods.map((m) => m[0]);
     if (names.includes('FullAuto') && W.auto) return;

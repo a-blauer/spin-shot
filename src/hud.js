@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
+import { Meta } from './meta.js';
 const WD = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
 const BONE = '#f2e8d5', GOLD = '#ffcd5a', BLOOD = '#e0342c', INK = '#140d12', PANEL = 'rgba(22,14,20,0.86)';
 const F_BIG = '"Big Shoulders Display", Impact, "Arial Narrow", sans-serif';
@@ -921,11 +922,25 @@ export class Hud {
       this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06, a);
       this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1, a);
     });
+    this.drawRenown(W, S, cy + 250 * S, a);
     if (t > 2) {
       g.globalAlpha = 0.6 + 0.4 * Math.sin(this.time * 4);
-      this.hints('[Enter] Restart', W / 2, cy + 270 * S, 24 * S);
+      this.hints('[Enter] Restart', W / 2, cy + 388 * S, 24 * S);
       g.globalAlpha = 1;
     }
+  }
+  // what the run was worth: renown earned, where that leaves your rank, and anything it unlocked
+  drawRenown(W, S, y, a = 1) {
+    const g = this.g, R = Meta.runSummary(), I = R.info, bw = 520 * S, x0 = W / 2 - bw / 2;
+    const up = I.rank > R.rank0;
+    this.text(`RENOWN  +${R.xp.toLocaleString()}`, W / 2, y, 30 * S, GOLD, 'center', F_BIG, 400, 0.1, a);
+    this.text(`RANK ${I.rank}  -  ${I.name.toUpperCase()}`, x0, y + 34 * S, 19 * S, up ? '#7dff8a' : BONE, 'left', F_BIG, 400, 0.1, a);
+    this.text(I.max ? 'TOP RANK' : `${I.into.toLocaleString()} / ${I.span.toLocaleString()}`, x0 + bw, y + 34 * S, 17 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.1, a);
+    g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x0, y + 44 * S, bw, 10 * S); g.fillStyle = up ? '#7dff8a' : '#ffcd5a'; g.fillRect(x0, y + 44 * S, bw * (I.max ? 1 : clamp(I.into / Math.max(1, I.span), 0, 1)), 10 * S); g.globalAlpha = 1;
+    let line = '';
+    if (R.unlocked.length) { const show = R.unlocked.slice(0, 3).join('   |   '); line = `Unlocked: ${show}${R.unlocked.length > 3 ? `   +${R.unlocked.length - 3} more` : ''}`; }
+    else if (I.next) line = `Next rank: ${I.next.name}${I.next.reward ? '  -  ' + I.next.reward : ''}`;
+    if (line) this.text(line, W / 2, y + 82 * S, 18 * S, R.unlocked.length ? '#7dff8a' : 'rgba(242,232,213,0.7)', 'center', F_TXT, 700, 0.1, a);
   }
   drawVictory(game, P, W, H, S) {
     const g = this.g;
@@ -937,7 +952,8 @@ export class Hud {
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });
-    this.hints('[Enter] Back to the menu', W / 2, cy + 270 * S, 24 * S);
+    this.drawRenown(W, S, cy + 250 * S, 1);
+    this.hints('[Enter] Back to the menu', W / 2, cy + 388 * S, 24 * S);
   }
   drawPaused(W, H, S) {
     const g = this.g;

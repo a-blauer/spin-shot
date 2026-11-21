@@ -1,5 +1,6 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
-import { CLASSES } from './classes.js';
+import { CLASSES, rollBuff, rollGunMod } from './classes.js';
+import { MELEE, rollMelee } from './melee.js';
 import { DIFFS, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
@@ -12,14 +13,14 @@ import { setParts } from './puppet.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
-import { STARTERS } from './meta.js';
-import { Meta, ACHIEVEMENTS, SKINS, GUN_LEVELS, GUN_TRAITS, rewardText } from './meta.js';
+import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
 const params = new URLSearchParams(location.search);
 const TEST = params.has('test');
 const URLMAP = params.has('map') ? +params.get('map') : -1;   // ?map=1 builds that map straight away (tests)
 Meta.load(); Meta.setUnlockAll(TEST);
+if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
 const glCanvas = document.getElementById('gl');
 const hudCanvas = document.getElementById('hud');
@@ -171,31 +172,73 @@ function start() {
 const prog = document.getElementById('progress');
 function renderProgress() {
   const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  const st = Meta.state;
-  let h = '<div class="ph"><h2>PROGRESS</h2><button id="pclose">CLOSE</button></div><div class="pcols">';
-  h += '<section><h3>ACHIEVEMENTS</h3>';
-  for (const A of ACHIEVEMENTS) {
-    const done = !!st.ach[A.id], v = Math.min(A.need, Meta.stat(A.stat));
-    h += `<div class="row ${done ? 'done' : ''}"><div class="rt"><b>${esc(A.name)}</b><span>${esc(A.desc)}</span></div><div class="rw">${done ? 'Unlocked' : 'Unlocks'}: ${esc(rewardText(A))}</div><div class="bar"><i style="width:${(v / A.need) * 100}%"></i></div><div class="num">${v.toLocaleString()} / ${A.need.toLocaleString()}</div></div>`;
+  const ups = game ? game.data.upgrades : [], weapons = game ? game.data.weapons : [];
+  const bar = (v, n) => `<div class="bar"><i style="width:${Math.max(0, Math.min(1, n > 0 ? v / n : 1)) * 100}%"></i></div>`;
+  const kindOf = (name) => { const u = ups.find((x) => x.name === name); return u ? (u.gun ? 'workbench modifier' : u.cls ? 'class buff' : 'buff') : 'buff'; };
+  // a reward, spelled out: what it is as well as what it is called
+  const rwd = (R) => {
+    const out = [];
+    if (R.starter) out.push(`${R.starter} as a starting gun`);
+    (R.guns || []).forEach((g) => out.push(`${g} (gun)`));
+    (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
+    (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
+    if (R.skin) out.push(`${Meta.skinById(R.skin).name} hands`);
+    return out.join(', ');
+  };
+  const I = Meta.rankInfo();
+  let h = '<div class="ph"><h2>PROGRESS</h2><button id="pclose">CLOSE</button></div>';
+  h += `<div class="renown"><div class="rk"><b>RANK ${I.rank}  -  ${esc(I.name.toUpperCase())}</b><span>${I.max ? `${I.xp.toLocaleString()} renown  -  top rank` : `${I.into.toLocaleString()} / ${I.span.toLocaleString()} renown to rank ${I.next.rank}`}</span></div>${bar(I.max ? 1 : I.into, I.max ? 1 : I.span)}`;
+  h += `<div class="rn">${I.max ? 'Every rank reward is yours.' : `Next: ${esc(I.next.name)}  -  ${esc(rwd(RANKS[I.rank]))}`}</div><div class="num">Every round you clear and every boss you kill pays renown, win or lose. Hard pays 1.5x and Nightmare 2x.</div></div><div class="pcols">`;
+  // ---- the frontier: maps, then classes
+  h += '<section><h3>THE FRONTIER</h3>';
+  WORLD.forEach((m) => {
+    const MP = MAPS.find((x) => x.id === m.id), med = Meta.medal(m.id), best = Meta.bestRoundOn(m.id), heir = Meta.heirloomUnlocked(m.id);
+    const A = ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id), dots = MEDALS.map((n, d) => `<i class="med" title="${n}" style="${med > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('');
+    h += `<div class="row ${med ? 'done' : ''}"><div class="rt"><b>${esc(m.name)}</b><span>${dots}</span></div><div class="num">Best round ${best} of ${MP ? MP.rounds : '?'}${med ? '  -  cleared on ' + DIFFS[med - 1].name : ''}</div>`;
+    h += `<div class="rw ${heir ? '' : 'todo'}">${heir ? 'Heirloom earned' : `Reach round ${HEIRLOOM_ROUND}`}: ${esc(m.heirloom)} to start a run with</div>`;
+    if (A) h += `<div class="rw ${med ? '' : 'todo'}">${med ? 'Cleared' : 'Clear it'}: ${esc(rwd(A))}</div>`;
+    h += '</div>';
+  });
+  h += '<h3 style="margin-top:18px">CLASS MASTERY</h3>';
+  for (const C of CLASS_META) {
+    const n = Meta.clsRounds(C.id), lvl = Meta.clsLevel(C.id), CL = CLASSES.find((x) => x.id === C.id), prev = lvl > 0 ? CLASS_LEVELS[lvl - 1] : 0, max = lvl >= CLASS_LEVELS.length;
+    h += `<div class="row ${max ? 'done' : ''}"><div class="rt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${lvl ? CLASS_LEVEL_NAMES[lvl - 1] : 'Novice'}</span></div>`;
+    h += `<div class="rw ${max ? '' : 'todo'}">${max ? 'Mastered' : `${CLASS_LEVEL_NAMES[lvl]}: ${esc(rwd(C.rewards[lvl]))}`}</div>${bar(max ? 1 : n - prev, max ? 1 : CLASS_LEVELS[lvl] - prev)}<div class="num">${n} round${n === 1 ? '' : 's'} cleared${max ? '' : `  -  ${CLASS_LEVELS[lvl]} for ${CLASS_LEVEL_NAMES[lvl]}`}</div></div>`;
   }
+  const T = (k) => Meta.stat(k).toLocaleString();
+  h += `<h3 style="margin-top:18px">TOTALS</h3><div class="row"><div class="num tot">Runs ${T('runs')}<br>Clears ${T('wins')}<br>Rounds cleared ${T('rounds')}<br>Best round ${T('bestRound')}<br>Kills ${T('kills')}<br>Bosses ${T('bosses')}<br>Chests ${T('chests')}<br>Money earned $${T('moneyEarned')}</div></div>`;
+  // ---- renown track
+  h += '</section><section><h3>RENOWN</h3>';
+  RANKS.forEach((R, i) => {
+    if (i === 0) return;
+    const done = I.rank >= i + 1;
+    h += `<div class="row ${done ? 'done' : ''}"><div class="rt"><b>${i + 1}  -  ${esc(R.name)}</b><span>${rankXp(i + 1).toLocaleString()} renown</span></div><div class="rw ${done ? '' : 'todo'}">${done ? 'Unlocked' : 'Unlocks'}: ${esc(rwd(R))}</div></div>`;
+  });
+  h += '<h3 style="margin-top:18px">HANDS</h3>';
+  for (const K of SKINS) {
+    const ok = Meta.skinUnlocked(K.id), sel = Meta.skin().id === K.id;
+    const hx = (n) => '#' + n.toString(16).padStart(6, '0');
+    h += `<div class="row skin ${ok ? '' : 'locked'} ${sel ? 'sel' : ''}" data-skin="${K.id}"><div class="sw"><i style="background:${hx(K.glove)}"></i><i style="background:${hx(K.cuff)}"></i><i style="background:${hx(K.sleeve)}"></i></div><div class="rt"><b>${esc(K.name)}</b><span>${ok ? (sel ? 'Equipped' : 'Click to equip') : 'Locked: ' + esc(Meta.howToUnlock('skin', K.id))}</span></div></div>`;
+  }
+  // ---- challenges
+  h += '</section><section><h3>CHALLENGES</h3>';
+  GROUPS.forEach((G, gi) => {
+    h += `<h4>${esc(G.toUpperCase())}</h4>`;
+    for (const A of ACHIEVEMENTS) {
+      if (A.group !== gi) continue;
+      const v = Math.min(A.need, Meta.stat(A.stat)), done = v >= A.need;
+      h += `<div class="row ${done ? 'done' : ''}"><div class="rt"><b>${esc(A.name)}</b><span>${esc(A.desc)}</span></div><div class="rw ${done ? '' : 'todo'}">${done ? 'Unlocked' : 'Unlocks'}: ${esc(rwd(A))}</div>${A.need > 1 ? `${bar(v, A.need)}<div class="num">${v.toLocaleString()} / ${A.need.toLocaleString()}</div>` : ''}</div>`;
+    }
+  });
+  // ---- guns, hands, totals
   h += '</section><section><h3>WEAPONS</h3>';
-  const weapons = game ? game.data.weapons : [];
   for (const W of weapons) {
     const locked = Meta.gunLocked(W.name), lvl = Meta.gunLevel(W.name), xp = Meta.gunXp(W.name);
     const next = lvl < GUN_LEVELS.length ? GUN_LEVELS[lvl] : GUN_LEVELS[GUN_LEVELS.length - 1], prev = lvl > 0 ? GUN_LEVELS[lvl - 1] : 0;
-    const need = ACHIEVEMENTS.find((A) => (A.guns || []).includes(W.name));
-    h += `<div class="row ${locked ? 'locked' : ''}"><div class="rt"><b>${esc(W.name)}</b><span>${locked ? 'Locked: ' + esc(need.desc) : 'Level ' + lvl + ' / 5'}</span></div>`;
-    if (!locked) h += `<div class="rw">${lvl < 5 ? 'Next: ' + esc(GUN_TRAITS[lvl]) : 'Mastered'}</div><div class="bar"><i style="width:${lvl >= 5 ? 100 : ((xp - prev) / (next - prev)) * 100}%"></i></div><div class="num">${xp} kills</div>`;
+    h += `<div class="row ${locked ? 'locked' : ''}"><div class="rt"><b>${esc(W.name)}</b><span>${locked ? 'Locked: ' + esc(Meta.howToUnlock('guns', W.name)) : 'Level ' + lvl + ' / 5'}</span></div>`;
+    if (!locked) h += `<div class="rw">${lvl < 5 ? 'Next: ' + esc(GUN_TRAITS[lvl]) : 'Mastered'}</div>${bar(lvl >= 5 ? 1 : xp - prev, lvl >= 5 ? 1 : next - prev)}<div class="num">${xp.toLocaleString()} kills</div>`;
     h += '</div>';
   }
-  h += '</section><section><h3>HANDS</h3>';
-  for (const K of SKINS) {
-    const ok = Meta.skinUnlocked(K.id), sel = Meta.skin().id === K.id;
-    const need = ACHIEVEMENTS.find((A) => A.skin === K.id);
-    const hx = (n) => '#' + n.toString(16).padStart(6, '0');
-    h += `<div class="row skin ${ok ? '' : 'locked'} ${sel ? 'sel' : ''}" data-skin="${K.id}"><div class="sw"><i style="background:${hx(K.glove)}"></i><i style="background:${hx(K.cuff)}"></i><i style="background:${hx(K.sleeve)}"></i></div><div class="rt"><b>${esc(K.name)}</b><span>${ok ? (sel ? 'Equipped' : 'Click to equip') : 'Locked: ' + esc(need.desc)}</span></div></div>`;
-  }
-  h += `<h3 style="margin-top:18px">TOTALS</h3><div class="row"><div class="rt"><span>Runs ${Meta.stat('runs')} &nbsp; Best round ${Meta.stat('bestRound')} &nbsp; Kills ${Meta.stat('kills').toLocaleString()} &nbsp; Bosses ${Meta.stat('bosses')}</span></div></div>`;
   h += '</section></div>';
   prog.innerHTML = h;
   prog.querySelector('#pclose').onclick = (e) => { e.stopPropagation(); prog.style.display = 'none'; };
@@ -274,7 +317,8 @@ function renderLobby() {
   const nmEl = lobby.querySelector('#lname'), cdEl = lobby.querySelector('#lcode'), focus = document.activeElement && document.activeElement.id;
   const nameV = nmEl ? nmEl.value : myName(), codeV = cdEl ? cdEl.value : '';
   const L = Meta.look(), client = Net.role === 'client', hosting = Net.role === 'host';
-  let h = '<div class="lbh"><h2>LOBBY</h2><button id="lbback">BACK</button></div><div class="lbgrid">';
+  const RI = Meta.rankInfo();
+  let h = `<div class="lbh"><h2>LOBBY</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK</button></div><div class="lbgrid">`;
   // players + invite
   h += '<section><h3>PLAYERS</h3>';
   const list = Net.active ? Net.lobbyList() : [{ name: nameV, host: true, me: true }];
@@ -292,11 +336,16 @@ function renderLobby() {
   h += '<section><h3>LOADOUT</h3><p class="dim">Starting weapon</p>';
   for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : esc2(T.text)}</span></div>`; }
   h += '</section>';
-  // map
-  h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`).join('') + '</section>';
+  // heirloom: one Common buff to start the run with, earned by getting past the first boss of a map
+  { const cur = Meta.heirloomId(), ups = game ? game.data.upgrades : [];
+    h += `<section><h3>HEIRLOOM</h3><p class="dim">Start the run with one buff. Each map gives up its own.</p><div class="lbpick ${cur ? '' : 'sel'}" data-heir=""><b>None</b></div>`;
+    for (const m of WORLD) { const ok = Meta.heirloomUnlocked(m.id), U = ups.find((u) => u.name === m.heirloom); h += `<div class="lbpick ${ok ? '' : 'locked'} ${cur === m.id ? 'sel' : ''}" data-heir="${m.id}"><b>${esc2(m.heirloom)}</b><span>${ok ? esc2(U ? U.desc : '') : `Reach round ${HEIRLOOM_ROUND} in ${esc2(m.name)}`}</span></div>`; }
+    h += '</section>'; }
+  // class
+  h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => { const lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id); return `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span><span class="dim">${lv ? CLASS_LEVEL_NAMES[lv - 1] : 'Novice'}${lv < CLASS_LEVELS.length ? `  -  ${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}` : '  -  mastered'}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`; }).join('') + '</section>';
   h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
-  h += '<section><h3>MAP</h3>' + (client ? `<div class="lbpick sel"><b>${MAPS[curMap].name}</b><span>The host chooses</span></div>` : MAPS.map((M, i) => `<div class="lbpick ${curMap === i ? 'sel' : ''}" data-map="${i}"><b>${M.name}</b><span>${M.blurb}</span><span class="dim">${M.rounds} rounds${Meta.stat('clear_' + M.id) ? '  -  cleared on ' + DIFFS[Meta.stat('clear_' + M.id) - 1].name : ''}</span></div>`).join('')) + '</section></div>';
+  h += '<section><h3>MAP</h3>' + (client ? `<div class="lbpick sel"><b>${MAPS[curMap].name}</b><span>The host chooses</span></div>` : MAPS.map((M, i) => `<div class="lbpick ${curMap === i ? 'sel' : ''}" data-map="${i}"><b>${M.name}</b><span>${M.blurb}</span><span class="dim">${M.rounds} rounds  -  best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`).join('')) + '</section></div>';
   h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : '<button id="lbstart" class="lbstart">START GAME</button>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
@@ -311,6 +360,7 @@ function renderLobby() {
   lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
@@ -326,6 +376,12 @@ async function beginRun() {
   // apply the chosen starting weapon to a fresh run
   const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
   if (idx > 0 && game.round === 0 && P.weapons[0].def === 0) { P.weapons[0].def = idx; P.weapons[0].tier = 0; P.refillAll(); game.vm.setWeapon(idx, 0, false); }
+  // a fresh run: start the renown tally, and hand over the heirloom
+  if (game.round === 0 && !game.metaRun) {
+    game.metaRun = true; Meta.beginRun();
+    const hn = Meta.heirloom(), hi = hn ? game.data.upgrades.findIndex((u) => u.name === hn) : -1;
+    if (hi >= 0 && !P.upgradeStacks[hi]) { P.addUpgrade(hi); game.hud.toast(`Heirloom: ${hn}`, '#ffd24d'); }
+  }
   game.touch = TOUCH;
   if (Net.role === 'client' && game.round === 0) { const a = Math.random() * 6.28; P.pos.x += Math.cos(a) * 130; P.pos.z += Math.sin(a) * 130; }   // don't spawn inside the host
   start();

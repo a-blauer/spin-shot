@@ -2,7 +2,7 @@
 // mantle, grapple, ground slam, jump pads), camera feel (bob, roll, FOV kick, recoil springs, shake), gunplay
 // (hitscan/pierce, beams, flames, chain lightning, projectiles, crits, headshots), 120 upgrades with proc
 // triggers, and every casino station.
-import { cash, cost10 } from './data.js';
+import { cash, cost10, difficulty } from './data.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 import {
@@ -256,6 +256,7 @@ export class Player {
   }
   onRoundEnded() {
     this.play('S_RoundEnd', 0.8);
+    Meta.roundCleared(this.game.round, this.game.map.id, this.cls.id, difficulty());
     if (this.S.RoundMoney) { this.addMoney(this.S.RoundMoney, false); this.toast(`Round bonus  +$${cash(this.S.RoundMoney)}`, '#ffd24d'); }
     const rate = this.stat('Interest');
     if (rate > 0) { const pay = Math.min(Math.round(this.money * rate), 2000); if (pay > 0) { this.money += pay; this.toast(`Interest  +$${cash(pay)}`, '#ffd24d'); } }
@@ -1797,7 +1798,7 @@ export class Player {
     const T = TONICS[i];
     if (this.tonicLevels[i] >= T.max) { this.toast(`${T.name} is maxed out`, '#ccc'); return; }
     if (!this.spend(this.tonicPrice(i))) return;
-    this.tonicLevels[i]++;
+    this.tonicLevels[i]++; Meta.bump('tonics');
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
@@ -1913,7 +1914,7 @@ export class Player {
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
     this.play('S_Upgrade', 0.9); this.benchUses++;
-    if (S.tier >= 3) Meta.bump('tier3');
+    Meta.bump('mods'); if (S.tier >= 3) Meta.bump('tier3');
     this.game.hud.gotUpgrade(u, 1, `${W.name} modifier`);
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
   }
@@ -1945,7 +1946,7 @@ export class Player {
     // a drink off the dead: one level of that tonic (if it is already full, another one that is not)
     if (this.tonicLevels[i] >= TONICS[i].max || (i === 6 && this.maxSlots >= 3)) { const open = TONICS.map((T, k) => k).filter((k) => this.tonicLevels[k] < TONICS[k].max && !(k === 6 && this.maxSlots >= 3)); if (!open.length) { this.addMoney(300, true); this.toast('Every tonic is maxed  +$30', '#ffd23a'); return; } i = open[randInt(0, open.length - 1)]; }
     const T = TONICS[i];
-    this.tonicLevels[i]++;
+    this.tonicLevels[i]++; Meta.bump('tonics');
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;

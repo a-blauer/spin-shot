@@ -309,7 +309,7 @@ export class Game {
     const F = this.final; if (F) { F.active = false; F.done = true; F.beam = null; F.safeR = 0; }
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.hazards.list.forEach((H) => { H.life = Math.min(H.life, H.age + 0.1); });
-    this.victory = true; this.levelDone = true; Meta.bump('wins'); Meta.bump('wins_' + this.map.id); Meta.best('clear_' + this.map.id, difficulty() + 1); Meta.save();
+    this.victory = true; this.levelDone = true; Meta.won(this.map.id, difficulty());
     this.audio.play('S_LevelUp', 1); this.player.addShake(2.5); this.hitstop = 0.4;
   }
   tickFinal(dt) {
@@ -429,7 +429,7 @@ export class Game {
     if (this.round >= 2) this.dropChest();
     this.phase = 'Round';
     if (this.barricadeT === undefined) this.casinoInit();
-    Meta.best('bestRound', this.round);
+    Meta.roundStarted(this.round, this.map.id);
     this.banner(`ROUND ${this.round}`, lin(0.85, 0.08, 0.06), 3.5, 'round');
     this.hud.roundFlash = 1;
     this.player.onRoundStarted(this.round);
@@ -559,7 +559,7 @@ export class Game {
     if (E.isBoss) {
       this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
-      Meta.bump('bosses');
+      Meta.bossKilled(!!E.boss.final, difficulty());
       if (E.boss.last && !this.won) { this.won = true; this.openVault(loc); }
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
@@ -645,7 +645,7 @@ export class Game {
     this.tickCasino(dt);
     if (this.phase !== 'GameOver') this.update(dt);
     for (const ev of Meta.popEvents()) {
-      if (ev.type === 'cos') { this.hud.toast(`New cosmetic: ${ev.name}`, '#ffd24d'); } else if (ev.type === 'ach') { this.banner(`ACHIEVEMENT: ${ev.name.toUpperCase()}`, lin(1, 0.8, 0.2), 4); if (ev.reward) this.hud.toast(`Unlocked: ${ev.reward}`, '#ffd24d'); } else { this.hud.toast(`${ev.name} level ${ev.level}: ${ev.trait}`, '#7fd3ff'); if (this.player.slot.def >= 0 && this.player.W.name === ev.name) this.vm.setWeapon(this.player.slot.def, this.player.slot.tier, false); }
+      if (ev.type === 'cos') { this.hud.toast(`New cosmetic: ${ev.name}`, '#ffd24d'); } else if (ev.type === 'ms') { if (ev.banner) this.banner(ev.banner, lin(1, 0.8, 0.2), 4); if (ev.toast) this.hud.toast(ev.toast, '#ffd24d'); } else { this.hud.toast(`${ev.name} level ${ev.level}: ${ev.trait}`, '#7fd3ff'); if (this.player.slot.def >= 0 && this.player.W.name === ev.name) this.vm.setWeapon(this.player.slot.def, this.player.slot.tier, false); }
     }
     this.metaSave = (this.metaSave || 0) + dt; if (this.metaSave > 10) { this.metaSave = 0; Meta.save(); }
     if (this.phase === 'GameOver') this.time += dt; // keep the clock running so the death card fades in and accepts a restart

@@ -1,6 +1,7 @@
 // Melee weapons. Everyone starts with the Bowie Knife; the rest come from the upgrade shop and the weapon roulette.
 // dmg: base hit (halved from the first pass: the starting knife was one-hitting everything until round eleven); range (cm, 150 for a knife up to 340 for the shovel: it decides how you fight with it); arc (degrees, total); cd: seconds between swings; wind: delay from press to hit;
 // cleave: enemies hit per swing; knock: shove; extras: bleed (fraction over 3s), burn (dps), slow, leech, money, shock.
+import { Meta } from './meta.js';
 export const MELEE = [
   { name: 'Bowie Knife', rarity: 'Common', dmg: 70, range: 150, arc: 70, cd: 0.34, wind: 0.06, cleave: 2, knock: 260, desc: 'The fastest swing and the shortest reach. Your starting blade.', model: 'knife' },
   { name: 'Hatchet', rarity: 'Uncommon', dmg: 105, range: 180, arc: 75, cd: 0.52, wind: 0.09, cleave: 2, knock: 380, bleed: 0.25, desc: 'Short, hits hard and leaves them bleeding.', model: 'hatchet' },
@@ -19,7 +20,7 @@ export const MELEE_CODE = 1000;
 export const isMelee = (c) => c >= MELEE_CODE && c < MELEE_CODE + MELEE.length;
 export function rollMelee(rarityIdx, owned) {
   const R = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
-  for (let r = Math.min(4, Math.max(1, rarityIdx)); r >= 1; r--) { const pool = MELEE.map((m, i) => i).filter((i) => MELEE[i].rarity === R[r] && i !== owned); if (pool.length) return pool[Math.random() * pool.length | 0]; }
+  for (let r = Math.min(4, Math.max(1, rarityIdx)); r >= 1; r--) { const pool = MELEE.map((m, i) => i).filter((i) => MELEE[i].rarity === R[r] && i !== owned && !Meta.bladeLocked(MELEE[i].name)); if (pool.length) return pool[Math.random() * pool.length | 0]; }
   return 1;
 }
 
