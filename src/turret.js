@@ -56,7 +56,7 @@ export class Turret {
     const G = this.game, P = G.player, W = this.W;
     this.age += dt; this.cd -= dt; this.scan -= dt; this.kick = Math.max(0, this.kick - dt * 8);
     this.gunG.position.z = -4 - this.kick * 6;
-    const eye = new THREE.Vector3(this.pos.x, this.pos.y + 108, this.pos.z), range = Math.min(W.range || 2200, 2600);
+    const eye = new THREE.Vector3(this.pos.x, this.pos.y + 108, this.pos.z), range = Math.min(W.range || 2200, 2600) * (1 + P.stat('TurretRange'));
     if (this.scan <= 0 || (this.target && (this.target.dead || this.target.burrowed))) {
       this.scan = 0.25; let best = null, bd = range;
       for (const E of G.enemies) {
@@ -99,11 +99,11 @@ export class Turret {
     for (let p = 0; p < pellets; p++) {
       const dir = aim.clone().sub(from).normalize(); dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread; dir.normalize();
       if (W.mode === 'Hitscan' || cont) {
-        let hit = null, bt = W.range || 2200; const wall = G.phys.raycast(from, dir, bt); if (wall) bt = wall.distance;
+        let hit = null, bt = (W.range || 2200) * (1 + P.stat('TurretRange')); const wall = G.phys.raycast(from, dir, bt); if (wall) bt = wall.distance;
         for (const E of G.enemies) { if (E.dead || E.burrowed) continue; const t = G.rayEnemy(from, dir, bt, E, 6); if (t !== null && t < bt) { bt = t; hit = E; } }
         const at = from.clone().addScaledVector(dir, bt);
         G.fx.tracer(from, at, col, cont ? 8 : 3, 0.06);
-        if (hit) { P.dealDamage(hit, dmg, at, dir, at.y > hit.headY(), 0.25 / pellets, false, W.critBonus || 0, W.burn || 0, W.slow || 0, 0); if (W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, hit); }
+        if (hit) { P.dealDamage(hit, dmg, at, dir, at.y > hit.headY(), 0.25 / pellets, false, W.critBonus || 0, (W.burn || 0) + P.stat('TurretBurn'), W.slow || 0, 0); if (W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, hit); }
         else if (wall && W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, null);
       } else if (W.mode === 'Chain') P.fireChain(from, dir, dmg, W);
       else P.fireProjectile(from, dir, dmg, 0.25 / pellets, W);

@@ -396,7 +396,7 @@ export class Game {
     this.bossRound = this.round % 3 === 0;   // 15 rounds: a boss every third round, the Gravedigger at 15
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
-    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.spawnTimer = 1.5;
+    this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.grenadesThisRound = 0; this.ammoThisRound = 0; this.spawnTimer = 1.5;
     this.phase = 'Round';
     if (this.barricadeT === undefined) this.casinoInit();
     Meta.best('bestRound', this.round);
@@ -536,23 +536,27 @@ export class Game {
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     } else if (Math.random() < clover) this.pickups.spawn('Clover', loc);
-    // Tonics, not buffs, come off the dead. The odds are set per round, not per kill: about one or two a round
-    // however big the horde is, never more than three, with elites far more likely to be carrying one.
-    if (!E.isBoss && this.tonicsThisRound < 3) {
-      const per = 1.5 / Math.max(10, this.toSpawn || 10), chance = E.elite ? 0.14 : E.variant ? per * 3 : per;
-      if (Math.random() < chance) { this.tonicsThisRound++; this.pickups.spawn('Tonic', loc.clone().add(V3(-40, 0, 30)), P.rollTonic()); }
-    }
+    // Supplies off the dead are budgeted per round, not per kill, so a horde of four hundred does not bury you in
+    // them: `per` is the chance that spreads the round's allowance over the round's kills, and each kind has a cap.
+    const nKills = Math.max(10, this.toSpawn || 10), sup = (allow, most) => Math.min(most, allow / nKills) * (E.elite ? 5 : E.variant ? 2.5 : 1);
+    // tonics are permanent, so they are rare: about one every three rounds, never two in a round
+    if (!E.isBoss && this.tonicsThisRound < 1 && Math.random() < sup(0.3, 0.02)) { this.tonicsThisRound++; this.pickups.spawn('Tonic', loc.clone().add(V3(-40, 0, 30)), P.rollTonic()); }
     // every boss leaves a buff; later bosses lean toward the higher rarities
     if (E.isBoss && !E.boss.final) {
       const k = Math.min(4, Math.max(0, Math.floor(this.round / 3) - 1)), T = [[0, 60, 35, 5, 0], [0, 30, 50, 18, 2], [0, 0, 50, 40, 10], [0, 0, 25, 50, 25], [0, 0, 0, 50, 50]][k];
       let r = Math.random() * 100, ri = 1; for (let q = 0; q < 5; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
       const u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(120, 0, 120)), u);
     }
-    if (!E.isBoss && Math.random() < (E.elite ? 0.22 : E.variant ? 0.09 : 0.035) * (P.cls.id === 'bomber' ? 1.7 : 1)) this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL());   // grenades off the dead
-    if (!E.isBoss && Math.random() < 0.035) this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0)));   // a magazine now and then
-    if (!E.isBoss && this.powerupsThisRound < 4 && Math.random() < 0.022) {
-      this.powerupsThisRound++;
-      this.pickups.spawn(['MaxAmmo', 'InstaKill', 'DoublePoints', 'Nuke', 'FireSale'][randInt(0, 4)], loc);
+    { // grenades: about one a round (the Bomber finds nearly two), never more than two (four)
+      const bomber = P.cls.id === 'bomber';
+      if (!E.isBoss && this.grenadesThisRound < (bomber ? 4 : 2) && Math.random() < sup(bomber ? 1.8 : 0.9, 0.03)) { this.grenadesThisRound++; this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL()); }
+      // magazines: two or three a round, a little more as the hordes grow, capped
+      if (!E.isBoss && this.ammoThisRound < 4 + Math.floor(this.round / 8) && Math.random() < Math.min(0.035, (2.2 + this.round * 0.08) / nKills)) { this.ammoThisRound++; this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0))); }
+      // power-ups: about one a round, two at most
+      if (!E.isBoss && this.powerupsThisRound < 2 && Math.random() < Math.min(0.022, 1.1 / nKills)) {
+        this.powerupsThisRound++;
+        this.pickups.spawn(['MaxAmmo', 'InstaKill', 'DoublePoints', 'Nuke', 'FireSale'][randInt(0, 4)], loc);
+      }
     }
   }
   enemyEscaped(E) {
@@ -592,12 +596,15 @@ export class Game {
         rot: Math.random() * 360, rotVel: frandRange(-600, 600), groundY: this.fx.groundY(c, 600), bounce: 0.3, c0: [0.55, 0.36, 0.22, 1], fadeOut: 0.3, tex: 'FX_Gib_Bone', kind: 'sprite' });
     }
     this.unlockZone(D.zoneA); this.unlockZone(D.zoneB);
+    // a district has several gates: once you are in, the others swing open too (nobody pays twice for one district)
+    for (const O of this.interactables) if (O.type === 'Door' && !O.open && O.cost >= 0 && this.zones[O.zoneA] && this.zones[O.zoneB] && this.zones[O.zoneA].unlocked && this.zones[O.zoneB].unlocked) { O.setOpen(true); this.NavBlockBox(O.navBox, -1); }
     this.navRebuild(this.navTarget || this.player.pos);
   }
   unlockZone(z, silent = false) {
     const Z = this.zones[z];
     if (!Z || Z.unlocked) return;
     Z.unlocked = true;
+    for (const O of this.zones) if (O.group !== undefined && O.group === Z.group) O.unlocked = true;   // a district is one or more rectangles that open together
     for (const C of this.zoneCeilings || []) if (C.a >= 0 && C.b >= 0 && this.zones[C.a].unlocked && this.zones[C.b].unlocked) C.blk.enabled = false;   // both sides open: nothing stops you going over
     if (z !== 0 && !silent) this.banner(`${Z.name.toUpperCase()} OPENED`, [0.95, 0.9, 0.8], 2.5);
   }
@@ -610,7 +617,7 @@ export class Game {
     this.tickCasino(dt);
     if (this.phase !== 'GameOver') this.update(dt);
     for (const ev of Meta.popEvents()) {
-      if (ev.type === 'cos') { this.hud.toast(`New cosmetic: ${ev.name}`, '#ffd24d'); } else if (ev.type === 'ach') { this.banner(`ACHIEVEMENT: ${ev.name.toUpperCase()}`, lin(1, 0.8, 0.2), 4); if (ev.reward) this.hud.toast(`Unlocked: ${ev.reward}`, '#ffd24d'); } else { this.hud.toast(`${ev.name} level ${ev.level}: ${ev.trait}`, '#7fd3ff'); if (this.player.W.name === ev.name) this.vm.setWeapon(this.player.slot.def, this.player.slot.tier, false); }
+      if (ev.type === 'cos') { this.hud.toast(`New cosmetic: ${ev.name}`, '#ffd24d'); } else if (ev.type === 'ach') { this.banner(`ACHIEVEMENT: ${ev.name.toUpperCase()}`, lin(1, 0.8, 0.2), 4); if (ev.reward) this.hud.toast(`Unlocked: ${ev.reward}`, '#ffd24d'); } else { this.hud.toast(`${ev.name} level ${ev.level}: ${ev.trait}`, '#7fd3ff'); if (this.player.slot.def >= 0 && this.player.W.name === ev.name) this.vm.setWeapon(this.player.slot.def, this.player.slot.tier, false); }
     }
     this.metaSave = (this.metaSave || 0) + dt; if (this.metaSave > 10) { this.metaSave = 0; Meta.save(); }
     if (this.phase === 'GameOver') this.time += dt; // keep the clock running so the death card fades in and accepts a restart

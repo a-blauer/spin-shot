@@ -20,7 +20,7 @@ import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
-import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee } from './melee.js';
+import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wheel wedge or shop offer can be a gun index or a melee code
 const wdef = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
@@ -82,6 +82,7 @@ export class Player {
     });
   }
   stat(name) { return this.stats[STAT[name]] || 0; }
+  get S() { if (this.statsDirty || !this._S) { const o = {}; for (let i = 1; i < STATS.length; i++) if (this.stats[i]) o[STATS[i]] = this.stats[i]; this._S = o; this.statsDirty = false; } return this._S; }
   get W() { return DATA.weapons[this.slot.def >= 0 ? this.slot.def : 0]; }
   get slot() { return this.weapons[this.active]; }
   eye() { return V3(this.pos.x, this.pos.y + this.eyeZ + this.landDip, this.pos.z); }
@@ -122,31 +123,44 @@ export class Player {
   }
   hasWeapon(def) { for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def === def) return true; return false; }
   giveWeapon(def) {
-    if (isMelee(def)) { this.meleeDef = def - MELEE_CODE; this.meleeCd = 0.3; this.game.vm.meleeShow(MELEE[this.meleeDef]); this.play('S_Switch', 0.8); return; }
+    if (isMelee(def)) { this.meleeDef = def - MELEE_CODE; this.meleeCd = 0.3; this.game.vm.meleeShow(MELEE[this.meleeDef]); this.play('S_Switch', 0.8); if (this.meleeTier > 0) this.toast(`Your honing carries over: ${MELEE[this.meleeDef].name} +${this.meleeTier}`, '#ffcd5a'); return; }
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def === def) { const S = this.weapons[i]; S.ammo = this.magSize(S); S.reserve = this.reserveSize(S); this.switchTo(i); return; }
     let target = this.active;
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def < 0) { target = i; break; }
     const S = this.weapons[target];
     S.def = def; S.tier = 0; S.mods = []; S.altCd = 0; S.hot = 0;
-    this.reloading = false; this.active = target; this.fireCd = 0.45;
+    this.reloading = false; this.active = target; this.fireCd = 0.45; this.wield = false;
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(def, 0, true);
   }
+  // Melee in hand. Q is still a quick swing with a gun out; drawing the blade (X, 4 or the wheel) puts the gun away:
+  // fire swings, aim is a heavy blow, and the blade hits harder, reaches further and you move faster for it.
+  setWield(on) {
+    if (this.dead || this.inMenu() || !!this.wield === !!on) return;
+    if (!on && this.slot.def < 0) return;
+    this.wield = !!on; this.reloading = false; this.fireCd = 0.3; this.meleeCd = Math.max(this.meleeCd || 0, 0.22); this.railT = 0; this.spool = 0;
+    this.play('S_Switch', 0.8, on ? 0.85 : 1);
+    if (on) this.game.vm.meleeShow(MELEE[this.meleeDef]); else this.game.vm.setWeapon(this.slot.def, Math.min(3, this.slot.tier), true);
+  }
   switchTo(i) {
-    if (i >= this.maxSlots || this.weapons[i].def < 0 || i === this.active) return;
+    if (i >= this.maxSlots || this.weapons[i].def < 0) return;
+    if (i === this.active) { if (this.wield) this.setWield(false); return; }
+    this.wield = false;
     const prev = this.slot;
-    this.active = i; this.reloading = false; this.fireCd = 0.38;
+    this.active = i; this.reloading = false; this.fireCd = 0.38 / (1 + this.stat('SwapSpeed'));
     this.recompute();
     if (this.stat('SwapReload') > 0 && prev.def >= 0) { const take = Math.min(this.magSize(prev) - prev.ammo, prev.reserve); if (take > 0) { prev.ammo += take; prev.reserve -= take; } this.swapBuffT = 2; }   // Two-Gun Kid
     this.game.vm.setWeapon(this.weapons[i].def, Math.min(3, this.weapons[i].tier), true);
   }
   cycleWeapon(dir) {
     if (this.dead || this.inMenu()) return;
-    for (let k = 1; k <= this.maxSlots; k++) {
-      const s = (this.active + dir * k + this.maxSlots * 2) % this.maxSlots;
-      if (this.weapons[s].def >= 0) { this.switchTo(s); return; }
-    }
+    // the wheel runs through the guns and then the blade
+    const order = []; for (let s = 0; s < this.maxSlots; s++) if (this.weapons[s].def >= 0) order.push(s); order.push(-1);
+    if (!this.wield && this.slot.def < 0) { if (order.length > 1) this.switchTo(order[0]); else this.setWield(true); return; }   // the hand is empty (the gun went to the turret): take the next gun
+    const at = this.wield ? order.length - 1 : Math.max(0, order.indexOf(this.active)), to = order[(at + dir + order.length * 2) % order.length];
+    if (to < 0) this.setWield(true); else this.switchTo(to);
   }
+  refillMags() { for (const S of this.weapons) if (S.def >= 0) { const take = Math.min(this.magSize(S) - S.ammo, S.reserve); if (take > 0) { S.ammo += take; S.reserve -= take; } } }
   refillAll() { for (const S of this.weapons) if (S.def >= 0) { S.ammo = this.magSize(S); S.reserve = this.reserveSize(S); } }
   startReload() {
     if (this.reloading) return;
@@ -171,10 +185,12 @@ export class Player {
       for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val * n;
     });
     for (const [stat, val] of this.cls.stats) this.stats[STAT[stat]] += val;
+    this.stats[STAT.MaxHealth] += this.killHP || 0;   // Trophy Rack: health earned by kills
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
     for (const u of (this.slot && this.slot.mods) || []) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
     this.eff = eff;
+    this.statsDirty = true;
     // suit sets: 3 / 6 / 9 different upgrades of a suit
     const sc = { Iron: 0, Blood: 0, Gold: 0, Wind: 0 };
     this.upgradeStacks.forEach((n, u) => { if (n > 0) sc[DATA.upgrades[u].suit]++; });
@@ -227,6 +243,7 @@ export class Player {
     this.play('S_Luck', 0.8);
   }
   collectPickup(type, amount) {
+    if (this.procDepth < 2) this.runProcs('OnPickup', null, this.pos, 0, 1);
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${cash(amount)}`, '#ffd23a'); this.play('S_Cash', 0.8); }
     else if (type === 'Tonic') this.gainTonic(amount);
@@ -238,12 +255,13 @@ export class Player {
   onRoundStarted(r) {
     this.lastRound = r;
     { const rv = Math.round(this.stat('Revives')); if (rv <= 0) this.revives = 0; else if (this.reviveRound === undefined || r - this.reviveRound >= 3) this.revives = rv; }   // a spent revive takes three rounds to come back
-    this.periodic.fill(0.5);
+    this.periodic.fill(0.5); this.secondWindUsed = false;
     this.runProcs('OnRoundStart', null, this.pos, 0, 1);
     this.play('S_RoundStart', 0.8);
   }
   onRoundEnded() {
     this.play('S_RoundEnd', 0.8);
+    if (this.S.RoundMoney) { this.addMoney(this.S.RoundMoney, false); this.toast(`Round bonus  +$${cash(this.S.RoundMoney)}`, '#ffd24d'); }
     const rate = this.stat('Interest');
     if (rate > 0) { const pay = Math.min(Math.round(this.money * rate), 2000); if (pay > 0) { this.money += pay; this.toast(`Interest  +$${cash(pay)}`, '#ffd24d'); } }
   }
@@ -268,6 +286,10 @@ export class Player {
       return;
     }
     this.sinceDamage += dt;
+    if (this.streakT > 0) { this.streakT -= dt; if (this.streakT <= 0) this.streak = 0; }
+    if (this.dashGuardT > 0) this.dashGuardT -= dt;
+    if (this.headCritT > 0) this.headCritT -= dt;
+    if (this.S.ShieldRegen && this.sinceDamage > 4 && this.overshield < this.S.ShieldRegen) this.overshield = Math.min(this.S.ShieldRegen, this.shieldCap(), this.overshield + 12 * dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.5);
     this.invuln = Math.max(0, this.invuln - dt);
     this.hitMarker = Math.max(0, this.hitMarker - dt);
@@ -289,9 +311,15 @@ export class Player {
     if (In.slideUp) this.onSlideReleased();
     if (In.dash && !menu) this.doDash();
     if (In.grapple && !menu) this.useAbility();
-    if (In.reload && !menu) { if (this.reloading && this.stat('ActiveReload') > 0) this.activeReload(); else this.startReload(); }
+    if (In.reload && !menu && !this.wield) { if (this.reloading && this.stat('ActiveReload') > 0) this.activeReload(); else this.startReload(); }
     if (In.interact) this.interact();
     if (In.melee && !menu) this.meleeBuffer = 0.22;
+    if (In.wield && !menu) this.setWield(!this.wield);
+    if (this.wield) {
+      if (!menu && In.fire) this.meleeBuffer = Math.max(this.meleeBuffer || 0, 0.1);          // hold fire to keep swinging
+      if (!menu && In.aim && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing(true);   // aim: a heavy blow
+      this.aiming = false;
+    }
     if (In.grenade && !menu) this.throwGrenade();
     this.tickGrenades(dt);
     this.tickAbility(dt);
@@ -301,7 +329,7 @@ export class Player {
     if (In.prev) this.cycleWeapon(-1);
     for (let i = 0; i < 4; i++) if (In.choice[i]) this.handleChoice(i);
     if (In.firePressed) this.fireConsumed = false;
-    this.fireHeld = In.fire;
+    this.fireHeld = In.fire && !this.wield;
 
     this.tickMobility(dt);
     this.tickCombat(dt);
@@ -340,7 +368,7 @@ export class Player {
   // ------------------------------------------------------------------ movement
   updateMoveSpeed() {
     if (this.sliding) return;
-    let s = WalkSpeed * (1 + this.stat('MoveSpeed') + this.haste);
+    let s = WalkSpeed * (1 + this.stat('MoveSpeed') + this.haste + (this.wield ? 0.08 : 0));
     if (this.sprintHeld && this.inFwd > 0.1 && !this.aiming) s *= SprintMult;
     if (this.aiming) s *= 0.7;
     if (this.slowT > 0) s *= 1 - this.slowAmt;
@@ -624,7 +652,7 @@ export class Player {
   endSlide() { if (!this.sliding) return; this.sliding = false; this.slideCd = 0.25; this.slideDmgWindow = 1; this.updateMoveSpeed(); }
   doDash() {
     if (this.dashCharges <= 0 || this.dashT > 0) return;
-    this.dashCharges--;
+    this.dashCharges--; if (this.S.DashGuard) this.dashGuardT = 1.5;
     if (this.grappling) this.endGrapple(false);
     if (this.wallRunning) this.endWallRun();
     if (this.sliding) this.endSlide();
@@ -713,7 +741,7 @@ export class Player {
   tickMelee(dt, menu) {
     this.meleeHitting = false;
     const G = this.game;
-    if (this.meleeDef === undefined) { this.meleeDef = 0; this.meleeCd = 0; this.meleeCombo = 0; this.meleeComboT = 0; this.meleeHitT = -1; this.meleeBuffer = 0; this.frenzy = 0; this.frenzyT = 0; this.meleeGuardT = 0; }
+    if (this.meleeDef === undefined) { this.meleeDef = 0; this.meleeCd = 0; this.meleeCombo = 0; this.meleeComboT = 0; this.meleeHitT = -1; this.meleeBuffer = 0; this.frenzy = 0; this.frenzyT = 0; this.meleeGuardT = 0; this.meleeTier = this.meleeTier || 0; }
     this.meleeCd = Math.max(0, this.meleeCd - dt); this.meleeBuffer = Math.max(0, (this.meleeBuffer || 0) - dt); this.meleeGuardT = Math.max(0, this.meleeGuardT - dt);
     if (this.meleeComboT > 0) { this.meleeComboT -= dt; if (this.meleeComboT <= 0) this.meleeCombo = 0; }
     if (this.frenzyT > 0) { this.frenzyT -= dt; if (this.frenzyT <= 0) this.frenzy = 0; }
@@ -721,8 +749,21 @@ export class Player {
     if (this.meleeHitT >= 0) { this.meleeHitT -= dt; if (this.meleeHitT < 0) this.meleeStrike(); }
     if (this.meleeBuffer > 0 && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing();
   }
-  meleeSpeed() { return 1 + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy'); }
-  meleeRange() { return MELEE[this.meleeDef].range * (1 + this.stat('MeleeRange')); }
+  meleeSpeed() { return 1 + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + honeSpeed(this.meleeTier || 0) + (this.wield ? 0.1 : 0); }
+  meleeRange() { return MELEE[this.meleeDef].range * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
+  // everything that multiplies a swing before the per-hit rolls: buffs, frenzy, honing, and having the blade in hand
+  meleePower() { return (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + (this.wield ? 0.25 : 0) + this.stat('HealthMelee') * Math.max(0, this.maxHealth - 150) / 25) * honeDamage(this.meleeTier || 0); }
+  meleeCleave() { return MELEE[this.meleeDef].cleave + this.stat('MeleeCleave') + honeCleave(this.meleeTier || 0); }
+  honeCost() { return Math.round(HONE_COST[Math.min(HONE_MAX - 1, this.meleeTier || 0)] * this.priceMult()); }
+  honeMelee() {
+    const W = MELEE[this.meleeDef], t = this.meleeTier || 0;
+    if (t >= HONE_MAX) { this.toast(`${W.name} is as sharp as it gets`, '#ccc'); return; }
+    if (!this.spend(this.honeCost())) return;
+    this.meleeTier = t + 1; this.benchUses++;
+    this.play('S_Upgrade', 0.9); this.game.vm.meleeShow(W);
+    this.toast(`${W.name} +${this.meleeTier}:  +${Math.round((honeDamage(this.meleeTier) - 1) * 100)}% damage, ${reachText(this.meleeRange())}`, '#ffcd5a');
+    this.game.fx.flash(this.pos, lin(1, 0.8, 0.3), 90, 0.4, true);
+  }
   meleeTargets(range, arcDeg) {
     const eye = this.eye(), f = this.forward(), ff = flat(f); if (ff.lengthSq() < 1e-4) ff.set(0, 0, 1); ff.normalize();
     const cosA = Math.cos(Math.min(170, arcDeg) * Math.PI / 360), out = [];
@@ -741,13 +782,15 @@ export class Player {
   throwGrenade() {
     if (this.dead || this.grenadeCd > 0) return;
     if (!this.grenades.length) { this.toast('No grenades. Enemies drop them.', '#ccc'); this.play('S_Deny', 0.5); this.grenadeCd = 0.4; return; }
-    const t = this.grenades.pop(), N = GRENADES[t], G = this.game;
+    const keep = this.S.GrenadeSave && Math.random() < Math.min(0.6, this.S.GrenadeSave);
+    const t = keep ? this.grenades[this.grenades.length - 1] : this.grenades.pop(), N = GRENADES[t], G = this.game;
+    if (keep) this.toast('Recycled', '#ffa23a');
     const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
     const from = this.eye().addScaledVector(dir, 40).add(V3(0, -12, 0));
     G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1200).add(V3(0, 260, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: N.radius, gtype: t, gravity: 1, bounces: 3, bounceDamp: 0.45, fuse: 1.3, life: 4, kind: 'Grenade', radius: 12, color: N.color, procCoef: 0, fromProc: true });
     this.grenadeCd = 0.7; this.play('S_Dash', 0.5, 1.3); if (G.vm.jolt) G.vm.jolt(1.2);
   }
-  grenadeDamage(mult) { return Math.max(250, zombieHealth(this.game.round) * mult); }   // keeps pace with the round
+  grenadeDamage(mult) { return Math.max(250, zombieHealth(this.game.round) * mult) * (1 + this.stat('GrenadeDamage')); }   // keeps pace with the round
   grenadeBlast(t, at, P) {
     const N = GRENADES[t], G = this.game, R = N.radius * (1 + this.stat('ExplosionRadius')), dmg = P && P.altDmg ? P.altDmg : this.grenadeDamage(N.dmg);
     if (t === 6) { this.wells.push({ at: at.clone(), t: 2.2, r: R, dmg }); G.fx.ring(at, R, N.color, 0.5); this.play('S_Grapple', 0.7, 0.5); return; }   // gravity: pull first, burst later
@@ -756,7 +799,7 @@ export class Player {
     if (t === 1) { this.gzones.push({ at: at.clone(), r: R * 0.85, t: 6, tick: 0, dps: dmg * 0.45 }); for (const E of near()) E.applyBurn(dmg * 0.25, 4); }
     else if (t === 2) { for (const E of near()) E.applySlow(E.isBoss ? 0.35 : 0.75, E.isBoss ? 3 : 6); G.fx.ring(at, R, N.color, 0.6); }
     else if (t === 3) { const L = near(); let prev = null; for (const E of L) { if (!E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 2.5); E.applySlow(0.9, 2.5); } if (prev) G.fx.arc(prev.pos, E.pos, N.color); prev = E; } G.fx.ring(at, R, N.color, 0.4); }
-    else if ((t === 4 || (t === 5 && this.stat('AbilityPower') >= 1)) && !(P && P.child)) for (let i = 0; i < (t === 5 ? 4 : 5); i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
+    else if ((t === 4 || (t === 5 && this.stat('AbilityPower') >= 1) || (this.S.ClusterAll && t !== 6)) && !(P && P.child)) for (let i = 0; i < (t === 5 ? 4 : 5); i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
   }
   tickGrenades(dt) {
     if (this.grenadeCd > 0) this.grenadeCd -= dt;
@@ -777,13 +820,13 @@ export class Player {
       if (Z.t <= 0) this.gzones.splice(i, 1);
     }
   }
-  meleeSwing() {
+  meleeSwing(power = false) {
     const W = MELEE[this.meleeDef], sp = this.meleeSpeed();
     this.meleeBuffer = 0;
-    const step = this.meleeComboT > 0 ? (this.meleeCombo + 1) % 3 : 0;
-    this.meleeCombo = step; this.meleeHeavy = step === 2;
-    const cd = W.cd / sp * (this.meleeHeavy ? 1.2 : 1);
-    this.meleeCd = cd; this.meleeComboT = cd + 0.55; this.meleeHitT = W.wind / sp * (this.meleeHeavy ? 1.3 : 1);
+    const step = power ? 2 : this.meleeComboT > 0 ? (this.meleeCombo + 1) % 3 : 0;
+    this.meleeCombo = step; this.meleeHeavy = step === 2; this.meleeBig = power;   // `big`: the wielded heavy blow, slower and harder than a chain finisher
+    const cd = W.cd / sp * (power ? 1.55 : this.meleeHeavy ? 1.2 : 1);
+    this.meleeCd = cd; this.meleeComboT = cd + 0.55; this.meleeHitT = W.wind / sp * (power ? 1.7 : this.meleeHeavy ? 1.3 : 1);
     this.game.vm.meleeSwing(W, step, Math.max(0.16, cd * 0.8));
     this.play('S_Dash', 0.45, (this.meleeHeavy ? 0.8 : 1.25) * (W.cd > 0.8 ? 0.7 : 1), 0.06);
     // step in toward the nearest target in front so swings connect
@@ -792,9 +835,9 @@ export class Player {
     this.fovKick += this.meleeHeavy ? 5 : 2.5;
   }
   meleeStrike() {
-    const G = this.game, W = MELEE[this.meleeDef], heavy = this.meleeHeavy;
-    const range = this.meleeRange() * (heavy ? 1.1 : 1), arc = W.arc * (1 + this.stat('MeleeArc')) * (heavy ? 1.15 : 1);
-    const T = this.meleeTargets(range, arc).slice(0, Math.round(W.cleave + this.stat('MeleeCleave') + (heavy ? 1 : 0)));
+    const G = this.game, W = MELEE[this.meleeDef], heavy = this.meleeHeavy, big = this.meleeBig;
+    const range = this.meleeRange() * (big ? 1.15 : heavy ? 1.1 : 1), arc = W.arc * (1 + this.stat('MeleeArc')) * (heavy ? 1.15 : 1);
+    const T = this.meleeTargets(range, arc).slice(0, Math.round(this.meleeCleave() + (big ? 2 : heavy ? 1 : 0)));
     if (!T.length) {
       const hit = G.phys.raycast(this.eye(), this.forward(), range);   // steel on stone
       if (hit) { G.fx.sparks ? G.fx.sparks(hit.point, hit.normal) : G.fx.flash(hit.point, lin(1, 0.8, 0.4), 30, 0.12, false); this.play('S_HitWall', 0.6, 1.1, 0.1); this.addShake(0.2); }
@@ -802,7 +845,7 @@ export class Player {
     }
     const f = this.forward();
     this.meleeHitting = true;
-    let base = W.dmg * (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy')) * (heavy ? 1.6 : 1) * (1 + 0.08 * Math.max(0, effRound(G.round) - 1));
+    let base = W.dmg * this.meleePower() * (big ? 2.1 : heavy ? 1.6 : 1) * (heavy ? 1 + this.stat('MeleeHeavy') : 1) * (1 + 0.08 * Math.max(0, effRound(G.round) - 1));
     let killed = 0, dealt = 0;
     for (const E of T) {
       const dir = safeN2(flat(E.pos.clone().sub(this.pos))), at = E.pos.clone().addScaledVector(dir, -E.radius * 0.6); at.y = Math.min(E.pos.y + E.half * 0.5, this.eye().y - 10);
@@ -814,6 +857,7 @@ export class Player {
       const did = Math.max(0, hp0 - Math.max(0, E.health) - (E.shield || 0)); dealt += did;
       const bleed = (W.bleed || 0) + this.stat('MeleeBleed'); if (bleed > 0 && !E.dead) E.applyBleed(dmg * bleed);
       if (!E.dead && !E.isBoss) E.applyKnock(dir.clone().multiplyScalar(W.knock * (1 + this.stat('MeleeKnock')) * (heavy ? 1.5 : 1)).add(V3(0, heavy ? 420 : 220, 0)));
+      if (heavy && !E.dead && !E.isBoss && this.S.MeleeStun) { E.staggerT = Math.max(E.staggerT || 0, this.S.MeleeStun); E.applySlow(0.9, this.S.MeleeStun); }
       const shock = (W.shock || 0) + this.stat('MeleeShock');
       if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Chain', 0.5, 1.2, 0.1); }
       G.fx.fleshHit(at, dir, E.bodyScale * (heavy ? 1.5 : 1.1), true);
@@ -828,6 +872,7 @@ export class Player {
     const leech = (W.leech || 0) + this.stat('MeleeLifesteal'); if (leech > 0) this.heal(Math.min(25, dealt * leech));
     if (this.stat('MeleeGuard') > 0) this.meleeGuardT = 2;
     if (killed) {
+      if (this.procDepth < 2) this.runProcs('OnMeleeKill', null, this.pos, 0, 1);
       if (this.stat('MeleeDashReset') > 0) this.dashCharges = Math.min(this.maxDash(), this.dashCharges + 1);
       const am = this.stat('MeleeAmmo'); if (am > 0) { const S = this.slot, mag = this.magSize(S); const add = Math.min(Math.ceil(mag * Math.min(1, am)), mag - S.ammo, S.reserve); if (add > 0) { S.ammo += add; S.reserve -= add; } }
       if (this.stat('MeleeFrenzy') > 0) { this.frenzy = Math.min(5, (this.frenzy || 0) + killed); this.frenzyT = 6; }
@@ -835,7 +880,14 @@ export class Player {
   }
   // top sources of damage this run, biggest first: [{ who, total, hits, max, pct }]
   damageReport() { const L = this.dmgLog || {}, all = Object.keys(L).reduce((n, k) => n + L[k].total, 0) || 1; return Object.keys(L).map((k) => ({ who: k, total: Math.round(L[k].total), hits: L[k].hits, max: Math.round(L[k].max), pct: Math.round(L[k].total / all * 100) })).sort((a, b) => b.total - a.total); }
-  heal(a) { if (!this.dead && a > 0) this.health = Math.min(this.maxHealth, this.health + a); }
+  shieldCap() { return Math.max(60, this.maxHealth * 0.6); }   // overshield tops out at 60% of your health, however many things feed it
+  heal(a) {
+    if (this.dead || a <= 0) return;
+    a *= 1 + (this.S.HealBoost || 0);
+    const over = this.health + a - this.maxHealth;
+    this.health = Math.min(this.maxHealth, this.health + a);
+    if (over > 0 && this.S.Overheal) this.overshield = Math.max(this.overshield, Math.min(this.S.Overheal, this.shieldCap(), this.overshield + over));   // Aegis: healing you cannot hold becomes shield
+  }
   // healing earned by fighting (kills, lifesteal) comes out of a small bucket that refills at 8 health a second,
   // so a horde of a hundred is not a hundred heals
   combatHeal(a) { const h = Math.min(a, this.healBucket); if (h > 0) { this.healBucket -= h; this.heal(h); } }
@@ -844,16 +896,22 @@ export class Player {
     if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
+    if (this.S.BlockChance && !silent && Math.random() < 1 - 1 / (1 + this.S.BlockChance)) { this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(120)), 'BLOCKED', [0.7, 0.85, 1], 1.1); this.play('S_HitWall', 0.5, 0.7, 0.1); return; }
+    if (this.S.AirGuard && !this.grounded) amount *= 1 - Math.min(0.5, this.S.AirGuard);
+    if (this.dashGuardT > 0 && this.S.DashGuard) amount *= 1 - Math.min(0.6, this.S.DashGuard);
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
     // the same goes for blasts: several markers going off together count once, not once each
     else if (source && (source.kind === 'Marker' || source.kind === 'Ring') && !silent) { if (this.game.time - (this.lastBlastHit || -9) < 0.4) return; this.lastBlastHit = this.game.time; }
     if (this.inMenu()) this.closeMenu();
-    const armor = this.stat('Armor');
+    const armor = this.stat('Armor') + (this.wield ? this.stat('MeleeArmor') : 0);
     let dmg = amount * (armor >= 0 ? 100 / (100 + armor) : 1 + -armor / 100);
+    if (this.S.PlateArmor) dmg = Math.max(dmg * 0.4, dmg - this.S.PlateArmor);
+    if (this.S.HitCap) dmg = Math.min(dmg, this.maxHealth * Math.max(0.2, this.S.HitCap));
     if (this.meleeGuardT > 0) dmg *= 1 - Math.min(0.6, this.stat('MeleeGuard'));
-    if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; }
+    if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; if (this.overshield <= 0 && !silent) this.runProcs('OnShieldBreak', null, this.pos, 0, 1); }
     this.health -= dmg;
+    if (this.S.SecondWind && !this.secondWindUsed && this.health > 0 && this.health < this.maxHealth * 0.25) { this.secondWindUsed = true; this.health = Math.min(this.maxHealth, this.health + this.maxHealth * Math.min(0.8, this.S.SecondWind)); this.invuln = Math.max(this.invuln, 0.6); this.toast('Second wind', '#7dff8a'); this.play('S_PowerUp', 0.7, 1.2); }
     this.sinceDamage = 0;
     // damage report: what hit you, totalled for the run and kept in order for the last few seconds
     { let who = 'Other';
@@ -940,6 +998,7 @@ export class Player {
     this.fov = interpTo(this.fov, tf, dt, 12);
     // view model
     const localVel = this.vel.clone().applyAxisAngle(UP, -this.yaw);
+    G.vm.wield = !!this.wield && !this.dead;
     G.vm.update(dt, {
       look: this.lookDelta, localVel, grounded: this.grounded, sprinting: this.sprintHeld && this.inFwd > 0.1 && sp > 500, sliding: this.sliding,
       aiming: this.aiming && !this.inMenu(), wallSide: this.wallRunning ? this.wallSide : 0, reloading: this.reloading,
@@ -1173,18 +1232,31 @@ export class Player {
     if (this.sliding || this.slideDmgWindow > 0) m += this.stat('SlideDamage');
     if (this.health < this.maxHealth * 0.35) m += this.stat('LowHealthDamage');
     if (E) { if (E.elite) m += this.stat('EliteDamage'); if (E.isBoss) m += this.stat('BossDamage'); }
+    // buffs that ask "who, where and when": the target's state, the range, and what shape you are in
+    if (E && E.pos) {
+      if (this.S.FullHealthDamage && E.health >= E.maxHealth * 0.9) m += this.S.FullHealthDamage;
+      if (this.S.StatusDamage && (E.burnT > 0 || E.slowT > 0 || E.bleedT > 0)) m += this.S.StatusDamage;
+      if (this.S.CloseDamage || this.S.FarDamage) { const d = E.pos.distanceTo(this.pos); if (d < 650) m += this.S.CloseDamage || 0; else if (d > 2000) m += this.S.FarDamage || 0; }
+    }
+    if (this.S.HealthyDamage && this.health >= this.maxHealth * 0.9) m += this.S.HealthyDamage;
+    if (this.S.MoneyDamage) m += this.S.MoneyDamage * Math.min(30, this.money / 1000);
+    if (this.S.StreakDamage) m += this.S.StreakDamage * Math.min(10, this.streak || 0);
+    if (this.S.HealthDamage) m += this.S.HealthDamage * Math.max(0, this.maxHealth - 150) / 25;
+    if (this.S.StillDamage && this.aiming && Math.hypot(this.vel.x, this.vel.z) < 160) m += this.S.StillDamage;
     return Math.max(0.1, m);
   }
   dealDamage(E, base, at, dir, headshot, procCoef, fromProc, critBonus = 0, burn = 0, slow = 0, moneyPerHit = 0, numColor = WHITE) {
     if (!E || E.dead) return 0;
     const G = this.game;
     const mult = this.damageMult(E);
-    const crit = !fromProc && Math.random() < 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0);
+    let crit = !fromProc && Math.random() < 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0);
+    if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }   // Second Opinion: the shot after a headshot kill
     let dmg = base * mult;
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
     if (head) dmg *= 1.75 + this.stat('HeadshotDamage');
     if (G.instaKill > 0 && !E.isBoss) dmg = Math.max(dmg, E.health + E.shield + 1);
+    if (head && !E.isBoss && this.S.HeadExecute && E.health < E.maxHealth * this.S.HeadExecute) dmg = Math.max(dmg, E.health + E.shield + 1);   // Killshot
     const dealt = E.takeHit(dmg, at, dir || V3(0, 0, 0), head);
     if (dealt <= 0) return 0;
     const killed = E.dead;
@@ -1208,6 +1280,8 @@ export class Player {
     if (head) c = [1, 0.3, 0.25];
     G.hud.floater(at.clone().add(V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15)), `${Math.round(dealt)}${crit ? '!' : ''}`, c, crit || head ? 1.3 : 0.95);
     if (!fromProc && !killed) this.addMoney(Math.max(1, Math.round(10 * Math.min(1, procCoef * 1.5))) + moneyPerHit, true);
+    if (crit && this.S.CritHeal) this.combatHeal(this.S.CritHeal);
+    if (!killed && E.elite && !E.isBoss && this.S.EliteExecute && E.health < E.maxHealth * Math.min(0.4, this.S.EliteExecute)) { G.hud.floater(E.pos.clone().add(V3(0, 60, 0)), 'CULLED', [1, 0.2, 0.25], 1.2); E.kill(this, false); }
     const steal = this.stat('Lifesteal');
     if (steal > 0) this.combatHeal(dealt * steal);
     if (head && !killed && this.stat('HeadMark') > 0) { E.markT = 5; E.markAmt = this.stat('HeadMark'); }
@@ -1250,6 +1324,7 @@ export class Player {
     for (const E of hits) {
       const fall = 1 - 0.5 * clamp(E.pos.distanceTo(at) / Math.max(1, radius), 0, 1);
       E.lastHitExplosive = true;
+      if (this.S.BlastBurn && !E.dead) E.applyBurn(damage * this.S.BlastBurn, 3);
       this.dealDamage(E, damage * fall, E.pos, E.pos.clone().sub(at).normalize(), false, procCoef * 0.5, fromProc, 0, 0, 0, 0, fromProc ? [1, 0.6, 0.3] : WHITE);
       if (!E.dead) E.applyKnock(safeN2(E.pos.clone().sub(at)).multiplyScalar(250).add(V3(0, 250, 0)));
     }
@@ -1285,7 +1360,12 @@ export class Player {
     if (this.meleeHitting) { if (this.cls.id === 'brawler') this.combatHeal(5); if (this.stat('MeleeAbilityReset') > 0 && !this.inRush) this.abilityCd = Math.max(0, this.abilityCd - 1); }
     if (this.procDepth < 2 && this.stat('Shrapnel') > 0 && !E.lastHitExplosive && S.def >= 0) { this.procDepth++; this.explodeAt(E.pos, 260, DATA.weapons[S.def].dmg * DATA.weapons[S.def].pellets * (1 + 0.2 * S.tier) * this.stat('Shrapnel'), 0, true, false, [0.8, 0.8, 0.85], E); this.procDepth--; }
     if (this.procDepth < 2 && E.lastHitExplosive && this.stat('BlastChain') > 0) { this.procDepth++; this.explodeAt(E.pos, 300, this.power() * 1.2 * this.stat('BlastChain') * 2, 0, true, false, [1, 0.6, 0.25], E); this.procDepth--; }
+    this.streak = (this.streakT > 0 ? (this.streak || 0) : 0) + 1; this.streakT = 3;
+    { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
+    if (headshot && this.S.HeadCrit) this.headCritT = 3;
+    if (this.S.KillHealth && (this.killHP || 0) < 60 * this.S.KillHealth) { this.killHPc = (this.killHPc || 0) + 1; if (this.killHPc >= 8) { this.killHPc = 0; this.killHP = (this.killHP || 0) + 1; this.recompute(); this.health = Math.min(this.maxHealth, this.health + 1); } }
     if (this.procDepth < 2) {
+      if (this.multiT.length >= 3) { this.multiT.length = 0; this.runProcs('OnMultiKill', E, E.pos, 0, 1); }
       this.runProcs('OnKill', E, E.pos, 0, 1);
       if (E.elite || E.isBoss) this.runProcs('OnEliteKill', E, E.pos, 0, 1);
     }
@@ -1323,7 +1403,7 @@ export class Player {
     const G = this.game;
     this.procDepth++;
     const N = Math.max(1, stacks), mag = U.mag * N;
-    const selfC = !['OnHit', 'OnCrit', 'OnHeadshot', 'OnKill', 'OnEliteKill', 'Periodic'].includes(trigger);
+    const selfC = !['OnHit', 'OnCrit', 'OnHeadshot', 'OnKill', 'OnEliteKill', 'OnMultiKill', 'Periodic'].includes(trigger);
     const Me = this.pos;
     const alive = target && !target.dead;
     const near = (c, r, skip) => G.enemies.filter((E) => E !== skip && !E.dead && !E.emerging && E.pos.distanceTo(c) < r);
@@ -1364,7 +1444,7 @@ export class Player {
       }
       case 'Heal': this.combatHeal(mag); break;
       case 'Money': this.addMoney(Math.round(mag * (trigger === 'OnKill' ? Math.min(1, payScale(G.round)) : 1)), true); break;
-      case 'Shield': { let a = mag; if (trigger === 'OnKill') { a = Math.min(a, this.shieldBucket || 0); this.shieldBucket = (this.shieldBucket || 0) - a; } this.overshield = Math.min(this.maxHealth, this.overshield + a); break; }   // kill shields share a 6-a-second budget, like kill heals
+      case 'Shield': { let a = mag; if (trigger === 'OnKill') { a = Math.min(a, this.shieldBucket || 0); this.shieldBucket = (this.shieldBucket || 0) - a; } this.overshield = Math.min(this.shieldCap(), this.overshield + a); break; }   // kill shields share a 6-a-second budget, like kill heals
       case 'Missile': {
         const from = Me.clone().add(V3(0, 90, 0));
         const aimE = alive ? target : this.findNearestEnemy(at, 2500, null);
@@ -1394,6 +1474,8 @@ export class Player {
       }
       case 'Bleed': if (alive) target.applyBleed(mag * base); break;
       case 'Clover': this.addLuck(1); break;
+      case 'Cooldown': this.abilityCd = Math.max(0, this.abilityCd - mag); break;
+      case 'Invuln': this.invuln = Math.max(this.invuln, U.mag); G.fx.flash(Me, lin(0.8, 0.9, 1), 120, 0.3, true); break;
       case 'Shockwave': {
         G.fx.ring(Me.clone().add(V3(0, -70, 0)), 450, lin(0.9, 0.9, 1), 0.35);
         for (const E of near(Me, 450, null)) {
@@ -1479,7 +1561,7 @@ export class Player {
   }
   handleChoice(i) {
     if (this.dead) return;
-    if (!this.inMenu()) { if (i < this.maxSlots) this.switchTo(i); return; }
+    if (!this.inMenu()) { if (i < this.maxSlots) this.switchTo(i); else if (i === 3) this.setWield(!this.wield); return; }
     const M = this.menu;
     switch (M.type) {
       case 'Slots':
@@ -1729,6 +1811,7 @@ export class Player {
     const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
     if (id === 'gunslinger') {
       this.deadeyeT = 5 + this.stat('AbilityDuration'); this.deadeyeExt = 0; this.abilityCd = this.abilityMax();
+      if (this.S.DeadeyeReload) { this.refillMags(); this.reloading = false; }
       this.play('S_PowerUp', 0.8, 1.3); this.fovKick += 6; G.banner('DEADEYE', lin(1, 0.8, 0.35), 1.2);
     } else if (id === 'brawler') {
       const f = safeN2(flat(dir.clone())); if (f.lengthSq() < 0.1) return;
@@ -1747,9 +1830,10 @@ export class Player {
       at = down.point;
       const allowed = 1 + Math.round(this.stat('TurretCount'));
       if (this.turrets.length < allowed) this.turrets.push(new Turret(G, at, this.turrets.length > 0));
-      else { const T = this.turrets[this.turretNext % this.turrets.length]; this.turretNext++; T.place(at); }
+      else { const T = this.turrets[this.turretNext % this.turrets.length]; this.turretNext++; if (this.S.TurretBlast) this.explodeAt(T.pos.clone().add(V3(0, 60, 0)), 420, this.power() * 3 * this.S.TurretBlast, 0, true, false, lin(0.5, 0.8, 1), null); T.place(at); }
       this.abilityCd = this.abilityMax(); this.play('S_MagIn', 0.9, 0.6);
     }
+    if (this.abilityCd > 0) this.runProcs('OnAbility', null, this.pos, 0, 1);
   }
   tickAbility(dt) {
     const G = this.game;
@@ -1761,7 +1845,7 @@ export class Player {
       this.rushT -= dt;
       this.vel.x = this.rushDir.x * 2500; this.vel.z = this.rushDir.z * 2500; if (this.vel.y < 0) this.vel.y *= 0.5;
       const W = MELEE[this.meleeDef], pw = this.stat('AbilityPower');
-      const dmg = Math.max(W.dmg * (1 + this.stat('MeleeDamage')) * 2.2 * (1 + 0.08 * Math.max(0, effRound(G.round) - 1)), zombieHealth(G.round)) * (1 + pw);
+      const dmg = Math.max(W.dmg * (1 + this.stat('MeleeDamage')) * honeDamage(this.meleeTier || 0) * 2.2 * (1 + 0.08 * Math.max(0, effRound(G.round) - 1)), zombieHealth(G.round)) * (1 + pw);
       this.inRush = true;
       for (const E of G.enemies) {
         if (E.dead || E.burrowed || this.rushHits.has(E)) continue;
@@ -1772,7 +1856,7 @@ export class Player {
         this.addShake(0.25); G.hitstop = Math.max(G.hitstop || 0, 0.03);
       }
       this.inRush = false; this.meleeHitting = false;
-      if (this.rushT <= 0) { this.vel.x *= 0.35; this.vel.z *= 0.35; this.rushGuardT = 3; }
+      if (this.rushT <= 0) { this.vel.x *= 0.35; this.vel.z *= 0.35; this.rushGuardT = 3; if (this.S.RushShield) { this.overshield = Math.min(this.shieldCap(), this.overshield + this.S.RushShield); this.haste = Math.max(this.haste, 0.3); this.hasteT = 3; } }
     }
     // Engineer: standing by the turret
     this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;
@@ -1799,6 +1883,7 @@ export class Player {
   }
   benchCost(S) { return Math.round([2000, 3500, 5500, 8000][Math.min(3, S.mods.length)] * this.priceMult()); }
   benchUpgrade() {
+    if (this.wield) return this.honeMelee();
     const S = this.slot;
     if (S.def < 0) return;
     const W = DATA.weapons[S.def];
@@ -1815,15 +1900,21 @@ export class Player {
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
   }
   // ---------------------------------------------------------------- chests and tonics
-  chestPrice(tier) { const n = this.chestsOpened; return Math.round([100, 250, 500, 1000][tier] * (1 + 0.15 * n + 0.006 * n * n) * this.priceMult()); }
+  // Chests are the main thing money is for, so they are priced against what a round pays: about one wooden chest a
+  // round if you buy nothing else, and the better tiers are something you save for. Every chest opened makes all of
+  // them 17% dearer, and prices creep up 4% a round so hoarding cash does not beat the curve.
+  chestPrice(tier) { const n = this.chestsOpened, r = Math.max(1, this.game.round || 1); return Math.round([600, 1400, 3000, 6000][tier] * Math.pow(1.17, n) * (1 + 0.04 * (r - 1)) * this.priceMult() / 10) * 10; }
   openChest(I) {
     if (I.opened) return;
     // each chest holds one of two rarities; luck tips it toward the better one
-    const lo = I.tier, hiChance = Math.min(0.7, 0.3 + 0.015 * this.luck), rarity = Math.random() < hiChance ? lo + 1 : lo;
+    const lo = I.tier, hiChance = Math.min(0.85, 0.3 + 0.015 * this.luck + this.stat('ChestLuck')), rarity = Math.random() < hiChance ? lo + 1 : lo;
     const u = rollBuff(rarity, this.upgradeStacks, this.cls.id);
     if (u < 0) { this.toast('Nothing left for you in there', '#ccc'); return; }
-    if (!this.spend(this.chestPrice(I.tier))) return;
+    const paid = this.chestPrice(I.tier);
+    if (!this.spend(paid)) return;
     this.chestsOpened++; I.setOpened(true);
+    if (this.S.ChestRefund) this.addMoney(Math.round(paid * Math.min(0.5, this.S.ChestRefund)), false);
+    this.runProcs('OnChest', null, this.pos, 0, 1);
     this.addUpgrade(u);
     const U = DATA.upgrades[u];
     this.play(rarityIndex(U.rarity) >= 3 ? 'S_LevelUp' : 'S_Upgrade', 0.9);
@@ -1919,7 +2010,7 @@ export class Player {
         help.push({ kind: 'info', text: 'Four upgrades for sale. The stock changes every casino visit and luck makes rarer upgrades appear. Restock rolls four new ones and costs more each time.', color: dim });
         M.offers.forEach((u, i) => {
           if (u < 0) { opt(String(i + 1), 'Sold', { disabled: true }); return; }
-          if (isMelee(u)) { const W = MELEE[u - MELEE_CODE]; opt(String(i + 1), W.name, { tag: 'MELEE  ' + W.rarity.toUpperCase(), tagColor: RARITY_HEX[W.rarity], color: RARITY_HEX[W.rarity], desc: `${W.desc} ${W.dmg} damage, replaces your ${MELEE[this.meleeDef].name}.`, price: Math.round(MELEE_PRICE[W.rarity] * this.priceMult()) }); return; }
+          if (isMelee(u)) { const W = MELEE[u - MELEE_CODE]; opt(String(i + 1), W.name, { tag: 'MELEE  ' + W.rarity.toUpperCase(), tagColor: RARITY_HEX[W.rarity], color: RARITY_HEX[W.rarity], desc: `${W.desc} ${W.dmg} damage, ${reachText(W.range)}, replaces your ${MELEE[this.meleeDef].name}.`, price: Math.round(MELEE_PRICE[W.rarity] * this.priceMult()) }); return; }
           const U = DATA.upgrades[u]; const have = this.upgradeStacks[u];
           opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase(), tagColor: RARITY_HEX[U.rarity], color: RARITY_HEX[U.rarity], desc: U.desc, price: Math.round(rarityPrice(rarityIndex(U.rarity)) * this.priceMult()), note: have ? `owned x${have}` : '' });
         });

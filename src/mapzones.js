@@ -74,12 +74,9 @@ export function BuildGroundAndBounds(M, GM) {
 	}
 	// Zone walls with doorway gaps (gap = distance along the wall from its start point).
 	const Gap = (A, B) => [V2(A, B)];
-	Wall(V2(-6000., -2000.), V2(-2000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);   // Motel | Main
 	Wall(V2(-2000., -6000.), V2(-2000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);   // Motel | Chapel
 	Wall(V2(-2000., -2000.), V2(-2000., 2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);    // Main | Plaza
 	Wall(V2(-2000., 2000.), V2(-2000., 6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);     // Main | Rail
-	Wall(V2(-2000., -2000.), V2(2000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);    // Chapel | Plaza
-	Wall(V2(-2000., 2000.), V2(2000., 2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Plaza | Rail
 	Wall(V2(2000., -6000.), V2(2000., -2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);     // Chapel | Mesa
 	Wall(V2(2000., -2000.), V2(2000., 2000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Plaza | Mesa
 	Wall(V2(2000., 2000.), V2(2000., 6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);       // Rail | Mesa
@@ -96,36 +93,29 @@ export function BuildGroundAndBounds(M, GM) {
 	Wall(V2(2000., 6000.), V2(6000., 6000.), 520., 80., Pal.Adobe, None, true);                    // Mesa | Ghost Rails
 	// between the outskirts districts
 	Wall(V2(-6000., -10500.), V2(-6000., -6000.), 520., 80., Pal.Adobe, Gap(2300., 2700.), true);  // Shanty Row | Stockyards
-	Wall(V2(6000., -6000.), V2(10500., -6000.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);    // Stockyards | Refinery
 	Wall(V2(6000., 6000.), V2(6000., 10500.), 520., 80., Pal.Adobe, Gap(1800., 2200.), true);      // Refinery | Ghost Rails
-	Wall(V2(-10500., 6000.), V2(-6000., 6000.), 520., 80., Pal.Adobe, Gap(2300., 2700.), true);    // Ghost Rails | Shanty Row
 }
 
 export function BuildDoors(M, GM) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Blocker, Ramp, Floor, Wall, Lamp, Sign, Building, StreetLamp, Barrel, Crate, Cactus, PalmTree, DeadTree, Car, Wagon, Headstone, Boxcar, Mesa, JumpPad, Billboard, Station, WallBuy, Door, SpawnAt, AddInstance, Foliage, SurfaceDecal, RotFromXY, Arch, Wedge, Pyramid, Oct, Ring, Mausoleum, Fountain, GasPump, BoxYaw } = M;
-	Door(V(-4000., -2000., 0.), 90., 750, 0, 1);
-	Door(V(-2000., -4000., 0.), 0., 1000, 0, 2);
-	Door(V(-2000., 0., 0.), 0., 1000, 1, 4);
-	Door(V(0., -2000., 0.), 90., 1250, 2, 4);
-	Door(V(-2000., 4000., 0.), 0., 1000, 1, 3);
-	Door(V(0., 2000., 0.), 90., 1250, 4, 3);
-	Door(V(2000., -4000., 0.), 0., 1500, 2, 5);
-	Door(V(2000., 4000., 0.), 0., 1500, 3, 5);
-	Door(V(2000., 0., 0.), 0., 1500, 4, 5);
+	Door(V(-2000., -4000., 0.), 0., 1500, 0, 2);
+	Door(V(-2000., 0., 0.), 0., 1500, 1, 4);
+	Door(V(-2000., 4000., 0.), 0., 1500, 1, 3);
+	Door(V(2000., -4000., 0.), 0., 2500, 2, 5);
+	Door(V(2000., 4000., 0.), 0., 2500, 3, 5);
+	Door(V(2000., 0., 0.), 0., 2500, 4, 5);
 	// outskirts
-	Door(V(-1600., -6000., 0.), 90., 1500, 2, 8);
-	Door(V(6000., -4300., 0.), 0., 2000, 5, 9);
-	Door(V(6000., 3850., 0.), 0., 2000, 5, 9);
-	Door(V(-1450., 6000., 0.), 90., 1500, 3, 10);
-	Door(V(-6000., -8000., 0.), 0., 2000, 7, 8);
-	Door(V(8000., -6000., 0.), 90., 2500, 8, 9);
-	Door(V(6000., 8000., 0.), 0., 2500, 9, 10);
-	Door(V(-8000., 6000., 0.), 90., 2000, 10, 7);
+	Door(V(-1600., -6000., 0.), 90., 3000, 2, 8);
+	Door(V(6000., -4300., 0.), 0., 3500, 5, 9);
+	Door(V(6000., 3850., 0.), 0., 3500, 5, 9);
+	Door(V(-1450., 6000., 0.), 90., 3000, 3, 10);
+	Door(V(-6000., -8000., 0.), 0., 4000, 7, 8);
+	Door(V(6000., 8000., 0.), 0., 4000, 9, 10);
 	// the Badlands: any one gate opens the whole ring
-	Door(V(-10600., -2000., 0.), 0., 3000, 7, 11);
-	Door(V(2000., -10600., 0.), 90., 3000, 8, 11);
-	Door(V(10600., 2000., 0.), 0., 3000, 9, 11);
-	Door(V(-2000., 10600., 0.), 90., 3000, 10, 11);
+	Door(V(-10600., -2000., 0.), 0., 5000, 7, 11);
+	Door(V(2000., -10600., 0.), 90., 5000, 8, 11);
+	Door(V(10600., 2000., 0.), 0., 5000, 9, 11);
+	Door(V(-2000., 10600., 0.), 90., 5000, 10, 11);
 }
 
 export function BuildMotel(M, GM) {
@@ -555,7 +545,7 @@ export function BuildPlazaCentre(M, GM) {
   Box(V(480., 0., 860.), V(6., 6., 260.), Iron, false, false); Cyl(V(480., 0., 700.), 70., 90., Iron, false, false);
   for (const [x, y] of [[700., 700.], [-700., 700.], [700., -700.], [-700., -700.]]) StreetLamp(V(x, y, 0.), 0.);
   for (const [x, y, s] of [[-540., -220., 1.], [-600., -60., 0.8], [520., 420., 0.9]]) Headstone(V(x, y, 0.), s * 40.);
-  DeadTree(V(-820., 520., 0.), 520.); DeadTree(V(860., -480., 0.), 440.);
+  DeadTree(V(-960., 360., 0.), 520.); DeadTree(V(960., -330., 0.), 440.);   // clear of the lamps: a tree and a lamp post two metres apart wedged the big bosses
   Station('HighRoller', V(-40., -620., 0.), -90., 2500, -1, "Workbench");
   Station('AmmoCrate', V(-620., 60., 0.), 180., 250, -1, "Ammo");
 }

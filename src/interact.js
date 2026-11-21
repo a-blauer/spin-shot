@@ -7,7 +7,7 @@ import { textMesh } from './text.js';
 import { PRIM } from './world.js';
 import { ViewModel } from './viewmodel.js';
 import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollBoxRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
-import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee } from './melee.js';
+import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee, HONE_MAX } from './melee.js';
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 const matCache = new Map();
@@ -651,15 +651,16 @@ export class Interactable {
       }
       case 'MysteryBox': {
         const B = this.box;
-        if (B.state === 'offer') { const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; return `[E] Take ${D.name}\n${D.rarity}${isMelee(B.prize) ? ' melee weapon' : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        if (B.state === 'offer') { const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; return `[E] Take ${D.name}\n${D.rarity}${isMelee(B.prize) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
         if (B.state !== 'idle') return '';
         return `[E] Mystery box  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nA random weapon. It moves on after a few uses.`;
       }
       case 'HighRoller': {
+        if (player && player.wield) { const MW = MELEE[player.meleeDef || 0], mt = player.meleeTier || 0; return mt >= HONE_MAX ? `${MW.name} +${mt} is as sharp as it gets` : `[E] Hone ${MW.name}${mt ? ' +' + mt : ''}  $${cash(player.honeCost())}\n+30% damage, more reach and a faster swing (${mt} of ${HONE_MAX}). Honing stays with you if you change blades.`; }
         const S = player && player.slot, W = S && S.def >= 0 ? G.data.weapons[S.def] : null;
         if (!W) return 'Hold a gun to work on it';
         if (S.mods.length >= 4) return `${W.name} has all four modifiers`;
-        return `[E] Modify ${W.name}  $${cash(player.benchCost(S))}\nAdds a random modifier to this gun (${S.mods.length} of 4). It changes how the gun behaves.`;
+        return `[E] Modify ${W.name}  $${cash(player.benchCost(S))}\nAdds a random modifier to this gun (${S.mods.length} of 4). It changes how the gun behaves. Draw your blade (X) to hone it instead.`;
       }
       case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${cash(this.cost)}` : '[E] Refill ammo  (free)';
       case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 3 minutes');
@@ -667,7 +668,7 @@ export class Interactable {
       case 'ArmsRoulette': {
         const W = this.wheel;
         if (W.state === 'spin') return '';
-        if (W.state === 'prize') { const D = isMelee(W.prize) ? MELEE[W.prize - MELEE_CODE] : G.data.weapons[W.prize]; return `[E] Claim ${D.name}\n${D.rarity}${isMelee(W.prize) ? ' melee weapon' : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        if (W.state === 'prize') { const D = isMelee(W.prize) ? MELEE[W.prize - MELEE_CODE] : G.data.weapons[W.prize]; return `[E] Claim ${D.name}\n${D.rarity}${isMelee(W.prize) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
         return `[E] Spin the wheel  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nYou win a weapon of the colour it stops on. Black is a bust.`;
       }
       case 'UpgradeCounter': case 'StatBooth': {

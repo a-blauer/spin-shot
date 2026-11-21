@@ -4012,6 +4012,2543 @@
 "cd": 0,
 "desc": "Satchel Charge bursts into four more bombs.",
 "insp": "Bomber"
+},
+{
+"name": "Crowbar",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"FullHealthDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% damage to enemies above 90% health.",
+"insp": "RoR2 Crowbar"
+},
+{
+"name": "Focus Lens",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"CloseDamage",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% damage to enemies within 6 meters.",
+"insp": "RoR2 Focus Crystal"
+},
+{
+"name": "Spyglass",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"FarDamage",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% damage to enemies beyond 20 meters.",
+"insp": "Gunfire Reborn long-range scrolls"
+},
+{
+"name": "Vulture's Eye",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"StatusDamage",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% damage to burning, bleeding or slowed enemies.",
+"insp": "Hades Privileged Status"
+},
+{
+"name": "Clean Bill",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"HealthyDamage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% damage while you are above 90% health.",
+"insp": "Dead Cells full-health mutations"
+},
+{
+"name": "Tin Plate",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"PlateArmor",
+3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every hit you take is reduced by 3 (never by more than 60%).",
+"insp": "RoR2 Repulsion Armor Plate"
+},
+{
+"name": "Rabbit Reflexes",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"BlockChance",
+0.07
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "7% chance to shrug off a hit completely.",
+"insp": "RoR2 Tougher Times"
+},
+{
+"name": "Pocket Watch",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"AbilityCooldown",
+0.08
+],
+[
+"GrappleCooldown",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your class ability recharges 8% faster.",
+"insp": "RoR2 Alien Head (lite)"
+},
+{
+"name": "Wool Socks",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MoveSpeed",
+0.05
+],
+[
+"DashCooldown",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+5% move speed. Dash recharges 8% faster.",
+"insp": "RoR2 Paul's Goat Hoof"
+},
+{
+"name": "Canteen",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"HealBoost",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% to all healing.",
+"insp": "RoR2 Rejuvenation Rack (lite)"
+},
+{
+"name": "Trail Mix",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"HealthRegen",
+1.0
+],
+[
+"MoveSpeed",
+0.03
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1 health per second, +3% move speed.",
+"insp": "RoR2 Cautious Slug"
+},
+{
+"name": "Stitched Coat",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MaxHealth",
+15
+],
+[
+"Armor",
+6
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15 max health, +6 armor.",
+"insp": "Brotato armor items"
+},
+{
+"name": "Rattlesnake Skin",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.25,
+"cd": 3.0,
+"desc": "Taking damage grants +25% move speed for 4s.",
+"insp": "Slay the Spire reactive relics"
+},
+{
+"name": "Prospector's Pan",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"RoundMoney",
+150
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+$15 at the end of every round.",
+"insp": "Slay the Spire Golden Idol"
+},
+{
+"name": "Bargain Bin",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"ChestRefund",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Chests refund 6% of their price.",
+"insp": "Slay the Spire Membership Card"
+},
+{
+"name": "Kill Tally",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"StreakDamage",
+0.015
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Each kill within 3 seconds of the last adds +1.5% damage, up to 10 kills.",
+"insp": "RoR2 Berzerker's Pauldron"
+},
+{
+"name": "Whiskey Flask",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 12,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession heals 12.",
+"insp": "Doom glory kills"
+},
+{
+"name": "Pocket Sand",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Freeze",
+"chance": 1.0,
+"mag": 0.35,
+"cd": 4.0,
+"desc": "Taking damage slows nearby enemies by 35% (4s cooldown).",
+"insp": "Hades revenge boons"
+},
+{
+"name": "Powder Horn",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "RefundAmmo",
+"chance": 1.0,
+"mag": 0.15,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession refills 15% of your magazine.",
+"insp": "RoR2 Bandolier"
+},
+{
+"name": "Buzzard Feather",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"AirGuard",
+0.08
+],
+[
+"AirControl",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 8% less damage while airborne. +15% air control.",
+"insp": "Titanfall"
+},
+{
+"name": "Wishbone",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"LuckFind",
+0.15
+],
+[
+"CritChance",
+0.02
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% clover drop chance, +2% crit chance.",
+"insp": "RoR2 57 Leaf Clover (lite)"
+},
+{
+"name": "Saddle Bag",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"PickupRange",
+0.4
+],
+[
+"MaxHealth",
+10
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+40% pickup range, +10 max health.",
+"insp": "Vampire Survivors Attractorb"
+},
+{
+"name": "Tumbleweed",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"DashGuard",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 15% less damage for 1.5 seconds after a dash.",
+"insp": "Hades dash boons"
+},
+{
+"name": "Strike-Anywhere Matches",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnPickup",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.2,
+"cd": 0,
+"desc": "Picking anything up grants +20% move speed for 4s.",
+"insp": "Dead Cells pickup mutations"
+},
+{
+"name": "Tin Cup",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnPickup",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 6,
+"cd": 0,
+"desc": "Picking anything up heals 6.",
+"insp": "Vampire Survivors floor chicken"
+},
+{
+"name": "Blood Sausage",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"CritHeal",
+2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Critical hits heal 2.",
+"insp": "RoR2 Harvester's Scythe"
+},
+{
+"name": "Grit",
+"rarity": "Common",
+"stacks": 5,
+"mods": [
+[
+"SecondWind",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Once a round, dropping below 25% health restores 12% of your max health.",
+"insp": "Hades Lucky Tooth (lite)"
+},
+{
+"name": "Iron Nails",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Thorns",
+25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Enemies that hit you take 25 damage (scales each round).",
+"insp": "RoR2 Razorwire"
+},
+{
+"name": "Hobnail Boots",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"SlideDamage",
+0.1
+],
+[
+"DashDamage",
+30
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% damage while sliding. Dashing through enemies deals 30 damage (scales each round).",
+"insp": "Dead Cells"
+},
+{
+"name": "Padded Vest",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"Armor",
+8
+],
+[
+"HealthRegen",
+0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+8 armor, +0.5 health per second.",
+"insp": "Brotato"
+},
+{
+"name": "Leather Grip",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MeleeSpeed",
+0.08
+],
+[
+"MeleeRange",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+8% melee swing speed, +6% melee reach.",
+"insp": "Dead Cells"
+},
+{
+"name": "Lead Weight",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MeleeHeavy",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heavy blows and chain finishers deal +25% damage.",
+"insp": "Hades Heavy Knuckle"
+},
+{
+"name": "Bone Charm",
+"rarity": "Common",
+"stacks": 10,
+"mods": [],
+"trigger": "OnMeleeKill",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 6,
+"cd": 0,
+"desc": "Melee kills heal 6.",
+"insp": "Doom glory kills"
+},
+{
+"name": "Duelist's Sash",
+"rarity": "Common",
+"stacks": 10,
+"mods": [
+[
+"MeleeArmor",
+15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15 armor while your blade is drawn.",
+"insp": "Dead Cells shields"
+},
+{
+"name": "Ambush",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"FullHealthDamage",
+0.35
+],
+[
+"CritChance",
+0.03
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+35% damage to enemies above 90% health, +3% crit chance.",
+"insp": "Dead Cells Ambush"
+},
+{
+"name": "Point Blank",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"CloseDamage",
+0.22
+],
+[
+"Armor",
+5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+22% damage to enemies within 6 meters, +5 armor.",
+"insp": "RoR2 Focus Crystal"
+},
+{
+"name": "Dead Reckoning",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"FarDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage to enemies beyond 20 meters.",
+"insp": "Gunfire Reborn"
+},
+{
+"name": "Cruel Streak",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"StatusDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage to burning, bleeding or slowed enemies.",
+"insp": "RoR2 Death Mark"
+},
+{
+"name": "Old Guillotine",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"EliteExecute",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Elites below 10% health are culled instantly.",
+"insp": "RoR2 Old Guillotine"
+},
+{
+"name": "Trophy Rack",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"KillHealth",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every 8 kills permanently adds +1 max health (up to +60).",
+"insp": "RoR2 Infusion"
+},
+{
+"name": "Aegis Charm",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"Overheal",
+30
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Healing above full health becomes overshield (up to 30).",
+"insp": "RoR2 Aegis"
+},
+{
+"name": "Shield Generator",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"ShieldRegen",
+20
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "After 4 seconds without being hit, regenerate up to 20 overshield.",
+"insp": "RoR2 Personal Shield Generator"
+},
+{
+"name": "Static Vest",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 0.8,
+"cd": 2.0,
+"desc": "Taking damage zaps nearby enemies for 80% Power (2s cooldown).",
+"insp": "Hades Zeus revenge"
+},
+{
+"name": "Powder Burn",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 1.0,
+"cd": 3.0,
+"desc": "Taking damage blasts enemies around you for 100% Power (3s cooldown).",
+"insp": "Hades Ares revenge"
+},
+{
+"name": "Cold Snap",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnShieldBreak",
+"fx": "Freeze",
+"chance": 1.0,
+"mag": 0.6,
+"cd": 0,
+"desc": "When your overshield breaks, enemies near you are slowed by 60%.",
+"insp": "Gunfire Reborn shield scrolls"
+},
+{
+"name": "Capacitor",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnShieldBreak",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 2.0,
+"cd": 0,
+"desc": "When your overshield breaks it bursts for 200% Power.",
+"insp": "Borderlands nova shields"
+},
+{
+"name": "Showman's Cape",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnAbility",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "Using your class ability grants +30% move speed for 4s.",
+"insp": "Hades cast boons"
+},
+{
+"name": "Battle Hymn",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnAbility",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.2,
+"cd": 0,
+"desc": "Using your class ability grants +20% damage for 4s.",
+"insp": "RoR2 skill-use items"
+},
+{
+"name": "Scavenger's Sack",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnPickup",
+"fx": "Shield",
+"chance": 1.0,
+"mag": 10,
+"cd": 0,
+"desc": "Picking anything up grants 10 overshield.",
+"insp": "Dead Cells"
+},
+{
+"name": "Triple Threat",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 1.2,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession sets off an explosion for 120% Power.",
+"insp": "Vampire Survivors"
+},
+{
+"name": "Hot Streak",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"StreakDamage",
+0.03
+],
+[
+"MoveSpeed",
+0.04
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+3% damage per kill in a streak (up to 10), +4% move speed.",
+"insp": "RoR2 Berzerker's Pauldron"
+},
+{
+"name": "Money Belt",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MoneyDamage",
+0.005
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+0.5% damage for every $100 you are carrying (up to $3,000).",
+"insp": "Isaac Money = Power"
+},
+{
+"name": "Locksmith's Picks",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"ChestLuck",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% chance a chest holds the better of its two rarities.",
+"insp": "Slay the Spire chest relics"
+},
+{
+"name": "Rebate Stamp",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"ChestRefund",
+0.12
+],
+[
+"MoneyGain",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Chests refund 12% of their price. +5% money.",
+"insp": "Slay the Spire Membership Card"
+},
+{
+"name": "Paymaster",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"RoundMoney",
+300
+],
+[
+"Interest",
+0.02
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+$30 at the end of every round, +2% interest.",
+"insp": "Brotato harvesting"
+},
+{
+"name": "Deflector",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"BlockChance",
+0.1
+],
+[
+"Armor",
+5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "10% chance to shrug off a hit completely. +5 armor.",
+"insp": "RoR2 Tougher Times"
+},
+{
+"name": "Stunt Harness",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"AirGuard",
+0.15
+],
+[
+"AirDamage",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 15% less damage while airborne. +10% airborne damage.",
+"insp": "Titanfall"
+},
+{
+"name": "Smoke Pellet",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"DashGuard",
+0.3
+],
+[
+"DashCooldown",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 30% less damage for 1.5 seconds after a dash. Dash recharges 10% faster.",
+"insp": "Hades Divine Dash"
+},
+{
+"name": "Surgeon's Kit",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"HealBoost",
+0.3
+],
+[
+"HealthRegen",
+1.0
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% to all healing, +1 health per second.",
+"insp": "RoR2 Rejuvenation Rack"
+},
+{
+"name": "Ox Heart",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MaxHealth",
+40
+],
+[
+"HealthDamage",
+0.01
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+40 max health. +1% damage per 25 max health above 150.",
+"insp": "Brotato max-HP scaling"
+},
+{
+"name": "Stopwatch",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [],
+"trigger": "OnEliteKill",
+"fx": "Cooldown",
+"chance": 1.0,
+"mag": 3,
+"cd": 0,
+"desc": "Elite kills take 3 seconds off your class ability.",
+"insp": "RoR2 Bandolier / Hardlight"
+},
+{
+"name": "Iron Lung",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"SecondWind",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Once a round, dropping below 25% health restores 25% of your max health.",
+"insp": "Hades Death Defiance (lite)"
+},
+{
+"name": "Fencer's Glove",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [
+[
+"MeleeRange",
+0.15
+],
+[
+"MeleeCrit",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+15% melee reach, +6% melee crit chance.",
+"insp": "Dead Cells"
+},
+{
+"name": "Concussion",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"MeleeStun",
+0.8
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heavy blows stun what they hit for 0.8 seconds.",
+"insp": "RoR2 Stun Grenade"
+},
+{
+"name": "War Drum",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnMeleeKill",
+"fx": "Haste",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "Melee kills grant +30% move speed for 4s.",
+"insp": "Dead Cells Vengeance"
+},
+{
+"name": "Blood Price",
+"rarity": "Uncommon",
+"stacks": 5,
+"mods": [],
+"trigger": "OnMeleeKill",
+"fx": "Money",
+"chance": 1.0,
+"mag": 40,
+"cd": 0,
+"desc": "Melee kills pay about $4 extra.",
+"insp": "Gunfire Reborn"
+},
+{
+"name": "Vulture's Due",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"EliteExecute",
+0.18
+],
+[
+"EliteDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Elites below 18% health are culled instantly. +20% elite damage.",
+"insp": "RoR2 Old Guillotine"
+},
+{
+"name": "Sharpshooter's Creed",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"FarDamage",
+0.5
+],
+[
+"CritDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+50% damage to enemies beyond 20 meters, +20% crit damage.",
+"insp": "Gunfire Reborn"
+},
+{
+"name": "Close Quarters",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"CloseDamage",
+0.4
+],
+[
+"BlockChance",
+0.06
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+40% damage to enemies within 6 meters. 6% chance to shrug off a hit.",
+"insp": "RoR2 Focus Crystal"
+},
+{
+"name": "Opportunist",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"StatusDamage",
+0.5
+],
+[
+"FullHealthDamage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+50% damage to burning, bleeding or slowed enemies. +25% to enemies above 90% health.",
+"insp": "Hades Privileged Status"
+},
+{
+"name": "Titan's Belt",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MaxHealth",
+60
+],
+[
+"HealthDamage",
+0.02
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60 max health. +2% damage per 25 max health above 150.",
+"insp": "Brotato"
+},
+{
+"name": "Second Skin",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"PlateArmor",
+6
+],
+[
+"Armor",
+10
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every hit you take is reduced by 6 (never by more than 60%). +10 armor.",
+"insp": "RoR2 Repulsion Armor Plate"
+},
+{
+"name": "Guardian Angel",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [],
+"trigger": "OnHurt",
+"fx": "Invuln",
+"chance": 1.0,
+"mag": 1.2,
+"cd": 15.0,
+"desc": "Taking a hit makes you untouchable for 1.2 seconds (15s cooldown).",
+"insp": "Isaac Holy Mantle"
+},
+{
+"name": "Aegis",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"Overheal",
+60
+],
+[
+"HealBoost",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Healing above full health becomes overshield (up to 60). +20% healing.",
+"insp": "RoR2 Aegis"
+},
+{
+"name": "Reactive Plating",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"ShieldRegen",
+25
+]
+],
+"trigger": "OnShieldBreak",
+"fx": "Shockwave",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Regenerate up to 25 overshield. When it breaks, a shockwave hits for 150% Power.",
+"insp": "Borderlands nova shields"
+},
+{
+"name": "Encore",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnAbility",
+"fx": "Shield",
+"chance": 1.0,
+"mag": 35,
+"cd": 0,
+"desc": "Using your class ability grants 35 overshield.",
+"insp": "Hades"
+},
+{
+"name": "Grand Finale",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnAbility",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 2.5,
+"cd": 0,
+"desc": "Using your class ability releases a burst for 250% Power.",
+"insp": "Hades cast boons"
+},
+{
+"name": "Overtime",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "Cooldown",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession takes 1.5 seconds off your class ability.",
+"insp": "RoR2 Hardlight Afterburner"
+},
+{
+"name": "Massacre",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.3,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession grants +30% damage for 4s.",
+"insp": "Doom"
+},
+{
+"name": "Rolling Thunder",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnMultiKill",
+"fx": "Chain",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession arcs lightning for 150% Power.",
+"insp": "RoR2 Ukulele"
+},
+{
+"name": "War Chest",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MoneyDamage",
+0.012
+],
+[
+"MoneyGain",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+1.2% damage for every $100 you are carrying (up to $3,000). +10% money.",
+"insp": "Isaac Money = Power"
+},
+{
+"name": "Master Key",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"ChestLuck",
+0.2
+],
+[
+"ChestRefund",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% chance a chest holds the better rarity. Chests refund 10%.",
+"insp": "Slay the Spire"
+},
+{
+"name": "Magpie",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"PickupRange",
+0.5
+]
+],
+"trigger": "OnPickup",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.2,
+"cd": 0,
+"desc": "Picking anything up grants +20% damage for 4s. +50% pickup range.",
+"insp": "Dead Cells"
+},
+{
+"name": "Rampage",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"StreakDamage",
+0.05
+],
+[
+"KillHealth",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+5% damage per kill in a streak (up to 10). Every 8 kills adds +1 max health (up to +60).",
+"insp": "RoR2 Infusion"
+},
+{
+"name": "Featherfall",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"AirGuard",
+0.3
+],
+[
+"AirDamage",
+0.2
+],
+[
+"AirControl",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Take 30% less damage while airborne. +20% airborne damage and air control.",
+"insp": "Titanfall"
+},
+{
+"name": "Heart of Oak",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"SecondWind",
+0.4
+],
+[
+"MaxHealth",
+30
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Once a round, dropping below 25% health restores 40% of your max health. +30 max health.",
+"insp": "Hades Death Defiance"
+},
+{
+"name": "Reaper's Whetstone",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeDamage",
+0.3
+],
+[
+"MeleeHeavy",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% melee damage. Heavy blows and finishers deal a further +30%.",
+"insp": "Dead Cells"
+},
+{
+"name": "Powder Charge",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnMeleeKill",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 0,
+"desc": "Melee kills explode for 150% Power.",
+"insp": "RoR2 Will-o'-the-wisp"
+},
+{
+"name": "Iron Curtain",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [
+[
+"MeleeArmor",
+35
+],
+[
+"MeleeGuard",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+35 armor while your blade is drawn. Take 10% less damage for 2 seconds after a melee hit.",
+"insp": "Dead Cells shields"
+},
+{
+"name": "Adrenal Surge",
+"rarity": "Rare",
+"stacks": 3,
+"mods": [],
+"trigger": "OnMeleeKill",
+"fx": "Cooldown",
+"chance": 1.0,
+"mag": 1,
+"cd": 0,
+"desc": "Melee kills take a second off your class ability.",
+"insp": "RoR2 Hardlight Afterburner"
+},
+{
+"name": "Iron Will",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"HitCap",
+0.4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "No single hit can take more than 40% of your max health.",
+"insp": "RoR2 one-shot protection"
+},
+{
+"name": "Bulwark",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"BlockChance",
+0.2
+],
+[
+"PlateArmor",
+5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "20% chance to shrug off a hit. Every hit you take is reduced by 5.",
+"insp": "RoR2 Tougher Times"
+},
+{
+"name": "Predator",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"FullHealthDamage",
+0.6
+],
+[
+"CloseDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% damage to enemies above 90% health, +30% to enemies within 6 meters.",
+"insp": "Dead Cells Ambush"
+},
+{
+"name": "Tyrant's Purse",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MoneyDamage",
+0.02
+],
+[
+"RoundMoney",
+500
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+2% damage for every $100 you are carrying (up to $3,000). +$50 at the end of every round.",
+"insp": "Isaac Money = Power"
+},
+{
+"name": "Unbroken",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"StreakDamage",
+0.08
+],
+[
+"HealthyDamage",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+8% damage per kill in a streak (up to 10). +20% damage above 90% health.",
+"insp": "Hades"
+},
+{
+"name": "Curtain Call",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [],
+"trigger": "OnAbility",
+"fx": "Invuln",
+"chance": 1.0,
+"mag": 1.5,
+"cd": 12.0,
+"desc": "Using your class ability makes you untouchable for 1.5 seconds (12s cooldown).",
+"insp": "Hades Athena"
+},
+{
+"name": "Feeding Frenzy",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"Lifesteal",
+0.03
+]
+],
+"trigger": "OnMultiKill",
+"fx": "Heal",
+"chance": 1.0,
+"mag": 30,
+"cd": 0,
+"desc": "Killing 3 enemies in quick succession heals 30. Heal 3% of damage dealt.",
+"insp": "Doom glory kills"
+},
+{
+"name": "Lich's Bargain",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"KillHealth",
+2
+],
+[
+"HealBoost",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every 8 kills adds +1 max health (up to +120). +30% to all healing.",
+"insp": "RoR2 Infusion"
+},
+{
+"name": "Vanguard",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"ShieldRegen",
+50
+],
+[
+"Overheal",
+50
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Regenerate up to 50 overshield out of combat. Healing above full becomes overshield (up to 50).",
+"insp": "RoR2 Transcendence"
+},
+{
+"name": "Mirror Shard",
+"rarity": "Epic",
+"stacks": 1,
+"mods": [
+[
+"ShieldRegen",
+20
+]
+],
+"trigger": "OnShieldBreak",
+"fx": "Invuln",
+"chance": 1.0,
+"mag": 1.0,
+"cd": 8.0,
+"desc": "Regenerate up to 20 overshield. When it breaks you are untouchable for a second (8s cooldown).",
+"insp": "Isaac Holy Mantle"
+},
+{
+"name": "Giant Slayer",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MeleeHeavy",
+0.8
+],
+[
+"MeleeStun",
+1.0
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heavy blows and finishers deal +80% damage and stun for a second.",
+"insp": "Hades Heavy Knuckle"
+},
+{
+"name": "Bladestorm",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"MeleeSpeed",
+0.1
+]
+],
+"trigger": "OnMeleeKill",
+"fx": "Nova",
+"chance": 1.0,
+"mag": 2.0,
+"cd": 0,
+"desc": "Melee kills release a burst for 200% Power. +10% swing speed.",
+"insp": "Dead Cells"
+},
+{
+"name": "Avalanche",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"StreakDamage",
+0.1
+]
+],
+"trigger": "OnMultiKill",
+"fx": "Explode",
+"chance": 1.0,
+"mag": 2.5,
+"cd": 0,
+"desc": "+10% damage per kill in a streak (up to 10). Triple kills explode for 250% Power.",
+"insp": "Vampire Survivors"
+},
+{
+"name": "Gold Fever",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MoneyDamage",
+0.03
+],
+[
+"MoneyGain",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+3% damage for every $100 you are carrying (up to $3,000). +30% money.",
+"insp": "Isaac Money = Power"
+},
+{
+"name": "Colossus",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MaxHealth",
+100
+],
+[
+"HealthDamage",
+0.03
+],
+[
+"PlateArmor",
+4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+100 max health. +3% damage per 25 max health above 150. Hits are reduced by 4.",
+"insp": "Brotato"
+},
+{
+"name": "Apex Predator",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"FullHealthDamage",
+1.0
+],
+[
+"EliteExecute",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+100% damage to enemies above 90% health. Elites below 20% health are culled.",
+"insp": "RoR2 Crowbar + Guillotine"
+},
+{
+"name": "Master of Ceremonies",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"AbilityCooldown",
+0.4
+],
+[
+"GrappleCooldown",
+0.4
+]
+],
+"trigger": "OnAbility",
+"fx": "Rage",
+"chance": 1.0,
+"mag": 0.4,
+"cd": 0,
+"desc": "Your class ability recharges 40% faster. Using it grants +40% damage for 4s.",
+"insp": "RoR2 Alien Head"
+},
+{
+"name": "Treasure Hunter",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"ChestLuck",
+0.35
+],
+[
+"ChestRefund",
+0.25
+]
+],
+"trigger": "OnChest",
+"fx": "Clover",
+"chance": 1.0,
+"mag": 1,
+"cd": 0,
+"desc": "+35% chance a chest holds the better rarity, chests refund 25%, and every chest gives +1 Luck.",
+"insp": "Slay the Spire"
+},
+{
+"name": "Warlord's Banner",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MeleeDamage",
+0.6
+],
+[
+"MeleeArmor",
+40
+],
+[
+"MeleeHeavy",
+0.5
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+60% melee damage, heavy blows a further +50%, and +40 armor while your blade is drawn.",
+"insp": "Dead Cells"
+},
+{
+"name": "Quick Draw",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"SwapSpeed",
+0.4
+],
+[
+"ReloadSpeed",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Swap guns 40% faster. +8% reload speed.",
+"insp": "Gunslinger"
+},
+{
+"name": "Gun Belt",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"ReserveAmmo",
+0.25
+],
+[
+"MagSize",
+0.1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% reserve ammo, +10% magazine size.",
+"insp": "Gunslinger"
+},
+{
+"name": "Dead Aim",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"CritChance",
+0.1
+],
+[
+"Spread",
+0.2
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10% crit chance, 20% tighter spread.",
+"insp": "Gunslinger"
+},
+{
+"name": "High Noon",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"DeadeyeCrit",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% crit chance during Deadeye.",
+"insp": "Gunslinger"
+},
+{
+"name": "Loaded for Bear",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"DeadeyeReload",
+1
+],
+[
+"AbilityDuration",
+1.0
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Deadeye reloads every gun you carry and lasts a second longer.",
+"insp": "Gunslinger"
+},
+{
+"name": "Knuckle Wraps",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"MeleeSpeed",
+0.12
+],
+[
+"MeleeDamage",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12% swing speed, +15% melee damage.",
+"insp": "Brawler"
+},
+{
+"name": "Thick Skull",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"Armor",
+12
+],
+[
+"BlockChance",
+0.08
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+12 armor. 8% chance to shrug off a hit completely.",
+"insp": "Brawler"
+},
+{
+"name": "Haymaker",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"MeleeHeavy",
+0.6
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Heavy blows and chain finishers deal +60% damage.",
+"insp": "Brawler"
+},
+{
+"name": "Unstoppable",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"RushShield",
+40
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Bull Rush leaves you with 40 overshield and +30% move speed for 3 seconds.",
+"insp": "Brawler"
+},
+{
+"name": "Juggernaut",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"MaxHealth",
+50
+],
+[
+"HealthMelee",
+0.04
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+50 max health. +4% melee damage per 25 max health above 150.",
+"insp": "Brawler"
+},
+{
+"name": "Long Barrel",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"TurretRange",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret sees and shoots 30% farther.",
+"insp": "Engineer"
+},
+{
+"name": "Tool Belt",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"Armor",
+10
+],
+[
+"ReloadSpeed",
+0.12
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+10 armor, +12% reload speed.",
+"insp": "Engineer"
+},
+{
+"name": "Incendiary Belt",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"TurretBurn",
+25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret's shots set enemies on fire.",
+"insp": "Engineer"
+},
+{
+"name": "Remote Detonator",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"TurretBlast",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Calling your turret to a new spot blows up the old one for 300% Power.",
+"insp": "Engineer"
+},
+{
+"name": "Overwatch",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"TurretRate",
+0.35
+],
+[
+"TurretDamage",
+0.35
+],
+[
+"TurretRange",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Your turret fires 35% faster, hits 35% harder and reaches 25% farther.",
+"insp": "Engineer"
+},
+{
+"name": "Spotter's Scope",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"HeadshotDamage",
+0.2
+],
+[
+"FarDamage",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% headshot damage. +15% damage to enemies beyond 20 meters.",
+"insp": "Sniper"
+},
+{
+"name": "Light Pack",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"GrappleCooldown",
+0.2
+],
+[
+"AirControl",
+0.25
+],
+[
+"MoveSpeed",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Grapple recharges 20% faster. +25% air control, +5% move speed.",
+"insp": "Sniper"
+},
+{
+"name": "Patient Hunter",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"StillDamage",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+30% damage while aiming and standing still.",
+"insp": "Sniper"
+},
+{
+"name": "Second Opinion",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"HeadCrit",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "After a headshot kill, your next shot within 3 seconds is a guaranteed crit.",
+"insp": "Sniper"
+},
+{
+"name": "Killshot",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"HeadExecute",
+0.3
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Headshots kill any non-boss enemy below 30% health outright.",
+"insp": "Sniper"
+},
+{
+"name": "Powder Keg",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"GrenadeDamage",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+25% grenade and Satchel Charge damage.",
+"insp": "Bomber"
+},
+{
+"name": "Deep Pockets",
+"rarity": "Uncommon",
+"stacks": 3,
+"mods": [
+[
+"GrenadeCap",
+1
+],
+[
+"PickupRange",
+0.4
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Carry 1 more grenade. +40% pickup range.",
+"insp": "Bomber"
+},
+{
+"name": "Scorched Earth",
+"rarity": "Rare",
+"stacks": 2,
+"mods": [
+[
+"BlastBurn",
+0.15
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Everything your explosions hit burns for 15% of the blast each second.",
+"insp": "Bomber"
+},
+{
+"name": "Recycler",
+"rarity": "Epic",
+"stacks": 2,
+"mods": [
+[
+"GrenadeSave",
+0.25
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "25% chance a thrown grenade is not used up.",
+"insp": "Bomber"
+},
+{
+"name": "Carpet Bomber",
+"rarity": "Legendary",
+"stacks": 1,
+"mods": [
+[
+"ClusterAll",
+1
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "Every grenade bursts into five more.",
+"insp": "Bomber"
 }
 ],
 "enemies": [

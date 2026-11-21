@@ -214,7 +214,19 @@ export class ViewModel {
     if (!this.mg) { this.mDip = 0; return; }
     const active = this.mT !== undefined && this.mT < this.mDur && !this.hidden && !this.scoped;
     this.mDip = (this.mDip || 0) + ((active ? 1 : 0) - (this.mDip || 0)) * Math.min(1, dt * (active ? 40 : 14));   // gun drops out of the way, then comes back up
-    if (!active) { this.mg.visible = false; if (this.mslash) this.mslash.visible = false; return; }
+    const P0 = this.mpivot, tool0 = this.mtool;
+    if (!active) {
+      if (this.mslash) this.mslash.visible = false;
+      // blade in hand: it rests in the right fist, low and angled across the view, and rides the walk
+      if (this.wield && !this.hidden) {
+        this.wRaise = Math.min(1, (this.wRaise || 0) + dt * 5);
+        const r = this.wRaise, e = 1 - (1 - r) * (1 - r), bob = Math.sin((this.bobPhase || 0) * 2) * 0.3 * (this.bobAmp || 0);
+        this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
+        P0.position.set(11, -15.5 - (1 - e) * 10 + bob, -1); P0.rotation.set(0.56, 0.16, 0); tool0.rotation.set(-0.95, 0, 0.42);
+      } else { this.mg.visible = false; this.wRaise = 0; }
+      return;
+    }
+    this.wRaise = 0;
     this.mT += dt;
     // wind back a touch, whip through, then follow through and drop away
     const t = Math.min(1, this.mT / this.mDur), w = Math.min(1, t / 0.6), s = w < 0.12 ? -0.12 * Math.sin(w / 0.12 * Math.PI) : 1 - Math.pow(1 - (w - 0.12) / 0.88, 3), out = Math.max(0, (t - 0.72) / 0.28);
@@ -225,15 +237,19 @@ export class ViewModel {
     else if (this.mStep === 1) { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(L(0.66, 0.8), L(-0.8, 0.9), 0); tool.rotation.set(-0.5, 0, L(-1.25, 0.5)); }      // back across, right to left
     else if (this.mStep === 2) { P.position.set(-5, -16 - out * 8, -1); P.rotation.set(L(1.25, 0.08), L(-0.1, 0), 0); tool.rotation.set(L(0.3, -1.1), 0, 0.1); }         // overhead finisher
     else { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(0.6 + Math.sin(t * Math.PI) * 0.2, 0.3, 0); tool.rotation.set(-0.4, t * 6.28, -0.2); }                // new weapon: show it off
+    const mir = this.wield ? -1 : 1;
+    if (mir < 0) { P.position.x = -P.position.x; P.rotation.y = -P.rotation.y; tool.rotation.z = -tool.rotation.z; if (this.wield) P.position.y += out * 9 * 0.75; }   // right hand, and it does not drop out of sight after
     const q = this.mslash;
     if (q && this.mStep < 3) {
       const a = Math.max(0, 1 - Math.abs(t - 0.3) / 0.16);
-      q.visible = a > 0.01; q.position.set(this.mStep === 2 ? 1 : (this.mStep ? 1 : -1), this.mStep === 2 ? -1 : -2.5, -20);
-      q.scale.set(this.mStep === 2 ? 9 : 30, this.mStep === 2 ? 24 : 8, 1); q.rotation.z = this.mStep === 0 ? -0.2 : this.mStep === 1 ? Math.PI + 0.2 : Math.PI / 2;
+      const st = mir < 0 && this.mStep < 2 ? 1 - this.mStep : this.mStep;
+      q.visible = a > 0.01; q.position.set(st === 2 ? 1 * mir : (st ? 1 : -1), st === 2 ? -1 : -2.5, -20);
+      q.scale.set(st === 2 ? 9 : 30, st === 2 ? 24 : 8, 1); q.rotation.z = st === 0 ? -0.2 : st === 1 ? Math.PI + 0.2 : Math.PI / 2;
       q.material.uniforms.tint.value.set(1, 0.95, 0.85, a * 0.32);
     }
   }
   setWeapon(def, tier, animate) {
+    if (!this.game.data.weapons[def]) return;   // an empty slot has no model to show
     if (animate && this.parts.length) {
       this.switchDur = 0.3 + 0.1 * gunFeel(this.game.data.weapons[def]).weight;
       this.pendingDef = def; this.pendingTier = tier; this.switchT = this.switchDur; this.swapped = false;
@@ -873,7 +889,7 @@ export class ViewModel {
     }
     this.gun.updateMatrixWorld(true); gunInv.value.copy(this.gun.matrixWorld).invert();
     this.tickFlyers(dt);
-    this.root.visible = !this.scoped && !this.hidden;
+    this.root.visible = !this.scoped && !this.hidden && !this.wield;
     this.tickMelee(dt);
   }
 }

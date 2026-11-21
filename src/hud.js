@@ -431,10 +431,26 @@ export class Hud {
       px += 60 * S;
     });
   }
+  // the blade is in hand: its name, how far it reaches, the swing chain, and the gun waiting on the belt
+  drawBlade(P, x, y, S) {
+    const g = this.g, MW = MELEE[P.meleeDef || 0], t = P.meleeTier || 0;
+    this.text(`${(P.meleeRange() / 100).toFixed(1)} M`, x, y, 62 * S, BONE, 'right', F_BIG, 400, 0.1);
+    this.text('REACH', x - this.measure(`${(P.meleeRange() / 100).toFixed(1)} M`, 62 * S, F_BIG) - 12 * S, y - 4 * S, 18 * S, '#bdb3a2', 'right', F_TXT, 700, 0.12);
+    for (let i = 0; i < 3; i++) { g.fillStyle = INK; g.fillRect(x - (i + 1) * 46 * S - 1, y + 14 * S, 44 * S, 16 * S); g.fillStyle = P.meleeComboT > 0 && (2 - i) <= P.meleeCombo ? ((2 - i) === 2 ? '#ffb347' : BONE) : 'rgba(255,255,255,0.14)'; g.fillRect(x - (i + 1) * 46 * S + 1, y + 16 * S, 40 * S, 12 * S); }
+    this.text(MW.name.toUpperCase() + (t ? ` +${t}` : ''), x, y - 104 * S, 34 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.12);
+    this.text(`${Math.round(MW.dmg * P.meleePower())} DAMAGE   HITS ${Math.round(P.meleeCleave())}`, x, y - 75 * S, 18 * S, 'rgba(242,232,213,0.8)', 'right', F_TXT, 700, 0.12);
+    this.hints('[Fire] Swing   [Aim] Heavy blow   [X] Gun', x, y + 50 * S, 18 * S, 'right');
+    { const n = P.grenades.length, N = n ? GRENADES[P.grenades[n - 1]] : null, label = N ? `${N.name.toUpperCase()}  x${n}` : 'NO GRENADES';
+      this.text(label, x, y - 270 * S, 22 * S, N ? N.hex : 'rgba(255,255,255,0.35)', 'right', F_BIG, 400, 0.1);
+      this.key('V', x - this.measure(label, 22 * S, F_BIG) - 38 * S, y - 278 * S, 22 * S); }
+    let cy = y - 146 * S;
+    for (let i = P.maxSlots - 1; i >= 0; i--) { const o = P.weapons[i]; if (o.def < 0) continue; const D = DATA.weapons[o.def]; this.text(`${i + 1}  ${D.name.toUpperCase()}   ${o.ammo} / ${o.reserve}`, x, cy, 18 * S, 'rgba(242,232,213,0.7)', 'right', F_TXT, 700, 0.1); cy -= 24 * S; }
+  }
   drawWeapon(game, P, W, H, S) {
     const x = W - 44 * S, y = H - 64 * S;
     const Sl = P.slot, Wd = P.W;
     const g = this.g;
+    if (P.wield) return this.drawBlade(P, x, y, S);
     const mag = P.magSize(Sl);
     const low = Sl.ammo <= Math.max(2, Math.floor(mag / 4));
     const rs = `/ ${Sl.reserve}`, rw = this.measure(rs, 34 * S, F_BIG);
@@ -454,7 +470,7 @@ export class Hud {
       if (P.deadeyeT > 0) this.text(`DEADEYE  ${P.deadeyeT.toFixed(1)}`, this.W / 2, this.H / 2 + 96 * S, 20 * S, '#ffcd5a', 'center', F_BIG, 400, 0.12);
       if (Sl.hot > 0) this.text('HOT MAG', x, y + 44 * S, 15 * S, '#ff8a2a', 'right', F_TXT, 700, 0.1); }
     // melee weapon, with the three-swing chain
-    { const MW = MELEE[P.meleeDef || 0]; this.text(MW.name.toUpperCase(), x, y - 232 * S, 26 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.1); const tw = this.measure(MW.name.toUpperCase(), 26 * S, F_BIG);
+    { const MW = MELEE[P.meleeDef || 0], mn = MW.name.toUpperCase() + (P.meleeTier ? ` +${P.meleeTier}` : ''); this.text(mn, x, y - 232 * S, 26 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.1); const tw = this.measure(mn, 26 * S, F_BIG);
       this.key('Q', x - tw - 38 * S, y - 241 * S, 24 * S);
       // grenades: what V throws next, and how many are on the belt
       { const n = P.grenades.length, N = n ? GRENADES[P.grenades[n - 1]] : null, label = N ? `${N.name.toUpperCase()}  x${n}` : 'NO GRENADES';
@@ -612,7 +628,7 @@ export class Hud {
     this.helpT = (this.helpT || 0) + dt;
     if (game.round > 1 || this.helpT > 900 || game.player.menu) return;   // shown for the first round only
     const a = 1;
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
     const x = 44 * S, rh = 34 * S, w = 300 * S;
     let y = H * 0.27;
     const tip = [];
@@ -931,7 +947,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('PAUSED', W / 2, cy, 120 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Click to resume', W / 2, cy + 52 * S, 26 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'melee'], ['V', 'grenade'], ['E', 'use'], ['1-4', 'weapons'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['1-3', 'guns'], ['4', 'blade'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
     const cols = 3, cw = 300 * S, rh = 42 * S, x0 = W / 2 - (cols * cw) / 2, y0 = cy + 110 * S;
     this.panel(x0 - 24 * S, y0 - 36 * S, cols * cw + 48 * S, Math.ceil(rows.length / cols) * rh + 40 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.85)', 12 * S);
     rows.forEach(([k, d], i) => {

@@ -662,6 +662,10 @@ export class World {
     this.AddZone('Ghost Rails', V2(-10600, 6000), V2(6000, 10600));
     // the Badlands: one ring right round the outside (listed last, so every inner district is matched first)
     this.AddZone('The Badlands', V2(-15000, -15000), V2(15000, 15000));
+    // Districts. The town used to be eleven walled yards; it is now six, each two or three of the old ones with the
+    // walls between them taken down. A district is a set of rectangles that share a name and open together.
+    const DISTRICT = [['Main Street', [0, 1]], ['Clocktower Square', [2, 3, 4, GM.casinoZone]], ['Boneyard Mesa', [5]], ['Shanty Row', [7, 10]], ['The Stockyards', [8, 9]], ['The Badlands', [11]]];
+    DISTRICT.forEach(([name, list], gi) => { for (const zi of list) { GM.zones[zi].name = name; GM.zones[zi].group = gi; } });
     // bind methods for the translated zone builders
     const M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp',

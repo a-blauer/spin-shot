@@ -50,7 +50,7 @@ document.addEventListener('pointerlockchange', () => { if (document.pointerLockE
 
 // ------------------------------------------------------------------ input
 const keys = new Set();
-const edges = { grenade: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
+const edges = { grenade: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, wield: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
 let mouseL = false, mouseR = false, lookX = 0, lookY = 0;
 let settings = {};
 try { settings = JSON.parse(localStorage.getItem('dmh-settings') || '{}') || {}; } catch (e) { settings = {}; }
@@ -73,6 +73,7 @@ function onKey(e, down) {
       case 'KeyE': edges.interact = 1; break;
       case 'KeyB': edges.barricade = 1; break;
       case 'KeyQ': edges.melee = 1; break;
+      case 'KeyX': edges.wield = 1; break;
       case 'KeyV': edges.grenade = 1; break;
       case 'Tab': edges.back = 1; break;
       case 'Digit1': edges.choice[0] = 1; break;
@@ -119,7 +120,7 @@ function readInput() {
     fire: mouseL || touchFire, aim: mouseR || touchAim,
     lookX: lookX * sens(), lookY: lookY * sens(),
     jump: edges.jump, slide: edges.slide, slideUp: edges.slideUp, dash: edges.dash, grapple: edges.grapple, reload: edges.reload,
-    interact: edges.interact, barricade: edges.barricade, melee: edges.melee, grenade: edges.grenade, back: edges.back, next: edges.next, prev: edges.prev, firePressed: edges.firePressed, choice: edges.choice.slice(),
+    interact: edges.interact, barricade: edges.barricade, melee: edges.melee, wield: edges.wield, grenade: edges.grenade, back: edges.back, next: edges.next, prev: edges.prev, firePressed: edges.firePressed, choice: edges.choice.slice(),
   };
   if (window.__dmhInput) Object.assign(In, window.__dmhInput(In) || {});
   lookX = lookY = 0;
@@ -144,6 +145,7 @@ async function boot() {
   await game.build();
   window.__dmh = game;
   window.__diffTest = { setDifficulty, zombieCount, maxAlive, zombieHealth };
+  window.__roll = (r, st, c) => import('./classes.js').then((k) => k.rollBuff(r, st, c));
   window.__gs1 = (n) => import('./gunsound.js').then((m) => m.gunSound(game.audio, n, 1, false));
   status('');
   document.body.classList.add('ready');

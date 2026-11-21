@@ -36,11 +36,11 @@ const GUN_STATS = ['Pierce', 'Multishot', 'Spread', 'MagSize', 'ReserveAmmo', 'A
 const GUN_TRIGGERS = ['OnHit', 'OnReload', 'OnCrit', 'OnHeadshot'];
 export const ALT_STATS = ['AltLauncher', 'AltGravity', 'AltRail', 'AltBuck'];
 const FIT = {
-  brawler: { stats: ['MaxHealth', 'Armor', 'Thorns', 'DashDamage', 'SlamDamage', 'Lifesteal', 'LowHealthDamage', 'HealthRegen'], trig: ['OnHurt'], fx: [], melee: true },
-  sniper: { stats: ['HeadshotDamage', 'CritChance', 'CritDamage', 'BossDamage', 'EliteDamage', 'GrappleCooldown', 'AirDamage', 'Pierce', 'SteadyAim', 'FirstShot', 'AltRail', 'Spread'], trig: ['OnGrapple', 'OnHeadshot', 'OnCrit'], fx: [] },
-  gunslinger: { stats: ['FireRate', 'ReloadSpeed', 'MagSize', 'AmmoSave', 'Damage', 'SpeedDamage', 'MoveSpeed', 'Multishot', 'FullAuto', 'EchoShot', 'KillReload', 'ActiveReload', 'LastRounds', 'Ricochet', 'AltBuck'], trig: ['OnReload'], fx: [] },
-  bomber: { stats: ['ExplosionRadius', 'Knockback', 'AltLauncher', 'AltGravity', 'Shrapnel'], trig: [], fx: ['Explode', 'Missile', 'Nova', 'Shockwave', 'Ignite'] },
-  engineer: { stats: ['ProcChance', 'ReserveAmmo', 'Armor', 'PickupRange'], trig: ['Periodic'], fx: ['Shield', 'Chain', 'Freeze'] },
+  brawler: { stats: ['MaxHealth', 'Armor', 'Thorns', 'DashDamage', 'SlamDamage', 'Lifesteal', 'LowHealthDamage', 'HealthRegen', 'CloseDamage', 'HealthDamage', 'BlockChance', 'PlateArmor', 'KillHealth', 'HealBoost'], trig: ['OnHurt', 'OnMeleeKill'], fx: [], melee: true },
+  sniper: { stats: ['HeadshotDamage', 'CritChance', 'CritDamage', 'BossDamage', 'EliteDamage', 'GrappleCooldown', 'AirDamage', 'Pierce', 'SteadyAim', 'FirstShot', 'AltRail', 'Spread', 'FarDamage', 'FullHealthDamage', 'CritHeal', 'EliteExecute', 'AirGuard'], trig: ['OnGrapple', 'OnHeadshot', 'OnCrit'], fx: [] },
+  gunslinger: { stats: ['FireRate', 'ReloadSpeed', 'MagSize', 'AmmoSave', 'Damage', 'SpeedDamage', 'MoveSpeed', 'Multishot', 'FullAuto', 'EchoShot', 'KillReload', 'ActiveReload', 'LastRounds', 'Ricochet', 'AltBuck', 'StreakDamage', 'HealthyDamage', 'DashGuard'], trig: ['OnReload', 'OnMultiKill'], fx: [] },
+  bomber: { stats: ['ExplosionRadius', 'Knockback', 'AltLauncher', 'AltGravity', 'Shrapnel', 'StatusDamage'], trig: [], fx: ['Explode', 'Missile', 'Nova', 'Shockwave', 'Ignite'] },
+  engineer: { stats: ['ProcChance', 'ReserveAmmo', 'Armor', 'PickupRange', 'ShieldRegen', 'Overheal', 'MoneyDamage', 'RoundMoney'], trig: ['Periodic', 'OnShieldBreak', 'OnPickup'], fx: ['Shield', 'Chain', 'Freeze'] },
 };
 for (const u of DATA.upgrades) {
   const names = u.mods.map((m) => m[0]), melee = names.some((n) => n.startsWith('Melee'));
@@ -53,19 +53,22 @@ for (const u of DATA.upgrades) {
 }
 // how likely this class is to be offered this upgrade, relative to a neutral one
 export function classWeight(u, cls) {
-  if (u.cls) return u.cls === cls ? 2.2 : 0;
+  if (u.cls) return u.cls === cls ? 1.8 : 0;
   if (u.grapple && cls !== 'sniper') return 0;          // nobody else has a hook to improve
-  if (u.fits.includes(cls)) return 2.5;
-  return u.fits.length ? 0.4 : 1;
+  if (u.fits.includes(cls)) return 1.7;
+  return u.fits.length ? 0.6 : 1;
 }
 const pick = (pool) => { let t = 0; for (const p of pool) t += p[1]; let r = Math.random() * t; for (const p of pool) { r -= p[1]; if (r <= 0) return p[0]; } return pool.length ? pool[pool.length - 1][0] : -1; };
 
+// Variety: a buff you already hold is far less likely to turn up again (each stack divides its odds), and the last
+// dozen things offered are nearly ruled out, so two chests in a row do not hand you the same thing.
+const RECENT = [];
 // a buff of this rarity (falls to the tier below when that tier is spent)
 export function rollBuff(rarity, stacks, cls) {
   for (let tier = rarity; tier >= 0; tier--) {
     const pool = [];
-    DATA.upgrades.forEach((u, i) => { if (u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls); if (w > 0) pool.push([i, w]); });
-    if (pool.length) return pick(pool);
+    DATA.upgrades.forEach((u, i) => { if (u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls) / (1 + 2.5 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1); if (w > 0) pool.push([i, w]); });
+    if (pool.length) { const got = pick(pool); RECENT.push(got); if (RECENT.length > 12) RECENT.shift(); return got; }
   }
   return -1;
 }

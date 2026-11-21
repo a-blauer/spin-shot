@@ -31,7 +31,11 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   'MeleeDamage', 'MeleeSpeed', 'MeleeRange', 'MeleeKnock', 'MeleeLifesteal', 'MeleeCleave', 'MeleeArc', 'MeleeBleed', 'MeleeMoney', 'MeleeCrit', 'MeleeBurn', 'MeleeShock', 'MeleeAmmo', 'MeleeDashReset', 'MeleeGuard', 'MeleeExecute', 'MeleeFrenzy',
   // gun modifiers (workbench) and class perks
   'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'EchoShot', 'Ricochet', 'LastRounds', 'FirstShot', 'FullAuto', 'KillReload', 'SteadyAim', 'Shrapnel',
-  'AbilityCooldown', 'AbilityPower', 'AbilityDuration', 'MeleeAbilityReset', 'RushGuard', 'TurretRate', 'TurretDamage', 'TurretCount', 'TurretShock', 'TurretAura', 'DeadeyeExtend', 'SwapReload', 'HeadMark', 'AdsCrit', 'GrenadeCap', 'BlastChain'];
+  'AbilityCooldown', 'AbilityPower', 'AbilityDuration', 'MeleeAbilityReset', 'RushGuard', 'TurretRate', 'TurretDamage', 'TurretCount', 'TurretShock', 'TurretAura', 'DeadeyeExtend', 'SwapReload', 'HeadMark', 'AdsCrit', 'GrenadeCap', 'BlastChain',
+  // the second set of buffs: conditions (who, where, when), ways of not dying, and class perks that change an ability
+  'FullHealthDamage', 'CloseDamage', 'FarDamage', 'StatusDamage', 'HealthyDamage', 'MoneyDamage', 'StreakDamage', 'HealthDamage', 'BlockChance', 'AirGuard', 'DashGuard', 'PlateArmor', 'HitCap',
+  'SecondWind', 'HealBoost', 'Overheal', 'ShieldRegen', 'KillHealth', 'CritHeal', 'EliteExecute', 'ChestLuck', 'ChestRefund', 'RoundMoney', 'MeleeHeavy', 'MeleeStun', 'MeleeArmor',
+  'SwapSpeed', 'DeadeyeCrit', 'DeadeyeReload', 'RushShield', 'HealthMelee', 'TurretRange', 'TurretBurn', 'TurretBlast', 'StillDamage', 'HeadCrit', 'HeadExecute', 'GrenadeDamage', 'BlastBurn', 'GrenadeSave', 'ClusterAll'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = ['Shambler', 'Sprinter', 'Crawler', 'Bloater', 'Spitter', 'Leaper', 'Wisp', 'Brute', 'Screamer', 'Burrower', 'Gilded', 'Riot', 'Priest'];
