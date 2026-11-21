@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { DATA } from './data.js';
 import { buildMine, MINE_LOOT } from './map_mine.js';
 import { buildFrost, FROST_LOOT, frostAmbient } from './map_frost.js';
+import { buildBayou, BAYOU_LOOT, bayouAmbient } from './map_bayou.js';
 
 const C = (h) => new THREE.Color(h);
 const sun = (x, y, z) => new THREE.Vector3(x, z, y).normalize();
@@ -52,6 +53,26 @@ export const MAPS = [
     vault: { floor: 0x101a2a, floor2: 0x16243a, wedgeA: 0xaac0d0, wedgeB: 0x0c1220, glow: 0x4AA8E8, colA: 0x1c2a44, colB: 0x141e34, cap: 0xdfe8ee, slit: 0xFF4A3A, lamp: [1.0, 0.3, 0.25], cairn: [0xdfe8ee, 0x9fc8de, 0xb8c6d2, 0x6a7686], chand: 0x8a8f99, chandGlow: 0xFF5A4A, chandLamp: [1.0, 0.4, 0.3], sign: 'THE LINE IS CLOSED', signCol: [255, 120, 100] },
     final: { arena: 'THE END OF THE LINE', open: 'THE LAST TRAIN IS IN', toast: 'Step into the light to ride to the end of the line', under: 'THE END OF THE LINE', acts: ['THE LINE BUCKLES', 'THE BOILERS BLOW'], taunt: 'Nothing leaves on time',
       win: 'Frostbite Junction is dug out. The line is open.' } },
+  { id: 'bayou', name: 'Mourning Bayou', blurb: 'A drowned parish round a black lagoon: a wrecked steamer, shanty lanes, a boneyard and open marsh. Two ways round.', pack: 3, loading: 'Poling out across the water...',
+    build: buildBayou, loot: BAYOU_LOOT, ambient: bayouAmbient, wind: 0.1, spawnYaw: Math.PI,
+    palette(P, zone) {
+      P.sky = C(0x0a1612); P.fog = C(0x2e4a3a); P.fogStart = 700; P.fogDensity = 0.00028; P.fogMax = 0.9; P.sun = sun(-0.4, 0.5, 0.7);
+      P.lit.set(0.98, 1.04, 0.92, 1.05); P.shadow.set(0.48, 0.6, 0.54, 0.85); P.sprite.setRGB(0.96, 1.03, 0.94);
+      switch (zone) {
+        case 0: P.fog = C(0x3a4e3c); P.lit.set(1.04, 1.02, 0.9, 1.05); break;                                             // the landing: lamps on the dock
+        case 1: P.fog = C(0x34463a); P.lit.set(1.04, 1.0, 0.9, 1.05); P.shadow.set(0.52, 0.56, 0.5, 0.85); break;          // shanty town
+        case 2: P.fog = C(0x44545c); P.sky = C(0x0c141c); P.shadow.set(0.48, 0.56, 0.66, 0.85); P.sprite.setRGB(0.95, 1, 1.03); break;   // the boneyard: ground mist
+        case 3: P.fog = C(0x1e3a2c); P.shadow.set(0.4, 0.6, 0.5, 0.84); P.fogStart = 600; P.fogDensity = 0.00034; break;     // cypress deep
+        case 4: P.fog = C(0x586a3a); P.sky = C(0x141c0c); P.lit.set(1.02, 1.04, 0.86, 1.05); P.shadow.set(0.54, 0.6, 0.44, 0.85); break; // gator flats: a sick yellow
+        case 5: P.fog = C(0x58482c); P.sky = C(0x18120a); P.lit.set(1.08, 0.98, 0.84, 1.05); P.shadow.set(0.6, 0.5, 0.44, 0.85); break;  // the still: firelight
+        case 'vault': P.fog = C(0x14301e); P.sky = C(0x040a06); P.lit.set(0.96, 1.04, 0.9, 1.04); P.shadow.set(0.4, 0.58, 0.44, 0.82); P.fogStart = 1100; P.fogDensity = 0.00021; P.fogMax = 0.8; break;
+        default: break;
+      }
+      return P;
+    },
+    vault: { floor: 0x0e1612, floor2: 0x16241a, wedgeA: 0x5a6a52, wedgeB: 0x0c1210, glow: 0x5AA02A, colA: 0x1c2a20, colB: 0x16201a, cap: 0x8a8a6a, slit: 0x5AA02A, lamp: [0.6, 1.0, 0.3], cairn: [0x4a5a44, 0x6a7a5a, 0x3a4636, 0x8a8a7a], chand: 0xb9974a, chandGlow: 0x8ad04a, chandLamp: [0.7, 1.0, 0.4], sign: 'ALL GO ACROSS', signCol: [170, 230, 110] },
+    final: { arena: 'UNDER THE LAGOON', open: 'THE WATER PARTS', toast: 'Step into the light to go down to Mother Mourn', under: 'UNDER THE LAGOON', acts: ['THE ROOTS WAKE', 'THE LAGOON RISES'], taunt: 'All go across',
+      win: 'Mourning Bayou is still. The lagoon keeps its own.' } },
 ];
 
 MAPS.forEach((M, i) => {

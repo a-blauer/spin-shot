@@ -452,6 +452,16 @@ ENX = [
  (2, "TimberWolf", "Timber Wolf", "Leaper", "Crawler", 0.85, 440, 24, 140, 1.0, 1.1, 0x8A94A0, 0xDFF4FF, 80, 7, 2.5, "Came down out of the pass when the meat stopped running. Pounces.", {}),
  (2, "Whitepelt", "Whitepelt", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.6, 0xDFE6EC, 0x4A5A70, 200, 8, 1.2, "What the old trappers would not name.", {}),
  (2, "Paymaster", "Paymaster", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0x2A3550, 0xF2D25A, 600, 3, 0.35, "The company's wages, and the man who would not put them down.", {}),
+ # 3. Mourning Bayou
+ (3, "Drowned", "The Drowned", "Walker", "Humanoid", 1.0, 210, 28, 140, 1.2, 1.0, 0x6A705E, 0x8FA89A, 60, 1, 10.0, "Came up out of the lagoon with the weed still on him.", {}),
+ (3, "Mudskipper", "Mudskipper", "Runner", "Humanoid", 0.8, 530, 22, 140, 1.0, 0.95, 0x3A3226, 0x7A8A6A, 70, 2, 4.0, "Caked to the chest and quick across soft ground.", {}),
+ (3, "Gator", "Gator", "Crawler", "Crawler", 0.9, 370, 24, 130, 0.9, 1.15, 0x4E5E3A, 0xD8C84A, 70, 3, 3.0, "Twelve feet of it, most of that mouth. Low, and hard to hit.", {}),
+ (3, "BogBloat", "Bog Bloat", "Bloater", "Bloated", 2.2, 170, 45, 200, 1.0, 1.25, 0x7A8A5A, 0xD6DE6A, 90, 4, 2.0, "Marsh gas under the skin, toadstools on top. Bursts.", {}),
+ (3, "Angler", "Angler", "Spitter", "Humanoid", 0.9, 260, 20, 1900, 2.6, 1.0, 0x5A5E48, 0xC9CDD6, 80, 5, 2.5, "Still fishing. Casts hooks at you from across the water.", {}),
+ (3, "Skeeter", "Skeeter", "Flyer", "Flyer", 0.5, 480, 12, 130, 0.9, 0.8, 0x2A2A26, 0xA8242A, 50, 6, 2.5, "The size of a heron. Heals on what it drinks.", {'innate': ['Vampiric']}),
+ (3, "Bullfrog", "Bullfrog", "Leaper", "Crawler", 0.85, 440, 24, 140, 1.0, 1.2, 0x4A5A34, 0xD85A2A, 80, 7, 2.5, "Sits in the shallows like a boulder, and then does not.", {}),
+ (3, "Mossback", "Mossback", "Brute", "Brute", 4.5, 250, 55, 200, 1.6, 1.6, 0x3E5A30, 0xFFB04A, 200, 8, 1.2, "Something the swamp grew in the shape of a man.", {}),
+ (3, "GraveRobber", "Grave Robber", "Gilded", "Humanoid", 1.6, 470, 0, 0, 1.0, 0.9, 0x3A3A30, 0xF2D25A, 600, 3, 0.35, "What he took out of the tombs is still on him. Run him down.", {}),
 ]
 # map, art, then the same fields as BOSS (minion is a creature name), then extras
 BOSSX = [
@@ -475,6 +485,16 @@ BOSSX = [
   "What the pass is named for. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE OWLS', 'last': 1}),
  (2, "Stationmaster", "The Stationmaster", "He Never Cleared the Line", 70, 250, 55, 4.2, 0x1C2238, 0xFF4A3A, [], "Brakeman", 25000,
   "Every signal on the mountain is at danger because he set it there. Nothing leaves until he says.", {'final': 1}),
+ (3, "OldScratch", "Old Scratch", "The One They Stopped Hunting", 15, 320, 45, 2.6, 0xAEAC94, 0xFF5A4A, ["Charge", "Sweep", "Leap", "Slam", "Summon"], "Gator", 2500,
+  "A white gator that walks upright, with every hunter's iron still in him. Sidestep the charge and he is winded.", {}),
+ (3, "MamaSkeeter", "Mama Skeeter", "Every One of Them Is Hers", 28, 240, 36, 2.4, 0x2A2A26, 0xA8242A, ["Volley", "Dive", "Barrage", "Summon"], "Skeeter", 3500,
+  "Dives along a marked line and spits. Twice she wards herself behind her brood.", {'mech': 'ward', 'wardStages': 2, 'wardText': 'WARDED - KILL THE SKEETERS'}),
+ (3, "Deacon", "Deacon Moss", "Still Preaching", 30, 330, 40, 2.6, 0x16181A, 0xB6F06A, ["Ambush", "NailWall", "Teleport", "Pools", "Ring"], "The Drowned", 4000,
+  "The lagoon is his congregation. He steps out of the mist behind you and leaves the ground burning with marsh gas.", {}),
+ (3, "Ferryman", "The Ferryman", "Everyone Goes Across", 40, 320, 58, 2.6, 0x1A201C, 0xD8B85A, ["Charge", "Hook", "Sweep", "NailWall", "Pools", "Ambush", "Ring", "Summon"], "Mudskipper", 7000,
+  "His boat hook drags you in. Everything the others had, and a ward at half health.", {'mech': 'ward', 'wardStages': 1, 'wardText': 'WARDED - KILL THE SKEETERS', 'last': 1}),
+ (3, "MotherMourn", "Mother Mourn", "The Lagoon's Own", 70, 250, 55, 4.0, 0x2A3A2E, 0xB6F06A, [], "The Drowned", 25000,
+  "The lagoon took her, and then it was hers. Everything in the parish goes down to her in the end.", {'final': 1}),
 ]
 
 # ---------------------------------------------------------------- GENERATION
