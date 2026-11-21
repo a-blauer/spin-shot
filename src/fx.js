@@ -28,7 +28,7 @@ export class Fx {
       sprite: new SpriteBatch(scene, 'sprite', 'fx', 3000, 4),
       fx: new SpriteBatch(scene, 'fx', 'fx', 3000, 5),
       add: new SpriteBatch(scene, 'add', 'fx', 2000, 6),
-      creature: new SpriteBatch(scene, 'sprite', 'creatures' + (game.map && game.map.pack ? game.map.pack : ''), 600, 4),
+      creature: new SpriteBatch(scene, 'sprite', 'creatures' + (game.map && game.map.pack ? game.map.pack : ''), 1600, 4),   // a full horde is 64 bodies of up to 7 parts, plus the dying, the summoned and the limbs on the floor: 600 ran out and the newest bodies went undrawn
     };
     this.parts = [];
     this.decals = [];

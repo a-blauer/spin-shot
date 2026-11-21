@@ -178,6 +178,18 @@ export class Physics {
     }
     return best;
   }
+  // If p is inside closed geometry (the ground slab, a crate, a hull), the height of the surface above it; otherwise
+  // null. Inside means the first face below and the first face above are both seen from behind.
+  solidAbove(p) {
+    if (!this.solid) return null;
+    _ray.origin.copy(p); _ray.direction.set(0, -1, 0);
+    const d = this.solid.raycastFirst(_ray, THREE.DoubleSide, 0, 6000);
+    if (!d || !d.face || d.face.normal.y > -0.3) return null;
+    _ray.origin.copy(p); _ray.direction.set(0, 1, 0);
+    const u = this.solid.raycastFirst(_ray, THREE.DoubleSide, 0, 6000);
+    if (!u || !u.face || u.face.normal.y < 0.3) return null;
+    return u.point.y;
+  }
   raycastDown(origin, maxDist, includeBlockers = false) {
     return this.raycast(origin, new THREE.Vector3(0, -1, 0), maxDist, includeBlockers);
   }

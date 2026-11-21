@@ -17,6 +17,7 @@ export const ATTACK_LABEL = { Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM
 let HZ_GROUP = 1;
 
 let SERIAL = 0;
+const _probe = new THREE.Vector3();
 export class Enemy {
   constructor(game, defIndex, pos, round, elite, bossIndex, scaleMul = 1, healthMul = 1, forcedAffixes = 0, splitChild = false) {
     this.game = game;
@@ -232,6 +233,21 @@ export class Enemy {
         else if (!up) {
           const top = G.phys.raycastDown(new THREE.Vector3(this.pos.x, this.pos.y + 3000, this.pos.z), 6000, true);
           if (top) { this.pos.y = top.point.y + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
+        }
+        // Inside the ground itself. The ground is a slab with an underside, so a low body shoved into it (at a crowded
+        // spawn, or by a blast) passes the check above - it finds a "floor" beneath it - and then walks about out of
+        // sight with only its claws showing. The test: the middle of the body is inside closed geometry whose top is no
+        // higher than its own head, or than the slab is thick. (A body merely brushing a tall wall is inside geometry too, and is left alone.)
+        if (!this.leaping) {
+          const mh = Math.max(Math.min(this.radius, 130), Math.min(this.half, 140)), cy = this.pos.y - (this.half - mh);
+          const above = G.phys.solidAbove(_probe.set(this.pos.x, cy, this.pos.z));
+          if (above === null || above - cy > Math.max(mh + 15, 110)) this.inT = 0;
+          else {
+            this.inT = (this.inT || 0) + 1; G.rescues = (G.rescues || 0) + 1;
+            if (G.rescueLog && G.rescueLog.length < 60) G.rescueLog.push(`${this.def.name} life ${this.life.toFixed(1)} @${Math.round(this.pos.x)},${Math.round(this.pos.z)} y ${Math.round(this.pos.y)} half ${Math.round(this.half)} above ${Math.round(above)} inT ${this.inT}`);
+            if (this.inT <= 2) { this.pos.y = above + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
+            else { this.inT = 0; G.relocate(this); }
+          }
         }
       }
       // Out of the world. Anything under the ground that is not a Burrower mid-dig gets two seconds to sort itself out and

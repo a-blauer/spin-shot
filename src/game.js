@@ -529,11 +529,18 @@ export class Game {
     });
     if (!c.length) { const f = this.findFreeLocationNear(PL, 1200, 2500); return f ? f.add(V3(0, fly ? 500 : 100, 0)) : null; }
     c.sort((a, b) => a[0] - b[0]);
-    const pick = c[randInt(0, Math.min(c.length, 6) - 1)][1];
-    const base = this.spawnPoints[pick].pos, out = base.clone().add(V3(frandRange(-120, 120), fly ? 500 : 100, frandRange(-120, 120)));
-    const [cx, cy] = this.cellOf(out.x, out.z);
-    if (!this.navFree(cx, cy) || this.phys.overlapsCapsule(V3(out.x, out.y + 20, out.z), 34, 80)) { out.x = base.x; out.z = base.z; }   // never nudge a spawn into a wall
-    return out;
+    // One of the six nearest marks, at a spot on or around it that is clear: never inside a wall, a barrel or a crate.
+    // (A body that starts inside something is squeezed out by the collision, and the way out can be down.)
+    const n = Math.min(c.length, 6), start = randInt(0, n - 1);
+    for (let k = 0; k < c.length; k++) {
+      const S = this.spawnPoints[c[k < n ? (start + k) % n : k][1]], base = S.pos;
+      for (let t = 0; t < 6; t++) {
+        const out = base.clone().add(V3(t < 5 ? frandRange(-120, 120) : 0, fly ? 500 : 100, t < 5 ? frandRange(-120, 120) : 0));
+        const [cx, cy] = this.cellOf(out.x, out.z);
+        if (this.navFree(cx, cy) && !this.phys.overlapsCapsule(V3(out.x, out.y + 20, out.z), 44, 90)) return out;
+      }
+    }
+    const f = this.findFreeLocationNear(PL, 1200, 2500); return f ? f.add(V3(0, fly ? 500 : 100, 0)) : null;
   }
   spawnOne() {
     const type = this.pickEnemyType();
