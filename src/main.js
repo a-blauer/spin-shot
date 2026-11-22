@@ -66,7 +66,7 @@ function onKey(e, down) {
   // Ctrl is slide and R is reload, so Ctrl+R comes up in play all the time: during a run it must not reload the page.
   // (On the title screen it still does, and F5 always does.)
   const inRun = mode === 'play' || mode === 'paused';
-  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown'].includes(c) || ((e.ctrlKey || e.metaKey) && (c !== 'KeyR' || inRun))) e.preventDefault();
+  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown', 'F3', 'Slash', 'Quote'].includes(c) || ((e.ctrlKey || e.metaKey) && (c !== 'KeyR' || inRun))) e.preventDefault();
   if (down) {
     if (e.repeat) return;
     keys.add(c);
@@ -117,7 +117,8 @@ addEventListener('mousemove', (e) => {
   if (mode !== 'play' || TOUCH || (!document.pointerLockElement && !TEST && !lockFailed)) return;
   lookX += e.movementX || 0; lookY += e.movementY || 0;
 });
-addEventListener('wheel', (e) => { if (mode !== 'play') return; if (e.deltaY > 0) edges.next = 1; else if (e.deltaY < 0) edges.prev = 1; }, { passive: true });
+addEventListener('wheel', (e) => { if (mode !== 'play') return; if (e.ctrlKey || e.metaKey) e.preventDefault();   // sliding (Ctrl) while switching guns must not zoom the page
+  if (e.deltaY > 0) edges.next = 1; else if (e.deltaY < 0) edges.prev = 1; }, { passive: false });
 
 function readInput() {
   const In = {
@@ -170,6 +171,7 @@ function start() {
   mode = 'play'; applySettings();
   if (TOUCH) { document.getElementById('touch').style.display = 'block'; lockFailed = true; }
   if (game) game.vm.hidden = false;
+  if (settings.fullscreen && !fsOn() && !TEST) setFullscreen(true, true);   // the player chose fullscreen: go back to it with each run
   requestLock();
 }
 // ---- progress screen (achievements, gun levels, cosmetics) on the title card
@@ -518,6 +520,26 @@ document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && mode === 'play' && !game.player.dead && !TOUCH) setPaused(true);
 });
 
+// ---- fullscreen with the keyboard held. A page cannot stop Ctrl+W (close the tab), Ctrl+Tab, Ctrl+T or Ctrl+N: the
+// browser takes those before the page hears of them. In a fullscreen the page itself asked for, Chromium browsers
+// (Chrome, Edge, Opera) let it hold named keys with every modifier, so sliding on Ctrl while moving forward, opening the
+// upgrade list or reloading is safe. Esc is not held: it still leaves fullscreen and frees the mouse.
+const LOCK_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyT', 'KeyN', 'KeyQ', 'KeyE', 'KeyF', 'KeyX', 'KeyV', 'KeyC', 'KeyB', 'KeyH', 'KeyP', 'Tab', 'Space', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F3', 'PageUp', 'PageDown'];
+const fsOn = () => !!document.fullscreenElement;
+const canHoldKeys = () => !!(navigator.keyboard && navigator.keyboard.lock);
+function holdKeys() {
+  try { if (canHoldKeys()) { if (fsOn()) navigator.keyboard.lock(LOCK_KEYS).catch(() => {}); else navigator.keyboard.unlock(); } } catch (e) { /* not allowed here */ }
+  const b = document.getElementById('pfull'); if (b) b.textContent = 'FULLSCREEN: ' + (fsOn() ? 'ON' : 'OFF');
+}
+async function setFullscreen(on, quiet) {
+  try {
+    if (on && !fsOn()) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    else if (!on && fsOn()) await document.exitFullscreen();
+  } catch (e) { if (!quiet) hud.toast('Fullscreen is not available here', '#ffcd5a'); }
+  holdKeys();
+}
+document.addEventListener('fullscreenchange', holdKeys);
+
 // ---- pause / settings panel
 const pauseEl = document.getElementById('pause');
 function applySettings() {
@@ -527,19 +549,20 @@ function applySettings() {
 function setPaused(p) {
   pauseEl.classList.remove('menu'); pauseEl.querySelector('h2').textContent = 'PAUSED'; pauseEl.querySelector('#presume').textContent = 'RESUME';
   if (p) { mode = 'paused'; keys.clear(); mouseL = mouseR = false; stick.x = stick.y = 0; touchFire = false; }
-  else { mode = 'play'; requestLock(); }
+  else { mode = 'play'; if (settings.fullscreen && !fsOn()) setFullscreen(true, true); requestLock(); }
   pauseEl.style.display = p ? 'flex' : 'none';
   const box = pauseEl.querySelector('#pdmg');
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
   el.oninput = () => { settings[el.dataset.k] = parseFloat(el.value); el.nextElementSibling.textContent = el.value; applySettings(); saveSettings(); };
 });
 pauseEl.querySelector('#presume').onclick = () => { if (pauseEl.classList.contains('menu')) { pauseEl.classList.remove('menu'); pauseEl.style.display = 'none'; } else setPaused(false); };
+pauseEl.querySelector('#pfull').onclick = () => { const on = !fsOn(); settings.fullscreen = on; saveSettings(); setFullscreen(on); };
 pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'; restartRun(true); };
 pauseEl.querySelector('#prestart').onclick = () => { pauseEl.style.display = 'none'; restartRun(); };
 addEventListener('keydown', (e) => { if (e.code === 'KeyP' && game && mode === 'play' && !game.player.dead) { if (document.pointerLockElement) document.exitPointerLock(); setPaused(true); } });
