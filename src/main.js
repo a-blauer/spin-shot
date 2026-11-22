@@ -63,7 +63,10 @@ const BIND = {
 };
 function onKey(e, down) {
   const c = e.code;
-  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown'].includes(c) || (e.ctrlKey && c !== 'KeyR')) e.preventDefault();
+  // Ctrl is slide and R is reload, so Ctrl+R comes up in play all the time: during a run it must not reload the page.
+  // (On the title screen it still does, and F5 always does.)
+  const inRun = mode === 'play' || mode === 'paused';
+  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown'].includes(c) || ((e.ctrlKey || e.metaKey) && (c !== 'KeyR' || inRun))) e.preventDefault();
   if (down) {
     if (e.repeat) return;
     keys.add(c);
@@ -97,6 +100,8 @@ function onKey(e, down) {
 }
 function saveSettings() { try { localStorage.setItem('dmh-settings', JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } }
 addEventListener('keydown', (e) => onKey(e, true));
+// a second net for anything that still tries to leave mid-run (a browser that will not let the page stop Ctrl+R, a closed tab)
+addEventListener('beforeunload', (e) => { if (!TEST && game && (mode === 'play' || mode === 'paused') && game.round > 0 && !game.player.dead && !game.victory) { e.preventDefault(); e.returnValue = ''; } });
 addEventListener('keyup', (e) => onKey(e, false));
 addEventListener('blur', () => { keys.clear(); mouseL = mouseR = false; });
 glCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
