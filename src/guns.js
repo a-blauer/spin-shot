@@ -120,12 +120,13 @@ function buildGunWith(vm, W, tier, PAL) {
   Accent.metal = ['Energy', 'Wonder'].includes(W.cls) ? 0.5 : 0.4;
   const Trim = tier > 0 ? C(0xF2C43A) : PAL.steelL;
   const TG = tier > 0 ? 0.6 + 0.25 * tier : 0;
-  let cur = vm.gun, oy = 0, ox = 0, oz = 0, sfx = '';
+  let cur = vm.gun, oy = 0, ox = 0, oz = 0, sfx = ''; vm.adsHide = null;
   // --- kit: every helper takes gun coordinates (x forward, y right, z up); ox/oy/oz move them into the current group ---
   const E = (pts, w, col, o = {}) => { const m = vm.Ext(pts, w, col, Object.assign({ parent: cur }, o, { y: (o.y || 0) + oy })); m.position.y -= oz; m.position.z += ox; return m; };
   const Pt = (kind, x, y, z, sx, sy, sz, col, rot = null, glow = 0) => vm.Part(cur, kind, V(x - ox, y + oy, z - oz), V(sx, sy, sz), col, rot, glow);
   const B = (x, y, z, sx, sy, sz, col, rot = null, glow = 0) => Pt(0, x, y, z, sx, sy, sz, col, rot, glow);
   const T = (x0, x1, d, z, col, y = 0, glow = 0, sides = 1) => Pt(sides, (x0 + x1) / 2, y, z, d, d, Math.abs(x1 - x0), col, R(90, 0, 0), glow);
+  const Hol = (x0, x1, d, z, col, y = 0) => T(x0, x1, d, z, col, y, 0, 9);                        // a ring or tube you can see through
   const O = (x0, x1, d, z, col, y = 0) => T(x0, x1, d, z, col, y, 0, 7);                           // octagonal barrel
   const Ty = (x, z, d, w, col, y = 0, glow = 0) => Pt(1, x, y, z, d, d, w, col, R(0, 0, 90), glow);   // axle across the gun
   const Tz = (x, z0, z1, d, col, y = 0, glow = 0) => Pt(1, x, y, (z0 + z1) / 2, d, d, Math.abs(z1 - z0), col, null, glow);   // vertical post
@@ -134,6 +135,8 @@ function buildGunWith(vm, W, tier, PAL) {
   const Ring = (x, z, d, t, col, glow = 0, y = 0) => Pt(8, x, y, z, t / 0.12, d, d, col, null, glow);  // hoop around the bore
   const mkGroup = (x, y, z) => { const g = new THREE.Group(); g.position.set(y + oy, z - oz, -(x - ox)); g.userData.rest = g.position.clone(); g.userData.piv = [x, y, z]; cur.add(g); vm.parts.push(g); return g; };
   const group = (x, y, z) => mkGroup(x, y, z);
+  // Anything built in here is hidden while aiming: lens glass, and whatever would sit in the way of the sight picture.
+  const hideAds = (fn) => { if (!vm.adsHide) { const pc = cur, y0 = oy, x0 = ox, z0 = oz; cur = vm.gun; ox = oy = oz = 0; vm.adsHide = mkGroup(0, 0, 0); cur = pc; oy = y0; ox = x0; oz = z0; } into(vm.adsHide, fn); };
   const into = (g, fn) => { const pc = cur, py = oy, px = ox, pz = oz; cur = g; oy = 0; ox = 0; oz = 0; fn(); cur = pc; oy = py; ox = px; oz = pz; };
   // A named moving part, pivoting at (px, py, pz). Inside fn the helpers still take gun coordinates.
   const part = (name, px, py, pz, fn) => { const g = mkGroup(px, py, pz); g.userData.piv = [px, py, pz]; vm.A[name + sfx] = g; const pc = cur, y0 = oy, x0 = ox, z0 = oz; cur = g; ox = px; oy = -py; oz = pz; fn(); cur = pc; oy = y0; ox = x0; oz = z0; return g; };
@@ -181,13 +184,19 @@ function buildGunWith(vm, W, tier, PAL) {
   };
   const post = (x, z, h = 2, col = Trim) => E([[x - 0.7, z], [x + 0.7, z], [x + 0.35, z + h], [x - 0.35, z + h]], 0.9, col, { bevel: 0.1, glow: TG });
   const notch = (x, z, w = 3.6, col = PAL.steelD) => { B(x, -w / 2 + 0.5, z + 0.45, 1, 0.8, 0.9, col); B(x, w / 2 - 0.5, z + 0.45, 1, 0.8, 0.9, col); };
-  const scope = (x0, x1, z, d, col = PAL.steelD, lens = C(0x6ad0ff)) => {
-    T(x0, x1, d, z, col); T(x0 - 1.5, x0 + 2.5, d * 1.3, z, col); T(x1 - 4, x1 + 1, d * 1.42, z, col);
-    T(x0 - 1.7, x0 - 1.4, d * 1.05, z, C(0x1c2a38)); T(x1 + 0.9, x1 + 1.2, d * 1.15, z, lens, 0, 0.6);
-    const m = (x0 + x1) / 2; Tz(m, z + d * 0.4, z + d * 0.95, d * 0.5, PAL.steelL); Ty(m + 0.5, z, d * 0.5, d * 1.5, PAL.steelL);
-    Tz(m, z + d * 0.95, z + d * 1.08, d * 0.62, PAL.steelD); Ring(x0 + 0.4, z, d * 1.34, 0.3, PAL.steelL); Ring(x1 - 1.4, z, d * 1.46, 0.3, PAL.steelL); Ring(m - d, z, d * 1.06, 0.3, PAL.steelL); Ring(m + d + 0.5, z, d * 1.06, 0.3, PAL.steelL);   // turret cap, bell and tube rings
-    for (const x of [x0 + (x1 - x0) * 0.28, x0 + (x1 - x0) * 0.72]) both((s) => Ty(x, z - d * 0.5 - 1.6, 0.7, 0.3, PAL.steelL, s * 1.25));   // ring screws
-    for (const x of [x0 + (x1 - x0) * 0.28, x0 + (x1 - x0) * 0.72]) E([[x - 1.2, z - d * 0.2], [x + 1.2, z - d * 0.2], [x + 1.5, z - d * 0.5 - 2.6], [x - 1.5, z - d * 0.5 - 2.6]], 2.4, PAL.steelD, { bevel: 0.2 });
+  // A telescopic sight. The eyepiece is an open ring: aiming puts the eye behind it, and the rest of the tube (and its
+  // glass) drops out of the picture so you look straight through.
+  const scope = (x0, x1, z, d, col = PAL.steelD, lens = C(0x6ad0ff), zoom = 0.6) => {
+    Hol(x0 - 1.5, x0 + 2.5, d * 1.3, z, col); Ring(x0 + 0.4, z, d * 1.34, 0.3, PAL.steelL); Ring(x0 - 1.45, z, d * 1.09, 0.2, PAL.steelL);   // eyepiece, with a bright rim round the opening
+    hideAds(() => {
+      T(x0 + 2.5, x1, d, z, col); T(x1 - 4, x1 + 1, d * 1.42, z, col);
+      T(x0 - 1.2, x0 - 0.9, d * 1.03, z, C(0x1c2a38)); T(x1 + 0.9, x1 + 1.2, d * 1.15, z, lens, 0, 0.6);
+      const m = (x0 + x1) / 2; Tz(m, z + d * 0.4, z + d * 0.95, d * 0.5, PAL.steelL); Ty(m + 0.5, z, d * 0.5, d * 1.5, PAL.steelL);
+      Tz(m, z + d * 0.95, z + d * 1.08, d * 0.62, PAL.steelD); Ring(x1 - 1.4, z, d * 1.46, 0.3, PAL.steelL); Ring(m - d, z, d * 1.06, 0.3, PAL.steelL); Ring(m + d + 0.5, z, d * 1.06, 0.3, PAL.steelL);   // turret cap, bell and tube rings
+      for (const x of [x0 + (x1 - x0) * 0.28, x0 + (x1 - x0) * 0.72]) both((s) => Ty(x, z - d * 0.5 - 1.6, 0.7, 0.3, PAL.steelL, s * 1.25));   // ring screws
+      for (const x of [x0 + (x1 - x0) * 0.28, x0 + (x1 - x0) * 0.72]) E([[x - 1.2, z - d * 0.2], [x + 1.2, z - d * 0.2], [x + 1.5, z - d * 0.5 - 2.6], [x - 1.5, z - d * 0.5 - 2.6]], 2.4, PAL.steelD, { bevel: 0.2 });
+    });
+    Optic = { x: x0 - 1.5, y: 0, z, r: d * 0.65 * 0.8, ret: 'cross', col: lens.getHex(), zoom };
   };
   const banana = (x, z, len, w, col = PAL.steelD, curve = 14, th = 4.6) => {
     const n = 5, f = [], b = [];
@@ -198,7 +207,7 @@ function buildGunWith(vm, W, tier, PAL) {
   const flutes = (x0, x1, z, d, n, col) => { for (let i = 0; i < n; i++) { const a = d2r(i * 360 / n + 30); T(x0, x1, d * 0.3, z + Math.sin(a) * d * 0.43, col, Math.cos(a) * d * 0.43); } };
   const fins = (x0, x1, z, d, n, col) => { for (let i = 0; i < n; i++) { const x = x0 + (x1 - x0) * (i + 0.5) / n; T(x - 0.5, x + 0.5, d, z, col); } };
 
-  let Sight = 10, Muzzle = V(30, 0, 7), Eject = V(4, 3, 7), Support = V(16, 0, 1);
+  let Sight = 10, Muzzle = V(30, 0, 7), Eject = V(4, 3, 7), Support = V(16, 0, 1), Optic = null;
   let twoHandPistol = false;
 
   // --- revolver / pistol bodies (reused for twin pistols and distinct per gun through their parameters) ---------------
@@ -379,7 +388,10 @@ function buildGunWith(vm, W, tier, PAL) {
       T(30, 46, 2.4, 7.4, PAL.steelD); T(30, 40, 1.8, 9.6, PAL.steelD); E([[39, 7.6], [41, 7.6], [40.6, 12.4], [39.4, 12.4]], 1.4, PAL.steelD, { bevel: 0.2 });  // gas tube + front sight tower
       T(46, 49, 3.2, 7.4, PAL.steelD);
       grip(-2, 4.2, Accent, 11.4, 16, 5.2, 3.8); guard(0.6, 4, PAL.steelD, 6.6, 4.4);
-      E(rect(0, 11, 8, 14), 3, PAL.steelD, { bevel: 0.5 }); B(7.6, 0, 12.6, 0.4, 2.2, 2.2, C(0xFF3A2A), null, 2);   // red dot
+      E(rect(3.4, 11, 8.6, 12.3), 3.2, PAL.steelD, { bevel: 0.3 });                                                  // holo sight: base,
+      both((s) => B(7, s * 1.9, 13.7, 1, 0.36, 2.8, PAL.steelD)); B(7, 0, 15.25, 1, 4.16, 0.36, PAL.steelD);           // and an open window to aim through
+      hideAds(() => { B(7, 0, 13.7, 0.16, 3.5, 2.8, C(0x24384a)); B(6.86, 0, 13.7, 0.1, 0.5, 0.5, C(0xFF3A2A), null, 2.4); });   // glass and dot
+      Optic = { x: 6.5, y: 0, z: 13.7, r: 1.38, ang: 0.135, ret: 'dot', col: 0xFF3A2A };
       B(4, -2.3, 8.6, 9, 0.3, 1.6, PAL.black); part('charge', 8, -2.4, 8.6, () => { Ball(8, -3.2, 8.6, 1.8, PAL.steelL); B(8, -2.6, 8.6, 1, 1.2, 0.9, PAL.steelL); });
       B(-2, 2.2, 6.4, 1.6, 0.4, 0.8, PAL.red); for (let i = 0; i < 2; i++) Ty(-4 + i * 14, 5.4, 1.1, 4.5, PAL.steelL);   // selector, takedown pins
       vm.MagRoot = group(10, 0, 4.4); into(vm.MagRoot, () => banana(0, 0, 14, 3, PAL.steelD, 30, 5));
@@ -393,7 +405,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[16, 5], [16, 9.6], [33, 9.2], [33, 5.4]], 4.4, Accent, { bevel: 1.2 });
       for (let i = 0; i < 5; i++) Ty(19 + i * 3, 7.3, 1.5, 4.6, PAL.black);
       T(33, 54, 2.6, 7.4, PAL.steelD); T(54, 59, 3.8, 7.4, PAL.steel); for (let i = 0; i < 3; i++) B(55.2 + i * 1.4, 0, 7.4, 0.6, 4, 1.2, PAL.black);  // muzzle brake
-      E([[42, 7.6], [44, 7.6], [43.6, 11.6], [42.4, 11.6]], 1.4, PAL.steelD, { bevel: 0.2 });
+      E([[42, 7.6], [44, 7.6], [43.6, 10.2], [42.4, 10.2]], 1.4, PAL.steelD, { bevel: 0.2 });
       E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: 1.6, bevel: 0.2 }); E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: -1.6, bevel: 0.2 });  // folded bipod
       grip(-2, 4.6, PAL.black, 11.4, 14, 5.2, 3.8); guard(0.6, 4.4, PAL.steelD, 6.6, 4.4);
       scope(-1, 13, 13.2, 3);
@@ -562,7 +574,9 @@ function buildGunWith(vm, W, tier, PAL) {
       T(-16, 34, 7.4, 9.6, C(0x4A5A3A)); Cone(-22, 9.6, 13, 12, C(0x3a4630), true); T(-17, -15, 8.6, 9.6, PAL.steelD);  // tube + rear blast cone
       T(-6, 12, 8.8, 9.6, PAL.wood); Ring(-6, 9.6, 9.4, 0.8, PAL.steelD); Ring(12, 9.6, 9.4, 0.8, PAL.steelD);        // wooden heat shield
       T(33, 36, 8.6, 9.6, PAL.steelD);
-      E([[8, 13], [9.6, 13], [9.6, 18], [8, 18]], 1.2, PAL.steelD, { y: -3.6, bevel: 0.2 }); B(8.8, -3.6, 16.6, 0.5, 3, 2.4, PAL.black);   // optic
+      E([[8, 12.6], [9.6, 12.6], [9.6, 15.2], [8, 15.2]], 1.2, PAL.steelD, { y: -3.6, bevel: 0.2 }); Hol(7.6, 10, 4, 17, PAL.steelD, -3.6);   // ring sight on a stalk
+      hideAds(() => { T(8.7, 8.9, 3.2, 17, C(0x24384a), -3.6); B(8.6, -3.6, 17, 0.1, 0.5, 0.5, C(0xFFB03A), null, 2.4); });
+      Optic = { x: 7.6, y: -3.6, z: 17, r: 1.6, ret: 'dot', col: 0xFFB03A };
       grip(0, 6, PAL.wood, 11.6, 12, 5.4, 4); guard(2.6, 5.8, PAL.steelD, 6.4, 4.2);
       E([[16, 6], [20, 6], [19.4, -3], [16.6, -3]], 3.6, PAL.wood, { bevel: 0.9 });
       vm.MagRoot = group(36, 0, 9.6);
@@ -703,9 +717,9 @@ function buildGunWith(vm, W, tier, PAL) {
       T(-6, 14, 4.4, 8.2, PAL.black); T(14, 60, 2.8, 8.2, PAL.steelD); T(60, 72, 4.8, 8.2, PAL.black);                    // integral suppressor
       part('bolt', -4, 0, 8.2, () => { T(-9.6, 2, 3.2, 8.2, PAL.steelD); Pt(1, -4, 3.2, 7.2, 1.4, 1.4, 5, PAL.steelD, R(0, 0, 55)); Ball(-4, 5.6, 5.6, 2.8, eye, 1.4); });
       guard(-2, 2.8, PAL.steelD, 7, 4.2);
-      scope(-2, 20, 12.8, 3.6, PAL.black, eye);
+      scope(-2, 20, 12.8, 3.6, PAL.black, eye, 0.55);
       for (const s of [-1, 1]) E([[-3.4, 14.2], [-0.2, 14.2], [-1.6, 17.4]], 1, PAL.black, { y: s * 1.5, bevel: 0.25 });     // ears on the scope
-      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) Pt(1, 21, s * 3, 12.6 + (i - 1) * 0.9, 0.25, 0.25, 5, PAL.bone, R(0, 0, 90 + s * (i - 1) * 12));   // whiskers at the objective
+      hideAds(() => { for (const s of [-1, 1]) for (let i = 0; i < 3; i++) Pt(1, 21, s * 3, 12.6 + (i - 1) * 0.9, 0.25, 0.25, 5, PAL.bone, R(0, 0, 90 + s * (i - 1) * 12)); });   // whiskers at the objective
       for (const s of [-1, 1]) { E([[2, 5.2], [3.4, 6.4], [4.8, 5.2], [3.4, 4.2]], 0.3, eye, { y: s * 2.3, bevel: 0.04, glow: 1.4 }); }
       vm.MagRoot = group(6, 0, 3.4); into(vm.MagRoot, () => E([[3, 0.4], [-3, 0.4], [-3, -4], [3, -4]], 3.2, PAL.steelD, { bevel: 0.4 }));
       Muzzle = V(72.5, 0, 8.2); Support = V(22, 0, 2.6); Sight = 13.6;
@@ -806,7 +820,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[36, 6.4], [38, 6.4], [38.4, 5.2], [36.4, 5.2]], 1.4, SD, { bevel: 0.15 });                   // bayonet lug
       slotsS(46.4, 48.8, 7.4, 3.22, 3, 1.6, 0.4); Ring(46.1, 7.4, 3.5, 0.3, SL); Ring(30.3, 7.4, 3.4, 0.6, SL); Ring(40, 7.4, 3, 0.5, SL);
       both((s) => B(-17, s * 2.12, 7.4, 8, 0.14, 0.3, dk(Accent, 0.55)));
-      E(rect(0.4, 14, 7.6, 14.5), 3.3, S, { bevel: 0.1 }); both((s) => Ty(4, 12.4, 1.2, 0.3, SL, s * 1.55));   // optic hood and windage knobs
+      E(rect(6.3, 15.43, 7.7, 15.7), 4.4, S, { bevel: 0.1 }); both((s) => Ty(7, 12.9, 1.1, 0.3, SL, s * 2.2)); both((s) => B(5, s * 1.62, 11.6, 2.4, 0.16, 0.5, SL));   // optic hood, windage knobs, clamp
       break;
     }
     case 'Long Rider': {
@@ -945,7 +959,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[1.6, 4.4], [11, 4.4], [11, 6.2], [1.6, 6.2]], 4.4, SD, { bevel: 0.3 }); pinT(3, 5.2, 4.4, 1); pinT(9.6, 5.2, 4.4, 1);   // trigger housing
       swivel(-14, 6.2); swivel(30, 6.2);
       both((s) => { for (let i = 0; i < 3; i++) B(17.9 - i * 0.1, s * 1.82, 2.4 - i * 1.6, 3.4, 0.14, 0.35, WD); });
-      T(8.4, 9.2, 2.6, 16.6, SD, -3.6); Ty(8.8, 13.6, 1.2, 1.6, SL, -3.6);
+      Ring(8.8, 17, 4.3, 0.3, SL, 0, -3.6); Ty(8.8, 13.6, 1.2, 1.6, SL, -3.6);
       break;
     }
     case 'Fireworks Finale': {
@@ -1057,7 +1071,7 @@ function buildGunWith(vm, W, tier, PAL) {
         if (t3) { Ring(4, 6.6, 10.4, 0.9, g, 2.6); E(star(-8.6, 11.4, 2.6, 8, 0.6), 0.5, gold, { bevel: 0.1, glow: 1 }); }   // III glowing cylinder, spur hammer
         break;
       case 'Saloon Six':
-        scope(1, 13, 12.4, 2.4, PAL.steelD, g);                                                                        // I pistol scope
+        scope(1, 13, 12.4, 2.4, PAL.steelD, g, 0.7);                                                                        // I pistol scope
         if (t2) E(rect(24, 3, 31.4, 5.6), 3, gold, { bevel: 0.5, glow: 0.4 });                                          // II barrel weight
         if (t3) for (let i = 0; i < 4; i++) Spike(14 + i * 4, 0, 9.6, 2.6, g, 2.6, 1);                                  // III vent flames along the rib
         break;
@@ -1088,18 +1102,18 @@ function buildGunWith(vm, W, tier, PAL) {
         break;
       case 'Quarter Horse':
         E([[30, 6.2], [38, 6.2], [36, 2], [33, 2]], 2, PAL.brass, { bevel: 0.4 });                                      // I saddle ring / barrel band
-        if (t2) { scope(0, 16, 12.6, 2.6, PAL.brass, g); }                                                              // II brass scope
+        if (t2) { scope(0, 16, 12.6, 2.6, PAL.brass, g, 0.62); }                                                              // II brass scope
         if (t3) { both((s) => E([[-24, 6], [-14, 8], [-18, 3]], 0.4, gold, { y: s * 2.5, bevel: 0.08, glow: 1 })); O(40, 49, 4, 8, gold); }   // III horseshoe inlay, gold barrel end
         break;
       case 'Lawman AR':
         E(star(-16, 6, 3.2), 5, gold, { bevel: 0.2, glow: 0.6 });                                                       // I badge in the stock
         if (t2) { E([[mx - 10, mz - 2], [mx + 6, mz - 2.4], [mx + 11, mz - 3.2], [mx + 5, mz - 4.6], [mx - 10, mz - 4]], 0.7, C(0xd8dce6), { bevel: 0.2 }); }   // II bayonet
-        if (t3) { both((s) => B(22, s * 2.6, 7.2, 14, 0.3, 1, C(0x4a8cff), null, 2.4)); B(4, 0, 14.6, 3, 2, 1.2, PAL.red, null, 2.6); }   // III police lights
+        if (t3) { both((s) => B(22, s * 2.6, 7.2, 14, 0.3, 1, C(0x4a8cff), null, 2.4)); B(7, 0, 16.2, 2, 2, 1, PAL.red, null, 2.6); }   // III police lights
         break;
       case 'Long Rider':
         T(mx, mx + 8, 4.4, mz, PAL.black);                                                                             // I long brake
         if (t2) both((s) => E([[39, 5], [40.6, 5], [34, -6], [33, -5]], 1, gold, { y: s * 2.4, bevel: 0.2 }));           // II deployed bipod
-        if (t3) { T(12, 16.4, 5, 13.2, PAL.steelD); T(16, 16.6, 4.4, 13.2, g, 0, 2.6); for (let i = 0; i < 5; i++) Ring(36 + i * 3.6, mz, 4.6, 0.5, g, 2.2); }   // III big objective lens, rifled glow
+        if (t3) { hideAds(() => { T(12, 16.4, 5, 13.2, PAL.steelD); T(16, 16.6, 4.4, 13.2, g, 0, 2.6); }); for (let i = 0; i < 5; i++) Ring(36 + i * 3.6, mz, 4.6, 0.5, g, 2.2); }   // III big objective lens, rifled glow
         break;
       case 'Gold Rush':
         for (let i = 0; i < 3; i++) Ball(16 + i * 5, 0, 10.6, 2, [C(0xFF4050), C(0xFFE060), C(0x60E060)][i], 1.6);      // I three gemstones
@@ -1139,7 +1153,7 @@ function buildGunWith(vm, W, tier, PAL) {
       case 'Widowmaker':
         T(mx, mx + 10, 5, mz, PAL.black);                                                                               // I suppressor
         if (t2) { both((s) => E([[30, 5], [31.6, 5], [26, -5], [25, -4]], 1, PAL.steelD, { y: s * 2.4, bevel: 0.2 })); }   // II bipod
-        if (t3) { for (let i = 0; i < 8; i++) both((s) => E([[-20 + i * 1.5, 2 + i * 0.4], [-19 + i * 1.5, 2 + i * 0.4], [-19 + i * 1.5, 7], [-20 + i * 1.5, 7]], 0.3, PAL.bone, { y: s * 2.4, bevel: 0.04 })); T(20.4, 21, 3.6, 12.8, PAL.red, 0, 2.6); }   // III kill tallies, red lens
+        if (t3) { for (let i = 0; i < 8; i++) both((s) => E([[-20 + i * 1.5, 2 + i * 0.4], [-19 + i * 1.5, 2 + i * 0.4], [-19 + i * 1.5, 7], [-20 + i * 1.5, 7]], 0.3, PAL.bone, { y: s * 2.4, bevel: 0.04 })); hideAds(() => T(20.4, 21, 3.6, 12.8, PAL.red, 0, 2.6)); }   // III kill tallies, red lens
         break;
       case 'Railroad Spike':
         for (let i = 0; i < 6; i++) Ty(23.5 + i * 7.4, 13.4, 2.4, 3, PAL.brass);                                        // I capacitor row
@@ -1152,7 +1166,7 @@ function buildGunWith(vm, W, tier, PAL) {
         if (t3) { T(33, 40, 13.4, 9, PAL.steelD); for (let i = 0; i < 6; i++) { const a = d2r(i * 60); Spike(39, Math.cos(a) * 6, 9 + Math.sin(a) * 6 - 1.5, 3, gold, 1, 1.2); } }   // III mortar muzzle
         break;
       case 'Boomtown':
-        E([[8, 13], [14, 13], [14, 21], [8, 21]], 3, PAL.steelD, { y: -3.6, bevel: 0.4 }); B(14.2, -3.6, 17, 0.4, 2.2, 2.2, g, null, 2.4);   // I targeting computer
+        E([[8.6, 12.2], [14, 12.2], [14, 14.9], [8.6, 14.9]], 3.4, PAL.steelD, { y: -3.6, bevel: 0.4 }); B(8.5, -3.6, 14.2, 0.2, 1.8, 0.36, g, null, 2); B(14.1, -3.6, 13.6, 0.3, 2.2, 1.5, g, null, 2.4);   // I targeting computer under the sight
         if (t2) for (const y of [-6.6, 6.6]) { T(-4, 14, 3.4, 9.6, C(0x4A5A3A), y); Cone(16.4, 9.6, 3.4, 4, Accent, true, y); }   // II side rockets
         if (t3) { both((s) => E([[-22, 9.6], [-12, 9.6], [-22, 18]], 0.6, PAL.red, { y: s * 5, bevel: 0.1 })); Ring(-16, 9.6, 11, 1, g, 2.6); }   // III tail fins and afterburner ring
         break;
@@ -1199,11 +1213,11 @@ function buildGunWith(vm, W, tier, PAL) {
       case 'Black Cat':
         both((s) => E([[-36, 8], [-40, 12], [-44, 8], [-42, 14], [-37, 13]], 0.8, PAL.black, { y: s * 0.6, bevel: 0.2 }));   // I tail tip curl
         if (t2) both((s) => E([[62, 8.2], [68, 8.2], [66, 5.6], [64, 4.6]], 0.5, PAL.bone, { y: s * 1.8, bevel: 0.1 }));     // II claws at the muzzle
-        if (t3) { both((s) => Ball(19, s * 1.5, 12.8, 1.8, C(0x7CFF4A), 3)); for (let i = 0; i < 4; i++) Ring(40 + i * 5, 8.2, 4.4, 0.5, C(0x7CFF4A), 2.4); }   // III glowing eyes and barrel
+        if (t3) { hideAds(() => both((s) => Ball(19, s * 1.5, 12.8, 1.8, C(0x7CFF4A), 3))); for (let i = 0; i < 4; i++) Ring(40 + i * 5, 8.2, 4.4, 0.5, C(0x7CFF4A), 2.4); }   // III glowing eyes and barrel
         break;
       default: break;
     }
     void M; void g;
   }
-  return { Sight, Muzzle, Eject, Support, twoHandPistol };
+  return { Sight, Muzzle, Eject, Support, twoHandPistol, Optic };
 }

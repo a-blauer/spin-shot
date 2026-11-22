@@ -1010,6 +1010,7 @@ export class Player {
     cam.rotation.set(pitch, yaw, roll, 'YXZ');
     let zoom = 1;
     switch (this.W.cls) { case 'Sniper': zoom = 0.38; break; case 'Rifle': zoom = 0.72; break; case 'LMG': zoom = 0.78; break; default: zoom = 0.82; }
+    { const O = G.vm.optic; if (O && O.zoom && this.W.cls !== 'Sniper') zoom = Math.min(zoom, O.zoom); }   // a scope magnifies a little; only a sniper's fills the view
     this.fovKick = interpTo(this.fovKick, 0, dt, 6);
     let tf = (G.settings.fov || 100) + clamp((sp - 700) / 60, 0, 14) + (this.sliding ? 6 : 0) + this.fovKick;
     tf = tf + ((G.settings.fov || 100) * zoom - tf) * this.adsAlpha();

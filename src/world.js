@@ -45,6 +45,12 @@ function prismGeo(poly) {
 function pyramidGeo() { const g = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); g.rotateY(Math.PI / 4); return g; }
 function octGeo() { const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 8); g.rotateY(Math.PI / 8); return g; }
 function ringGeo(tube = 0.06) { return new THREE.TorusGeometry(0.5 - tube, tube, 6, 22); }
+// A tube you can look through from either end: outer wall and the two end rims, no inner wall.
+function hollowGeo(k = 0.8) {
+  const parts = [new THREE.CylinderGeometry(0.5, 0.5, 1, 16, 1, true), new THREE.RingGeometry(0.5 * k, 0.5, 16).rotateX(-Math.PI / 2).translate(0, 0.5, 0), new THREE.RingGeometry(0.5 * k, 0.5, 16).rotateX(Math.PI / 2).translate(0, -0.5, 0)].map((g) => g.toNonIndexed());
+  const cat = (name, n) => { const a = new Float32Array(parts.reduce((t, g) => t + g.attributes[name].array.length, 0)); let o = 0; for (const g of parts) { a.set(g.attributes[name].array, o); o += g.attributes[name].array.length; } return new THREE.BufferAttribute(a, n); };
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', cat('position', 3)); g.setAttribute('normal', cat('normal', 3)); g.setAttribute('uv', cat('uv', 2)); return g;
+}
 const GEOS = [
   new THREE.BoxGeometry(1, 1, 1),
   new THREE.CylinderGeometry(0.5, 0.5, 1, 16),
@@ -55,6 +61,7 @@ const GEOS = [
   pyramidGeo(),
   octGeo(),
   ringGeo(),
+  hollowGeo(),
 ];
 const COLGEOS = [
   new THREE.BoxGeometry(1, 1, 1),

@@ -18,6 +18,7 @@ function quatVM(rot) {
   const m = new THREE.Matrix4().makeBasis(P3(b), P3(c), P3(a).negate());
   return new THREE.Quaternion().setFromRotationMatrix(m);
 }
+const ADS_PITCH = -2.5;   // degrees the gun tips down when aimed through an optic
 const ViewScale = 0.31;   // smaller in the frame so the gun does not crowd the view
 const HipPos = { X: 31, Y: 12.5, Z: -14 };
 const Metal = hex(0x4C4E5C), MetalDark = hex(0x2A2A33), MetalLight = hex(0x8C90A0), Wood = hex(0x7A4528), WoodLight = hex(0xA8643A);
@@ -95,7 +96,7 @@ export class ViewModel {
   constructor(game) {
     this.game = game;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(72, 1, 1, 400);
+    this.camera = new THREE.PerspectiveCamera(72, 1, 0.45, 400);
     this.root = new THREE.Group();
     this.root.scale.setScalar(ViewScale);
     this.scene.add(this.root);
@@ -434,6 +435,14 @@ export class ViewModel {
     this.magRest = this.MagRoot.position.clone();
     this.muzzleRest = P3(MuzzleAt);
     this.sightZ = SightZ;
+    // A gun with an optic is aimed by putting the eye behind it, close enough that its window fills the middle of the view.
+    // The gun is tipped down a touch so its own barrel and furniture sit low in that window instead of across it.
+    this.optic = spec.Optic || null; this.adsPose = null;
+    if (this.optic) {
+      const o = this.optic, D = Math.max(5, Math.min(14, o.r / (o.ang || 0.155))), p = o.pitch === undefined ? ADS_PITCH : o.pitch;
+      const t = P3(V(D, 0, 0)).sub(P3(V(o.x, o.y, o.z)).applyQuaternion(quatVM(R(p, 0, 0))));
+      this.adsPose = { X: -t.z, Y: t.x, Z: t.y, P: p };
+    }
     this.supportRest = P3(SupportRest);
     this.muzzle = this.scene_(MuzzleAt);
     this.eject = this.scene_(EjectAt);
@@ -565,13 +574,14 @@ export class ViewModel {
     if (this.muzzle) { this.muzzle.position.copy(this.muzzleRest); if (left && this.A.twin) this.muzzle.position.add(this.A.twin.userData.rest); }
     if (f.flash > 0 && (!continuous || Math.random() < 0.5)) {
       this.flashTime = continuous ? 0.03 : 0.05;
-      const J = (0.8 + Math.random() * 0.5) * f.flash;
+      const K = this.adsPose ? 1 - 0.5 * this.aimA : 1;   // through an optic the flash is right in the window, so it is kept small
+      const J = (0.8 + Math.random() * 0.5) * f.flash * K;
       const [star, flame, glow] = this.flash;
       for (const q of this.flash) q.visible = !this.scoped;
       star.userData.spin = Math.random() * Math.PI * 2;
       star.scale.set(this.FS * J * 1.3, this.FS * J * 1.3, 1);
       flame.scale.set(this.FS * 1.3 * J, this.FS * 0.55 * J * (0.8 + Math.random() * 0.4), 1);
-      glow.scale.set(this.FS * 5 * f.flash, this.FS * 5 * f.flash, 1);
+      glow.scale.set(this.FS * 5 * f.flash * K, this.FS * 5 * f.flash * K, 1);
     }
     if (this.cls === 'LMG' || this.cls === 'Wonder') this.spinSpeed = Math.min(this.spinSpeed + 400, 1800);
     this.fireExtras(continuous);
@@ -695,9 +705,9 @@ export class ViewModel {
 
     // positions in UE-local terms (x fwd, y right, z up) then mapped
     const hipK = 1 - this.aimA, hip = f.hip || [0, 0, 0, 0, 0, 0];
-    const ads = { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
+    const ads = this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
     const pos = { X: HipPos.X + (ads.X - HipPos.X) * this.aimA, Y: HipPos.Y + (ads.Y - HipPos.Y) * this.aimA, Z: HipPos.Z + (ads.Z - HipPos.Z) * this.aimA };
-    const rot = { P: 0, Y: 0, R: 0 };
+    const rot = { P: this.adsPose ? this.adsPose.P * this.aimA : 0, Y: 0, R: 0 };
     const add = (x, y, z, k) => { pos.X += x * k; pos.Y += y * k; pos.Z += z * k; };
     const rel = { P: 0, Y: 0, R: 0 }; let relOn = false;   // how far a reload has turned the gun: the off hand does not turn with it
     const addR = (p, y, r, k) => { rot.P += p * k; rot.Y += y * k; rot.R += r * k; if (relOn) { rel.P += p * k; rel.Y += y * k; rel.R += r * k; } };
@@ -1054,6 +1064,7 @@ export class ViewModel {
     }
     this.gun.updateMatrixWorld(true); gunInv.value.copy(this.gun.matrixWorld).invert();
     this.tickFlyers(dt);
+    if (this.adsHide) this.adsHide.visible = this.aimA < 0.8;
     this.root.visible = !this.scoped && !this.hidden && !this.wield;
     this.tickMelee(dt);
   }

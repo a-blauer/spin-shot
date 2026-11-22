@@ -306,14 +306,31 @@ export class Hud {
     const ads = game.vm.aimA;
     const spreadPx = Math.tan(P.spreadDeg() * Math.PI / 180) / Math.tan(P.fov * Math.PI / 360) * (W / 2);
     const gap = (6 + spreadPx + P.crossKick * 9) * S / Math.max(S, 0.0001) * (S > 0 ? 1 : 1);
-    const len = 10 * S, a = 1 - ads * 0.85;
+    const O = game.vm.optic, oa = O && !P.wield ? clamp((ads - 0.7) / 0.25, 0, 1) : 0;   // looking through an optic: its own reticle takes over
+    const len = 10 * S, a = (1 - ads * 0.85) * (1 - oa);
     g.globalAlpha = a;
     const tick = (x0, y0, x1, y1) => { g.strokeStyle = INK; g.lineWidth = 5 * S; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = BONE; g.lineWidth = 2.4 * S; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
     const G2 = Math.max(gap, 5 * S);
     tick(cx - G2 - len, cy, cx - G2, cy); tick(cx + G2, cy, cx + G2 + len, cy); tick(cx, cy + G2, cx, cy + G2 + len);
     if (P.W.cls !== 'Shotgun') tick(cx, cy - G2 - len, cx, cy - G2);
-    g.globalAlpha = 1;
+    g.globalAlpha = 1 - oa;
     g.fillStyle = INK; g.fillRect(cx - 2.5 * S, cy - 2.5 * S, 5 * S, 5 * S); g.fillStyle = BONE; g.fillRect(cx - 1.4 * S, cy - 1.4 * S, 2.8 * S, 2.8 * S);
+    if (oa > 0) {
+      const col = '#' + O.col.toString(16).padStart(6, '0');
+      g.globalAlpha = oa * 0.22; g.fillStyle = col; g.beginPath(); g.arc(cx, cy, 9 * S, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = oa;
+      if (O.ret === 'cross') {
+        const r0 = 7 * S, r1 = 38 * S;
+        for (const [w, c] of [[4 * S, 'rgba(0,0,0,0.55)'], [1.9 * S, col]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(cx - r1, cy); g.lineTo(cx - r0, cy); g.moveTo(cx + r0, cy); g.lineTo(cx + r1, cy); g.moveTo(cx, cy + r0); g.lineTo(cx, cy + r1); g.stroke(); }
+        g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.arc(cx, cy, 2.9 * S, 0, Math.PI * 2); g.fill();
+        g.fillStyle = col; g.beginPath(); g.arc(cx, cy, 1.9 * S, 0, Math.PI * 2); g.fill();
+      } else {
+        for (const [w, c] of [[3.6 * S, 'rgba(0,0,0,0.4)'], [1.7 * S, col]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.arc(cx, cy, 15 * S, 0, Math.PI * 2); g.stroke(); }   // holo ring and dot
+        g.fillStyle = col; g.beginPath(); g.arc(cx, cy, 3 * S, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff'; g.globalAlpha = oa * 0.8; g.beginPath(); g.arc(cx, cy, 1.2 * S, 0, Math.PI * 2); g.fill();
+      }
+    }
+    g.globalAlpha = 1;
     if (P.reloading) {
       const f = 1 - P.reloadT / Math.max(P.reloadDur, 0.01);
       g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 5 * S; g.beginPath(); g.arc(cx, cy, 26 * S, 0, Math.PI * 2); g.stroke();
