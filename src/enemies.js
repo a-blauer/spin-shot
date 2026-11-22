@@ -641,11 +641,13 @@ export class Enemy {
       // a heavy hit, or dropping past half health, takes an arm off
       const half = this.maxHealth * 0.5;
       if (!this.armLost && ((before > half && this.health <= half && Math.random() < 0.6) || dmg > this.maxHealth * 0.4)) {
+        // (a severed part is drawn at its own width: the size passed to debris is the WIDTH, and the sprite's aspect
+        // gives the height. Passing the length made every limb three to five times too big - an arm the size of a wagon.)
         const arm = this.puppet.popPart(['ArmFront', 'ArmBack']);
         if (arm) {
           this.armLost = true; this.attackDamage *= 0.75;
           const loc = this.puppet.partWorld(arm), hd = fromDir.lengthSq() > 0 ? fromDir.clone().normalize() : new THREE.Vector3(0, 1, 0);
-          this.game.fx.debris(arm.tex, loc, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160), arm.size[1] * this.bodyScale * 0.8, 8, frandRange(-600, 600), true, arm.spr, 'creature', this.puppet.facing < 0);
+          this.game.fx.debris(arm.tex, loc, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160), arm.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, arm.spr, 'creature', this.puppet.facing < 0);
           this.game.fx.fleshHit(loc, hd, this.bodyScale * 1.2, true);
           this.game.fx.bloodPool(this.pos, 60 * this.bodyScale);
         }
@@ -672,7 +674,7 @@ export class Enemy {
       const head = this.puppet.popHead();
       if (head) {
         const v = hitDir.clone().multiplyScalar(420).add(new THREE.Vector3(0, 650, 0)).addScaledVector(randDir(), 120);
-        G.fx.debris(head.tex, headLoc, v, head.size[0] * this.bodyScale * 0.8, 8, frandRange(-700, 700), true, head.spr, 'creature', this.puppet.facing < 0);
+        G.fx.debris(head.tex, headLoc, v, head.size[0] * this.puppet.baseScale, 8, frandRange(-700, 700), true, head.spr, 'creature', this.puppet.facing < 0);
       }
       G.fx.fleshHit(headLoc, hitDir, this.bodyScale * 1.4, true);
       G.fx.gibs(headLoc, this.bodyColor, this.bodyScale * 0.6, 4);
@@ -685,7 +687,7 @@ export class Enemy {
       G.fx.fleshHit(loc, hitDir, this.bodyScale, true);
       G.fx.bloodPool(loc, 110 * this.bodyScale);
       { const limb = this.puppet.popPart(['ArmFront', 'ArmBack', 'LegFront', 'LegBack']);   // something always comes off
-        if (limb) G.fx.debris(limb.tex, this.puppet.partWorld(limb), hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200), limb.size[1] * this.bodyScale * 0.8, 8, frandRange(-600, 600), true, limb.spr, 'creature', this.puppet.facing < 0); }
+        if (limb) G.fx.debris(limb.tex, this.puppet.partWorld(limb), hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200), limb.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, limb.spr, 'creature', this.puppet.facing < 0); }
       this.puppet.startDeath(hitDir);
       G.audio.playAt('S_EnemyDie', loc, 0.8, Math.min(1.3, Math.max(0.7, 1.1 / Math.max(this.bodyScale, 0.5))), 0.12);
     }

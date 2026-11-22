@@ -435,6 +435,8 @@ export class Player {
     // collide
     const wasG = this.grounded;
     const r = G.phys.moveCapsule(this.pos, this.vel, dt, RADIUS, HALF, { stepHeight: 50, wasGrounded: wasG && this.launchedT <= 0 });
+    // under a roof (the mine): nobody jumps, grapples or wall-runs out through the ceiling
+    if (G.map.ceil) { const cz = G.map.ceil(this.pos.x, this.pos.z); if (cz > 0 && this.pos.y > cz - HALF - 6) { this.pos.y = cz - HALF - 6; if (this.vel.y > 0) this.vel.y = 0; } }
     let grounded = r.grounded && this.vel.y <= 1 && this.launchedT <= 0;
     if (grounded) this.groundNormal.copy(r.groundNormal);
     if (!grounded && wasG && this.vel.y <= 0 && this.launchedT <= 0 && this.dashT <= 0) {

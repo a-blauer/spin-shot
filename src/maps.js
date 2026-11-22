@@ -2,7 +2,7 @@
 // Nothing from one map turns up on another.
 import * as THREE from 'three';
 import { DATA } from './data.js';
-import { buildMine, MINE_LOOT } from './map_mine.js';
+import { buildMine, MINE_LOOT, mineCeil } from './map_mine.js';
 import { buildFrost, FROST_LOOT, frostAmbient } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient } from './map_bayou.js';
 import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient } from './map_carnival.js';
@@ -16,7 +16,7 @@ export const MAPS = [
     final: { arena: 'THE CRYPT', open: 'THE CRYPT IS OPEN', toast: 'Step into the light to face the Founder', under: 'BENEATH DEADWATER', acts: ['THE SEAL CRACKS', 'DEADWATER BURNS'], taunt: 'No one leaves Deadwater',
       win: 'Deadwater Gulch is cleared. The Founder is back in the ground.' } },
   { id: 'mine', name: 'Blackwater Mine', blurb: 'Timbered galleries, a flooded cavern and the seam at the bottom. Close quarters by lamplight.', pack: 1, loading: 'Going down the shaft...',
-    build: buildMine, loot: MINE_LOOT, noSky: true, wind: 0.06, spawnYaw: Math.PI,
+    build: buildMine, loot: MINE_LOOT, ceil: mineCeil, noSky: true, wind: 0.06, spawnYaw: Math.PI,
     // one mood per district, blended as you walk between them
     palette(P, zone) {
       P.sky = C(0x05070a); P.fogStart = 600; P.fogDensity = 0.00036; P.fogMax = 0.93; P.sun = sun(0.25, -0.3, 0.9);

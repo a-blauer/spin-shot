@@ -307,4 +307,13 @@ export function buildMine(M) {
   Door(V(4500, 3500, 0), 90, 3500, Z3, Z2); Door(V(4500, -3500, 0), 90, 4000, Z3, Z4);
 }
 
+// The roof. The ceilings are drawn but not solid (a lot of the game finds the floor by looking down from above), so the
+// map says how high a body may go: the underside of the ceiling hung over each district. Nothing outside the mine.
+const ROOFS = [[-1600, -3600, 1600, 3600, 900], [-6600, -3600, -1400, 3600, 760], [-6600, 3400, 6600, 7600, 1180], [1400, -3600, 6600, 3600, 1100], [-6600, -7600, 6600, -3400, 900]];
+export function mineCeil(x, y) {
+  if (Math.abs(x) > 7400 || Math.abs(y) > 8400) return 0;
+  let z = Infinity;
+  for (const [x0, y0, x1, y1, h] of ROOFS) if (x >= x0 && x <= x1 && y >= y0 && y <= y1) z = Math.min(z, h);
+  return z === Infinity ? 760 : z;
+}
 export const MINE_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4: [0, 1] }, relics: [[0, 7240, 282, -90], [20, -6700, 310, 90]], box: [420, 760, 180, 0], boxZones: [1, 2, 3, 4] };
