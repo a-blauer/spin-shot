@@ -45,20 +45,41 @@ export function buildWharf(M) {
 
   // ------------------------------------------------------------------ ground, the town behind, the water in front
   Box(V(0, 0, -50), V(16000, 12000, 100), COBBLE, true, false);
-  Floor(V2(2000, -1500), V2(7000, 5000), 1, 0x3a3e40); Floor(V2(0, -5000), V2(7000, -1500), 1, 0x4a443c); Floor(V2(-7000, -1500), V2(-2000, 1500), 1, 0x444850);
+  Floor(V2(0, -5000), V2(7000, -1500), 1, 0x4a443c);
+  // The town climbs away from the water: the quay, the pier and the shipyard at sea level, the fishmarket and the point
+  // one flight up, the warehouses at the top. The low ground is the sea's twice a round.
+  [[Z1, 260], [Z2, 520], [Z5, 260]].forEach(([z, h]) => { GM.zones[z].z = h; });
+  M.at({ z: 260 }, () => { Box(V(-4500, 0, -330), V(5100, 3100, 660), 0x3a3c44, true, false); Floor(V2(-7000, -1500), V2(-2000, 1500), 1, 0x444850); Box(V(4500, 1750, -330), V(5100, 6600, 660), 0x33373c, true, false); Floor(V2(2000, -1500), V2(7000, 5000), 1, 0x3a3e40); });
+  M.at({ z: 520 }, () => { Box(V(-3500, -3250, -460), V(7100, 3600, 920), 0x3a3c44, true, false); Floor(V2(-7000, -5000), V2(0, -1500), 1, COBBLE); });
+  M.at({ z: 520 }, () => { Wall(V2(-7000, -5000), V2(-7000, -1500), 900, 200, BRICK_D, [], true, 0x2a2a30); Wall(V2(-7000, -5000), V2(0, -5000), 900, 200, BRICK_D, [], true, 0x2a2a30); });
+  M.at({ z: 260 }, () => Wall(V2(-7000, -1500), V2(-7000, 1500), 900, 200, BRICK_D, [], true, 0x2a2a30));
   for (const [a, b, h] of [[V2(-7000, -5000), V2(-7000, 5000), 950], [V2(-7000, -5000), V2(7000, -5000), 950], [V2(7000, -5000), V2(7000, 5000), 950], [V2(-7000, 5000), V2(7000, 5000), 260]]) Wall(a, b, h, 200, h > 500 ? BRICK_D : STONE, [], true, h > 500 ? 0x2a2a30 : 0x4a4e54);
   K.cliffs(7080, -1500, 7080, 5000, 965, [0x3a3e44, 0x2e3238, 0x464a52], 0, 520);
   // roofs and chimneys of the town over the south and west walls, a few windows lit
   for (let t = -6700; t <= 6700; t += 640) { const h = 200 + ((t / 640) & 3) * 90; Box(V(t, -5120, 950 + h / 2), V(560, 300, h), [BRICK, BRICK_D, 0x4a4a52][(t / 640 + 20) % 3 | 0], false, false); Pyramid(V(t, -5120, 950 + h + 90), V(600, 320, 180), 0x2a2a30); Box(V(t + 150, -5120, 950 + h + 150), V(60, 60, 200), BRICK_D, false, false); if ((t / 640) & 1) Glow(V(t - 100, -4966, 950 + h * 0.5), V(70, 6, 90), GAS); }
   for (let t = -4700; t <= 1200; t += 640) { const h = 200 + ((t / 640) & 3) * 90; Box(V(-7120, t, 950 + h / 2), V(300, 560, h), [BRICK, BRICK_D, 0x4a4a52][(t / 640 + 20) % 3 | 0], false, false); Pyramid(V(-7120, t, 950 + h + 90), V(320, 600, 180), 0x2a2a30); if ((t / 640) & 1) Glow(V(-6966, t - 100, 950 + h * 0.5), V(6, 70, 90), GAS); }
   const brick = (a, b, gaps) => Wall(a, b, 520, 70, BRICK, gaps.map((g) => V2(g - 200, g + 200)), true, STONE, IRON);
-  brick(V2(-2000, -1500), V2(-2000, 1500), [1500]); brick(V2(2000, -1500), V2(2000, 5000), [1500, 3330]);
-  brick(V2(-7000, -1500), V2(7000, -1500), [2500, 6000, 8000, 11500]); brick(V2(-2000, 1500), V2(2000, 1500), [2000]); brick(V2(0, -5000), V2(0, -1500), [1750]);
-  const DOORS = [[-2000, 0, 0, 1500, Z0, Z1], [2000, 0, 0, 2000, Z0, Z5], [-1000, -1500, 90, 1500, Z0, Z2], [1000, -1500, 90, 2000, Z0, Z3], [0, 1500, 90, 2500, Z0, Z4], [-4500, -1500, 90, 3000, Z1, Z2], [0, -3250, 0, 3000, Z2, Z3], [4500, -1500, 90, 3500, Z3, Z5], [2000, 1830, 0, 4000, Z4, Z5]];
-  for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { const px = x + (ax ? s * 240 : 0), py = y + (ax ? 0 : s * 240); Box(V(px, py, 300), V(90, 90, 600), STONE, true, false); Pyramid(V(px, py, 640), V(110, 110, 80), 0x4a4e54); Glow(V(px, py, 560), V(30, 30, 40), GAS, 2); Lamp(V(px, py, 560), LC(0.9, 0.85, 0.5), 8, 700, false); } }
+  const brickH = (a, b, h, gaps) => Wall(a, b, h, 70, BRICK, gaps.map((g) => V2(g - 200, g + 200)), true, STONE, IRON);
+  brickH(V2(-2000, -1500), V2(-2000, 1500), 780, [1500]); brickH(V2(2000, -1500), V2(2000, 5000), 780, [1500, 3330]);
+  M.at({ z: 260 }, () => brickH(V2(-7000, -1500), V2(-2000, -1500), 780, [2500]));
+  brickH(V2(-2000, -1500), V2(0, -1500), 1040, [1000]); brick(V2(0, -1500), V2(2000, -1500), [1000]); brickH(V2(2000, -1500), V2(7000, -1500), 780, [2500]);
+  brick(V2(-2000, 1500), V2(2000, 1500), [2000]); brickH(V2(0, -5000), V2(0, -1500), 1040, [1750]);
+  // the ways up: a cobbled ramp through each gate, built against the higher ground
+  K.slope(-2000, 0, false, 1, 260, 0, 740, 400, COBBLE, 0x3a3c44); K.slope(2000, 0, false, -1, 260, 0, 740, 400, COBBLE, 0x33373c); K.slope(2000, 1830, false, -1, 260, 0, 740, 400, COBBLE, 0x33373c);
+  K.slope(-4500, -1500, true, 1, 520, 260, 740, 400, COBBLE, 0x3a3c44); K.slope(4500, -1500, true, -1, 260, 0, 740, 400, COBBLE, 0x33373c);
+  // and two quick ways down from Warehouse Row that nothing can follow you up: over the wall onto the quay, or into the shipyard
+  M.at({ z: 520 }, () => {
+    for (const [x, y, ax] of [[-1000, -1500, true], [0, -3250, false]]) {
+      for (const s of [-1, 1]) Box(V(x + (ax ? s * 222 : 0), y + (ax ? 0 : s * 222), 60), V(44, 44, 120), IRON, true, false);
+      Box(V(x, y, 14), ax ? V(400, 130, 28) : V(130, 400, 28), PLANK_D, true, false); Sign(V(x + (ax ? 0 : -60), y + (ax ? -60 : 0), 200), ax ? -90 : 180, 'WAY DOWN', { r: 0.9, g: 0.8, b: 0.5 }, 34);
+      M.world.ZoneCeiling(V2(x, y), 400, 70, 0, ax ? V(1, 0, 0) : V(0, 1, 0)); GM.NavBlockBox({ min: V(x - (ax ? 240 : 100), y - (ax ? 100 : 240), 0), max: V(x + (ax ? 240 : 100), y + (ax ? 100 : 240), 100) }, 1);
+    }
+  });
+  const DOORS = [[-2000, 0, 0, 1500, Z0, Z1, 260], [2000, 0, 0, 2500, Z0, Z5, 260], [1000, -1500, 90, 1500, Z0, Z3, 0], [0, 1500, 90, 1500, Z0, Z4, 0], [-4500, -1500, 90, 3000, Z1, Z2, 520], [4500, -1500, 90, 3500, Z3, Z5, 260], [2000, 1830, 0, 3500, Z4, Z5, 260]];
+  for (const [x, y, yaw, , , , up] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { const px = x + (ax ? s * 240 : 0), py = y + (ax ? 0 : s * 240), z = up; Box(V(px, py, 300 + up / 2), V(90, 90, 600 + up), STONE, true, false); Pyramid(V(px, py, 640 + z), V(110, 110, 80), 0x4a4e54); Glow(V(px, py, 560 + z), V(30, 30, 40), GAS, 2); Lamp(V(px, py, 560 + z), LC(0.9, 0.85, 0.5), 8, 700, false); } }
   // the basin west of the pier: black water, boats at their moorings, the far mole
   sea(-7000, 1500, -2000, 5000, 26); sea(-2000, 2100, -400, 5000, 10); sea(400, 2100, 2000, 5000, 10); sea(-400, 4600, 400, 5000, 2);
-  edge(-6960, 1500, -2040, 1500);
+  M.at({ z: 260 }, () => edge(-6960, 1500, -2040, 1500));
   for (const [x, y, yaw, c] of [[-5600, 2600, 20, 0x3a4a5a], [-3900, 3400, -30, 0x5a3a30], [-6200, 4000, 70, 0x4a4a3a], [-2900, 2400, 8, 0x3a3a40]]) { const P = (dx, dy, z) => M.L(V(x, y, 0), yaw, dx, dy, z); BoxYaw(P(0, 0, 50), V(620, 200, 100), c, yaw, false); BoxYaw(P(350, 0, 60), V(160, 140, 110), c, yaw + 45, false); BoxYaw(P(-120, 0, 140), V(180, 150, 100), 0x8a8474, yaw, false); Cyl(P(60, 0, 420), 16, 640, PLANK_D, false, false); BoxYaw(P(60, 0, 520), V(8, 320, 8), PLANK_D, yaw, false); Glow(P(-120, 80, 150), V(40, 6, 40), GAS); }
   for (const [x, y] of [[-4800, 4300], [-3200, 2800], [1500, 4400], [-1300, 4700]]) { Cyl(V(x, y, 30), 70, 60, 0x7a2a26, false, false); ConeShape(V(x, y, 100), V(60, 60, 90), 0x7a2a26, false); Glow(V(x, y, 160), V(16, 16, 20), 0xb8322a, 2); }
 
@@ -92,7 +113,7 @@ export function buildWharf(M) {
   }
 
   // ------------------------------------------------------------------ 1. FISHMARKET ROW (two long ranks of stalls, alleys through them)
-  {
+  M.at({ z: 260 }, () => {
     const COL = [0x8a8468, 0x5a2a26, 0x3a4a5a, 0x6a6a52];
     for (const y0 of [-650, 650]) for (let i = 0; i < 4; i++) { const x = -6100 + i * 1100; if (i === 2 && y0 < 0) continue; stall(x, y0 + 150, 90, COL[(i + (y0 > 0)) % 4]); stall(x, y0 - 150, -90, COL[(i + 2 + (y0 > 0)) % 4]); }
     // the smoke house stands in the south rank, still going
@@ -105,10 +126,10 @@ export function buildWharf(M) {
     wallbuy('Sawbuck', -6896, 1100, 0); wallbuy('Copperhead', -2040, -1000, 180);
     for (const [x, y] of [[-6800, 1200], [-6800, -1250], [-2350, 1200], [-2350, -1300], [-4450, 1150], [-5550, -1250], [-3350, -1250], [-6700, 0]]) SpawnAt(V(x, y, 0), Z1);
     M.Decor(V2(-6900, -1400), V2(-2100, 1400), 80, ['D_Grime', 'Blood', 'D_Grime', 'P_Bones', 'D_Crack']);
-  }
+  });
 
   // ------------------------------------------------------------------ 2. WAREHOUSE ROW (three sheds, the streets between them like canyons)
-  {
+  M.at({ z: 520 }, () => {
     warehouse(-6600, -4600, -5000, -2400, 'TEA & INDIGO', 1); warehouse(-4400, -4600, -2800, -2400, 'BONDED STORE No. 4', 1); warehouse(-2200, -4600, -600, -2400, 'OIL & BONE', 1);
     // what was landed and never taken in: bales, casks, a dray
     for (const [x, y, n] of [[-6800, -3000, 3], [-6800, -4000, 2], [-4700, -3900, 2], [-2500, -3000, 3], [-300, -4500, 3], [-300, -2200, 2]]) for (let k = 0; k < n; k++) Crate(V(x + (k % 2) * 30, y + k * 150, 0), 140 - k * 14);
@@ -120,7 +141,7 @@ export function buildWharf(M) {
     wallbuy('Iron Mule', -4700, -4896, 90); wallbuy('Dynamite Dan', -36, -4200, 180); wallbuy('Homesteader', -2500, -1540, -90);
     for (const [x, y] of [[-6820, -2100], [-6820, -4800], [-4700, -4800], [-2500, -4800], [-300, -4820], [-300, -2000], [-3700, -2200], [-5300, -1800]]) SpawnAt(V(x, y, 0), Z2);
     M.Decor(V2(-6900, -4900), V2(-100, -1600), 70, ['D_Grime', 'D_Crack', 'D_Grime', 'P_Bones', 'Blood']);
-  }
+  });
 
   // ------------------------------------------------------------------ 3. THE SHIPYARD (a hull on the stocks, staging round it, timber everywhere)
   {
@@ -182,7 +203,7 @@ export function buildWharf(M) {
   }
 
   // ------------------------------------------------------------------ 5. LIGHTHOUSE POINT (bare rock, the light, the keeper's house, what the sea threw up)
-  {
+  M.at({ z: 260 }, () => {
     // the light: a tapering tower in bands, a gallery, the lantern turning nothing now
     { const x = 5600, y = 3800; Oct(V(x, y, 40), V(900, 900, 80), 0x4a4e54, true, true); for (let k = 0; k < 6; k++) Cyl(V(x, y, 80 + k * 240 + 120), 560 - k * 44, 240, k % 2 ? 0x8a2a26 : 0xcfc8b4, k < 2, k === 0);
       Cyl(V(x, y, 1540), 520, 30, IRON, false, false); for (let k = 0; k < 12; k++) Box(V(x + Math.cos(k * 0.5236) * 250, y + Math.sin(k * 0.5236) * 250, 1600), V(8, 8, 110), IRON, false, false); Cyl(V(x, y, 1650), 510, 10, IRON, false, false);
@@ -204,12 +225,12 @@ export function buildWharf(M) {
     wallbuy('Lawman AR', 6896, 1000, 180); wallbuy('Iron Mule', 2040, 2600, 0);
     for (const [x, y] of [[6700, -1250], [6700, 4700], [2300, 4750], [6750, 1500], [2350, 900], [4000, 4750], [3300, -1250], [5200, -300]]) SpawnAt(V(x, y, 0), Z5);
     M.Decor(V2(2100, -1400), V2(6900, 4900), 80, ['D_Crack', 'P_Bones', 'D_Grime', 'D_Crack', 'P_Bones']);
-  }
+  });
 
-  for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
+  for (const [x, y, yaw, cost, a, b, up] of DOORS) M.at({ z: up }, () => Door(V(x, y, 0), yaw, cost, a, b));
 }
 
-export const WHARF_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 1], 3: [1, 2], 4: [1], 5: [1, 2] }, relics: [[980, 2460, 332, 90], [6300, 3000, 356, 180]], box: [-1500, 300, 0, 0], boxZones: [1, 2, 3, 5] };
+export const WHARF_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 1], 3: [1, 2], 4: [1], 5: [1, 2] }, relics: [[980, 2460, 332, 90], [6300, 3000, 356 + 260, 180]], box: [-1500, 300, 0, 0], boxZones: [1, 2, 3, 5] };
 
 // rain, steadily
 let acc = 0;
@@ -217,3 +238,16 @@ export function wharfAmbient(g, dt) {
   acc += dt * 150; const c = g.camera.position;
   while (acc > 1) { acc -= 1; g.fx.add({ pos: new THREE.Vector3(c.x + (Math.random() - 0.5) * 3000, c.y + 300 + Math.random() * 700, c.z + (Math.random() - 0.5) * 3000), vel: new THREE.Vector3(-120, -1500, 80), life: 0.75, size0: 3, size1: 3, stretch: 12, c0: [0.72, 0.8, 0.9, 0.55], fadeIn: 0.05, fadeOut: 0.1, tex: 'FX_Disc', kind: 'fx' }); }
 }
+
+// The tide: every so often the sea comes in over the quay, the pier and the shipyard, knee deep and rising to the waist.
+// Wading is slow. The fishmarket, the point and Warehouse Row stay dry.
+export const WHARF_MECH = { wet: true, tide: { rect: [-7000, -5000, 7000, 5000], low: -45, high: 72, out: 70, in: 38, turn: 14, first: 55, color: 0x1c3a4a } };
+export const WHARF_QUEST = { name: 'SPRING THE TRAP', after: 'The trap is sprung', gate: [200, -700, 0], steps: [
+  { type: 'collect', text: 'Find three harbour keys on the low ground (the tide covers them)', item: 'Key', n: 3, color: 0xc8a83a, done: 'THE KEYS ARE FOUND',
+    spots: [[-1600, 1100, 0], [1500, -1100, 0], [600, 4500, 0], [-900, 3000, 0], [1500, -4400, 0], [5600, -2400, 0], [3400, -4500, 0]] },
+  { type: 'souls', text: 'Fill the three gibbet lanterns in the upper town', need: 10, r: 750, color: 0xc8a83a, done: 'THE GIBBETS ARE LIT',
+    at: [[-4500, 300, 260], [-4500, -2200, 520], [4300, 1200, 260]] },
+  { type: 'shoot', text: 'Shoot out the four wreckers\' lanterns on the water', r: 60, color: 0xb8322a, done: 'THE LIGHTS ARE OUT',
+    at: [[-5400, 2350, 190], [-3000, 2350, 190], [-1250, 3700, 190], [1250, 3700, 190]] },
+  { type: 'hold', text: 'Stand under the gallows until the trap opens', at: [-800, 850, 0], r: 560, time: 45, color: 0xc8a83a, done: 'THE TRAP IS SPRUNG' },
+] };

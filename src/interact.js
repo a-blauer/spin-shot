@@ -625,6 +625,7 @@ export class Interactable {
   }
 
   isUsable() {
+    if (this.type === 'Quest') return this.enabled && this.q.usable();
     if (!this.enabled || this.open || this.opened) return false;
     if (this.box && this.box.state !== 'idle' && this.box.state !== 'offer') return false;
     if (this.type === 'Door' && this.cost < 0) return false;
@@ -635,6 +636,7 @@ export class Interactable {
   prompt(player) {
     const G = this.game;
     switch (this.type) {
+      case 'Quest': return this.q.prompt(player);
       case 'Door': {
         let where = this.label;
         if (G.zones[this.zoneA] && G.zones[this.zoneB]) where = G.zones[this.zoneA].unlocked ? G.zones[this.zoneB].name : G.zones[this.zoneA].name;

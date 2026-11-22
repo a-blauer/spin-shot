@@ -448,7 +448,7 @@ export class Enemy {
           this.lungeT = 0.4;
           return;
         }
-        desired = los && dist < 800 ? safeN2(To) : flow();
+        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Screamer': {
@@ -458,7 +458,7 @@ export class Enemy {
           G.audio.playAt('S_Screech', Me, 1, 1, 0.1);
           for (const E of G.enemies) if (!E.dead && E.pos.distanceToSquared(Me) < 700 * 700) E.frenzyT = Math.max(E.frenzyT, 5);
         }
-        desired = los && dist < 800 ? safeN2(To) : flow();
+        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Burrower': {
@@ -468,12 +468,12 @@ export class Enemy {
           this.stop();
           return;
         }
-        desired = los && dist < 800 ? safeN2(To) : flow();
+        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Bloater': {
         if (dist < 190 * this.bodyScale) { this.kill(null, false); return; }
-        desired = los && dist < 800 ? safeN2(To) : flow();
+        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       default:

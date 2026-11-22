@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MeshBVH } from 'three-mesh-bvh';
-import { V, V2, R, UVec, URot, RotFromXY, cross, Pal, FMath, randInit, frand } from './mapkit.js';
+import { V, V2, R, UVec, UVec2, URot, RotFromXY, cross, Pal, FMath, randInit, frand } from './mapkit.js';
 import { toonMaterial, hex, sprite, SpriteBatch } from './render.js';
 import { textMesh } from './text.js';
 import * as Z from './mapzones.js';
@@ -98,7 +98,21 @@ export class World {
   }
 
   // ------------------------------------------------------------------ primitives (UE coordinates)
+  // A block of a map can be built somewhere other than where it was drawn: moved, raised or sunk, turned by quarter
+  // turns (about `about`, before it is moved). Everything laid down inside `fn` goes through the same transform:
+  // geometry, collision, the nav grid, lamps, signs, zones, spawn pits and anything you can use.
+  at(o, fn) {
+    if (this.xf) throw new Error('nested at()');
+    const a = (((o.rot || 0) % 360) + 360) % 360, c = Math.round(Math.cos(a * Math.PI / 180)), s = Math.round(Math.sin(a * Math.PI / 180)), [px, py] = o.about || [0, 0];
+    this.xf = { c, s, yaw: a, dx: (o.x || 0) + px, dy: (o.y || 0) + py, dz: o.z || 0, px, py };
+    try { fn(); } finally { this.xf = null; }
+  }
+  T(v) { const f = this.xf; if (!f) return v; const x = v.X - f.px, y = v.Y - f.py, X = x * f.c - y * f.s + f.dx, Y = x * f.s + y * f.c + f.dy; return v instanceof UVec2 ? new UVec2(X, Y) : new UVec(X, Y, v.Z + f.dz); }
+  Tdir(v) { const f = this.xf; return f ? new UVec(v.X * f.c - v.Y * f.s, v.X * f.s + v.Y * f.c, v.Z || 0) : v; }
+  Tbox(b) { const A = this.T(b.min), B = this.T(b.max); return { min: V(Math.min(A.X, B.X), Math.min(A.Y, B.Y), Math.min(A.Z, B.Z)), max: V(Math.max(A.X, B.X), Math.max(A.Y, B.Y), Math.max(A.Z, B.Z)) }; }
   _matrix(center, size, rot) {
+    const f = this.xf;
+    if (f) { center = this.T(center); if (f.yaw) rot = new URot(0, 0, 0, (rot || R(0, 0, 0)).rows.map((r) => this.Tdir(r))); }
     const q = rot ? rot.quat3() : new THREE.Quaternion();
     return new THREE.Matrix4().compose(center.to3(), q, new THREE.Vector3(size.X, size.Z, size.Y));
   }
@@ -177,6 +191,7 @@ export class World {
   // Invisible wall above a zone wall. It is a switchable blocker, not baked collision: when the zones on both sides
   // are unlocked it is turned off, so you can go over the top (rooftops, grapple, wall-run) as well as through the door.
   ZoneCeiling(mid, len, thick, height, dir) {
+    if (this.xf) { mid = this.T(mid); dir = this.Tdir(dir); height += this.xf.dz; }
     const alongX = Math.abs(dir.X) > 0.7, hx = (alongX ? len : thick) / 2, hy = (alongX ? thick : len) / 2;
     const box = new THREE.Box3(new THREE.Vector3(mid.X - hx, height, mid.Y - hy), new THREE.Vector3(mid.X + hx, height + 5000, mid.Y + hy));
     const zoneOf = (x, y) => this.game.zones.findIndex((Z, i) => i !== this.game.casinoZone && x >= Z.min.X && x <= Z.max.X && y >= Z.min.Y && y <= Z.max.Y);
@@ -195,6 +210,7 @@ export class World {
     b.pushBasis(sprite(name), center3, right3, up3, w, h, tint[0], tint[1], tint[2], tint[3], 0, 0, kind === 'add' ? 1 : 0);
   }
   Foliage(name, base, height, aspect = 1, tint = [1, 1, 1, 1]) {
+    base = this.T(base);
     const yaw = FMath.FRandRange(0, Math.PI);
     const c = base.to3().add(new THREE.Vector3(0, height * 0.5, 0));
     const up = new THREE.Vector3(0, 1, 0);
@@ -206,6 +222,7 @@ export class World {
   }
   // normal in UE space
   SurfaceDecal(name, point, normal, size, spin, tint = [1, 1, 1, 1], kind = 'sprite') {
+    if (this.xf) { point = this.T(point); normal = this.Tdir(normal); }
     const n = normal.GetSafeNormal().to3();
     const ref = Math.abs(n.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
     // wall decals: texture up = world up, right along the wall
@@ -219,7 +236,7 @@ export class World {
     this.spriteAt(name, c, right, up, size.X, size.Y, tint, kind);
   }
   GlowCross(center, color, size, strength) {
-    const c = center.to3();
+    const c = this.T(center).to3();
     const t = [color.r, color.g, color.b, strength];
     const up = new THREE.Vector3(0, 1, 0);
     this.spriteAt('FX_Glow', c, new THREE.Vector3(1, 0, 0), up, size, size, t, 'add');
@@ -234,9 +251,10 @@ export class World {
   Lamp(loc, color, intensity, radius, bulb) {
     if (bulb) this.AddInstance(2, loc, V(30), R(0, 0, 0), Pal.Bulb, false, true, false);
     const c = lin(color);
-    this.pendingLamps.push({ loc, c, radius });
+    this.pendingLamps.push({ loc: this.T(loc), c, radius });
   }
   _finishLamps() {
+    this.xf = null;
     for (const L of this.pendingLamps) {
       this.GlowCross(L.loc, L.c, Math.min(520, Math.max(160, L.radius * 0.42)), 0.55);
       const g = this.GroundAt(V2(L.loc.X, L.loc.Y));
@@ -248,6 +266,7 @@ export class World {
   Sign(loc, yaw, text, color, size) {
     const col = `rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`;
     const m = textMesh(String(text), size, col, 0.6);
+    if (this.xf) { loc = this.T(loc); yaw += this.xf.yaw; }
     const rot = R(0, yaw, 0);
     const n = rot.RotateVector(V(1, 0, 0)).to3();
     const r = rot.RotateVector(V(0, -1, 0)).to3();
@@ -378,7 +397,7 @@ export class World {
     const body = Color;
     const trim = new THREE.Color().setHex(Color, THREE.NoColorSpace).multiplyScalar(0.72).getHex(THREE.NoColorSpace);
     this.BlockerYaw(L(0, 0, 100), V(470, 190, 200), Yaw);
-    { const r = 250; this.game.NavBlockBox({ min: Base.sub(V(r * 0.8, r * 0.8, 0)), max: Base.add(V(r * 0.8, r * 0.8, 200)) }, 1); }
+    { const r = 250; this.game.NavBlockBox(this.Tbox({ min: Base.sub(V(r * 0.8, r * 0.8, 0)), max: Base.add(V(r * 0.8, r * 0.8, 200)) }), 1); }
     this.AddInstance(0, L(0, 0, 46), V(430, 150, 18), rot, dark, true, false, false);           // chassis
     for (const sy of [-1, 1]) this.AddInstance(0, L(20, sy * 88, 44), V(160, 26, 8), rot, dark, false, false, false); // running boards
     for (const [wx, wy] of [[150, 1], [150, -1], [-150, 1], [-150, -1]]) {
@@ -417,7 +436,7 @@ export class World {
     const L = (x, y, z) => this.L(Base, Yaw, x, y, z);
     const rot = R(0, Yaw, 0), across = R(0, Yaw + 90, 0);
     this.BlockerYaw(L(0, 0, 150), V(420, 210, 300), Yaw);
-    this.game.NavBlockBox({ min: Base.sub(V(220, 220, 0)), max: Base.add(V(220, 220, 300)) }, 1);
+    this.game.NavBlockBox(this.Tbox({ min: Base.sub(V(220, 220, 0)), max: Base.add(V(220, 220, 300)) }), 1);
     this.AddInstance(0, L(0, 0, 110), V(380, 160, 24), rot, Pal.WoodDark, true, false, false);
     for (const sy of [-1, 1]) {
       this.AddInstance(0, L(0, sy * 82, 140), V(384, 10, 56), rot, Pal.Wood, false, false, false);
@@ -488,7 +507,7 @@ export class World {
       for (let r = 0; r < 7; r++) this.Box(Center.add(V(sx * 166, Length * 0.5 - 40, 120 + r * 46)), V(6, 50, 6), Pal.MetalDark, false, false); // ladder
     }
     this.Box(Center.add(V(0, 0, 470)), V(60, Length - 40, 8), Pal.WoodDark, false, false);     // roof walk
-    this.game.NavBlockBox({ min: Center.add(V(-160, -Length * 0.5, 0)), max: Center.add(V(160, Length * 0.5, 450)) }, 1);
+    this.game.NavBlockBox(this.Tbox({ min: Center.add(V(-160, -Length * 0.5, 0)), max: Center.add(V(160, Length * 0.5, 450)) }), 1);
   }
   Mesa(Center, Size, Height) {
     // layered butte: strata stepping in as they rise, each tier a little skewed, a darker band under each lip
@@ -615,10 +634,13 @@ export class World {
 
   // ------------------------------------------------------------------ gameplay registration
   AddZone(name, min, max, spawns = true) {
-    this.game.zones.push({ name, min, max, unlocked: false, spawns });
+    let z = 0;
+    if (this.xf) { const a = this.T(min), b = this.T(max); min = new UVec2(Math.min(a.X, b.X), Math.min(a.Y, b.Y)); max = new UVec2(Math.max(a.X, b.X), Math.max(a.Y, b.Y)); z = this.xf.dz; }
+    this.game.zones.push({ name, min, max, unlocked: false, spawns, z });
     return this.game.zones.length - 1;
   }
   Station(type, loc, yaw, cost, weapon, label, size = V(100, 100, 100)) {
+    if (this.xf) { loc = this.T(loc); yaw += this.xf.yaw; }
     const I = new Interactable(this.game, type, loc, yaw, cost, weapon, label, size);
     this.scene.add(I.group);
     if (type === 'Door') {
@@ -642,7 +664,7 @@ export class World {
     D.zoneA = zoneA; D.zoneB = zoneB;
   }
   SpawnAt(loc, zone) {
-    this.game.spawnPoints.push({ pos: loc.to3(), zone });
+    this.game.spawnPoints.push({ pos: this.T(loc).to3(), zone });
     this.Box(V(loc.X, loc.Y, 3), V(170, 120, 6), 0x4A3426, false, false, frand() * 180);
     this.Box(V(loc.X + 30, loc.Y - 20, 8), V(60, 50, 12), 0x3A281C, false, false, frand() * 180);
   }
@@ -712,13 +734,16 @@ export class World {
     const GM = this.game, M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
       'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
-    M.RotFromXY = RotFromXY; M.GM = GM; M.world = this;
+    M.RotFromXY = RotFromXY; M.world = this; M.at = this.at.bind(this);
+    // the map sees the game through a window that puts its nav boxes through the same transform as its geometry
+    M.GM = new Proxy(GM, { get: (g, k) => (k === 'NavBlockBox' ? (b, d) => g.NavBlockBox(this.Tbox(b), d) : typeof g[k] === 'function' ? g[k].bind(g) : g[k]), set: (g, k, v) => { g[k] = v; return true; } });
     // nothing walks under a ramp: the ground beneath it is closed to the flow field (creatures hop up after you instead)
-    M.Ramp = (b, t, w, col) => { this.Ramp(b, t, w, col); const ax = Math.abs(t.X - b.X) > Math.abs(t.Y - b.Y), h = w / 2 - 30; GM.NavBlockBox({ min: V(Math.min(b.X, t.X) - (ax ? 0 : h), Math.min(b.Y, t.Y) - (ax ? h : 0), 0), max: V(Math.max(b.X, t.X) + (ax ? 0 : h), Math.max(b.Y, t.Y) + (ax ? h : 0), 150) }, 1); };
+    M.Slope = this.Ramp.bind(this);   // a ramp creatures walk up like anyone else: part of the ground
+    M.Ramp = (b, t, w, col) => { this.Ramp(b, t, w, col); b = this.T(b); t = this.T(t); const ax = Math.abs(t.X - b.X) > Math.abs(t.Y - b.Y), h = w / 2 - 30; GM.NavBlockBox({ min: V(Math.min(b.X, t.X) - (ax ? 0 : h), Math.min(b.Y, t.Y) - (ax ? h : 0), 0), max: V(Math.max(b.X, t.X) + (ax ? 0 : h), Math.max(b.Y, t.Y) + (ax ? h : 0), 150) }, 1); };
     M.Districts = (list) => list.forEach(([name, zs], gi) => { for (const zi of zs) { GM.zones[zi].name = name; GM.zones[zi].group = gi; } });
-    M.Spawn = (v) => { GM.playerSpawn = v.to3(); };
+    M.Spawn = (v) => { GM.playerSpawn = this.T(v).to3(); };
     this.decor = [];
-    M.Decor = (min, max, count, kinds) => this.decor.push([min, max, count, kinds]);
+    M.Decor = (min, max, count, kinds) => { const b = this.Tbox({ min: V(min.X, min.Y, 0), max: V(max.X, max.Y, 0) }); this.decor.push([V2(b.min.X, b.min.Y), V2(b.max.X, b.max.Y), count, kinds]); };
     MAP.build(M);
     Z.BuildVault(M, null, MAP.vault);
     this.placeLoot(MAP.loot);
@@ -747,8 +772,9 @@ export class World {
       }
       return null;
     };
-    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); if (!s) return null; const C = this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest'); C.at = s; return C; };
-    GM.spawnChestAt = (x, y, yaw, tier) => { taken.push([x, y]); return this.Station('Chest', V(x, y, 0), yaw, 0, tier, 'Chest'); };   // co-op: a guest puts the host's chest where the host put it
+    const gz = (x, y) => GM.zoneZ(x, y);   // each district has its own floor level
+    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); if (!s) return null; const C = this.Station('Chest', V(s[0], s[1], gz(s[0], s[1])), s[2], 0, tier, 'Chest'); C.at = s; return C; };
+    GM.spawnChestAt = (x, y, yaw, tier) => { taken.push([x, y]); return this.Station('Chest', V(x, y, gz(x, y)), yaw, 0, tier, 'Chest'); };   // co-op: a guest puts the host's chest where the host put it
     // a dozen to begin with; the rest arrive during the run (Game.dropChest)
     const PLAN = CFG ? CFG.chests : { 0: [0], 1: [0], 2: [0], 3: [1], 4: [0], 5: [1], 7: [1], 8: [1], 9: [2], 10: [1], 11: [2, 2] };
     GM.spawnChest = (zi, tier) => chest(zi, tier, zi === 11);
@@ -756,9 +782,9 @@ export class World {
       for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, false);
       for (const [x, y, z, yaw] of CFG.relics || []) this.Station('Chest', V(x, y, z), yaw, 0, 3, 'Chest');   // reliquaries: somewhere you have to work to reach
       const [bx, by, byaw, bz] = CFG.box;
-      GM.boxSpots = [{ pos: V(bx, by, 0).to3(), yaw: byaw, zone: bz }];
-      for (const zi of CFG.boxZones) { const s = find(zi, false, 900); if (s) GM.boxSpots.push({ pos: V(s[0], s[1], 0).to3(), yaw: s[2], zone: zi }); }
-      GM.box = this.Station('MysteryBox', V(bx, by, 0), byaw, 950, -1, 'Mystery Box');
+      GM.boxSpots = [{ pos: V(bx, by, gz(bx, by)).to3(), yaw: byaw, zone: bz }];
+      for (const zi of CFG.boxZones) { const s = find(zi, false, 900); if (s) GM.boxSpots.push({ pos: V(s[0], s[1], gz(s[0], s[1])).to3(), yaw: s[2], zone: zi }); }
+      GM.box = this.Station('MysteryBox', V(bx, by, gz(bx, by)), byaw, 950, -1, 'Mystery Box');
       return;
     }
     for (const zi in PLAN) for (const tier of PLAN[zi]) chest(+zi, tier, +zi === 11);

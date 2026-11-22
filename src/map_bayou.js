@@ -9,10 +9,21 @@ import { mapKit, rgb } from './mapx.js';
 const MUD = 0x3a3a2a, GRASS = 0x3e4a2c, WATER = 0x14241c, ALGAE = 0x16341f, PLANK = 0x5e5040, PLANK_D = 0x43382c, BARK = 0x4a4234, BARK_D = 0x38322a, LEAF = 0x263a24, MOSS = 0x6a7a5a, LAMP = 0xFFB45A, WISP = 0x5aa02a;
 const rr = (a, b) => FMath.FRandRange(a, b);
 
+// the islands (the six districts and the chapel hump), and the planks that join them
+const ISLES = [[-2500, -6200, 2500, -1200], [-8400, -6200, -3900, -700], [-8400, 700, -3900, 6200], [-2500, 2200, 2500, 6200], [3900, 700, 8400, 6200], [3900, -6200, 8400, -700], [-700, 0, 700, 1200]];
+const SPANS = [[-3900, -4400, -2500, -4000], [2500, -4400, 3900, -4000], [-6350, -700, -5950, 700], [5950, -700, 6350, 700], [-3900, 4000, -2500, 4400], [2500, 4000, 3900, 4400],
+  [-200, 1200, 200, 2200], [1900, -1200, 2300, 400], [700, 400, 2300, 800]];
+// 0 dry land, 1 shallows you can wade (slowly), 2 deep water: nothing crosses it
+export function bayouWater(x, y) {
+  if (Math.abs(x) > 9300 || Math.abs(y) > 7100) return 0;
+  for (const [x0, y0, x1, y1] of SPANS) if (x >= x0 - 30 && x <= x1 + 30 && y >= y0 - 30 && y <= y1 + 30) return 0;
+  for (let i = 0; i < ISLES.length; i++) { const [x0, y0, x1, y1] = ISLES[i]; if (x >= x0 && x <= x1 && y >= y0 && y <= y1) return i === 3 ? 1 : 0; }
+  return 2;
+}
 export function buildBayou(M) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Ramp, Floor, Wall, Lamp, Sign, Barrel, Crate, Station, WallBuy, Door, SpawnAt, Pyramid, Oct, Ring, AddZone, DeadTree, Wagon, GM } = M;
   const K = mapKit(M);
-  GM.navInit(-8000, -6600, 8000, 6600, 100);
+  GM.navInit(-9900, -7700, 9900, 7700, 100);
   const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), PLANK_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
   // a bald cypress: a flared, buttressed foot, knees round it, a flat crown hung with moss
   const cypress = (x, y, h, d, solid = true) => {
@@ -35,41 +46,65 @@ export function buildBayou(M) {
   };
 
   // ------------------------------------------------------------------ zones
-  const Z0 = AddZone('The Landing', V2(-2500, -5500), V2(2500, -500));
-  const Z1 = AddZone('Shanty Town', V2(-7000, -5500), V2(-2500, 0));
-  const Z2 = AddZone('The Boneyard', V2(-7000, 0), V2(-2500, 5500));
-  const Z3 = AddZone('Cypress Deep', V2(-2500, 1500), V2(2500, 5500));
-  const Z4 = AddZone('Gator Flats', V2(2500, 0), V2(7000, 5500));
-  const Z5 = AddZone('The Still', V2(2500, -5500), V2(7000, 0));
+  // The parish is six islands in black water. The channels between them are too deep to wade: the only ways across are
+  // the plank bridges, one to a channel, and the causeways out to the drowned chapel in the middle of the lagoon.
+  const Z0 = AddZone('The Landing', V2(-3200, -7100), V2(3200, 1400));
+  const Z1 = AddZone('Shanty Town', V2(-9300, -7100), V2(-3200, 0));
+  const Z2 = AddZone('The Boneyard', V2(-9300, 0), V2(-3200, 7100));
+  const Z3 = AddZone('Cypress Deep', V2(-3200, 1400), V2(3200, 7100));
+  const Z4 = AddZone('Gator Flats', V2(3200, 0), V2(9300, 7100));
+  const Z5 = AddZone('The Still', V2(3200, -7100), V2(9300, 0));
   M.Districts([['The Landing', [Z0]], ['Shanty Town', [Z1]], ['The Boneyard', [Z2]], ['Cypress Deep', [Z3]], ['Gator Flats', [Z4]], ['The Still', [Z5]]]);
 
-  // ------------------------------------------------------------------ ground, the tree line, the palisades, the lagoon
-  Box(V(0, 0, -50), V(16000, 13200, 100), MUD, true, false);
-  Floor(V2(-7000, 0), V2(-2500, 5500), 1, 0x3a4030); Floor(V2(2500, 0), V2(7000, 5500), 1, 0x40442a); Floor(V2(2500, -5500), V2(7000, 0), 1, 0x443c2a); Floor(V2(-2500, 1500), V2(2500, 5500), 1, 0x2a3626);
-  for (const [a, b] of [[V2(-7000, -5500), V2(-7000, 5500)], [V2(7000, -5500), V2(7000, 5500)], [V2(-7000, -5500), V2(7000, -5500)], [V2(-7000, 5500), V2(7000, 5500)]]) Wall(a, b, 950, 200, 0x1a241c, [], true, 0x24321f);
-  const far = (v, list) => list.every((w) => Math.abs(w - v) > 360);   // keep the trunks off anything hung on the wall
-  for (let t = -6700; t <= 6700; t += 620) { const a = t + rr(-120, 120), b = t + rr(-120, 120); if (far(a, [5200])) cypress(a, -5440, rr(900, 1150), rr(190, 260), false); if (far(b, [-4300, 300])) cypress(b, 5440, rr(900, 1150), rr(190, 260), false); }
-  for (let t = -5000; t <= 5000; t += 620) { const a = t + rr(-120, 120), b = t + rr(-120, 120); if (far(a, [-4100, 2200])) cypress(-6940, a, rr(900, 1150), rr(190, 260), false); if (far(b, [2500, -2000])) cypress(6940, b, rr(900, 1150), rr(190, 260), false); }
-  K.cliffs(-7100, -5500, -7100, 5500, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(7100, -5500, 7100, 5500, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(-7000, -5600, 7000, -5600, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(-7000, 5600, 7000, 5600, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520);
-  const fence = (a, b, gap) => Wall(a, b, 520, 60, 0x4a4030, [V2(gap - 200, gap + 200)], true, 0x4a5a2a, PLANK_D);
-  fence(V2(-2500, -5500), V2(-2500, -500), 2000); fence(V2(-2500, 1500), V2(-2500, 5500), 2000); fence(V2(2500, -5500), V2(2500, -500), 2000); fence(V2(2500, 1500), V2(2500, 5500), 2000);
-  fence(V2(-7000, 0), V2(-2500, 0), 2250); fence(V2(2500, 0), V2(7000, 0), 2250);
-  const DOORS = [[-2500, -3500, 0, 1500, Z0, Z1], [2500, -3500, 0, 1500, Z0, Z5], [-4750, 0, 90, 2500, Z1, Z2], [4750, 0, 90, 2500, Z5, Z4], [-2500, 3500, 0, 3500, Z2, Z3], [2500, 3500, 0, 3500, Z4, Z3]];
-  for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Cyl(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 300), 70, 600, BARK, true, false); K.lantern(x + (ax ? s * 232 : 90), y + (ax ? 90 : s * 232), 520, s > 0 ? LAMP : 0x8ad04a, 700); } Box(V(x, y, 600), ax ? V(560, 50, 40) : V(50, 560, 40), BARK_D, false, false); for (let i = 0; i < 5; i++) Box(V(x + (ax ? -180 + i * 90 : 0), y + (ax ? 0 : -180 + i * 90), 560 - rr(20, 60)), V(8, 22, rr(60, 150)), MOSS, false, false, ax ? 0 : 90); }
-  // the lagoon: black water you can see across but not cross
-  Floor(V2(-2500, -500), V2(2500, 1500), 2, 0x0e1a16); for (let i = 0; i < 26; i++) Glow(V(rr(-2300, 2300), rr(-350, 1350), 3.2), V(rr(200, 600), rr(120, 320), 1), i % 3 ? ALGAE : 0x1e4020, 1);
-  for (let i = 0; i < 40; i++) { const x = rr(-2400, 2400), y = rr(-420, 1420); Cyl(V(x, y, 3.6), rr(60, 120), 1, 0x3a5a2a, false, false); if (i % 5 === 0) Glow(V(x, y, 12), V(18, 18, 14), 0xb8a888, 2); }
-  GM.NavBlockBox({ min: V(-2530, -530, 0), max: V(2530, 1530, 150) }, 1);
-  M.Blocker(V(0, -500, 1000), V(5060, 60, 2000)); M.Blocker(V(0, 1500, 1000), V(5060, 60, 2000)); M.Blocker(V(-2500, 500, 1000), V(60, 2060, 2000)); M.Blocker(V(2500, 500, 1000), V(60, 2060, 2000));
-  for (const [x0, y0, x1, y1] of [[-2500, -500, 2500, -500], [-2500, 1500, 2500, 1500], [-2500, -500, -2500, 1500], [2500, -500, 2500, 1500]]) {
-    const len = Math.hypot(x1 - x0, y1 - y0), n = Math.round(len / 250);
-    for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; Cyl(V(x, y, 55), 26, 110 + (i % 3) * 16, BARK_D, false, false); if (i < n) Box(V(x + (x1 - x0) / n / 2, y + (y1 - y0) / n / 2, 84), x1 !== x0 ? V(250, 6, 6) : V(6, 250, 6), 0x7a6a4a, false, false); if (i % 2) for (let k = 0; k < 4; k++) ConeShape(V(x + rr(-90, 90), y + rr(-60, 60), rr(70, 120)), V(14, 14, rr(140, 240)), k % 2 ? 0x5a6a3a : 0x4a5a30, false); }
+  // ------------------------------------------------------------------ water, islands, the tree line
+  Box(V(0, 0, -50), V(19800, 15400, 100), 0x0e1a16, true, false);
+  const TINT = [MUD, MUD, 0x3a4030, 0x2a3626, 0x40442a, 0x443c2a, 0x34382a];
+  ISLES.forEach(([x0, y0, x1, y1], i) => {
+    Floor(V2(x0, y0), V2(x1, y1), 1, TINT[i]);
+    // the bank: a dark rim of mud, reeds standing in it, a few cypress knees
+    for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x0, y1, x1, y1], [x0, y0, x0, y1], [x1, y0, x1, y1]]) {
+      const hz = ay === by, len = hz ? bx - ax : by - ay; Floor(hz ? V2(ax - 60, ay - 70) : V2(ax - 70, ay - 60), hz ? V2(bx + 60, ay + 70) : V2(ax + 70, by + 60), 1.3, 0x2a2a1e);
+      for (let t = 90; t < len; t += rr(150, 300)) { const x = hz ? ax + t : ax + rr(-50, 50), y = hz ? ay + rr(-50, 50) : ay + t; if (SPANS.some(([sx0, sy0, sx1, sy1]) => x > sx0 - 150 && x < sx1 + 150 && y > sy0 - 150 && y < sy1 + 150)) continue; for (let k = 0; k < 4; k++) ConeShape(V(x + rr(-60, 60), y + rr(-60, 60), rr(70, 130)), V(14, 14, rr(150, 260)), k % 2 ? 0x4a5a2a : 0x5a6a34, false); if (Math.random() < 0.3) ConeShape(V(x + rr(-40, 40), y + rr(-40, 40), 34), V(40, 40, rr(60, 110)), BARK_D, false); }
+    }
+  });
+  for (let i = 0; i < 150; i++) { const x = rr(-9200, 9200), y = rr(-7000, 7000); if (bayouWater(x, y) !== 2) continue; if (i % 3) Glow(V(x, y, 1.2), V(rr(200, 600), rr(120, 320), 1), i % 2 ? ALGAE : 0x1e4020, 1); else { Cyl(V(x, y, 1.6), rr(60, 120), 1, 0x3a5a2a, false, false); if (i % 5 === 0) Glow(V(x, y, 10), V(18, 18, 14), 0xb8a888, 2); } }
+  for (const [a, b] of [[V2(-9300, -7100), V2(-9300, 7100)], [V2(9300, -7100), V2(9300, 7100)], [V2(-9300, -7100), V2(9300, -7100)], [V2(-9300, 7100), V2(9300, 7100)]]) Wall(a, b, 950, 200, 0x1a241c, [], true, 0x24321f);
+  for (let t = -9000; t <= 9000; t += 620) { cypress(t + rr(-120, 120), -7040, rr(900, 1150), rr(190, 260), false); cypress(t + rr(-120, 120), 7040, rr(900, 1150), rr(190, 260), false); }
+  for (let t = -6600; t <= 6600; t += 620) { cypress(-9240, t + rr(-120, 120), rr(900, 1150), rr(190, 260), false); cypress(9240, t + rr(-120, 120), rr(900, 1150), rr(190, 260), false); }
+  K.cliffs(-9400, -7100, -9400, 7100, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(9400, -7100, 9400, 7100, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(-9300, -7200, 9300, -7200, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520); K.cliffs(-9300, 7200, 9300, 7200, 900, [0x1a2a1c, 0x16241a, 0x203222], 0, 520);
+  // nothing walks the bottom: every stretch of open water is closed to the dead as well
+  for (let x = -9300; x < 9300; x += 100) for (let y = -7100; y < 7100; y += 100) if (bayouWater(x + 50, y + 50) === 2) GM.NavBlockBox({ min: V(x + 2, y + 2, 0), max: V(x + 98, y + 98, 100) }, 1);
+  // bridges and causeways: planks on piles, a rope rail, a lantern at each end
+  for (const [x0, y0, x1, y1] of SPANS) {
+    boardwalk(x0, y0, x1, y1); const hz = x1 - x0 > y1 - y0, len = hz ? x1 - x0 : y1 - y0;
+    for (let t = 0; t <= len; t += len / Math.max(2, Math.round(len / 280))) for (const s of [0, 1]) { const x = hz ? x0 + t : (s ? x1 : x0), y = hz ? (s ? y1 : y0) : y0 + t; Cyl(V(x, y, 30), 30, 160, BARK_D, false, false); }
+    // a rope rail on posts each side, left open wherever another walk joins this one. Nothing holds you on: mind the edge.
+    for (const s of [0, 1]) {
+      const fix = hz ? (s ? y1 : y0) : (s ? x1 : x0); let cuts = [[hz ? x0 : y0, hz ? x1 : y1]];
+      for (const O of SPANS) { if (O[0] === x0 && O[1] === y0 && O[2] === x1) continue; const [a0, a1, b0, b1] = hz ? [O[0], O[2], O[1], O[3]] : [O[1], O[3], O[0], O[2]]; if (fix <= b0 - 5 || fix >= b1 + 5) continue; cuts = cuts.flatMap(([p, q]) => (a1 <= p || a0 >= q ? [[p, q]] : [[p, Math.min(q, a0)], [Math.max(p, a1), q]].filter(([u, v]) => v - u > 40))); }
+      for (const [p, q] of cuts) Box(hz ? V((p + q) / 2, fix, 96) : V(fix, (p + q) / 2, 96), hz ? V(q - p, 8, 8) : V(8, q - p, 8), 0x7a6a4a, false, false);
+    }
+    K.lantern(hz ? x0 + 40 : x0 - 20, hz ? y0 - 20 : y0 + 40, 190, LAMP, 700); K.lantern(hz ? x1 - 40 : x1 + 20, hz ? y1 + 20 : y1 - 40, 190, 0x8ad04a, 700);
   }
-  for (const [x, y, h, d] of [[-1700, 700, 900, 220], [1500, 900, 1000, 250], [200, 300, 820, 190], [-600, 1200, 760, 170]]) cypress(x, y, h, d, false);   // old trees standing out in it
-  wisp(-900, 400, 150); wisp(900, 300, 210); wisp(0, 1000, 170); wisp(-1900, 1100, 240); wisp(2000, 200, 160);
-
-  // ------------------------------------------------------------------ 0. THE LANDING (the dock, and the Belle Mourn aground against it)
+  const DOORS = [[-3200, -4200, 0, 1500, Z0, Z1], [3200, -4200, 0, 1500, Z0, Z5], [-6150, 0, 90, 2500, Z1, Z2], [6150, 0, 90, 2500, Z5, Z4], [-3200, 4200, 0, 3500, Z2, Z3], [3200, 4200, 0, 3500, Z4, Z3], [0, 1700, 90, 3000, Z0, Z3]];
+  for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Cyl(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 300), 70, 600, BARK, true, false); K.lantern(x + (ax ? s * 232 : 90), y + (ax ? 90 : s * 232), 520, s > 0 ? LAMP : 0x8ad04a, 700); } Box(V(x, y, 600), ax ? V(560, 50, 40) : V(50, 560, 40), BARK_D, false, false); for (let i = 0; i < 5; i++) Box(V(x + (ax ? -180 + i * 90 : 0), y + (ax ? 0 : -180 + i * 90), 560 - rr(20, 60)), V(8, 22, rr(60, 150)), MOSS, false, false, ax ? 0 : 90); }
+  // an island cannot be reached until its bridge is paid for, whichever way you come at it
+  for (const [mx, my, len, dx] of [[-3200, -3550, 7100, 0], [-3200, 700, 1400, 0], [-3200, 4250, 5700, 0], [3200, -3550, 7100, 0], [3200, 700, 1400, 0], [3200, 4250, 5700, 0], [-6250, 0, 6100, 1], [6250, 0, 6100, 1], [0, 1400, 6400, 1]]) M.world.ZoneCeiling(V2(mx, my), len, 60, 0, V(dx, dx ? 0 : 1, 0));
+  // the drowned chapel: what is left of it stands on a hump of ground in the middle of the lagoon
   {
+    const ST = 0x7a7c70, cx = 0, cy = 600;
+    for (const [x, y, w, d, h] of [[-520, 1000, 60, 360, 520], [520, 1000, 60, 360, 300], [0, 1160, 1100, 60, 620], [-520, 300, 60, 300, 180]]) { Box(V(cx + x, y, h / 2), V(w, d, h), ST, true, true); Box(V(cx + x, y, h + 8), V(w + 20, d + 20, 16), 0x4a5a2a, false, false); }
+    Box(V(cx, 1130, 520), V(240, 30, 360), 0x16301e, false, false); Glow(V(cx, 1112, 520), V(170, 6, 290), 0x2a6a4a); Box(V(cx, 1100, 300), V(16, 16, 520), 0x5e5e52, false, false); Box(V(cx, 1100, 430), V(200, 16, 16), 0x5e5e52, false, false);
+    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { Box(V(cx + s * 260, 420 + k * 220, 34), V(300, 60, 12), PLANK_D, true, false); Box(V(cx + s * 260, 444 + k * 220, 60), V(300, 10, 50), PLANK_D, false, false); }
+    Box(V(cx, 940, 60), V(260, 120, 120), ST, true, true); Box(V(cx, 940, 126), V(290, 150, 12), 0x8a8a7a, false, false); for (const s of [-1, 1]) { Cyl(V(cx + s * 90, 940, 160), 16, 60, 0xe8e2d0, false, false); Glow(V(cx + s * 90, 940, 200), V(10, 10, 20), LAMP); }
+    Lamp(V(cx, 900, 260), LC(1, 0.75, 0.4), 10, 1000, false); cypress(-560, 60, 880, 200, false); cypress(600, 140, 760, 170, false); wisp(-300, 200, 180); wisp(420, 760, 230);
+    Sign(V(cx, 1126, 250), -90, 'ST. MOURN', { r: 0.7, g: 0.8, b: 0.7 }, 44);
+    for (const [x, y] of [[-560, 520], [560, 480]]) SpawnAt(V(x, y, 0), Z0);
+  }
+  for (const [x, y, h, d] of [[-1700, -300, 900, 220], [1500, 1700, 1000, 250], [-1500, 1500, 820, 190], [1300, -700, 760, 170]]) cypress(x, y, h, d, false);   // old trees standing out in the lagoon
+  wisp(-1300, 500, 150); wisp(1300, 300, 210); wisp(-2000, 1900, 240); wisp(2300, 1500, 160); wisp(-3200, -1800, 200); wisp(3200, 2600, 190); wisp(-6000, 0, 220); wisp(7300, 0, 180);
+  // ------------------------------------------------------------------ 0. THE LANDING (the dock, and the Belle Mourn aground against it)
+  M.at({ y: -700 }, () => {
     // the steamer: hull, a white cabin deck with her name on the wheel house, twin stacks, the wheel itself astern
     const sy = -950, HULL = 0x3a2e26, WHITE = 0xbcb6a2;
     Box(V(0, sy, 80), V(2600, 600, 160), HULL, true, true); Box(V(0, sy, 163), V(2620, 620, 8), PLANK, false, false); BoxRot(V(1300, sy, 80), V(424, 424, 160), HULL, R(0, 45, 0), true); BoxRot(V(1300, sy, 163), V(430, 430, 8), PLANK, R(0, 45, 0), false);
@@ -99,10 +134,10 @@ export function buildBayou(M) {
     for (const [x, y] of [[-2200, -5200], [2200, -5200], [-2250, -1500], [2250, -1650], [0, -5250], [2250, -2500]]) SpawnAt(V(x, y, 0), Z0);
     M.Spawn(V(0, -3200, 100));
     M.Decor(V2(-2400, -5400), V2(2400, -2300), 60, ['P_Grass_0', 'P_Grass_1', 'P_Grass_2', 'P_Bush', 'D_Grime', 'P_Bones']);
-  }
+  });
 
   // ------------------------------------------------------------------ 1. SHANTY TOWN (boardwalk lanes between stilt shacks)
-  {
+  M.at({ x: -1400, y: -700 }, () => {
     const XS = [[-6700, -5900], [-5300, -4500], [-3900, -3100]], YS = [[-5300, -4400], [-3800, -2900], [-2300, -1400]];
     const WALLS = [0x5a5244, 0x4e4a3e, 0x64553f, 0x4a5048], ROOFS = [0x6a3a26, 0x5a5e60, 0x4a3a30];
     water(-6950, -5450, -2550, -50, 0); for (let i = 0; i < 14; i++) Glow(V(rr(-6900, -2600), rr(-5400, -100), 3.2), V(rr(180, 420), rr(120, 300), 1), i % 3 ? ALGAE : 0x1e4020, 1);
@@ -127,10 +162,10 @@ export function buildBayou(M) {
     for (const [x, y] of [[-5600, -4100], [-4200, -2600], [-2800, -1000], [-4700, -400], [-6800, -2600]]) K.post(x, y, 380, LAMP, PLANK_D, 900);
     wallbuy('Sawbuck', -6896, -4100, 0); wallbuy('Homesteader', -3500, -36, -90);
     for (const [x, y] of [[-6800, -4150], [-5600, -5350], [-4200, -5350], [-2800, -5250], [-6800, -300], [-3300, -300], [-2800, -2000], [-5600, -2600]]) SpawnAt(V(x, y, 0), Z1);
-  }
+  });
 
   // ------------------------------------------------------------------ 2. THE BONEYARD (the dead are buried above the water line here)
-  {
+  M.at({ x: -1400, y: 700 }, () => {
     const CX = [-6300, -5500, -4700, -3900, -3100], RY = [700, 1700, 2700, 3700];
     CX.forEach((x, i) => RY.forEach((y, j) => { if (j === 3 && i < 2) return; if (i === 2 && j === 2) return; tomb(x, y, (i * 2 + j) % 3); }));
     // the oak in the middle, older than the parish
@@ -150,10 +185,10 @@ export function buildBayou(M) {
     wallbuy('Dynamite Dan', -6896, 2200, 0); wallbuy('Iron Mule', -4300, 5396, -90);
     for (const [x, y] of [[-6800, 300], [-6820, 2200], [-2850, 5200], [-4300, 5200], [-2850, 350], [-6850, 3800], [-5100, 3200]]) SpawnAt(V(x, y, 0), Z2);
     M.Decor(V2(-6900, 100), V2(-2700, 5400), 70, ['P_Grass_0', 'P_Grass_1', 'P_Bones', 'D_Grime', 'P_Bush', 'P_Bones']);
-  }
+  });
 
   // ------------------------------------------------------------------ 3. CYPRESS DEEP (open: knee-deep black water under very old trees)
-  {
+  M.at({ y: 700 }, () => {
     water(-2400, 1600, 2400, 5400, 22);
     for (const [x, y, h, d] of [[-1800, 2400, 1100, 420], [-600, 2100, 1000, 340], [900, 2500, 1150, 460], [1900, 2000, 980, 320], [-1900, 4200, 1050, 380], [-300, 4700, 1100, 440], [1200, 4400, 1000, 360], [2000, 3500, 1080, 400], [200, 3300, 950, 300], [-1100, 3300, 1020, 340]]) cypress(x, y, h, d);
     // a windfall across the middle: over it or round it
@@ -166,10 +201,10 @@ export function buildBayou(M) {
     wallbuy('Frostbite Beam', 300, 5396, -90); wallbuy('Back-Alley', -2464, 2300, 0);
     for (const [x, y] of [[-2200, 5200], [2200, 5200], [0, 5250], [-2200, 1900], [2200, 1900], [900, 3500], [-1300, 4500]]) SpawnAt(V(x, y, 0), Z3);
     M.Decor(V2(-2400, 1600), V2(2400, 5400), 40, ['P_Grass_2', 'P_Bones', 'P_Grass_0']);
-  }
+  });
 
   // ------------------------------------------------------------------ 4. GATOR FLATS (open marsh: nests, a blind, something very large that died here)
-  {
+  M.at({ x: 1400, y: 700 }, () => {
     water(2700, 300, 4300, 1900, 5); water(4900, 2300, 6800, 3900, 6); water(2800, 3700, 4200, 5300, 5); water(5200, 400, 6700, 1500, 4);
     for (const [x, y, s] of [[4700, 1300, 1.0], [3300, 2800, 1.2], [5900, 4600, 1.1], [6400, 2000, 0.9]]) {   // nests: a mound of rotting reed, eggs in the top
       Ball(V(x, y, 20 * s), V(520 * s, 460 * s, 240 * s), 0x4a4a2c, false); Oct(V(x, y, 50 * s), V(300 * s, 300 * s, 100 * s), 0x3e3e26, true, true);
@@ -191,10 +226,10 @@ export function buildBayou(M) {
     wallbuy('Lawman AR', 6896, 2500, 180); wallbuy('Copperhead', 3500, 36, 90);
     for (const [x, y] of [[6700, 5200], [6700, 350], [2850, 5200], [4750, 5250], [6750, 2700], [3600, 1000], [2850, 2300]]) SpawnAt(V(x, y, 0), Z4);
     M.Decor(V2(2600, 100), V2(6900, 5400), 150, [['P_Grass_0', 110, 190, 1.1, [0.7, 0.9, 0.5, 1]], ['P_Grass_1', 110, 200, 1.1, [0.7, 0.9, 0.5, 1]], ['P_Grass_2', 90, 170, 1.2, [0.75, 0.9, 0.55, 1]], 'P_Bones', 'P_Bush']);
-  }
+  });
 
   // ------------------------------------------------------------------ 5. THE STILL (a moonshiners' camp: copper, barrels, canvas)
-  {
+  M.at({ x: 1400, y: -700 }, () => {
     // the smokehouse and the store
     K.cabin(5500, -1500, 6600, -700, 320, 0x5a4a3a, 0x3a2e26, { door: -90, glow: LAMP, logs: 0x43382c, rise: 220 }); K.cabin(2900, -5200, 3700, -4500, 280, 0x64553f, 0x6a3a26, { door: 90, glow: LAMP, dark: true, logs: 0x4a3e2e });
     Sign(V(6050, -1506, 380), -90, 'DRY GOODS', { r: 0.9, g: 0.84, b: 0.7 }, 36);
@@ -219,12 +254,12 @@ export function buildBayou(M) {
     wallbuy('Quarter Horse', 5200, -5396, 90); wallbuy('Copperhead', 2536, -1500, 0);
     for (const [x, y] of [[6700, -5250], [2850, -5300], [6700, -350], [4750, -5250], [2850, -350], [6780, -3300], [4300, -2200]]) SpawnAt(V(x, y, 0), Z5);
     M.Decor(V2(2600, -5400), V2(6900, -100), 60, ['P_Grass_0', 'P_Grass_1', 'P_Bush', 'D_Grime', 'P_Bones', 'P_Grass_2']);
-  }
+  });
 
   for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
 }
 
-export const BAYOU_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 1], 3: [1, 2], 4: [1, 2], 5: [0, 1] }, relics: [[1250, -950, 170, 180], [5700, 3000, 398, 180]], box: [420, -2500, 90, 0], boxZones: [1, 2, 3, 4, 5] };
+export const BAYOU_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 1], 3: [1, 2], 4: [1, 2], 5: [0, 1] }, relics: [[1250, -1650, 170, 180], [7100, 3700, 398, 180]], box: [420, -3200, 90, 0], boxZones: [1, 2, 3, 4, 5] };
 
 // fireflies: slow green sparks low over the ground
 let acc = 0;
@@ -232,3 +267,14 @@ export function bayouAmbient(g, dt) {
   acc += dt * 26; const c = g.camera.position;
   while (acc > 1) { acc -= 1; g.fx.add({ pos: new THREE.Vector3(c.x + (Math.random() - 0.5) * 3200, 30 + Math.random() * 260, c.z + (Math.random() - 0.5) * 3200), vel: new THREE.Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.3) * 40, (Math.random() - 0.5) * 60), life: 3.2, size0: 9, size1: 9, c0: [0.75, 1, 0.3, 1], fadeIn: 0.6, fadeOut: 0.6, tex: 'FX_Disc', kind: 'fx', glow: 1 }); }
 }
+
+export const BAYOU_MECH = { wet: true, drown: 25, drownText: 'Something in the deep water dragged you under' };
+export const BAYOU_QUEST = { name: 'PART THE WATER', after: 'The water has parted', gate: [0, 1120, 0], steps: [
+  { type: 'collect', text: 'Find three grave charms on the islands', item: 'Charm', n: 3, color: 0x8ad04a, done: 'THE CHARMS ARE GATHERED',
+    spots: [[-7600, 1500, 0], [-4600, 5400, 0], [-7700, -1500, 0], [-4700, -5500, 0], [7600, -5400, 0], [4700, -1500, 0], [7700, 5300, 0]] },
+  { type: 'souls', text: 'Feed the three spirit lanterns', need: 10, r: 750, color: 0x8ad04a, done: 'THE LANTERNS BURN',
+    at: [[6200, 3400, 0], [0, 4300, 0], [-6200, -3500, 0]] },
+  { type: 'order', text: 'Ring the three bells in order (count the lights)', prompt: 'Ring the bell', color: 0xFFB45A, done: 'THE DEAD ARE LISTENING', wrong: 'The water stays still. Start again.',
+    at: [[-6100, 3500, 0, 0], [1700, 5400, 0, -90], [6200, -3400, 0, 180]] },
+  { type: 'hold', text: 'Hold the drowned chapel while the water draws back', at: [0, 430, 0], r: 480, time: 45, color: 0x8ad04a, done: 'THE WATER PARTS' },
+] };

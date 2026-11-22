@@ -298,7 +298,7 @@ function renderProgress() {
     WORLD.forEach((m) => {
       const MP = MAPS.find((x) => x.id === m.id), med = Meta.medal(m.id), best = Meta.bestRoundOn(m.id), A = MAP_CLEAR(m), rounds = MP ? MP.rounds : 12;
       h += `<div class="pc ${med ? 'claimed' : ''}"><div class="pt"><b>${esc(m.name)}</b><span>${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${med > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`;
-      h += `${bar(Math.min(best, rounds), rounds)}<div class="pn">Best round ${best} of ${rounds}${med ? '  -  cleared on ' + DIFFS[med - 1].name : ''}</div>${rw('h:' + m.id, `Round ${HEIRLOOM_ROUND}:`)}${A ? rw('a:' + A.id, 'Clear:') : ''}</div>`;
+      h += `${bar(Math.min(best, 20), 20)}<div class="pn">Best round ${best}${med ? '  -  cleared on ' + DIFFS[med - 1].name : ''}</div>${rw('h:' + m.id, `Round ${HEIRLOOM_ROUND}:`)}${A ? rw('a:' + A.id, 'Clear:') : ''}</div>`;
     });
     h += '</div>';
   } else if (progTab === 'classes') {

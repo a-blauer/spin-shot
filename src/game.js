@@ -15,6 +15,8 @@ import { Player } from './player.js';
 import { Net } from './net.js';
 import { VAULT } from './mapzones.js';
 import { MAPS } from './maps.js';
+import { Quest } from './quest.js';
+import { Mech } from './mech.js';
 import { Projectiles, Hazards, Pickups } from './entities.js';
 import { G as UNI, updateCamBasis, Cam, sprite } from './render.js';
 
@@ -56,6 +58,7 @@ export class Game {
     this.vm = new ViewModel(this);
     this.player = new Player(this);
     this.vm.setWeapon(0, 0, false);
+    this.quest = new Quest(this); this.mech = new Mech(this);
     this.unlockZone(0, true);
     this.player.pos.copy(this.playerSpawn).add(V3(0, 0, 0));
     // UE yaw 60 -> forward (cos60, sin60) in UE XY -> three (x, z)
@@ -91,7 +94,8 @@ export class Game {
   navFree(cx, cy) { return this.navValid(cx, cy) && this.navBlock[cy * this.navW + cx] === 0; }
   _navBlock(minX, minY, minZ, maxX, maxY, maxZ, delta) {
     if (!this.navW) return;
-    if (minZ > 150 || maxZ < 40) return;
+    // measured from the floor of the district it stands in (or any district it reaches into: a gate on the edge of a terrace)
+    { let hit = false; for (const [px, py] of [[(minX + maxX) / 2, (minY + maxY) / 2], [minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY]]) { const zb = this.zoneZ(px, py); if (!(minZ > zb + 150 || maxZ < zb + 40)) { hit = true; break; } } if (!hit) return; }
     const pad = 40;
     const [ax, ay] = this.cellOf(minX - pad, minY - pad), [bx, by] = this.cellOf(maxX + pad, maxY + pad);
     for (let y = Math.max(0, ay); y <= Math.min(this.navH - 1, by); y++) for (let x = Math.max(0, ax); x <= Math.min(this.navW - 1, bx); x++) {
@@ -229,6 +233,8 @@ export class Game {
     const dir = V3((a[0] + b[0]) * 0.5 - from.x, 0, (a[1] + b[1]) * 0.5 - from.z);
     return dir.lengthSq() > 0 ? dir.normalize() : direct;
   }
+  // the floor level of the district at a point (districts can sit at different heights)
+  zoneZ(x, z) { const zi = this.zoneAt({ x, y: 0, z }); return zi >= 0 ? (this.zones[zi].z || 0) : 0; }
   inCasino(p) { const B = this.casinoBounds; return B && p.x >= B.minX && p.x <= B.maxX && p.z >= B.minZ && p.z <= B.maxZ; }
   findFreeLocationNear(c, minR, maxR) {
     for (let a = 0; a < 24; a++) {
@@ -237,8 +243,8 @@ export class Game {
       const [cx, cy] = this.cellOf(x, z);
       if (!this.navFree(cx, cy) || this.navDist[cy * this.navW + cx] === INF) continue;
       if (this.barricadeT > 0 && this.inCasino({ x, z })) continue;   // never place anything inside a barricaded casino
-      const h = this.phys.raycast(V3(x, 300, z), V3(0, -1, 0), 500);
-      if (h && h.point.y < 60) return h.point.clone();
+      const zb = this.zoneZ(x, z), h = this.phys.raycast(V3(x, zb + 300, z), V3(0, -1, 0), 800);
+      if (h && h.point.y < zb + 60) return h.point.clone();
     }
     return null;
   }
@@ -282,7 +288,7 @@ export class Game {
   vaultCenter() { return V3(VAULT.X, 0, VAULT.Y); }
   inVault(p) { return Math.hypot(p.x - VAULT.X, p.z - VAULT.Y) < VAULT.R + 400; }
   openVault(at) {
-    const f = this.findFreeLocationNear(at, 0, 300) || at.clone(); f.y = Math.max(0, this.fx.groundY(f, 2000));
+    const f = this.findFreeLocationNear(at, 0, 300) || at.clone(); { const h = this.phys.raycastDown(V3(f.x, at.y + 300, f.z), 1500); f.y = h ? h.point.y : at.y; }
     this.final = { gate: f, active: false, done: false, beam: null, safeR: 0, t: 0 };
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.toSpawn = this.spawned;
@@ -386,7 +392,7 @@ export class Game {
     if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.3);   // never leave the player with nothing to shoot
     if (this.spawned < this.toSpawn && alive < cap && this.spawnTimer <= 0 && (this.spawned < allowed || alive < floor)) {
       const thin = alive < floor;   // the crowd has been cut down: refill it quickly
-      this.spawnTimer = Math.max(0.15, 1.2 - this.round * 0.07) * diff().spawn * (thin ? 0.5 : 1); this.spawnOne();
+      this.spawnTimer = Math.max(0.15, 1.2 - this.round * 0.07) * diff().spawn * (thin ? 0.5 : 1) * (this.questHeat > 0 ? 0.6 : 1); this.spawnOne();   // holding ground for a job draws them faster
       for (let k = 0; k < Math.min(3, 1 + Math.floor(this.round / 4)) && this.spawned < this.toSpawn && (thin ? this.aliveCount() < floor : this.spawned < allowed + 2) && this.aliveCount() < cap; k++) this.spawnOne();   // they come in packs
     }
     // a new chest turns up part-way through some rounds
@@ -408,7 +414,7 @@ export class Game {
   // you have opened. Better ones come later. Never more than six waiting at once.
   dropChest() {
     if (this.net.role === 'client' || !this.spawnChest) return;
-    const waiting = this.interactables.filter((I) => { if (I.type !== 'Chest' || I.opened || Math.abs(I.pos.y) > 300) return false; const Z = this.zones[this.zoneAt(I.pos)]; return Z && Z.unlocked; }).length;   // unopened chests you can already reach
+    const waiting = this.interactables.filter((I) => { if (I.type !== 'Chest' || I.opened || Math.abs(I.pos.y - this.zoneZ(I.pos.x, I.pos.z)) > 300) return false; const Z = this.zones[this.zoneAt(I.pos)]; return Z && Z.unlocked; }).length;   // unopened chests you can already reach
     if (waiting >= 5) return;
     const r = this.round, W = r < 4 ? [70, 30, 0, 0] : r < 8 ? [45, 40, 15, 0] : r < 14 ? [28, 40, 26, 6] : [18, 34, 32, 16];
     let roll = Math.random() * 100, tier = 0; for (let i = 0; i < 4; i++) { roll -= W[i]; if (roll < 0) { tier = i; break; } }
@@ -422,7 +428,7 @@ export class Game {
   startRound() {
     this.round++;
     this.toSpawn = zombieCount(this.round);
-    this.bossRound = this.round % 3 === 0;   // 15 rounds: a boss every third round, the Gravedigger at 15
+    this.bossRound = this.round % 3 === 0;   // a boss every third round, round and round the map's list; the last boss waits in its own room until you open the way
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
     this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.grenadesThisRound = 0; this.ammoThisRound = 0; this.spawnTimer = 1.5; this.roundT = 0; this.midChest = false;
@@ -431,6 +437,7 @@ export class Game {
     if (this.barricadeT === undefined) this.casinoInit();
     Meta.roundStarted(this.round, this.map.id);
     this.banner(`ROUND ${this.round}`, lin(0.85, 0.08, 0.06), 3.5, 'round');
+    if (this.round === 1 && this.quest.def) this.hud.toast(`The rounds do not end. ${this.quest.def.name[0]}${this.quest.def.name.slice(1).toLowerCase()} to reach the last boss.`, '#ffd24d');
     this.hud.roundFlash = 1;
     this.player.onRoundStarted(this.round);
   }
@@ -560,6 +567,7 @@ export class Game {
   }
   enemyKilled(E, headshot) {
     this.killed++; this.totalKills++;
+    this.quest.killed(E);
     this.net.killed(E, headshot);
     if (this.net.role === 'host' && E.netKiller && !E.isBoss) return;   // a teammate's kill: their client pays them
     const P = this.player, loc = E.pos.clone();
@@ -569,7 +577,6 @@ export class Game {
       this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bossKilled(!!E.boss.final, difficulty());
-      if (E.boss.last && !this.won) { this.won = true; this.openVault(loc); }
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
     }
@@ -661,6 +668,7 @@ export class Game {
     P.update(dt, input);
     for (const E of this.enemies) E.update(dt);
     this.tickFinal(dt);
+    this.quest.tick(dt); this.mech.tick(dt); this.questHeat = Math.max(0, (this.questHeat || 0) - dt);
     if (this.map.ambient && !this.inVault(P.pos)) this.map.ambient(this, dt);
     this.net.tick(dt);
     if (this.net.role !== 'client') { this.separate(dt); this.unstick(dt); this.tickStragglers(dt); }

@@ -378,6 +378,7 @@ export class Player {
     let s = WalkSpeed * (1 + Math.min(1, this.stat('MoveSpeed')) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
     if (this.sprintHeld && this.inFwd > 0.1 && !this.aiming) s *= SprintMult;
     if (this.aiming) s *= 0.7;
+    s *= this.game.mech.slow(this);   // wading
     if (this.slowT > 0) s *= 1 - this.slowAmt;
     this.maxWalk = Math.max(150, s);
     this.airControl = clamp(0.85 + this.stat('AirControl'), 0, 1.6);
@@ -436,7 +437,7 @@ export class Player {
     const wasG = this.grounded;
     const r = G.phys.moveCapsule(this.pos, this.vel, dt, RADIUS, HALF, { stepHeight: 50, wasGrounded: wasG && this.launchedT <= 0 });
     // under a roof (the mine): nobody jumps, grapples or wall-runs out through the ceiling
-    if (G.map.ceil) { const cz = G.map.ceil(this.pos.x, this.pos.z); if (cz > 0 && this.pos.y > cz - HALF - 6) { this.pos.y = cz - HALF - 6; if (this.vel.y > 0) this.vel.y = 0; } }
+    if (G.map.ceil) { const cz = G.map.ceil(this.pos.x, this.pos.z); if (cz !== null && this.pos.y > cz - HALF - 6) { this.pos.y = cz - HALF - 6; if (this.vel.y > 0) this.vel.y = 0; } }
     let grounded = r.grounded && this.vel.y <= 1 && this.launchedT <= 0;
     if (grounded) this.groundNormal.copy(r.groundNormal);
     if (!grounded && wasG && this.vel.y <= 0 && this.launchedT <= 0 && this.dashT <= 0) {
@@ -1168,6 +1169,7 @@ export class Player {
     for (let guard = 0; guard < 16; guard++) {
       const wall = G.phys.raycast(from, dir, remaining);
       const wallD = wall ? wall.distance : remaining;
+      if (guard === 0) G.quest.shot(from, dir, wallD);
       let best = null, bestT = wallD;
       for (const E of G.enemies) {
         if (E.dead || ignore.has(E) || E.burrowed) continue;
@@ -1335,6 +1337,7 @@ export class Player {
     }
   }
   explodeAt(at, radius, damage, procCoef, fromProc, selfKnock, color, ignore) {
+    this.game.quest.blast(at, radius);
     const G = this.game;
     G.fx.explosion(at, radius, color);
     G.audio.playAt('S_Explosion', at, clamp(radius / 300, 0.5, 1.2), 1, 0.1);
@@ -1521,7 +1524,7 @@ export class Player {
       return;
     }
     let best = null, bd = 1e9;
-    for (const I of G.interactables) {
+    for (const I of G.interactables.concat(G.quest.objs, G.mech.objs)) {
       if (!I.isUsable()) continue;
       const loc = I.type === 'Door' ? I.box3.getCenter(new THREE.Vector3()) : I.pos;
       if (Math.abs(loc.y - this.pos.y) > 320) continue;
@@ -1544,6 +1547,7 @@ export class Player {
     const I = this.focus, G = this.game;
     if (!I || !I.isUsable()) return;
     switch (I.type) {
+      case 'Quest': I.q.use(this); break;
       case 'Door': if (this.spend(I.cost)) { G.openDoor(I); G.audio.playAt('S_Door', I.pos, 1); } break;
       case 'WallBuy':
         if (this.hasWeapon(I.weapon)) {

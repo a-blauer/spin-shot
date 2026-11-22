@@ -525,16 +525,22 @@ export class Hud {
       this.text(`${Math.max(r, 0)}`, 80 * S, 104 * S + this.fs(fs) * 0.42, fs, col, 'center', F_BIG, 400, 0.08); }
     const zn = game.final && game.final.active ? game.map.final.under : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
     let info = '', ic = BONE;
-    if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? 'THE CRYPT' : 'THE CRYPT IS OPEN'; ic = GOLD; }
+    if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? game.map.final.arena : game.map.final.open; ic = GOLD; }
     else if (game.phase === 'Round') info = `${game.remaining()} LEFT`;
     else if (game.phase === 'PreGame') info = `STARTS IN ${Math.ceil(game.phaseTimer)}`;
     else if (game.phase === 'Intermission') info = `NEXT ROUND IN ${Math.ceil(game.phaseTimer)}`;
     else if (game.phase === 'Casino') { info = `BREAK  ${Math.ceil(game.phaseTimer)}`; ic = GOLD; }
     this.text(info, tx, y - 46 * S, 28 * S, ic, 'left', F_BIG, 400, 0.12);
     this.text(zn, tx, y - 16 * S, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 700, 0.14);
-    if (false) {
-      const next = 3 - (game.round % 3);
-      this.text('', x, y + 34 * S, 17 * S, 'rgba(255,205,90,0.9)', 'left', F_TXT, 700, 0.14);
+    // the job in hand on the way to the last boss: top right, out of the way
+    const Q = game.quest && !(game.final && game.final.active) ? game.quest.hud() : null;
+    if (Q) {
+      const g = this.g, rx = W - 40 * S, w = 330 * S, top = 34 * S;
+      g.fillStyle = 'rgba(14,10,12,0.55)'; g.fillRect(rx - w - 14 * S, top - 6 * S, w + 28 * S, (Q.prog ? 92 : 70) * S);
+      g.fillStyle = GOLD; g.fillRect(rx + 10 * S, top - 6 * S, 4 * S, (Q.prog ? 92 : 70) * S);
+      this.text(Q.title + (Q.steps ? `   ${Q.step} / ${Q.steps}` : ''), rx, top + 12 * S, 15 * S, GOLD, 'right', F_TXT, 700, 0.14);
+      this.text(Q.text, rx, top + 38 * S, 19 * S, BONE, 'right', F_TXT, 700, 0.02);
+      if (Q.prog) { this.bar(rx - w, top + 56 * S, w - 96 * S, 9 * S, Q.frac, GOLD, 'rgba(40,30,20,0.8)', 4); this.text(Q.prog, rx, top + 66 * S, 16 * S, 'rgba(242,232,213,0.9)', 'right', F_TXT, 700, 0.04); }
     }
   }
   drawBoss(game, W, H, S) {

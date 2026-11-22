@@ -12,42 +12,64 @@ const rr = (a, b) => FMath.FRandRange(a, b);
 export function buildFrost(M) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Ramp, Floor, Wall, Lamp, Sign, Barrel, Crate, Station, WallBuy, Door, SpawnAt, Pyramid, Oct, Ring, AddZone, DeadTree, StreetLamp, GM } = M;
   const K = mapKit(M);
-  GM.navInit(-8000, -5600, 8000, 5600, 100);
+  GM.navInit(-9600, -5500, 13100, 5500, 100);
   const drift = (x, y, w = 420, d = 300, h = 110) => K.mound(x, y, w, d, h, SNOW);
   const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), TIMBER_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
 
   // ------------------------------------------------------------------ zones
-  const Z0 = AddZone('Frostbite Station', V2(-7000, -1500), V2(-3000, 1500));
-  const Z1 = AddZone('The Freight Yard', V2(-3000, -4500), V2(1500, 0));
-  const Z2 = AddZone('The Roundhouse', V2(-3000, 0), V2(1500, 4500));
-  const Z3 = AddZone('Timberline Pass', V2(1500, -4500), V2(7000, 4500));
-  const Z4 = AddZone('The Frozen Lake', V2(-7000, -4500), V2(-3000, -1500));
-  const Z5 = AddZone('Bunkhouse Row', V2(-7000, 1500), V2(-3000, 4500));
+  // The junction is strung along the main line. The line itself is the way through: a long open cutting, west tunnel to
+  // east tunnel, with the station, the roundhouse and the bunkhouses standing open along its north side, the lake and
+  // the freight yard behind a fence to the south, and the pass at the far end. Something still runs on it.
+  const Z0 = AddZone('Frostbite Station', V2(-9000, -400), V2(-5000, 3400));
+  const Z1 = AddZone('The Freight Yard', V2(-5000, -4900), V2(-500, -400));
+  const Z2 = AddZone('The Roundhouse', V2(-5000, -400), V2(-500, 4900));
+  const Z3 = AddZone('Timberline Pass', V2(3500, -1000), V2(12500, 4500));
+  const Z4 = AddZone('The Frozen Lake', V2(-9000, -3400), V2(-5000, -400));
+  const Z5 = AddZone('Bunkhouse Row', V2(-500, -400), V2(3500, 3400));
   M.Districts([['Frostbite Station', [Z0]], ['The Freight Yard', [Z1]], ['The Roundhouse', [Z2]], ['Timberline Pass', [Z3]], ['The Frozen Lake', [Z4]], ['Bunkhouse Row', [Z5]]]);
 
   // ------------------------------------------------------------------ ground and bounds
-  Box(V(0, 0, -50), V(16000, 11200, 100), SNOW, true, false);
-  Floor(V2(-7000, -4500), V2(-3000, -1500), 1, 0xcfdde6); Floor(V2(-6700, -4250), V2(-3300, -1800), 2, ICE); Floor(V2(-6300, -3900), V2(-3800, -2200), 3, 0xa9d2e6);
-  Floor(V2(-3000, -4500), V2(1500, 0), 1, 0x9aa4ae); Floor(V2(-3000, 0), V2(1500, 4500), 1, 0xa2a8b0);
-  Floor(V2(-7000, -620), V2(-3000, 20), 2, 0x8a929c);                                                    // ballast under the main line
-  // the mountain: slate walls with snow on every ledge
-  for (const [a, b] of [[V2(-7000, -4500), V2(-7000, 4500)], [V2(7000, -4500), V2(7000, 4500)], [V2(-7000, -4500), V2(7000, -4500)], [V2(-7000, 4500), V2(7000, 4500)]]) Wall(a, b, 950, 200, SLATE[0], [], true, SNOW);
-  K.cliffs(-7060, -4500, -7060, 4500, 965, SLATE, SNOW); K.cliffs(7060, -4500, 7060, 4500, 965, SLATE, SNOW); K.cliffs(-7000, -4560, 7000, -4560, 965, SLATE, SNOW); K.cliffs(-7000, 4560, 7000, 4560, 965, SLATE, SNOW);
-  // between the districts: plank palisades, snow along the top rail, a gate in each
+  Box(V(1750, 0, -50), V(22500, 10800, 100), SNOW, true, false);
+  M.at({ x: -2000, y: 1100 }, () => { Floor(V2(-7000, -4500), V2(-3000, -1500), 1, 0xcfdde6); Floor(V2(-6700, -4250), V2(-3300, -1800), 2, ICE); Floor(V2(-6300, -3900), V2(-3800, -2200), 3, 0xa9d2e6); });
+  Floor(V2(-5000, -4900), V2(-500, -400), 1, 0x9aa4ae); Floor(V2(-5000, 400), V2(-500, 4900), 1, 0xa2a8b0);
+  M.at({ x: -2000, y: 1900 }, () => Floor(V2(-7000, -620), V2(-3000, 20), 2, 0x8a929c));            // ballast under the station road
+  Floor(V2(-9000, -330), V2(3500, 330), 2, 0x7c848e);                                               // and under the main line
+  // the mountain: slate walls with snow on every ledge, and solid rock wherever the junction does not reach
+  const X0 = -9000, X1 = 12500, Y0 = -4900, Y1 = 4900;
+  for (const [a, b] of [[V2(X0, Y0), V2(X0, Y1)], [V2(X1, Y0), V2(X1, Y1)], [V2(X0, Y0), V2(X1, Y0)], [V2(X0, Y1), V2(X1, Y1)]]) Wall(a, b, 950, 200, SLATE[0], [], true, SNOW);
+  for (const [x0, y0, x1, y1] of [[-9000, 3400, -5000, 4900], [-500, 3400, 3500, 4900], [3500, 4500, 12500, 4900], [-9000, -4900, -5000, -3400], [-500, -4900, 3500, -400], [3500, -4900, 12500, -1000]]) {
+    Box(V((x0 + x1) / 2, (y0 + y1) / 2, 475), V(x1 - x0, y1 - y0, 950), SLATE[1], true, true); Box(V((x0 + x1) / 2, (y0 + y1) / 2, 962), V(x1 - x0 + 30, y1 - y0 + 30, 24), SNOW, false, false);
+    const n = y0 < 0 ? y1 : y0, s = y0 < 0 ? 1 : -1; K.cliffs(x0 + 200, n - s * 60, x1 - 200, n - s * 60, 965, SLATE, SNOW);
+    for (let x = x0 + 150; x < x1; x += 330) { const h = rr(260, 620), d = rr(60, 150); Box(V(x, n + s * d / 2, h / 2), V(rr(230, 360), d, h), SLATE[(x | 0) & 1 ? 0 : 2], true, false, rr(-6, 6)); Box(V(x, n + s * d / 2, h + 6), V(250, d + 20, 14), SNOW, false, false); }
+  }
+  K.cliffs(X0 - 60, Y0, X0 - 60, Y1, 965, SLATE, SNOW); K.cliffs(X1 + 60, Y0, X1 + 60, Y1, 965, SLATE, SNOW);
+  // palisades between the districts: snow along the top rail, a gate in each
   const fence = (a, b, gaps) => Wall(a, b, 520, 60, TIMBER, gaps.map((g) => V2(g - 200, g + 200)), true, SNOW, TIMBER_D);
-  fence(V2(-3000, -4500), V2(-3000, 4500), [1500, 3750, 5250, 7500]);
-  fence(V2(-7000, -1500), V2(-3000, -1500), [2000]); fence(V2(-7000, 1500), V2(-3000, 1500), [2000]);
-  fence(V2(-3000, 0), V2(1500, 0), [2250]); fence(V2(1500, -4500), V2(1500, 4500), [2250, 6750]);
-  const DOORS = [[-3000, -750, 0, 1500, Z0, Z1], [-3000, 750, 0, 1500, Z0, Z2], [-5000, -1500, 90, 2000, Z0, Z4], [-5000, 1500, 90, 2000, Z0, Z5], [-3000, -3000, 0, 3000, Z4, Z1], [-3000, 3000, 0, 3000, Z5, Z2], [-750, 0, 90, 3000, Z1, Z2], [1500, -2250, 0, 4000, Z1, Z3], [1500, 2250, 0, 4000, Z2, Z3]];
+  const FENCES = [[-5000, -3400, -5000, 3400, [1500, 3400, 5300]], [-500, -400, -500, 3400, [400, 2100]], [3500, -400, 3500, 3400, [400, 2300]], [-9000, -400, -500, -400, [2000, 6250]]];
+  for (const [x0, y0, x1, y1, gaps] of FENCES) fence(V2(x0, y0), V2(x1, y1), gaps);
+  // [x, y, yaw, price, zone, zone]: three crossing gates on the line itself, and a side gate into each yard
+  const DOORS = [[-5000, 0, 0, 1500, Z0, Z2], [-5000, 1900, 0, 1500, Z0, Z2], [-7000, -400, 90, 1500, Z0, Z4], [-5000, -1900, 0, 2500, Z4, Z1], [-2750, -400, 90, 2500, Z2, Z1],
+    [-500, 0, 0, 3000, Z2, Z5], [-500, 1700, 0, 3000, Z2, Z5], [3500, 0, 0, 4000, Z5, Z3], [3500, 1900, 0, 4000, Z5, Z3]];
   for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Box(V(x + (ax ? s * 226 : 0), y + (ax ? 0 : s * 226), 290), ax ? V(44, 110, 580) : V(110, 44, 580), TIMBER_D, true, false); Box(V(x + (ax ? s * 226 : 0), y + (ax ? 0 : s * 226), 590), V(70, 70, 20), SNOW, false, false); } K.lantern(x + (ax ? 150 : 60), y + (ax ? 60 : 150), 470, LAMP, 800); }
-  // fence posts every few metres so the palisades do not read as slabs
-  for (const [x0, y0, x1, y1] of [[-3000, -4500, -3000, 4500], [-7000, -1500, -3000, -1500], [-7000, 1500, -3000, 1500], [-3000, 0, 1500, 0], [1500, -4500, 1500, 4500]]) {
+  for (const [x0, y0, x1, y1] of FENCES) {
     const len = Math.hypot(x1 - x0, y1 - y0), n = Math.round(len / 300);
     for (let i = 1; i < n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (DOORS.some(([dx, dy]) => Math.hypot(dx - x, dy - y) < 330)) continue; Box(V(x, y, 280), V(84, 84, 560), TIMBER_D, false, false); Box(V(x, y, 566), V(92, 92, 16), SNOW, false, false); }
   }
-
-  // ------------------------------------------------------------------ 0. FROSTBITE STATION
+  // ------------------------------------------------------------------ THE MAIN LINE
   {
+    K.rails(-8880, 0, 3500, 0);
+    for (const [x, s] of [[X0 + 110, 1], [X1 - 110, -1]]) { Box(V(x, 0, 300), V(40, 620, 600), 0x06080c, false, false); for (const t of [-1, 1]) Box(V(x + s * 10, t * 340, 320), V(80, 80, 640), SLATE[1], true, false); Box(V(x + s * 10, 0, 670), V(80, 780, 90), SLATE[1], true, false); Box(V(x + s * 10, 0, 722), V(90, 800, 16), SNOW, false, false); Glow(V(x + s * 30, 0, 560), V(10, 60, 60), 0x9fe0ff); }
+    // signals and lamps down both sides, a platelayers' hut, snow thrown clear of the rails
+    for (let x = -8200; x < 3400; x += 1300) { if (DOORS.some(([dx, dy]) => dy === 0 && Math.abs(dx - x) < 420)) continue; K.post(x, -350, 400, 0x8AD8FF, TIMBER_D, 900); if ((x / 1300 | 0) % 2) K.post(x + 650, 350, 400, LAMP, TIMBER_D, 900); }
+    for (let x = -8600; x < 3400; x += 700) { if (DOORS.some(([dx, dy]) => Math.abs(dx - x) < 500 && Math.abs(dy) < 600)) continue; drift(x + rr(-150, 150), -320, rr(380, 620), 150, rr(60, 110)); }
+    for (const x of [-6200, -3600, -1900, 900, 2600]) { Box(V(x, 300, 70), V(26, 26, 140), 0x33363c, false, false); Box(V(x, 300, 150), V(70, 12, 40), 0xf2f4f6, false, false); Sign(V(x, 292, 150), -90, String(Math.round((x + 9000) / 100)), { r: 0.1, g: 0.1, b: 0.12 }, 24); }
+    for (const [x, y] of [[-7600, -372], [-4400, 372], [-1500, -372], [2200, 372]]) { Box(V(x, y, 250), V(20, 20, 500), 0x33363c, true, false); Box(V(x, y, 470), V(60, 30, 110), 0x18181c, false, false); Box(V(x + 60, y, 430), V(110, 8, 30), 0xc8322a, false, false); Box(V(x, y, 532), V(70, 40, 12), SNOW, false, false); }
+    K.cabin(1100, -390, 1700, -60, 230, RED, 0x2e2a30, { door: 90, snow: SNOW, glow: LAMP, chimney: false, rise: 110 }); GM.NavBlockBox({ min: V(1100, -400, 0), max: V(1700, -60, 300) }, 1);
+    Sign(V(-8700, -362, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40); Sign(V(600, -362, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40);
+    for (const [x, y] of [[-8300, 250], [-6000, -250], [-4200, 260], [-2400, -260], [-1000, 250], [600, 260], [2900, -260]]) SpawnAt(V(x, y, 0), x < -5000 ? Z0 : x < -500 ? Z2 : Z5);
+  }
+  // ------------------------------------------------------------------ 0. FROSTBITE STATION
+  M.at({ x: -2000, y: 1900 }, () => {
     // the main line comes out of a tunnel in the west wall and dies at a buffer stop by the yard gate
     Box(V(-6890, -300, 260), V(40, 520, 520), 0x0c0e12, false, false); for (const s of [-1, 1]) Box(V(-6880, -300 + s * 290, 280), V(70, 70, 560), SLATE[1], true, false); Box(V(-6880, -300, 580), V(70, 660, 80), SLATE[1], true, false); Box(V(-6880, -300, 626), V(80, 680, 16), SNOW, false, false);
     K.rails(-6860, -300, -3200, -300); Box(V(-3170, -300, 60), V(40, 240, 120), RED, true, true); Box(V(-3170, -300, 130), V(46, 250, 20), SNOW, false, false);
@@ -75,10 +97,10 @@ export function buildFrost(M) {
     wallbuy('Saloon Six', -6400, 1436, -90); wallbuy("Hornet's Nest", -4000, -1436, 90);
     for (const [x, y] of [[-6700, -1250], [-6700, 1200], [-3450, -1250], [-3350, 1250], [-4050, 1320], [-6050, -1300]]) SpawnAt(V(x, y, 0), Z0);
     M.Spawn(V(-5100, -950, 100));
-  }
+  });
 
   // ------------------------------------------------------------------ 1. THE FREIGHT YARD (four sidings, alleys between the cars)
-  {
+  M.at({ x: -2000, y: -400 }, () => {
     const TX = [-2200, -1150, -100, 950], SLOT = [-3950, -3000, -1450];
     const PLAN = [['box', 'box', 'box'], ['tank', null, 'box'], [null, 'box', 'flat'], ['box', 'caboose', null]];
     const COL = [0x6a3a2a, 0x4a5a4a, 0x5a4a3a, 0x7a2e28, 0x3a4a5a];
@@ -99,10 +121,10 @@ export function buildFrost(M) {
     wallbuy('Iron Mule', -2000, -36, -90); wallbuy('Dynamite Dan', 1466, -900, 180); wallbuy('Sawbuck', -1675, -4396, 90);
     for (const [x, y] of [[-1675, -4250], [425, -4250], [1280, -3000], [-2750, -2000], [-625, -1900], [1250, -350], [-2700, -350]]) SpawnAt(V(x, y, 0), Z1);
     M.Decor(V2(-2900, -4400), V2(1400, -100), 40, ['D_Grime', 'D_Crack', 'P_Bones', 'Blood']);
-  }
+  });
 
   // ------------------------------------------------------------------ 2. THE ROUNDHOUSE (turntable court, engine stalls along the back)
-  {
+  M.at({ x: -2000, y: 400 }, () => {
     // the turntable: a ring of stone, a pit of black ice, a girder bridge with an engine stood on it
     Cyl(V(-900, 1900, 3), 1500, 6, 0x5a6068, false, false); Cyl(V(-900, 1900, 5), 1380, 6, 0x1e2630, false, false); Cyl(V(-900, 1900, 6.5), 1300, 2, 0x2a3a4a, false, false);
     for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; Box(V(-900 + Math.cos(a) * 720, 1900 + Math.sin(a) * 720, 14), V(120, 60, 20), 0x6a7078, false, false, k * 22.5 + 90); }
@@ -131,10 +153,10 @@ export function buildFrost(M) {
     wallbuy('Homesteader', -2964, 2000, 0); wallbuy('Lawman AR', 1466, 1300, 180);
     for (const [x, y] of [[-2650, 1750], [1150, 2600], [-1900, 300], [300, 300], [-600, 3050], [1250, 3900], [-2330, 3050]]) SpawnAt(V(x, y, 0), Z2);
     M.Decor(V2(-2900, 100), V2(1400, 3300), 36, ['D_Grime', 'D_Crack', 'P_Bones', 'D_Grime']);
-  }
+  });
 
   // ------------------------------------------------------------------ 3. TIMBERLINE PASS (wide open: pines, boulders, a snow shed, a wreck)
-  {
+  M.at({ rot: 90, x: 8000, y: -2500 }, () => {
     // the snow shed: a timber tunnel over the old line, the one covered way across the pass
     K.rails(2500, -4440, 2500, 4440);
     for (const s of [-1, 1]) { Box(V(2500 + s * 380, 0, 230), V(50, 2600, 460), TIMBER, true, true); for (let y = -1200; y <= 1200; y += 300) { Box(V(2500 + s * 350, y, 240), V(40, 40, 480), TIMBER_D, false, false); BoxRot(V(2500 + s * 440, y, 170), V(180, 30, 30), TIMBER_D, R(s * 55, 0, 0), false); } }
@@ -165,10 +187,10 @@ export function buildFrost(M) {
     Sign(V(1536, 0, 420), 0, 'TIMBERLINE PASS', { r: 0.95, g: 0.9, b: 0.8 }, 48);
     wallbuy('Frostbite Beam', 6896, -200, 180); wallbuy('Quarter Horse', 1536, 1000, 0); wallbuy('Back-Alley', 3600, -4396, 90);
     for (const [x, y] of [[6600, -4100], [6600, 4150], [6650, -900], [4300, -4200], [4200, 4200], [1900, -4200], [1900, 4200], [3400, 0], [6650, 2000]]) SpawnAt(V(x, y, 0), Z3);
-  }
+  });
 
   // ------------------------------------------------------------------ 4. THE FROZEN LAKE (open ice, fishing shacks, an engine that went through)
-  {
+  M.at({ x: -2000, y: 1100 }, () => {
     // cracks run out from where she went in
     for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283 + rr(-0.2, 0.2), l = rr(500, 1300); Box(V(-5200 + Math.cos(a) * l / 2, -3200 + Math.sin(a) * l / 2, 3.6), V(l, rr(6, 14), 1), 0x5a8aa6, false, false, a * 57.3); }
     Cyl(V(-5200, -3200, 3.4), 760, 1, 0x16222e, false, false);
@@ -189,10 +211,10 @@ export function buildFrost(M) {
     for (const [x, y] of [[-6600, -1900], [-3400, -2000], [-5000, -4300], [-6700, -4300]]) K.post(x, y, 380, 0x8AD8FF, TIMBER_D, 1000);
     wallbuy('Copperhead', -6896, -3000, 0);
     for (const [x, y] of [[-6700, -4250], [-3350, -4250], [-6750, -2000], [-3400, -2150], [-4600, -4300], [-6000, -1750]]) SpawnAt(V(x, y, 0), Z4);
-  }
+  });
 
   // ------------------------------------------------------------------ 5. BUNKHOUSE ROW (crew cabins: a street, alleys, washing left out to freeze)
-  {
+  M.at({ x: 6500, y: -1100 }, () => {
     const CX = [[-6650, -5900], [-5400, -4700], [-4200, -3500]];
     CX.forEach(([x0, x1], i) => {
       K.cabin(x0, 3650, x1, 4250, 300, TIMBER, 0x2e2a30, { door: -90, snow: SNOW, logs: TIMBER_D, glow: LAMP, dark: i === 1 });
@@ -212,12 +234,12 @@ export function buildFrost(M) {
     Sign(V(-5050, 2516, 250), 90, 'COOKHOUSE', { r: 0.95, g: 0.9, b: 0.8 }, 36);
     wallbuy('Back-Alley', -6896, 3075, 0);
     for (const [x, y] of [[-6820, 3400], [-3250, 2250], [-6820, 1700], [-5650, 4050], [-4450, 2050], [-3300, 4300]]) SpawnAt(V(x, y, 0), Z5);
-  }
+  });
 
   for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
 }
 
-export const FROST_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1], 3: [1, 2, 2], 4: [1], 5: [0, 1] }, relics: [[5600, -3000, 438, 180], [-1150, -1450, 478, 0]], box: [-4150, 880, -90, 0], boxZones: [1, 2, 3, 4, 5] };
+export const FROST_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1], 3: [1, 2, 2], 4: [1], 5: [0, 1] }, relics: [[11000, 3100, 438, 270], [-3150, -1850, 478, 0]], box: [-6150, 2780, -90, 0], boxZones: [1, 2, 3, 4, 5] };
 
 // snow, always: a slow fall across whatever you are looking at
 let acc = 0;
@@ -225,3 +247,16 @@ export function frostAmbient(g, dt) {
   acc += dt * 70; const c = g.camera.position;
   while (acc > 1) { acc -= 1; g.fx.add({ pos: new THREE.Vector3(c.x + (Math.random() - 0.5) * 3600, c.y + 100 + Math.random() * 900, c.z + (Math.random() - 0.5) * 3600), vel: new THREE.Vector3(-70 + Math.random() * 40, -170 - Math.random() * 90, 30), life: 3.6, size0: 7, size1: 7, c0: [1, 1, 1, 0.85], fadeIn: 0.2, fadeOut: 0.5, tex: 'FX_Disc', kind: 'fx' }); }
 }
+
+// The night train: nothing is on the line and it comes through anyway, a few times a round. It does not stop for gates,
+// and anything standing between the rails when it passes goes with it. The dead do not know to get out of the way.
+export const FROST_MECH = { train: { y: 0, x0: -9000, x1: 12500, half: 200, speed: 3400, every: 70, first: 50, cars: 4, damage: 70 } };
+export const FROST_QUEST = { name: 'CALL THE LAST TRAIN', after: 'The last train is in', gate: [5000, 950, 0], steps: [
+  { type: 'shoot', text: 'Shoot out the five red signals along the main line', r: 46, color: 0xff3a2a, done: 'THE LINE IS CLEAR',
+    at: [[-7600, -372, 470], [-4400, 372, 470], [-1500, -372, 470], [2200, 372, 470], [6400, -372, 470]] },
+  { type: 'collect', text: 'Bring three sacks of coal for the engine', item: 'Coal', n: 3, color: 0xff8a3a, done: 'THE FIRE IS LAID',
+    spots: [[-7400, -2900, 0], [-8300, -1000, 0], [-3800, -4300, 0], [-1300, -2600, 0], [-900, 4300, 0], [-4500, 3300, 0], [2700, 2900, 0]] },
+  { type: 'order', text: 'Throw the three point levers in order (count the lamps)', prompt: 'Throw the lever', color: 0x8AD8FF, done: 'THE ROAD IS SET', wrong: 'The points clatter back. Start again.',
+    at: [[-6600, 330, 0, -90], [-2900, 330, 0, -90], [1900, 330, 0, -90]] },
+  { type: 'hold', text: 'Hold the crossing in the pass until the train comes in', at: [5000, 0, 0], r: 650, time: 45, color: 0x8AD8FF, done: 'THE LAST TRAIN IS IN' },
+] };

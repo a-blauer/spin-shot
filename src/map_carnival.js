@@ -43,9 +43,11 @@ export function buildCarnival(M) {
   };
 
   // ------------------------------------------------------------------ zones
-  const Z0 = AddZone('The Front Gate', V2(-2500, -6000), V2(2500, -3000));
-  const Z1 = AddZone('The Midway', V2(-7000, -3000), V2(7000, -500));
+  // The show starts where it ended: in the centre ring. Every attraction opens off the big top, the midway and the
+  // fairground join them round the outside, and the way out through the front gate is the last thing you reach.
   const Z2 = AddZone('The Big Top', V2(-2500, -500), V2(2500, 4000));
+  const Z1 = AddZone('The Midway', V2(-7000, -3000), V2(7000, -500));
+  const Z0 = AddZone('The Front Gate', V2(-2500, -6000), V2(2500, -3000));
   const Z3 = AddZone('Hall of Mirrors', V2(-7000, -500), V2(-2500, 4000));
   const Z4 = AddZone('The Menagerie', V2(2500, -500), V2(7000, 4000));
   const Z5 = AddZone('Under the Wheel', V2(-7000, 4000), V2(7000, 6500));
@@ -59,7 +61,7 @@ export function buildCarnival(M) {
   const canvas = (a, b, gaps) => { Wall(a, b, 520, 50, CREAM, gaps.map((g) => V2(g - 200, g + 200)), true, RED, WOOD_D); const len = Math.hypot(b.X - a.X, b.Y - a.Y), ax = Math.abs(b.X - a.X) > 1, n = Math.round(len / 240); for (let i = 0; i < n; i += 2) { const d = (i + 0.5) * 240; if (gaps.some((g) => Math.abs(g - d) < 340)) continue; Box(V(a.X + (ax ? d : 0), a.Y + (ax ? 0 : d), 260), ax ? V(240, 58, 518) : V(58, 240, 518), RED, false, false); } };
   canvas(V2(-2500, -3000), V2(2500, -3000), [2500]); canvas(V2(-7000, -500), V2(7000, -500), [2250, 7000, 11750]); canvas(V2(-7000, 4000), V2(7000, 4000), [2250, 7000, 11750]);
   canvas(V2(-2500, -500), V2(-2500, 4000), [2250]); canvas(V2(2500, -500), V2(2500, 4000), [2250]);
-  const DOORS = [[0, -3000, 90, 1500, Z0, Z1], [-4750, -500, 90, 2000, Z1, Z3], [0, -500, 90, 2500, Z1, Z2], [4750, -500, 90, 2000, Z1, Z4], [-2500, 1750, 0, 3000, Z3, Z2], [2500, 1750, 0, 3000, Z4, Z2], [0, 4000, 90, 3500, Z2, Z5], [-4750, 4000, 90, 4000, Z3, Z5], [4750, 4000, 90, 4000, Z4, Z5]];
+  const DOORS = [[0, -500, 90, 1500, Z2, Z1], [-2500, 1750, 0, 2000, Z2, Z3], [2500, 1750, 0, 2000, Z2, Z4], [0, 4000, 90, 2500, Z2, Z5], [-4750, -500, 90, 3000, Z1, Z3], [4750, -500, 90, 3000, Z1, Z4], [-4750, 4000, 90, 3500, Z3, Z5], [4750, 4000, 90, 3500, Z4, Z5], [0, -3000, 90, 4000, Z1, Z0]];
   for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { const px = x + (ax ? s * 236 : 0), py = y + (ax ? 0 : s * 236); Cyl(V(px, py, 320), 60, 640, RED, true, false); for (const z of [120, 300, 480]) Cyl(V(px, py, z), 64, 40, CREAM, false, false); Ball(V(px, py, 660), V(80, 80, 80), GOLD); } bulbs(x - (ax ? 236 : 0), y - (ax ? 0 : 236), 640, x + (ax ? 236 : 0), y + (ax ? 0 : 236), 640, 7); }
   // posters and scorch along the outer fence
   for (let t = -6600; t <= 6600; t += 700) { M.SurfaceDecal('D_Grime', V(t, 6398, 300), V(0, -1, 0), V2(600, 500), 0, [0, 0, 0, 0.5], 'fx'); if (Math.abs(t) > 2700) M.SurfaceDecal('D_Wanted', V(t + 120, -2898, 210), V(0, 1, 0), V2(110, 150), rr(-6, 6)); }
@@ -138,7 +140,7 @@ export function buildCarnival(M) {
       if ((d > 1840 && !corridor) || (d > 1330 && d <= 1840 && QUAD.some((q) => adiff(a, q) < 35))) GM.NavBlockBox({ min: V(gx + 45, gy + 45, 0), max: V(gx + 55, gy + 55, 150) }, 1);
     }
     for (const q of QUAD) { const ar = q * Math.PI / 180; K.lantern(cx + Math.cos(ar) * 1250, cy + Math.sin(ar) * 1250, 620, WARM, 1500); }
-    Station('AmmoCrate', V(520, 620, 0), 90, 2000, -1, 'Ammo');
+    Station('AmmoCrate', V(520, 620, 0), 90, 250, -1, 'Ammo'); Station('HighRoller', V(-520, 620, 0), 90, 2500, -1, 'Workbench');
     for (const [x, y] of [[0, 3250], [1300, 1750], [-1300, 1750], [0, 250], [880, 2630], [-880, 870]]) SpawnAt(V(x, y, 0), Z2);
   }
 
@@ -227,9 +229,12 @@ export function buildCarnival(M) {
   }
 
   for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
+  M.Spawn(V(0, 980, 100));
+  // the kiosk for the wheel
+  Box(V(-420, 5150, 2), V(700, 500, 4), 0x5a1a2a, false, false); Sign(V(-420, 5390, 330), -90, 'THE WHEEL  -  ONE TURN', { r: 1, g: 0.85, b: 0.4 }, 40);
 }
 
-export const CARNIVAL_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1], 3: [1, 2], 4: [1, 2], 5: [1, 2] }, relics: [[1227, 2977, 282, 225], [6560, 1750, 112, 180]], box: [-1500, -4900, 0, 0], boxZones: [1, 2, 3, 4, 5] };
+export const CARNIVAL_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4: [1, 2], 5: [1, 2] }, relics: [[1227, 2977, 282, 225], [6560, 1750, 112, 180]], box: [-900, 2300, 0, 0], boxZones: [1, 2, 3, 4, 5] };
 
 // embers going up, ash coming down
 let acc = 0;
@@ -239,3 +244,21 @@ export function carnivalAmbient(g, dt) {
     g.fx.add(ember ? { pos: new THREE.Vector3(c.x + (Math.random() - 0.5) * 3200, 10 + Math.random() * 200, c.z + (Math.random() - 0.5) * 3200), vel: new THREE.Vector3((Math.random() - 0.5) * 80, 90 + Math.random() * 90, (Math.random() - 0.5) * 80), life: 3.4, size0: 8, size1: 3, c0: [1, 0.55, 0.15, 1], fadeIn: 0.2, fadeOut: 0.6, tex: 'FX_Disc', kind: 'fx', glow: 1 }
       : { pos: new THREE.Vector3(c.x + (Math.random() - 0.5) * 3400, c.y + 100 + Math.random() * 800, c.z + (Math.random() - 0.5) * 3400), vel: new THREE.Vector3(-40 + Math.random() * 30, -70 - Math.random() * 50, 20), life: 4.5, size0: 6, size1: 6, c0: [0.62, 0.6, 0.58, 0.8], fadeIn: 0.3, fadeOut: 0.6, tex: 'FX_Disc', kind: 'fx' }); }
 }
+
+// The magician's cabinets stand in pairs: step into one and you step out of its twin, somewhere else on the ground.
+// The dead take the long way round. The wheel still turns for anyone who pays, one lap, out of reach of everything that walks.
+export const CARNIVAL_MECH = {
+  cabinets: [[[-6300, -1750, 0, 0], [6300, 5250, 0, 180]], [[6300, -1750, 0, 180], [-6300, 5250, 0, 0]], [[1900, -4500, 0, 180], [0, 3150, 0, -90]]],
+  cabinetNames: [['the Midway (west end)', 'the far side of the wheel'], ['the Midway (east end)', 'the far side of the wheel'], ['the Front Gate', 'the Big Top']],
+  wheel: { c: [0, 5650, 170], r: 950, axis: 0, at: [-420, 5150, 0, -90], cost: 500, time: 26 },
+};
+export const CARNIVAL_QUEST = { name: 'THE LAST ACT', after: 'The band has struck up', gate: [0, 2620, 0], steps: [
+  { type: 'shoot', text: 'Shoot the five balloons over the fairground (the wheel gives a clear shot)', r: 80, color: 0xff4a6a, done: 'FIVE FOR FIVE',
+    at: [[-2600, 5300, 1500], [2600, 5300, 1500], [-1400, 4700, 2000], [1400, 4700, 2000], [0, 6100, 2300]] },
+  { type: 'collect', text: 'Find three tickets for the last performance', item: 'Ticket', n: 3, color: 0xffd24d, done: 'ADMIT THREE',
+    spots: [[-6200, 600, 0], [-3300, 3300, 0], [6200, 500, 0], [3400, 3300, 0], [-5800, -2600, 0], [5800, -900, 0], [-1800, -5300, 0]] },
+  { type: 'souls', text: 'Fill the three footlights with an audience', need: 10, r: 750, color: 0xffb22e, done: 'A FULL HOUSE',
+    at: [[-4750, 1750, 0], [4750, 1750, 0], [0, -1750, 0]] },
+  { type: 'boss', text: 'Take the whistle from the next boss you kill', color: 0xffd24d, done: 'THE WHISTLE IS YOURS' },
+  { type: 'hold', text: 'Take your bow in the centre ring', at: [0, 1750, 0], r: 620, time: 45, color: 0xffd24d, done: 'THE BAND STRIKES UP' },
+] };

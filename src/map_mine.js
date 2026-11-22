@@ -15,8 +15,10 @@ export function buildMine(M) {
 
   // ------------------------------------------------------------------ shared pieces
   // where the rock facing must leave the wall bare: doorways, and anything hung on a wall
-  const DOORS = [[-1500, 0, false], [1500, 0, false], [0, 3500, true], [0, -3500, true], [-4500, 3500, true], [4500, 3500, true], [-4500, -3500, true], [4500, -3500, true]];
-  const CLEAR = DOORS.map(([x, y]) => [x, y, 400]).concat([[-1440, -900], [1440, 1600], [-1440, 1500], [1440, -1500], [-3675, -300], [-5325, -1250], [-2600, 3560], [6400, 5500], [6400, 0], [4650, 1400], [-2600, -7400], [6400, -5300]].map(([x, y]) => [x, y, 240]));
+  const LV = [0, -600, -900, -1200, -300];   // the floor level of each district
+  // the ways down: [x, y, across X, upper district, lower district, which way the slope runs (+1 north), price]
+  const WAYS = [[0, -3500, true, 0, 4, -1, 1500], [-4500, -3500, true, 4, 1, 1, 2500], [-4500, 3500, true, 1, 2, 1, 3000], [4500, 3500, true, 2, 3, -1, 3500]];
+  const CLEAR = WAYS.map(([x, y]) => [x, y, 400]).concat([[0, 3500, 720], [4500, -3500, 400]]).concat([[-1440, -900], [1440, 1600], [-1440, 1500], [1440, -1500], [-3675, -300], [-5325, -1250], [-2600, 3560], [6400, 5500], [6400, 0], [4650, 1400], [-2600, -7400], [6400, -5300]].map(([x, y]) => [x, y, 240]));
   // a face of rough rock: slabs of uneven depth and height standing off a flat wall, so no wall reads as a box
   const face = (x0, y0, x1, y1, nx, ny, h, cols) => {
     const len = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(len / 240)), alongX = Math.abs(x1 - x0) > Math.abs(y1 - y0);
@@ -83,38 +85,69 @@ export function buildMine(M) {
   const Z3 = AddZone('The Crystal Seam', V2(1500, -3500), V2(6500, 3500));
   const Z4 = AddZone('The Works', V2(-6500, -7500), V2(6500, -3500));
   M.Districts([['The Lift Landing', [Z0]], ['The Galleries', [Z1]], ['The Drowned Cavern', [Z2]], ['The Crystal Seam', [Z3]], ['The Works', [Z4]]]);
+  // The mine winds down round the landing: the Works, then the Galleries, the Cavern, and the Seam at the bottom, each
+  // a level below the last. One way down on foot, two places to jump, and the lift back up once it has power.
+  [Z0, Z1, Z2, Z3, Z4].forEach((z, i) => { GM.zones[z].z = LV[i]; });
+  const at = (i, fn) => M.at({ z: LV[i] }, fn);
 
   // ------------------------------------------------------------------ ground, bounds, roofs
-  Box(V(0, 0, -50), V(15600, 17600, 100), 0x4a433e, true, false);
-  Floor(V2(-1500, -3500), V2(1500, 3500), 1, 0x4a433e);
-  Floor(V2(-6500, -3500), V2(-1500, 3500), 1, 0x3d3734);
-  Floor(V2(-6500, 3500), V2(6500, 7500), 1, 0x313e3d);
-  Floor(V2(1500, -3500), V2(6500, 3500), 1, 0x3b3646);
-  Floor(V2(-6500, -7500), V2(6500, -3500), 1, 0x473b34);
-  const cap = 0x24201e;
-  Wall(V2(-6500, -7500), V2(-6500, 7500), H, 200, ROCK[1], [], true, cap); Wall(V2(6500, -7500), V2(6500, 7500), H, 200, ROCK[1], [], true, cap);
-  Wall(V2(-6500, -7500), V2(6500, -7500), H, 200, ROCK[1], [], true, cap); Wall(V2(-6500, 7500), V2(6500, 7500), H, 200, ROCK[1], [], true, cap);
-  Wall(V2(-1500, -3500), V2(-1500, 3500), H, 120, ROCK[0], [V2(3300, 3700)], true, cap, TIMBER_D);
-  Wall(V2(1500, -3500), V2(1500, 3500), H, 120, ROCK[0], [V2(3300, 3700)], true, cap, TIMBER_D);
-  Wall(V2(-6500, 3500), V2(6500, 3500), H, 120, ROCK[0], [V2(1800, 2200), V2(6300, 6700), V2(10800, 11200)], true, cap, TIMBER_D);
-  Wall(V2(-6500, -3500), V2(6500, -3500), H, 120, ROCK[0], [V2(1800, 2200), V2(6300, 6700), V2(10800, 11200)], true, cap, TIMBER_D);
-  ceiling(-1600, -3600, 1600, 3600, 900, 0x1c1917); ceiling(-6600, -3600, -1400, 3600, 760, 0x191715);
-  ceiling(-6600, 3400, 6600, 7600, 1180, 0x131a1c); ceiling(1400, -3600, 6600, 3600, 1100, 0x17141d); ceiling(-6600, -7600, 6600, -3400, 900, 0x1c1613);
+  const RECT = [[-1500, -3500, 1500, 3500], [-6500, -3500, -1500, 3500], [-6500, 3500, 6500, 7500], [1500, -3500, 6500, 3500], [-6500, -7500, 6500, -3500]];
+  const FLOOR = [0x4a433e, 0x3d3734, 0x313e3d, 0x3b3646, 0x473b34], ROOFH = [900, 760, 1180, 1100, 900], ROOFC = [0x1c1917, 0x191715, 0x131a1c, 0x17141d, 0x1c1613];
+  RECT.forEach(([x0, y0, x1, y1], i) => at(i, () => {
+    Box(V((x0 + x1) / 2, (y0 + y1) / 2, -450), V(x1 - x0 + 120, y1 - y0 + 120, 900), FLOOR[i], true, false);
+    Floor(V2(x0, y0), V2(x1, y1), 1, FLOOR[i]); ceiling(x0 - 100, y0 - 100, x1 + 100, y1 + 100, ROOFH[i], ROOFC[i]);
+  }));
+  const cap = 0x24201e, DEEP = -1500, HH = H - DEEP;
+  M.at({ z: DEEP }, () => {
+    Wall(V2(-6500, -7500), V2(-6500, 7500), HH, 200, ROCK[1], [], true, cap); Wall(V2(6500, -7500), V2(6500, 7500), HH, 200, ROCK[1], [], true, cap);
+    Wall(V2(-6500, -7500), V2(6500, -7500), HH, 200, ROCK[1], [], true, cap); Wall(V2(-6500, 7500), V2(6500, 7500), HH, 200, ROCK[1], [], true, cap);
+    Wall(V2(-1500, -3500), V2(-1500, 3500), HH, 120, ROCK[0], [], true, cap, TIMBER_D);
+    Wall(V2(1500, -3500), V2(1500, 3500), HH, 120, ROCK[0], [], true, cap, TIMBER_D);
+    Wall(V2(-6500, 3500), V2(6500, 3500), HH, 120, ROCK[0], [V2(1800, 2200), V2(5900, 7100), V2(10800, 11200)], true, cap, TIMBER_D);
+    Wall(V2(-6500, -3500), V2(6500, -3500), HH, 120, ROCK[0], [V2(1800, 2200), V2(6300, 6700), V2(10800, 11200)], true, cap, TIMBER_D);
+  });
   // the outer walls, faced in rough rock (inside faces only)
-  face(-6400, -7400, -6400, -3560, 1, 0, 900, RUST); face(-6400, -3440, -6400, 3440, 1, 0, 700, ROCK); face(-6400, 3560, -6400, 7400, 1, 0, 1100, TEAL);
-  face(6400, -7400, 6400, -3560, -1, 0, 900, RUST); face(6400, -3440, 6400, 3440, -1, 0, 1100, VIOLET); face(6400, 3560, 6400, 7400, -1, 0, 1100, TEAL);
-  face(-6400, -7400, 6400, -7400, 0, 1, 900, RUST); face(-6400, 7400, 6400, 7400, 0, -1, 1100, TEAL);
-  // every doorway is a heavy timber set
-  for (const [x, y, ax] of DOORS) {
-    for (const s of [-1, 1]) Box(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 280), ax ? V(56, 170, 560) : V(170, 56, 560), TIMBER, true, false);
-    Box(V(x, y, 590), ax ? V(560, 180, 60) : V(180, 560, 60), TIMBER_D, true, false);
-    Box(V(x, y, 912), ax ? V(400, 120, 584) : V(120, 400, 584), ROCK[0], true, false);   // rock over the lintel, up to the roof
+  at(4, () => { face(-6400, -7400, -6400, -3560, 1, 0, 900, RUST); face(6400, -7400, 6400, -3560, -1, 0, 900, RUST); face(-6400, -7400, 6400, -7400, 0, 1, 900, RUST); });
+  at(1, () => face(-6400, -3440, -6400, 3440, 1, 0, 700, ROCK));
+  at(2, () => { face(-6400, 3560, -6400, 7400, 1, 0, 1100, TEAL); face(6400, 3560, 6400, 7400, -1, 0, 1100, TEAL); face(-6400, 7400, 6400, 7400, 0, -1, 1100, TEAL); face(-6400, 3560, 6400, 3560, 0, 1, 1100, TEAL); });
+  at(3, () => face(6400, -3440, 6400, 3440, -1, 0, 1100, VIOLET));
+  at(0, () => { face(-1440, 3440, 1440, 3440, 0, -1, 900, ROCK); face(-1440, -3440, 1440, -3440, 0, 1, 900, ROCK); });
+  // every doorway is a heavy timber set at the level of the higher floor, with the tunnel sloping down from it
+  for (const [x, y, ax, up, lo, dir] of WAYS) {
+    at(up, () => {
+      for (const s of [-1, 1]) Box(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 280), ax ? V(56, 170, 560) : V(170, 56, 560), TIMBER, true, false);
+      Box(V(x, y, 590), ax ? V(560, 180, 60) : V(180, 560, 60), TIMBER_D, true, false);
+      Box(V(x, y, 912), ax ? V(400, 120, 584) : V(120, 400, 584), ROCK[0], true, false);   // rock over the lintel, up to the roof
+      Box(V(x, y, -700), ax ? V(400, 120, 1400) : V(120, 400, 1400), ROCK[0], true, false);   // and under the sill
+    });
+    // the slope: a ramp on a rock footing, a rail down each side, and the ground beside it closed so everything comes up the middle
+    const drop = LV[up] - LV[lo], run = 820, y0 = y + dir * 64, y1 = y + dir * (64 + run);
+    M.Slope(V(x, y1, LV[lo]), V(x, y0, LV[up]), 420, 0x4a3a30);
+    for (let k = 0; k < 4; k++) { const t0 = k / 4, h = drop * (1 - (k + 1) / 4); if (h > 4) Box(V(x, y0 + dir * run * (t0 + 0.125), LV[lo] + h / 2 - 16), V(400, run / 4 + 2, h), ROCK[1], true, false); }
+    for (const s of [-1, 1]) GM.NavBlockBox({ min: V(x + (s > 0 ? 220 : -320), Math.min(y0, y1), LV[lo]), max: V(x + (s > 0 ? 320 : -220), Math.max(y0, y1), LV[lo] + 100) }, 1);
+    at(lo, () => { timber(x, y + dir * 470, 470, true, 520 + drop * 0.45, true); lantern(x + 150, y + dir * 900, 420); });
   }
-  face(-6400, 3560, 6400, 3560, 0, 1, 1100, TEAL); face(-1440, 3440, 1440, 3440, 0, -1, 900, ROCK); face(-1440, -3440, 1440, -3440, 0, 1, 900, ROCK);
+  // the landing looks out over the Drowned Cavern from near its roof: a balcony, and nothing to stop you stepping off it
+  at(0, () => {
+    Box(V(0, 3500, 830), V(1200, 120, 740), ROCK[0], true, false); Box(V(0, 3500, -700), V(1200, 120, 1400), ROCK[0], true, false);
+    for (const s of [-1, 1]) { Box(V(s * 600, 3470, 230), V(60, 180, 460), TIMBER, true, false); Box(V(s * 400, 3540, 52), V(400, 14, 14), TIMBER_D, false, false); Box(V(s * 400, 3540, 26), V(14, 14, 52), TIMBER_D, false, false); Box(V(s * 210, 3540, 26), V(14, 14, 52), TIMBER_D, false, false); }
+    Box(V(0, 3470, 470), V(1260, 190, 50), TIMBER_D, true, false); lantern(-420, 3400, 420, 0x4fd8c8, 900); lantern(420, 3400, 420, 0x4fd8c8, 900);
+    Sign(V(0, 3380, 400), -90, 'OPEN SHAFT', { r: 0.95, g: 0.75, b: 0.3 }, 44);
+    M.world.ZoneCeiling(V2(0, 3500), 1200, 120, 0, V(1, 0, 0));
+    GM.NavBlockBox({ min: V(-640, 3400, 0), max: V(640, 3600, 100) }, 1);   // a way down for you, not a road for them
+  });
+  // and the ore chute out of the Works drops straight into the Seam
+  at(4, () => {
+    Box(V(4500, -3500, 760), V(400, 120, 880), ROCK[0], true, false); Box(V(4500, -3500, -700), V(400, 120, 1400), ROCK[0], true, false);
+    for (const s of [-1, 1]) Box(V(4500 + s * 232, -3540, 170), V(56, 170, 340), IRON, true, false);
+    Box(V(4500, -3540, 350), V(520, 180, 40), IRON, true, false); Sign(V(4500, -3640, 420), -90, 'ORE CHUTE', { r: 0.95, g: 0.75, b: 0.3 }, 40);
+    BoxRot(V(4500, -3250, -230), V(620, 380, 16), 0x33363c, R(-34, 90, 0), false);
+    M.world.ZoneCeiling(V2(4500, -3500), 400, 120, 0, V(1, 0, 0));
+    GM.NavBlockBox({ min: V(4260, -3600, 0), max: V(4740, -3400, 100) }, 1);
+  });
   const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), TIMBER_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
-
   // ------------------------------------------------------------------ 0. THE LIFT LANDING
-  {
+  at(0, () => {
     // the shaft: a timber headframe round the cage, its cable going up into the dark
     for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { Box(V(sx * 230, sy * 230, 450), V(44, 44, 900), TIMBER, true, true); BoxRot(V(sx * 230, sy * 120, 640), V(26, 300, 26), TIMBER_D, R(0, 0, sy * 38), false); BoxRot(V(sx * 120, sy * 230, 420), V(300, 26, 26), TIMBER_D, R(sx * 38, 0, 0), false); }
     for (const z of [300, 560, 820]) { for (const s of [-1, 1]) { Box(V(0, s * 230, z), V(500, 30, 30), TIMBER_D, false, false); Box(V(s * 230, 0, z), V(30, 500, 30), TIMBER_D, false, false); } }
@@ -143,10 +176,10 @@ export function buildMine(M) {
     for (const [x, y] of [[-1150, 3150], [1150, 3150], [-1150, -3150], [1150, -3150], [-1200, 900], [1200, -900]]) SpawnAt(V(x, y, 0), Z0);
     M.Spawn(V(0, -900, 100));
     M.Decor(V2(-1400, -3400), V2(1400, 3400), 46, ['D_Crack', 'D_Grime', 'D_Grime', 'P_Bones', 'D_Crack']);
-  }
+  });
 
   // ------------------------------------------------------------------ 1. THE GALLERIES (room and pillar, close timbered tunnels)
-  {
+  at(1, () => {
     const XS = [[-5850, -4800], [-4200, -3150], [-2550, -2100]], YS = [[-2900, -1800], [-1250, -300], [300, 1250], [1800, 2900]];
     const open = new Set(['1,2', '0,0']);   // two pillars were robbed out: the stable, and the powder store
     XS.forEach(([x0, x1], i) => YS.forEach(([y0, y1], j) => { if (!open.has(i + ',' + j)) mass(x0, y0, x1, y1, 700, ROCK); }));
@@ -178,10 +211,10 @@ export function buildMine(M) {
     fungus(-6300, -3300); fungus(-2200, 3300, 0x1c8ccc); fungus(-4900, -300);
     for (const [x, y] of [[-6150, 3200], [-6150, -3200], [-6150, 150], [-4500, 1600], [-4500, -1600], [-2850, 3200], [-2850, -3200]]) SpawnAt(V(x, y, 0), Z1);
     M.Decor(V2(-6400, -3400), V2(-1600, 3400), 70, ['D_Crack', 'D_Grime', 'P_Bones', 'D_Grime', 'Blood']);
-  }
+  });
 
   // ------------------------------------------------------------------ 2. THE DROWNED CAVERN (open: black water, islands, a pump barge, a rock shelf)
-  {
+  at(2, () => {
     // the water lies in three sheets with dry ground between; it is ankle deep and glows where the algae has taken
     for (const [x0, y0, x1, y1] of [[-5600, 4700, -1700, 6700], [-900, 4500, 2300, 6500], [3100, 4900, 5900, 6900]]) {
       Floor(V2(x0, y0), V2(x1, y1), 2, 0x0f2e36); Floor(V2(x0 + 180, y0 + 160), V2(x1 - 220, y1 - 140), 3, 0x123a44);
@@ -216,10 +249,10 @@ export function buildMine(M) {
     wallbuy('Iron Mule', -2600, 3564, 90); wallbuy('Frostbite Beam', 6396, 5500, 180);
     for (const [x, y] of [[-6000, 7000], [-4000, 7200], [4000, 7250], [6000, 7000], [-6000, 3950], [6000, 3950], [-2300, 3950], [2300, 3950], [0, 6500]]) SpawnAt(V(x, y, 0), Z2);
     M.Decor(V2(-6400, 3600), V2(6400, 7400), 80, ['D_Crack', 'D_Grime', 'P_Bones', 'D_Grime']);
-  }
+  });
 
   // ------------------------------------------------------------------ 3. THE CRYSTAL SEAM (a ring of tunnels round a geode)
-  {
+  at(3, () => {
     const CR = [0x6a38d8, 0x1c8ccc, 0xa83cc8];
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) {   // four L-shaped masses: the ring outside them, the chamber inside
       const xa = sx < 0 ? [2100, 3000] : [5000, 5900], xb = sx < 0 ? [3000, 3700] : [4300, 5000], ya = sy < 0 ? [-2900, -300] : [300, 2900], yb = sy < 0 ? [-2900, -1400] : [1400, 2900];
@@ -245,10 +278,10 @@ export function buildMine(M) {
     wallbuy('Lawman AR', 6396, 0, 180); wallbuy('Quarter Horse', 4650, 1396, -90);
     for (const [x, y] of [[1840, -3160], [1840, 3160], [6160, -3160], [6160, 3160], [6160, 300], [4000, -1150], [4000, 1150]]) SpawnAt(V(x, y, 0), Z3);
     M.Decor(V2(1600, -3400), V2(6400, 3400), 50, ['D_Crack', 'D_Crack', 'D_Grime', 'P_Bones']);
-  }
+  });
 
   // ------------------------------------------------------------------ 4. THE WORKS (boilers, the crusher, the rail yard)
-  {
+  at(4, () => {
     face(-6400, -3560, 6400, -3560, 0, -1, 900, RUST);
     // the boiler house: brick, two boilers out front with their fire doors open, a stack through the roof
     { const cx = -4300, cy = -6650;
@@ -298,22 +331,32 @@ export function buildMine(M) {
     wallbuy('Sawbuck', -2600, -7396, 90); wallbuy('Back-Alley', 6396, -5300, 180);
     for (const [x, y] of [[-6100, -7100], [-6100, -4000], [6100, -7150], [6100, -3950], [-2200, -7150], [2300, -7150], [900, -5300], [-3300, -3950], [3300, -3950]]) SpawnAt(V(x, y, 0), Z4);
     M.Decor(V2(-6400, -7400), V2(6400, -3600), 90, ['D_Crack', 'D_Grime', 'D_Grime', 'P_Bones', 'Blood']);
-  }
+  });
 
   // ------------------------------------------------------------------ doors
-  Door(V(-1500, 0, 0), 0, 1500, Z0, Z1); Door(V(1500, 0, 0), 0, 1500, Z0, Z3);
-  Door(V(0, 3500, 0), 90, 2500, Z0, Z2); Door(V(0, -3500, 0), 90, 2500, Z0, Z4);
-  Door(V(-4500, 3500, 0), 90, 3000, Z1, Z2); Door(V(-4500, -3500, 0), 90, 3500, Z1, Z4);
-  Door(V(4500, 3500, 0), 90, 3500, Z3, Z2); Door(V(4500, -3500, 0), 90, 4000, Z3, Z4);
+  for (const [x, y, ax, up, lo, dir, cost] of WAYS) at(up, () => Door(V(x, y, 0), 90, cost, [Z0, Z1, Z2, Z3, Z4][up], [Z0, Z1, Z2, Z3, Z4][lo]));
 }
 
 // The roof. The ceilings are drawn but not solid (a lot of the game finds the floor by looking down from above), so the
 // map says how high a body may go: the underside of the ceiling hung over each district. Nothing outside the mine.
-const ROOFS = [[-1600, -3600, 1600, 3600, 900], [-6600, -3600, -1400, 3600, 760], [-6600, 3400, 6600, 7600, 1180], [1400, -3600, 6600, 3600, 1100], [-6600, -7600, 6600, -3400, 900]];
+const ROOFS = [[-1500, -3500, 1500, 3500, 900], [-6600, -3500, -1500, 3500, 760 - 600], [-6600, 3500, 6600, 7600, 1180 - 900], [1500, -3500, 6600, 3500, 1100 - 1200], [-6600, -7600, 6600, -3500, 900 - 300]];
 export function mineCeil(x, y) {
-  if (Math.abs(x) > 7400 || Math.abs(y) > 8400) return 0;
+  if (Math.abs(x) > 7400 || Math.abs(y) > 8400) return null;
   let z = Infinity;
-  for (const [x0, y0, x1, y1, h] of ROOFS) if (x >= x0 && x <= x1 && y >= y0 && y <= y1) z = Math.min(z, h);
-  return z === Infinity ? 760 : z;
+  for (const [x0, y0, x1, y1, h] of ROOFS) if (x >= x0 && x < x1 && y >= y0 && y < y1) z = Math.min(z, h);
+  return z === Infinity ? null : z;
 }
-export const MINE_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4: [0, 1] }, relics: [[0, 7240, 282, -90], [20, -6700, 310, 90]], box: [420, 760, 180, 0], boxZones: [1, 2, 3, 4] };
+export const MINE_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4: [0, 1] }, relics: [[0, 7240, 282 - 900, -90], [20, -6700, 310 - 300, 90]], box: [420, 760, 180, 0], boxZones: [1, 2, 3, 4] };
+
+// The lift came down with you and died. Give it power and it runs between the landing and the bottom of the mine;
+// the rest of the job is getting the Baron to send the cage up for you.
+export const MINE_MECH = { lift: { a: [1180, 300, 0, 180], b: [1900, 300, -1200, 0], need: 1, dead: 'The lift has no power. Find the fuses.' } };
+export const MINE_QUEST = { name: 'WAKE THE LIFT', after: 'The cage is waiting at the bottom', gate: [3250, 300, -1200], steps: [
+  { type: 'collect', text: 'Find three fuses for the lift', item: 'Fuse', n: 3, color: 0xFFB03A, done: 'THE LIFT HAS POWER',
+    spots: [[-5600, -6600, -300], [5800, -4300, -300], [-900, -7000, -300], [-5900, -2900, -600], [-2100, 2900, -600], [-4000, 400, -600]] },
+  { type: 'souls', text: 'Feed the three miners\' lamps in the Drowned Cavern', need: 9, r: 750, color: 0x4fd8c8, done: 'THE LAMPS ARE LIT',
+    at: [[-4200, 5600, -900], [300, 6700, -900], [4300, 5300, -900]] },
+  { type: 'shoot', text: 'Shoot out the four seals on the Crystal Seam', r: 60, color: 0xb565f0, done: 'THE SEAM IS OPEN',
+    at: [[2300, -2800, -620], [5900, -2400, -560], [5800, 2600, -600], [2400, 2700, -640]] },
+  { type: 'hold', text: 'Hold the cage at the bottom while it winds', at: [2300, 300, -1200], r: 600, time: 40, color: 0xFFB03A, done: 'THE LIFT IS RUNNING' },
+] };
