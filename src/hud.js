@@ -938,7 +938,7 @@ export class Hud {
     this.text(I.max ? 'TOP RANK' : `${I.into.toLocaleString()} / ${I.span.toLocaleString()}`, x0 + bw, y + 34 * S, 17 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.1, a);
     g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x0, y + 44 * S, bw, 10 * S); g.fillStyle = up ? '#7dff8a' : '#ffcd5a'; g.fillRect(x0, y + 44 * S, bw * (I.max ? 1 : clamp(I.into / Math.max(1, I.span), 0, 1)), 10 * S); g.globalAlpha = 1;
     let line = '';
-    if (R.unlocked.length) { const show = R.unlocked.slice(0, 3).join('   |   '); line = `Unlocked: ${show}${R.unlocked.length > 3 ? `   +${R.unlocked.length - 3} more` : ''}`; }
+    if (R.unlocked.length) { const show = R.unlocked.slice(0, 3).join('   |   '); line = `Earned: ${show}${R.unlocked.length > 3 ? `   +${R.unlocked.length - 3} more` : ''}`; }
     else if (I.next) line = `Next rank: ${I.next.name}${I.next.reward ? '  -  ' + I.next.reward : ''}`;
     if (line) this.text(line, W / 2, y + 82 * S, 18 * S, R.unlocked.length ? '#7dff8a' : 'rgba(242,232,213,0.7)', 'center', F_TXT, 700, 0.1, a);
   }

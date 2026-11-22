@@ -72,7 +72,7 @@ export const Net = {
     this.ghosts.clear(); this.room = null; this.role = 'solo'; this.hits.clear();
   },
   emit(topic, data) { if (this.room) this.room.emit(topic, data).catch(() => {}); },
-  attach(game) { this.game = game; game.net = this; for (const G of this.ghosts.values()) G.group = null; },
+  attach(game) { this.game = game; game.net = this; this.chests = []; for (const G of this.ghosts.values()) G.group = null; },
   wire() {
     const R = this.room, on = (t, f) => this.offs.push(R.on(t, (m) => { if (m.isMe && m.sameTab) return; try { f(m.data || {}, m); } catch (e) { /* bad packet */ } }, () => {}));
     this.offs.push(R.onPeers(() => this.syncPeers(), () => {}));
@@ -90,6 +90,18 @@ export const Net = {
       on('d', fromHost((d) => { if (d.to === this.me && this.game) this.game.player.receiveDamage(num(d.a, 0, 500), null, !!d.m, num(d.s, 0, 1), num(d.t, 0, 5)); }));
     }
     on('door', (d) => this.openDoorIdx(num(d.i, 0, 999)));
+  },
+  // Chests that turn up during a run: the host places them and lists them in its state message, and every guest puts
+  // one in the same spot (each player opens their own). The list is sent whole each time, so a lost message costs nothing.
+  chestDropped(C, tier, zi) { if (this.role === 'host' && C.at) (this.chests = this.chests || []).push([Math.round(C.at[0]), Math.round(C.at[1]), Math.round(C.at[2]), tier, zi]); },
+  onChest(r) {
+    const g = this.game; if (!g || !g.spawnChestAt || !Array.isArray(r)) return;
+    const d = { x: r[0], y: r[1], w: r[2], t: r[3], z: r[4] };
+    const t = Math.max(0, Math.min(3, num(d.t, 0, 3) | 0)), x = num(d.x, -40000, 40000), y = num(d.y, -40000, 40000);
+    if (g.interactables.some((I) => I.type === 'Chest' && Math.hypot(I.pos.x - x, I.pos.z - y) < 60)) return;   // already have it
+    const C = g.spawnChestAt(x, y, num(d.w, -360, 360), t); if (!C) return;
+    const Z = g.zones[num(d.z, 0, 99) | 0];
+    g.player.toast(`A ${['wooden', 'iron-bound', 'gilt', 'reliquary'][t]} chest has turned up${Z ? ' in ' + Z.name : ''}`, ['#c9a46a', '#aab4c4', '#ffcd5a', '#c58cff'][t]); g.audio.play('S_Door', 0.6, 1.5);
   },
   syncPeers() {
     if (!this.room) return;
@@ -149,7 +161,7 @@ export const Net = {
         this.ts = 0.5;
         const doors = []; g.interactables.forEach((I, i) => { if (I.type === 'Door' && I.open) doors.push(i); });
         const F = g.final, fin = F ? { g: F.gate ? [Math.round(F.gate.x), Math.round(F.gate.y), Math.round(F.gate.z)] : 0, a: F.active ? 1 : 0, d: F.done ? 1 : 0, r: Math.round(F.safeR || 0), b: F.beam ? [Math.round(F.beam.x), Math.round(F.beam.y), Math.round(F.beam.z), Math.round(F.beam.ang * 100) / 100, F.beam.spd, F.beam.n, Math.round(F.beam.dmg), Math.round((F.beam.t || 0) * 10) / 10] : 0 } : 0;
-        this.emit('s', { df: difficulty(), r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
+        this.emit('s', { df: difficulty(), r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, ch: (this.chests || []).slice(-40), bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
         if (g.phase === 'Round' && this.allDead()) g.gameOver();
       }
     } else if (performance.now() - this.lastHost > 12000) this.hostGone();
@@ -234,6 +246,7 @@ export const Net = {
       if (f.d && !F.done) { F.done = true; g.victory = true; g.levelDone = true; Meta.won(g.map.id, difficulty()); g.audio.play('S_Jackpot', 1); }
     }
     if (Array.isArray(d.doors)) for (const i of d.doors.slice(0, 64)) this.openDoorIdx(num(i, 0, 999));
+    if (Array.isArray(d.ch)) for (const r of d.ch.slice(0, 40)) this.onChest(r);
   },
   // enemy projectiles and ground hazards: the host announces each one and every client runs its own copy against its own player
   sentProjectile(P) {

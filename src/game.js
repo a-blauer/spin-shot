@@ -415,7 +415,7 @@ export class Game {
     const open = this.zones.map((Z, i) => i).filter((i) => this.zones[i].unlocked && this.zones[i].spawns && i !== this.casinoZone);
     for (let k = 0; k < 6; k++) {
       const zi = open[randInt(0, open.length - 1)], C = this.spawnChest(zi, tier);
-      if (C) { this.player.toast(`A ${['wooden', 'iron-bound', 'gilt', 'reliquary'][tier]} chest has turned up in ${this.zones[zi].name}`, ['#c9a46a', '#aab4c4', '#ffcd5a', '#c58cff'][tier]); this.audio.play('S_Door', 0.6, 1.5); this.fx.flash(C.pos.clone().add(V3(0, 80, 0)), lin(1, 0.85, 0.4), 220, 1.2, true); return C; }
+      if (C) { this.net.chestDropped(C, tier, zi); this.player.toast(`A ${['wooden', 'iron-bound', 'gilt', 'reliquary'][tier]} chest has turned up in ${this.zones[zi].name}`, ['#c9a46a', '#aab4c4', '#ffcd5a', '#c58cff'][tier]); this.audio.play('S_Door', 0.6, 1.5); this.fx.flash(C.pos.clone().add(V3(0, 80, 0)), lin(1, 0.85, 0.4), 220, 1.2, true); return C; }
     }
     return null;
   }

@@ -82,6 +82,10 @@ export class Audio {
     ng.gain.setValueAtTime(0.12 + w * 0.2, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + w * 0.1);
     s.connect(bp); bp.connect(ng); ng.connect(this.gunBus); s.start(t); s.stop(t + 0.3);
   }
+  // Three levels the player sets. Master is the output trim (0.8 is the level the mix was balanced at); sound effects
+  // is everything that is not music: the world, the guns, their reverb and the interface.
+  setMasterVol(v) { this.masterVol = v; if (this._out) this._out.gain.value = 0.95 * v / 0.8; }
+  setSfxVol(v) { this.sfxVol = v; if (this.sfxBus) { this.sfxBus.gain.value = v; this.sfxDry.gain.value = v; } }
   setMusicVol(v) { this.musicVol = v; if (this.musicGain) this.musicGain.gain.value = v * 0.8; }
   // Push the music down to `to` (0..1) and let it come back over about half a second.
   duck(to = 0.6, hold = 0.12) {
@@ -117,23 +121,26 @@ export class Audio {
       // (Web Audio compressors add their own make-up gain, about 4 dB for the glue: `pre` takes it back off so the
       // limiter only works on real peaks, and the spread between loud and quiet sounds survives.)
       const pre = ctx.createGain(); pre.gain.value = 0.7;
-      const out = ctx.createGain(); out.gain.value = 0.95;
+      const out = ctx.createGain(); out.gain.value = 0.95 * (this.masterVol ?? 0.8) / 0.8;
       glue.connect(pre); pre.connect(limit); limit.connect(out); out.connect(ctx.destination);
       this._out = out; this._limit = limit; this._glue = glue;
       // When you are badly hurt the world goes dull: everything but the dry bus runs through this low-pass.
       this.muffle = ctx.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 20000; this.muffle.Q.value = 0.5; this.muffle.connect(glue); this.muffleK = 0;
       const hp = (f) => { const b = ctx.createBiquadFilter(); b.type = 'highpass'; b.frequency.value = f; b.Q.value = 0.7; return b; };
+      // Sound effects level: one fader for the world, the guns and their reverb, and a twin for the dry interface bus.
+      this.sfxBus = ctx.createGain(); this.sfxBus.gain.value = this.sfxVol ?? 1; this.sfxBus.connect(this.muffle);
+      this.sfxDry = ctx.createGain(); this.sfxDry.gain.value = this.sfxVol ?? 1; this.sfxDry.connect(glue);
       // World bus (kept under the name `master`): creatures, footsteps, impacts, explosions. Rumble under 40 Hz is cut:
       // nothing can reproduce it and it only makes the compressor pump.
-      this.master = ctx.createGain(); this.master.gain.value = 1;
-      const wHP = hp(40); this.master.connect(wHP); wHP.connect(this.muffle);
+      this.master = ctx.createGain(); this.master.gain.value = 0.8;
+      const wHP = hp(40); this.master.connect(wHP); wHP.connect(this.sfxBus);
       // Gun bus: the player's weapon. A little weight at 110 Hz, a little bite at 3 kHz.
       this.gunBus = ctx.createGain(); this.gunBus.gain.value = 1;
       const gHP = hp(55), gLo = ctx.createBiquadFilter(), gHi = ctx.createBiquadFilter();
       gLo.type = 'lowshelf'; gLo.frequency.value = 140; gLo.gain.value = 2.5; gHi.type = 'peaking'; gHi.frequency.value = 3200; gHi.Q.value = 0.8; gHi.gain.value = 2;
-      this.gunBus.connect(gHP); gHP.connect(gLo); gLo.connect(gHi); gHi.connect(this.muffle);
+      this.gunBus.connect(gHP); gHP.connect(gLo); gLo.connect(gHi); gHi.connect(this.sfxBus);
       // Dry bus: straight to the glue.
-      this.uiBus = ctx.createGain(); this.uiBus.gain.value = 1; this.uiBus.connect(glue);
+      this.uiBus = ctx.createGain(); this.uiBus.gain.value = 1; this.uiBus.connect(this.sfxDry);
       // Music: its own level, ducked under gunfire and explosions.
       this.musicBus = ctx.createGain(); this.musicBus.gain.value = 1; this.musicBus.connect(this.muffle);
       // Room reverb, fed only by the world and the gun, and only their mids: reverb on bass is mud, on highs is hiss.
@@ -144,7 +151,7 @@ export class Audio {
       const wet = ctx.createGain(); wet.gain.value = 0.5;
       const sW = ctx.createGain(); sW.gain.value = 0.3; const sG = ctx.createGain(); sG.gain.value = 0.2;
       this.master.connect(sW); sW.connect(vIn); this.gunBus.connect(sG); sG.connect(vIn);
-      vIn.connect(vLP); vLP.connect(verb); verb.connect(wet); wet.connect(this.muffle);
+      vIn.connect(vLP); vLP.connect(verb); verb.connect(wet); wet.connect(this.sfxBus);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   }

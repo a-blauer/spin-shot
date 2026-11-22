@@ -5,6 +5,7 @@
 //   * CLASS MASTERY: rounds cleared as a class unlock that class's last epic and legendary, then its hands.
 //   * CHALLENGES: lifetime feats that unlock guns, blades, buffs, workbench modifiers and hand cosmetics.
 //   * per-gun XP that unlocks permanent traits for that gun.
+// A reward is EARNED when its goal is met and UNLOCKED when the player claims it on the Progress screen.
 // Everything is a pure function of the lifetime stats, so nothing can be lost by a change to the numbers.
 import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
@@ -57,7 +58,7 @@ export const bossXp = (final, diff) => Math.round((final ? 800 : 120) * (DIFF_XP
 
 // starting weapon choices for the lobby loadout
 export const STARTERS = [{ w: 'Tin Star' }, { w: 'Copperhead' }];
-RANKS.forEach((R, i) => { if (R.starter) STARTERS.push({ w: R.starter, rank: i + 1, text: `Rank ${i + 1}  -  ${R.name}` }); });
+RANKS.forEach((R, i) => { if (R.starter) STARTERS.push({ w: R.starter, rank: i + 1, key: 'r' + (i + 1), text: `Rank ${i + 1}  -  ${R.name}` }); });
 
 // ---- class mastery: rounds cleared while playing the class
 export const CLASS_LEVELS = [8, 25, 60];
@@ -128,7 +129,7 @@ export const ACHIEVEMENTS = [
   { id: 'nm6', group: 3, name: 'No Rest for the Wicked', desc: 'Clear all six maps on Nightmare', stat: 'nmClears', need: 6, skin: 'nightmare' },
 ];
 
-const fresh = () => ({ stats: {}, got: {}, gunXp: {}, skin: 'drifter', look: Object.assign({}, DEFAULT_LOOK), cos: {} });
+const fresh = () => ({ stats: {}, got: {}, claimed: {}, gunXp: {}, skin: 'drifter', look: Object.assign({}, DEFAULT_LOOK), cos: {} });
 let S = fresh();
 let dirty = false;
 const events = [];
@@ -153,27 +154,32 @@ export function rewardText(A) {
 // Every goal in one list: { key, ok(), banner, label, how, reward }. `how` is the plain-words condition, used wherever
 // a locked thing has to say what unlocks it; `label` is what the end-of-run card calls it when it carries no reward.
 const MILESTONES = [];
-RANKS.forEach((R, i) => { if (i > 0) MILESTONES.push({ key: 'r' + (i + 1), ok: () => val('rank') >= i + 1, banner: `RANK ${i + 1}  -  ${R.name.toUpperCase()}`, how: `Rank ${i + 1}  -  ${R.name}`, reward: R }); });
-for (const C of CLASS_META) C.rewards.forEach((R, k) => MILESTONES.push({ key: `c:${C.id}:${k}`, ok: () => (S.stats['cls_' + C.id] || 0) >= CLASS_LEVELS[k], banner: `${C.name.toUpperCase()} ${CLASS_LEVEL_NAMES[k].toUpperCase()}`, how: `${C.name} ${CLASS_LEVEL_NAMES[k]}  -  clear ${CLASS_LEVELS[k]} rounds as the ${C.name}`, reward: R }));
-for (const A of ACHIEVEMENTS) MILESTONES.push({ key: 'a:' + A.id, ok: () => val(A.stat) >= A.need, banner: `CHALLENGE: ${A.name.toUpperCase()}`, how: A.desc, reward: A });
+RANKS.forEach((R, i) => { if (i > 0) MILESTONES.push({ key: 'r' + (i + 1), ok: () => val('rank') >= i + 1, banner: `RANK ${i + 1}  -  ${R.name.toUpperCase()}`, title: `Rank ${i + 1}  -  ${R.name}`, how: `Rank ${i + 1}  -  ${R.name}`, reward: R }); });
+for (const C of CLASS_META) C.rewards.forEach((R, k) => MILESTONES.push({ key: `c:${C.id}:${k}`, ok: () => (S.stats['cls_' + C.id] || 0) >= CLASS_LEVELS[k], banner: `${C.name.toUpperCase()} ${CLASS_LEVEL_NAMES[k].toUpperCase()}`, title: `${C.name} ${CLASS_LEVEL_NAMES[k]}`, how: `${C.name} ${CLASS_LEVEL_NAMES[k]}  -  clear ${CLASS_LEVELS[k]} rounds as the ${C.name}`, reward: R }));
+for (const A of ACHIEVEMENTS) MILESTONES.push({ key: 'a:' + A.id, ok: () => val(A.stat) >= A.need, banner: `CHALLENGE: ${A.name.toUpperCase()}`, title: A.name, how: A.desc, reward: A });
 for (const m of WORLD) {
-  MILESTONES.push({ key: 'h:' + m.id, ok: () => (S.stats['best_' + m.id] || 0) >= HEIRLOOM_ROUND, banner: '', how: `Reach round ${HEIRLOOM_ROUND} in ${m.name}`, reward: { heirloom: m.heirloom } });
+  MILESTONES.push({ key: 'h:' + m.id, ok: () => (S.stats['best_' + m.id] || 0) >= HEIRLOOM_ROUND, banner: '', title: `${m.name} heirloom`, how: `Reach round ${HEIRLOOM_ROUND} in ${m.name}`, reward: { heirloom: m.heirloom } });
   MEDALS.forEach((name, d) => MILESTONES.push({ key: `m:${m.id}:${d}`, ok: () => (S.stats['clear_' + m.id] || 0) >= d + 1, banner: `${name.toUpperCase()} MEDAL  -  ${m.name.toUpperCase()}`, label: `${name} medal: ${m.name}`, how: '', reward: {}, top: () => (S.stats['clear_' + m.id] || 0) === d + 1 }));
 }
+const BY_KEY = new Map(MILESTONES.map((M) => [M.key, M]));
+const hasReward = (M) => !!rewardText(M.reward);
+// 'locked' (goal not met), 'ready' (met, waiting to be claimed) or 'claimed'
+const stateOf = (M) => (!M.ok() ? 'locked' : S.claimed[M.key] || !hasReward(M) ? 'claimed' : 'ready');
 function recompute() {
   lockedGuns = new Set(); lockedUps = new Set(); lockedBlades = new Set(); earnedSkins = new Set(['drifter']);
   for (const M of MILESTONES) {
     const R = M.reward;
-    if (M.ok()) { if (R.skin) earnedSkins.add(R.skin); continue; }
+    if (M.ok() && S.claimed[M.key]) { if (R.skin) earnedSkins.add(R.skin); continue; }   // earned AND claimed
     (R.guns || []).forEach((g) => lockedGuns.add(g)); (R.upgrades || []).forEach((u) => lockedUps.add(u)); (R.blades || []).forEach((b) => lockedBlades.add(b));
   }
 }
 
 export const Meta = {
   load() {
-    let old = false;
-    try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') { old = !o.got || typeof o.got !== 'object'; S = Object.assign(fresh(), o); } } } catch (e) { S = fresh(); old = false; }
+    let old = false, preClaim = false;
+    try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') { old = !o.got || typeof o.got !== 'object'; preClaim = !o.claimed || typeof o.claimed !== 'object'; S = Object.assign(fresh(), o); } } } catch (e) { S = fresh(); old = false; preClaim = false; }
     if (!S.got || typeof S.got !== 'object') S.got = {};
+    if (!S.claimed || typeof S.claimed !== 'object') S.claimed = {};
     if (!S.stats || typeof S.stats !== 'object') S.stats = {};
     if (!S.cos || typeof S.cos !== 'object') S.cos = {};
     if (!S.gunXp || typeof S.gunXp !== 'object') S.gunXp = {};
@@ -187,6 +193,8 @@ export const Meta = {
     }
     for (const key of Object.keys(S.cos)) { const [slot, id] = key.split(':'), I = COSMETICS[slot] && COSMETICS[slot].find((i) => i.id === id); if (!I || !I.need || (S.stats[I.need[0]] || 0) < I.need[1]) { delete S.cos[key]; dirty = true; } }
     this.check(true);      // whatever is already earned is simply marked; only new things are announced
+    // a save from before rewards had to be claimed keeps everything it had already unlocked
+    if (preClaim) { for (const M of MILESTONES) if (M.ok()) S.claimed[M.key] = 1; dirty = true; }
     recompute();
     events.length = 0;
   },
@@ -204,7 +212,7 @@ export const Meta = {
       S.got[M.key] = 1; dirty = true; changed = true;
       if (silent || (M.top && !M.top())) continue;      // a Gold clear announces Gold, not all three medals
       const rt = rewardText(M.reward);
-      events.push({ type: 'ms', banner: M.banner, toast: rt ? (M.key[0] === 'h' ? `Heirloom earned: ${M.reward.heirloom}` : `Unlocked: ${rt}`) : '' });
+      events.push({ type: 'ms', banner: M.banner, toast: rt ? `Reward earned: ${rt}  -  claim it in Progress` : '' });
       if (rt || M.label) run.unlocked.push(rt || M.label);
     }
     if (changed) { recompute(); if (!silent) this.save(); }
@@ -214,6 +222,12 @@ export const Meta = {
       if (!silent) events.push({ type: 'cos', name: I.name });
     }
   },
+  // ---- claiming
+  milestone(key) { return BY_KEY.get(key); },
+  stateOf(key) { const M = BY_KEY.get(key); return M ? stateOf(M) : 'locked'; },
+  claimable() { return MILESTONES.filter((M) => stateOf(M) === 'ready'); },
+  claim(key) { const M = BY_KEY.get(key); if (!M || stateOf(M) !== 'ready') return null; S.claimed[key] = 1; dirty = true; recompute(); this.save(); return M; },
+  claimAll() { const L = this.claimable(); for (const M of L) S.claimed[M.key] = 1; if (L.length) { dirty = true; recompute(); this.save(); } return L; },
   // ---- renown
   xp() { return S.stats.xp || 0; },
   rank() { return val('rank'); },
@@ -232,7 +246,7 @@ export const Meta = {
   // ---- maps
   medal(mapId) { return Math.min(3, S.stats['clear_' + mapId] || 0); },
   bestRoundOn(mapId) { return S.stats['best_' + mapId] || 0; },
-  heirloomUnlocked(mapId) { return unlockAll || (S.stats['best_' + mapId] || 0) >= HEIRLOOM_ROUND; },
+  heirloomUnlocked(mapId) { return unlockAll || ((S.stats['best_' + mapId] || 0) >= HEIRLOOM_ROUND && !!S.claimed['h:' + mapId]); },
   heirloom() { const m = WORLD.find((w) => w.id === S.heir); return m && this.heirloomUnlocked(m.id) ? m.heirloom : null; },
   heirloomId() { return this.heirloom() ? S.heir : ''; },
   setHeirloom(mapId) { if (mapId && !this.heirloomUnlocked(mapId)) return; S.heir = mapId || ''; dirty = true; this.save(); },
@@ -246,7 +260,7 @@ export const Meta = {
   look() { const L = {}; for (const s of SLOTS) { const id = (S.look || {})[s]; L[s] = this.cosUnlocked(s, id) ? cosItem(s, id).id : DEFAULT_LOOK[s]; } return L; },
   lookStr() { return lookString(this.look()); },
   setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; S.look = Object.assign({}, DEFAULT_LOOK, S.look); S.look[slot] = cosItem(slot, id).id; dirty = true; this.save(); },
-  starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.rank || this.rank() >= T.rank); },
+  starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.rank || (this.rank() >= T.rank && !!S.claimed['r' + T.rank])); },
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
   cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },
   setCls(id) { S.cls = id; dirty = true; this.save(); },

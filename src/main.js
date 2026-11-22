@@ -1,7 +1,7 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
 import { CLASSES, rollBuff, rollGunMod } from './classes.js';
 import { MELEE, rollMelee } from './melee.js';
-import { DIFFS, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
+import { DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
@@ -153,13 +153,12 @@ async function boot() {
   window.__roll = (r, st, c) => import('./classes.js').then((k) => k.rollBuff(r, st, c));
   window.__gs1 = (n) => import('./gunsound.js').then((m) => m.gunSound(game.audio, n, 1, false));
   status('');
-  document.body.classList.add('ready');
+  document.body.classList.add('ready'); progBadge();
   resize();
   if (TEST) start();
 }
 function start() {
   audio.unlock();
-  audio.master && (audio.master.gain.value = 0.8);
   preloadGunSounds(audio);
   audio.preload(['S_ShellDrop', 'S_HullDrop', 'S_ShellIn', 'S_Rack', 'S_Pistol', 'S_Revolver', 'S_HitFlesh', 'S_HitFlesh2', 'S_HitMarker', 'S_Kill', 'S_Step0', 'S_Step1', 'S_Step2', 'S_Step3', 'S_Jump', 'S_Land', 'S_Groan0', 'S_Groan1', 'S_EnemyDie', 'S_Coin', 'S_Explosion', 'S_RoundStart']);
   title.style.display = 'none';
@@ -170,79 +169,183 @@ function start() {
 }
 // ---- progress screen (achievements, gun levels, cosmetics) on the title card
 const prog = document.getElementById('progress');
-function renderProgress() {
-  const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  const ups = game ? game.data.upgrades : [], weapons = game ? game.data.weapons : [];
-  const bar = (v, n) => `<div class="bar"><i style="width:${Math.max(0, Math.min(1, n > 0 ? v / n : 1)) * 100}%"></i></div>`;
-  const kindOf = (name) => { const u = ups.find((x) => x.name === name); return u ? (u.gun ? 'workbench modifier' : u.cls ? 'class buff' : 'buff') : 'buff'; };
-  // a reward, spelled out: what it is as well as what it is called
-  const rwd = (R) => {
-    const out = [];
-    if (R.starter) out.push(`${R.starter} as a starting gun`);
-    (R.guns || []).forEach((g) => out.push(`${g} (gun)`));
-    (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
-    (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
-    if (R.skin) out.push(`${Meta.skinById(R.skin).name} hands`);
-    return out.join(', ');
+// ---- small pictures for rewards: buff icons cut from the icon sheet, guns and blades rendered from their models
+const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const iconCache = new Map();
+function iconURL(name) {
+  if (iconCache.has(name)) return iconCache.get(name);
+  let url = '';
+  try {
+    const I = hud.icons, m = I && I.meta[name];
+    if (m) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const W = I.img.width, H = I.img.height; cv.getContext('2d').drawImage(I.img, m.u0 * W, m.v0 * H, (m.u1 - m.u0) * W, (m.v1 - m.v0) * H, 0, 0, 128, 128); url = cv.toDataURL('image/png'); }
+  } catch (e) { url = ''; }
+  iconCache.set(name, url); return url;
+}
+let thR = null, thVM = null;
+function modelThumb(kind, name) {
+  const key = kind + ':' + name; if (iconCache.has(key)) return iconCache.get(key);
+  let url = '';
+  try {
+    const TW = 420, TH = 230;
+    if (!thR) { thR = new THREE.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: true, alpha: true, preserveDrawingBuffer: true }); thR.setPixelRatio(1); thR.setSize(TW, TH, false); thR.setClearColor(0x000000, 0); }
+    const sc = new THREE.Scene(), box = new THREE.Box3(); let obj;
+    if (kind === 'gun') {
+      const def = game.data.weapons.findIndex((w) => w.name === name); if (def < 0) throw new Error('no gun');
+      obj = game.vm.constructor.displayModel(game, def, 0);      // the wall-buy display piece: the gun alone, no hands
+    } else {
+      const W = MELEE.find((m) => m.name === name); if (!W) throw new Error('no blade');
+      if (!thVM) thVM = new game.vm.constructor(game);
+      thVM.meleeBuild(W); obj = thVM.mtool.children[0]; obj.removeFromParent(); obj.position.set(0, 0, 0); obj.rotation.set(-Math.PI / 2, 0, 0);   // the weapon without the fists, laid on its side
+    }
+    sc.add(obj); obj.updateMatrixWorld(true); box.setFromObject(obj);
+    const ctr = box.getCenter(new THREE.Vector3()), dir = (kind === 'gun' ? new THREE.Vector3(1, 0.22, 0.38) : new THREE.Vector3(1, 0.15, 0.3)).normalize();
+    const far = box.getSize(new THREE.Vector3()).length() + 20, cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, far * 2); cam.position.copy(ctr).addScaledVector(dir, far); cam.up.set(0, 1, 0); cam.lookAt(ctr); cam.updateMatrixWorld(true);
+    // fit the box: its corners measured along the camera's right and up
+    const R = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0), U = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1); let hw = 1, hh = 1;
+    for (let i = 0; i < 8; i++) { const p = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(ctr); hw = Math.max(hw, Math.abs(p.dot(R))); hh = Math.max(hh, Math.abs(p.dot(U))); }
+    const k = Math.max(hw / (TW / TH), hh) * 1.12; cam.left = -k * TW / TH; cam.right = k * TW / TH; cam.top = k; cam.bottom = -k; cam.updateProjectionMatrix();
+    thR.render(sc, cam); url = thR.domElement.toDataURL('image/png');
+  } catch (e) { url = ''; }
+  iconCache.set(key, url); return url;
+}
+const hexOf = (n) => '#' + n.toString(16).padStart(6, '0');
+const kindOf = (name) => { const u = game && game.data.upgrades.find((x) => x.name === name); return u ? (u.gun ? 'workbench modifier' : u.cls ? 'class buff' : 'buff') : 'buff'; };
+// a reward, spelled out: what it is as well as what it is called
+function rewardLine(R) {
+  const out = [];
+  if (R.starter) out.push(`${R.starter} as a starting gun`);
+  (R.guns || []).forEach((g) => out.push(`${g} (gun)`));
+  (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
+  (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
+  if (R.heirloom) out.push(`${R.heirloom} (heirloom)`);
+  if (R.skin) out.push(`${Meta.skinById(R.skin).name} hands`);
+  return out.join(', ');
+}
+// what a claimed reward puts on the popup: one card per thing, with a picture
+function rewardCards(M) {
+  const R = M.reward, out = [], ups = game.data.upgrades, guns = game.data.weapons;
+  const gun = (name, starter) => { const W = guns.find((w) => w.name === name) || {}; out.push({ img: modelThumb('gun', name), wide: true, name, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: starter ? 'Starting gun' : `${W.rarity || ''} ${(W.cls || 'gun').toLowerCase()}`, desc: (W.desc || '') + (starter ? ' Pick it as your starting gun in the lobby.' : ' Now in the weapon pool: the mystery box can roll it.') }); };
+  if (R.starter) gun(R.starter, true);
+  (R.guns || []).forEach((g) => gun(g, false));
+  (R.blades || []).forEach((n) => { const W = MELEE.find((m) => m.name === n) || {}; out.push({ img: modelThumb('blade', n), wide: true, name: n, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: `${W.rarity || ''} blade`, desc: (W.desc || '') + ' Now in the mystery box.' }); });
+  (R.upgrades || []).forEach((n) => { const i = ups.findIndex((u) => u.name === n), U = ups[i] || {}, k = kindOf(n); out.push({ img: iconURL('U_' + i), name: n, col: RARITY_HEX[U.rarity] || '#f2e8d5', kind: `${U.rarity || ''} ${k}`, desc: (U.desc || '') + (k === 'workbench modifier' ? ' Now turns up at the workbench.' : ' Now turns up in chests.') }); });
+  if (R.heirloom) { const i = ups.findIndex((u) => u.name === R.heirloom), U = ups[i] || {}; out.push({ img: iconURL('U_' + i), name: R.heirloom, col: '#ffcd5a', kind: 'Heirloom', desc: (U.desc || '') + ' Pick it in the lobby to start every run with it.' }); }
+  if (R.skin) { const K = Meta.skinById(R.skin); out.push({ sw: [K.glove, K.cuff, K.sleeve, K.stripe], name: K.name + ' hands', col: '#ffcd5a', kind: 'Hands', desc: 'A new look for your gloves and sleeves.', skin: K.id }); }
+  return out;
+}
+const claimEl = document.createElement('div'); claimEl.id = 'claim'; document.body.appendChild(claimEl);
+claimEl.addEventListener('click', (e) => e.stopPropagation());
+function showClaim(list) {
+  if (!list.length) return;
+  const card = (C, from) => {
+    let s = `<div class="citem${C.wide ? ' wide' : ''}" style="border-color:${C.col}">`;
+    s += C.sw ? `<div class="cimg csw">${C.sw.map((x) => `<i style="background:${hexOf(x)}"></i>`).join('')}</div>` : C.img ? `<div class="cimg"><img src="${C.img}" alt=""></div>` : '';
+    return s + `<div class="ctxt"><b style="color:${C.col}">${esc(C.name)}</b><em>${esc(C.kind)}${from ? `  -  ${esc(from)}` : ''}</em><p>${esc(C.desc)}</p>${C.skin ? `<button class="cequip" data-skin="${C.skin}">EQUIP NOW</button>` : ''}</div></div>`;
   };
-  const I = Meta.rankInfo();
+  let h;
+  if (list.length === 1) {
+    const M = list[0];
+    h = `<div class="cbox"><div class="ck">REWARD CLAIMED</div><h3>${esc(M.title.toUpperCase())}</h3><div class="chow">${esc(M.how && M.how !== M.title ? M.how : 'Rank reached')}</div><div class="citems">${rewardCards(M).map((C) => card(C)).join('')}</div>`;
+  } else {
+    // several at once: one list of everything, each card saying where it came from
+    h = `<div class="cbox many"><div class="ck">REWARDS CLAIMED</div><h3>${list.length} REWARDS</h3><div class="chow">Everything below is now yours.</div><div class="citems">${list.map((M) => rewardCards(M).map((C) => card(C, M.title)).join('')).join('')}</div>`;
+  }
+  h += '<button id="cok">CONTINUE</button></div>';
+  claimEl.innerHTML = h; claimEl.style.display = 'flex'; claimEl.scrollTop = 0;
+  audio.play('S_LevelUp', 0.7);
+  claimEl.querySelector('#cok').onclick = () => { claimEl.style.display = 'none'; };
+  claimEl.querySelectorAll('.cequip').forEach((el) => { el.onclick = () => { Meta.setSkin(el.dataset.skin); if (game) game.vm.setWeapon(game.vm.weaponDef, game.vm.weaponTier, false); el.textContent = 'EQUIPPED'; el.disabled = true; renderProgress(); }; });
+}
+// the count on the title's PROGRESS button
+function progBadge() { const n = Meta.claimable().length, b = document.getElementById('progbtn'); if (b) b.innerHTML = n ? `PROGRESS<i class="badge">${n}</i>` : 'PROGRESS'; }
+
+// ---- the Progress screen: a rank banner, anything waiting to be claimed, then one tab at a time
+const PTABS = [['renown', 'RENOWN'], ['maps', 'MAPS'], ['classes', 'CLASSES'], ['challenges', 'CHALLENGES'], ['arsenal', 'ARSENAL'], ['hands', 'HANDS'], ['record', 'RECORD']];
+let progTab = 'renown';
+const MAP_CLEAR = (m) => ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id);
+const tabOf = (key) => (key[0] === 'r' ? 'renown' : key[0] === 'c' ? 'classes' : key[0] === 'h' ? 'maps' : ACHIEVEMENTS.some((A) => 'a:' + A.id === key && /^clear_/.test(A.stat)) ? 'maps' : 'challenges');
+function renderProgress() {
+  const weapons = game ? game.data.weapons : [];
+  const bar = (v, n) => `<div class="bar"><i style="width:${Math.max(0, Math.min(1, n > 0 ? v / n : 1)) * 100}%"></i></div>`;
+  // one reward: what it is, and whether it is locked, waiting or claimed
+  const rw = (key, lead) => {
+    const M = Meta.milestone(key); if (!M) return ''; const st = Meta.stateOf(key);
+    return `<div class="prw ${st}"><span>${lead ? `<u>${esc(lead)}</u> ` : ''}${esc(rewardLine(M.reward))}</span>${st === 'ready' ? `<button class="pclaim" data-claim="${esc(key)}">CLAIM</button>` : `<em>${st === 'claimed' ? 'Claimed' : 'Locked'}</em>`}</div>`;
+  };
+  const I = Meta.rankInfo(), ready = Meta.claimable(), per = {}; for (const M of ready) per[tabOf(M.key)] = (per[tabOf(M.key)] || 0) + 1;
   let h = '<div class="ph"><h2>PROGRESS</h2><button id="pclose">CLOSE</button></div>';
   h += `<div class="renown"><div class="rk"><b>RANK ${I.rank}  -  ${esc(I.name.toUpperCase())}</b><span>${I.max ? `${I.xp.toLocaleString()} renown  -  top rank` : `${I.into.toLocaleString()} / ${I.span.toLocaleString()} renown to rank ${I.next.rank}`}</span></div>${bar(I.max ? 1 : I.into, I.max ? 1 : I.span)}`;
-  h += `<div class="rn">${I.max ? 'Every rank reward is yours.' : `Next: ${esc(I.next.name)}  -  ${esc(rwd(RANKS[I.rank]))}`}</div><div class="num">Every round you clear and every boss you kill pays renown, win or lose. Hard pays 1.5x and Nightmare 2x.</div></div><div class="pcols">`;
-  // ---- the frontier: maps, then classes
-  h += '<section><h3>THE FRONTIER</h3>';
-  WORLD.forEach((m) => {
-    const MP = MAPS.find((x) => x.id === m.id), med = Meta.medal(m.id), best = Meta.bestRoundOn(m.id), heir = Meta.heirloomUnlocked(m.id);
-    const A = ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id), dots = MEDALS.map((n, d) => `<i class="med" title="${n}" style="${med > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('');
-    h += `<div class="row ${med ? 'done' : ''}"><div class="rt"><b>${esc(m.name)}</b><span>${dots}</span></div><div class="num">Best round ${best} of ${MP ? MP.rounds : '?'}${med ? '  -  cleared on ' + DIFFS[med - 1].name : ''}</div>`;
-    h += `<div class="rw ${heir ? '' : 'todo'}">${heir ? 'Heirloom earned' : `Reach round ${HEIRLOOM_ROUND}`}: ${esc(m.heirloom)} to start a run with</div>`;
-    if (A) h += `<div class="rw ${med ? '' : 'todo'}">${med ? 'Cleared' : 'Clear it'}: ${esc(rwd(A))}</div>`;
+  h += `<div class="rn">${I.max ? 'You hold the top rank.' : `Next: ${esc(I.next.name)}  -  ${esc(rewardLine(RANKS[I.rank]))}`}</div></div>`;
+  if (ready.length) h += `<div class="claimbar"><b>${ready.length} reward${ready.length > 1 ? 's' : ''} ready to claim</b><span>${esc(ready.slice(0, 3).map((M) => M.title).join('  |  '))}${ready.length > 3 ? `  +${ready.length - 3} more` : ''}</span><button id="claimall">CLAIM ALL</button></div>`;
+  h += '<div class="ptabs">' + PTABS.map(([id, label]) => `<button class="${progTab === id ? 'on' : ''}" data-tab="${id}">${label}${per[id] ? `<i class="badge">${per[id]}</i>` : ''}</button>`).join('') + '</div><div class="pbody">';
+  if (progTab === 'renown') {
+    h += '<p class="pnote">Every round you clear and every boss you kill pays renown, win or lose. Hard pays 1.5x and Nightmare 2x. Each rank holds a reward.</p><div class="pgrid">';
+    RANKS.forEach((R, i) => {
+      if (i === 0) return;
+      const st = Meta.stateOf('r' + (i + 1));
+      h += `<div class="pc ${st}"><div class="pt"><b><i class="num">${i + 1}</i>${esc(R.name)}</b><span>${rankXp(i + 1).toLocaleString()} renown</span></div>${rw('r' + (i + 1))}</div>`;
+    });
     h += '</div>';
-  });
-  h += '<h3 style="margin-top:18px">CLASS MASTERY</h3>';
-  for (const C of CLASS_META) {
-    const n = Meta.clsRounds(C.id), lvl = Meta.clsLevel(C.id), CL = CLASSES.find((x) => x.id === C.id), prev = lvl > 0 ? CLASS_LEVELS[lvl - 1] : 0, max = lvl >= CLASS_LEVELS.length;
-    h += `<div class="row ${max ? 'done' : ''}"><div class="rt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${lvl ? CLASS_LEVEL_NAMES[lvl - 1] : 'Novice'}</span></div>`;
-    h += `<div class="rw ${max ? '' : 'todo'}">${max ? 'Mastered' : `${CLASS_LEVEL_NAMES[lvl]}: ${esc(rwd(C.rewards[lvl]))}`}</div>${bar(max ? 1 : n - prev, max ? 1 : CLASS_LEVELS[lvl] - prev)}<div class="num">${n} round${n === 1 ? '' : 's'} cleared${max ? '' : `  -  ${CLASS_LEVELS[lvl]} for ${CLASS_LEVEL_NAMES[lvl]}`}</div></div>`;
-  }
-  const T = (k) => Meta.stat(k).toLocaleString();
-  h += `<h3 style="margin-top:18px">TOTALS</h3><div class="row"><div class="num tot">Runs ${T('runs')}<br>Clears ${T('wins')}<br>Rounds cleared ${T('rounds')}<br>Best round ${T('bestRound')}<br>Kills ${T('kills')}<br>Bosses ${T('bosses')}<br>Chests ${T('chests')}<br>Money earned $${T('moneyEarned')}</div></div>`;
-  // ---- renown track
-  h += '</section><section><h3>RENOWN</h3>';
-  RANKS.forEach((R, i) => {
-    if (i === 0) return;
-    const done = I.rank >= i + 1;
-    h += `<div class="row ${done ? 'done' : ''}"><div class="rt"><b>${i + 1}  -  ${esc(R.name)}</b><span>${rankXp(i + 1).toLocaleString()} renown</span></div><div class="rw ${done ? '' : 'todo'}">${done ? 'Unlocked' : 'Unlocks'}: ${esc(rwd(R))}</div></div>`;
-  });
-  h += '<h3 style="margin-top:18px">HANDS</h3>';
-  for (const K of SKINS) {
-    const ok = Meta.skinUnlocked(K.id), sel = Meta.skin().id === K.id;
-    const hx = (n) => '#' + n.toString(16).padStart(6, '0');
-    h += `<div class="row skin ${ok ? '' : 'locked'} ${sel ? 'sel' : ''}" data-skin="${K.id}"><div class="sw"><i style="background:${hx(K.glove)}"></i><i style="background:${hx(K.cuff)}"></i><i style="background:${hx(K.sleeve)}"></i></div><div class="rt"><b>${esc(K.name)}</b><span>${ok ? (sel ? 'Equipped' : 'Click to equip') : 'Locked: ' + esc(Meta.howToUnlock('skin', K.id))}</span></div></div>`;
-  }
-  // ---- challenges
-  h += '</section><section><h3>CHALLENGES</h3>';
-  GROUPS.forEach((G, gi) => {
-    h += `<h4>${esc(G.toUpperCase())}</h4>`;
-    for (const A of ACHIEVEMENTS) {
-      if (A.group !== gi) continue;
-      const v = Math.min(A.need, Meta.stat(A.stat)), done = v >= A.need;
-      h += `<div class="row ${done ? 'done' : ''}"><div class="rt"><b>${esc(A.name)}</b><span>${esc(A.desc)}</span></div><div class="rw ${done ? '' : 'todo'}">${done ? 'Unlocked' : 'Unlocks'}: ${esc(rwd(A))}</div>${A.need > 1 ? `${bar(v, A.need)}<div class="num">${v.toLocaleString()} / ${A.need.toLocaleString()}</div>` : ''}</div>`;
+  } else if (progTab === 'maps') {
+    h += `<p class="pnote">Each map is its own run. Reach round ${HEIRLOOM_ROUND} for its heirloom, clear it for its reward, and clear it on Hard and Nightmare for the silver and gold medals.</p><div class="pgrid">`;
+    WORLD.forEach((m) => {
+      const MP = MAPS.find((x) => x.id === m.id), med = Meta.medal(m.id), best = Meta.bestRoundOn(m.id), A = MAP_CLEAR(m), rounds = MP ? MP.rounds : 12;
+      h += `<div class="pc ${med ? 'claimed' : ''}"><div class="pt"><b>${esc(m.name)}</b><span>${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${med > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`;
+      h += `${bar(Math.min(best, rounds), rounds)}<div class="pn">Best round ${best} of ${rounds}${med ? '  -  cleared on ' + DIFFS[med - 1].name : ''}</div>${rw('h:' + m.id, `Round ${HEIRLOOM_ROUND}:`)}${A ? rw('a:' + A.id, 'Clear:') : ''}</div>`;
+    });
+    h += '</div>';
+  } else if (progTab === 'classes') {
+    h += '<p class="pnote">Rounds cleared while playing a class count toward its mastery. Each level unlocks more of that class.</p><div class="pgrid">';
+    for (const C of CLASS_META) {
+      const n = Meta.clsRounds(C.id), lvl = Meta.clsLevel(C.id), CL = CLASSES.find((x) => x.id === C.id), prev = lvl > 0 ? CLASS_LEVELS[lvl - 1] : 0, max = lvl >= CLASS_LEVELS.length;
+      h += `<div class="pc ${max ? 'claimed' : ''}"><div class="pt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${lvl ? CLASS_LEVEL_NAMES[lvl - 1] : 'Novice'}</span></div>`;
+      h += `${bar(max ? 1 : n - prev, max ? 1 : CLASS_LEVELS[lvl] - prev)}<div class="pn">${n} round${n === 1 ? '' : 's'} cleared${max ? '' : `  -  ${CLASS_LEVELS[lvl]} for ${CLASS_LEVEL_NAMES[lvl]}`}</div>`;
+      C.rewards.forEach((R, k) => { h += rw(`c:${C.id}:${k}`, `${CLASS_LEVEL_NAMES[k]} (${CLASS_LEVELS[k]}):`); });
+      h += '</div>';
     }
-  });
-  // ---- guns, hands, totals
-  h += '</section><section><h3>WEAPONS</h3>';
-  for (const W of weapons) {
-    const locked = Meta.gunLocked(W.name), lvl = Meta.gunLevel(W.name), xp = Meta.gunXp(W.name);
-    const next = lvl < GUN_LEVELS.length ? GUN_LEVELS[lvl] : GUN_LEVELS[GUN_LEVELS.length - 1], prev = lvl > 0 ? GUN_LEVELS[lvl - 1] : 0;
-    h += `<div class="row ${locked ? 'locked' : ''}"><div class="rt"><b>${esc(W.name)}</b><span>${locked ? 'Locked: ' + esc(Meta.howToUnlock('guns', W.name)) : 'Level ' + lvl + ' / 5'}</span></div>`;
-    if (!locked) h += `<div class="rw">${lvl < 5 ? 'Next: ' + esc(GUN_TRAITS[lvl]) : 'Mastered'}</div>${bar(lvl >= 5 ? 1 : xp - prev, lvl >= 5 ? 1 : next - prev)}<div class="num">${xp.toLocaleString()} kills</div>`;
     h += '</div>';
+  } else if (progTab === 'challenges') {
+    GROUPS.forEach((G, gi) => {
+      const L = ACHIEVEMENTS.filter((A) => A.group === gi && !/^clear_/.test(A.stat)); if (!L.length) return;
+      // waiting to be claimed first, then the ones in progress (nearest first), then the claimed
+      const ord = (A) => { const st = Meta.stateOf('a:' + A.id); return st === 'ready' ? -1 : st === 'claimed' ? 2 : 1 - Math.min(1, Meta.stat(A.stat) / A.need); };
+      L.sort((x, y) => ord(x) - ord(y));
+      h += `<h4>${esc(G.toUpperCase())}<span>${L.filter((A) => Meta.stat(A.stat) >= A.need).length} / ${L.length}</span></h4><div class="pgrid">`;
+      for (const A of L) {
+        const v = Math.min(A.need, Meta.stat(A.stat)), st = Meta.stateOf('a:' + A.id);
+        h += `<div class="pc ${st}"><div class="pt"><b>${esc(A.name)}</b><span>${A.need > 1 ? `${v.toLocaleString()} / ${A.need.toLocaleString()}` : st === 'locked' ? '' : 'Done'}</span></div><div class="pn">${esc(A.desc)}</div>${st === 'locked' && A.need > 1 ? bar(v, A.need) : ''}${rw('a:' + A.id)}</div>`;
+      }
+      h += '</div>';
+    });
+  } else if (progTab === 'arsenal') {
+    h += '<p class="pnote">Kills with a gun level it up, and each level is a permanent trait for that gun. Locked guns say what unlocks them.</p><div class="pgrid">';
+    for (const W of weapons) {
+      const locked = Meta.gunLocked(W.name), lvl = Meta.gunLevel(W.name), xp = Meta.gunXp(W.name);
+      const next = lvl < GUN_LEVELS.length ? GUN_LEVELS[lvl] : GUN_LEVELS[GUN_LEVELS.length - 1], prev = lvl > 0 ? GUN_LEVELS[lvl - 1] : 0;
+      h += `<div class="pc ${locked ? 'locked' : lvl >= 5 ? 'claimed' : ''}"><div class="pt"><b style="color:${locked ? '' : RARITY_HEX[W.rarity] || ''}">${esc(W.name)}</b><span>${locked ? 'Locked' : 'Level ' + lvl + ' / 5'}</span></div>`;
+      h += locked ? `<div class="pn">${esc(Meta.howToUnlock('guns', W.name))}</div>` : `${bar(lvl >= 5 ? 1 : xp - prev, lvl >= 5 ? 1 : next - prev)}<div class="pn">${xp.toLocaleString()} kills  -  ${lvl < 5 ? 'next: ' + esc(GUN_TRAITS[lvl]) : 'mastered'}</div>`;
+      h += '</div>';
+    }
+    h += '</div>';
+  } else if (progTab === 'hands') {
+    h += '<p class="pnote">Your gloves and sleeves. Click one you own to wear it.</p><div class="pgrid">';
+    for (const K of SKINS) {
+      const ok = Meta.skinUnlocked(K.id), sel = Meta.skin().id === K.id;
+      h += `<div class="pc skin ${ok ? '' : 'locked'} ${sel ? 'sel' : ''}" data-skin="${K.id}"><div class="pt"><b><span class="sw"><i style="background:${hexOf(K.glove)}"></i><i style="background:${hexOf(K.cuff)}"></i><i style="background:${hexOf(K.sleeve)}"></i></span>${esc(K.name)}</b><span>${ok ? (sel ? 'Equipped' : 'Owned') : 'Locked'}</span></div>${ok ? '' : `<div class="pn">${esc(Meta.howToUnlock('skin', K.id))}</div>`}</div>`;
+    }
+    h += '</div>';
+  } else {
+    const T = (k) => Meta.stat(k).toLocaleString(), cells = [['Runs', T('runs')], ['Clears', T('wins')], ['Rounds cleared', T('rounds')], ['Best round', T('bestRound')], ['Kills', T('kills')], ['Headshots', T('headshots')], ['Melee kills', T('meleeKills')], ['Elites killed', T('eliteKills')], ['Bosses killed', T('bosses')], ['Chests opened', T('chests')], ['Money earned', '$' + T('moneyEarned')], ['Renown', T('xp')]];
+    h += '<div class="pstats">' + cells.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('') + '</div>';
   }
-  h += '</section></div>';
-  prog.innerHTML = h;
-  prog.querySelector('#pclose').onclick = (e) => { e.stopPropagation(); prog.style.display = 'none'; };
-  prog.querySelectorAll('.skin').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setSkin(el.dataset.skin); if (game) game.vm.setWeapon(game.vm.weaponDef, game.vm.weaponTier, false); renderProgress(); }; });
+  h += '</div>';
+  const keep = prog.scrollTop;
+  prog.innerHTML = h; prog.scrollTop = keep;
+  prog.querySelector('#pclose').onclick = (e) => { e.stopPropagation(); prog.style.display = 'none'; progBadge(); };
+  prog.querySelectorAll('.ptabs button').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); progTab = el.dataset.tab; prog.scrollTop = 0; renderProgress(); }; });
+  prog.querySelectorAll('.pclaim').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); const M = Meta.claim(el.dataset.claim); if (M) { renderProgress(); progBadge(); showClaim([M]); } }; });
+  const all = prog.querySelector('#claimall'); if (all) all.onclick = (e) => { e.stopPropagation(); const L = Meta.claimAll(); renderProgress(); progBadge(); showClaim(L); };
+  prog.querySelectorAll('.skin').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setSkin(el.dataset.skin); if (game) game.vm.setWeapon(game.vm.weaponDef, game.vm.weaponTier, false); renderProgress(); }; });
 }
 prog.addEventListener('click', (e) => e.stopPropagation());
 // ---- character locker: live 3D preview plus every cosmetic by slot
@@ -311,7 +414,7 @@ let lobbyBusy = false, lobbyMsg = '', lobbyTimer = 0, lobbySig = '';
 const esc2 = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function myName() { let v = 'Player'; try { v = localStorage.getItem('dmh-name') || 'Player'; } catch (e) { /* private mode */ } return v; }
 function openLobby() { title.style.display = 'none'; lobby.style.display = 'block'; lobbyMsg = ''; renderLobby(); }
-function closeLobby() { if (Net.active) Net.leave(); lobby.style.display = 'none'; title.style.display = 'flex'; }
+function closeLobby() { if (Net.active) Net.leave(); lobby.style.display = 'none'; title.style.display = 'flex'; progBadge(); }
 function renderLobby() {
   if (lobby.style.display !== 'block') return;
   const nmEl = lobby.querySelector('#lname'), cdEl = lobby.querySelector('#lcode'), focus = document.activeElement && document.activeElement.id;
@@ -334,12 +437,12 @@ function renderLobby() {
   h += `<section><h3>CHARACTER</h3><div class="lbchar">${SLOTS.map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`;
   // loadout
   h += '<section><h3>LOADOUT</h3><p class="dim">Starting weapon</p>';
-  for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : esc2(T.text)}</span></div>`; }
+  for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : Meta.stateOf(T.key) === 'ready' ? 'Earned  -  claim it in Progress' : esc2(T.text)}</span></div>`; }
   h += '</section>';
   // heirloom: one Common buff to start the run with, earned by getting past the first boss of a map
   { const cur = Meta.heirloomId(), ups = game ? game.data.upgrades : [];
     h += `<section><h3>HEIRLOOM</h3><p class="dim">Start the run with one buff. Each map gives up its own.</p><div class="lbpick ${cur ? '' : 'sel'}" data-heir=""><b>None</b></div>`;
-    for (const m of WORLD) { const ok = Meta.heirloomUnlocked(m.id), U = ups.find((u) => u.name === m.heirloom); h += `<div class="lbpick ${ok ? '' : 'locked'} ${cur === m.id ? 'sel' : ''}" data-heir="${m.id}"><b>${esc2(m.heirloom)}</b><span>${ok ? esc2(U ? U.desc : '') : `Reach round ${HEIRLOOM_ROUND} in ${esc2(m.name)}`}</span></div>`; }
+    for (const m of WORLD) { const ok = Meta.heirloomUnlocked(m.id), U = ups.find((u) => u.name === m.heirloom); h += `<div class="lbpick ${ok ? '' : 'locked'} ${cur === m.id ? 'sel' : ''}" data-heir="${m.id}"><b>${esc2(m.heirloom)}</b><span>${ok ? esc2(U ? U.desc : '') : Meta.stateOf('h:' + m.id) === 'ready' ? 'Earned  -  claim it in Progress' : `Reach round ${HEIRLOOM_ROUND} in ${esc2(m.name)}`}</span></div>`; }
     h += '</section>'; }
   // class
   h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => { const lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id); return `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span><span class="dim">${lv ? CLASS_LEVEL_NAMES[lv - 1] : 'Novice'}${lv < CLASS_LEVELS.length ? `  -  ${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}` : '  -  mastered'}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`; }).join('') + '</section>';
@@ -400,7 +503,7 @@ lobby.addEventListener('click', (e) => e.stopPropagation());
 Net.init().then(() => { Net.tried = true; });
 document.getElementById('playbtn').addEventListener('click', (e) => { e.stopPropagation(); if (game) openLobby(); });
 document.getElementById('setbtn').addEventListener('click', (e) => { e.stopPropagation(); pauseEl.classList.add('menu'); pauseEl.querySelector('h2').textContent = 'SETTINGS'; pauseEl.querySelector('#presume').textContent = 'DONE'; pauseEl.style.display = 'flex'; });
-document.getElementById('progbtn').addEventListener('click', (e) => { e.stopPropagation(); renderProgress(); prog.style.display = 'block'; });
+document.getElementById('progbtn').addEventListener('click', (e) => { e.stopPropagation(); if (Meta.claimable().length) progTab = tabOf(Meta.claimable()[0].key); renderProgress(); prog.style.display = 'block'; prog.scrollTop = 0; });
 hudCanvas.addEventListener('click', () => {
   if (!game) return;
   if (game.player.dead && !game.coopDown && game.time - (game.deathTime || 0) > 2) { restartRun(); return; }
@@ -414,8 +517,7 @@ document.addEventListener('pointerlockchange', () => {
 const pauseEl = document.getElementById('pause');
 function applySettings() {
   if (game) { game.settings.fov = settings.fov || 100; game.settings.shake = settings.shake ?? 1; }
-  if (audio.master) audio.master.gain.value = settings.volume ?? 0.8;
-  audio.setMusicVol(settings.music ?? 0.5);
+  audio.setMasterVol(settings.volume ?? 0.8); audio.setSfxVol(settings.sfx ?? 1); audio.setMusicVol(settings.music ?? 0.5);
 }
 function setPaused(p) {
   pauseEl.classList.remove('menu'); pauseEl.querySelector('h2').textContent = 'PAUSED'; pauseEl.querySelector('#presume').textContent = 'RESUME';
@@ -425,7 +527,7 @@ function setPaused(p) {
   const box = pauseEl.querySelector('#pdmg');
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
-const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Volume', 0, 1, 0.05, 0.8], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
+const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
 pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
@@ -439,7 +541,7 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyP' && game && mode === '
 
 // ---- a fresh game on the same renderer, audio and assets (a restart, or a different map)
 async function rebuildGame(mapId) {
-  title.style.display = 'flex'; document.body.classList.remove('ready'); status(MAPS[mapId].loading);
+  title.style.display = 'flex'; progBadge(); document.body.classList.remove('ready'); status(MAPS[mapId].loading);
   await loadCreaturePack(MAPS[mapId].pack);
   await new Promise((r) => setTimeout(r, 30));
   hud.toasts = []; hud.banners = []; hud.floaters = []; hud.roundBanner = null; hud.helpT = 99;
@@ -453,7 +555,7 @@ let restarting = false;
 async function restartRun(toMenu) {
   if (restarting) return; restarting = true;
   if (Net.active) Net.leave();
-  mode = 'title'; title.style.display = 'flex'; document.body.classList.remove('ready'); status('Dealing a new hand...');
+  mode = 'title'; title.style.display = 'flex'; progBadge(); document.body.classList.remove('ready'); status('Dealing a new hand...');
   await new Promise((r) => setTimeout(r, 30));
   hud.toasts = []; hud.banners = []; hud.floaters = []; hud.roundBanner = null; hud.helpT = 99;
   game = new Game(renderer, audio, hud, game.mapId);

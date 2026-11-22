@@ -740,7 +740,8 @@ export class World {
       }
       return null;
     };
-    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); return s ? this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest') : null; };
+    const chest = (zi, tier, ring) => { const s = find(zi, ring, 1100); if (!s) return null; const C = this.Station('Chest', V(s[0], s[1], 0), s[2], 0, tier, 'Chest'); C.at = s; return C; };
+    GM.spawnChestAt = (x, y, yaw, tier) => { taken.push([x, y]); return this.Station('Chest', V(x, y, 0), yaw, 0, tier, 'Chest'); };   // co-op: a guest puts the host's chest where the host put it
     // a dozen to begin with; the rest arrive during the run (Game.dropChest)
     const PLAN = CFG ? CFG.chests : { 0: [0], 1: [0], 2: [0], 3: [1], 4: [0], 5: [1], 7: [1], 8: [1], 9: [2], 10: [1], 11: [2, 2] };
     GM.spawnChest = (zi, tier) => chest(zi, tier, zi === 11);
