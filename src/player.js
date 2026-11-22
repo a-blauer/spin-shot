@@ -1286,7 +1286,6 @@ export class Player {
       const push = Math.min(420, 90 + (dealt / Math.max(1, E.maxHealth)) * 900) * (E.ai === 'Brute' ? 0.3 : 1);
       E.vel.x += dir.x * push; E.vel.z += dir.z * push; E.staggerT = Math.max(E.staggerT || 0, Math.min(0.3, 0.08 + dealt / Math.max(1, E.maxHealth) * 0.5));
     }
-    if (killed && !fromProc) G.hitstop = Math.max(G.hitstop || 0, head ? 0.05 : 0.028);
     this.hitMarker = 0.18; this.hitKill = killed; this.hitHead = head; this.hitScale = killed ? 1.6 : head || crit ? 1.25 : 1;
     if (!fromProc || procCoef > 0.3) {
       const heavy = head || crit || killed || base > 80;
@@ -1367,7 +1366,6 @@ export class Player {
     this.kills++; if (headshot) this.headshots++;
     Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills');
     Meta.addGunKill(this.W.name);
-    if (headshot || E.elite || E.isBoss) G.hitstop = E.isBoss ? 0.12 : 0.045;
     const pay = E.money + (headshot ? Math.round(38 * Math.min(1, payScale(G.round))) : 0);   // the bonus shrinks with kill pay as the horde grows
     this.addMoney(pay, true);
     this.killPulse = 1;
