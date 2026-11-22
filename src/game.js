@@ -507,7 +507,7 @@ export class Game {
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   pickEnemyType() {
-    const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });
+    const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (w > 0 && D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });   // (the floor of 3 is for THIS map's walker: applied to every walker it sent each map's into all the others, drawn from the wrong sheet as a jumble of parts)
     let r = Math.random() * total;
     for (let i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) return i; }
     return this.map.enemies[0];
@@ -552,6 +552,8 @@ export class Game {
     if (this.spawnEnemy(type, loc, elite, -1, 1, 1, 0, false)) this.spawned++;
   }
   spawnEnemy(def, loc, elite, boss, scaleMul, healthMul, affixes, splitChild) {
+    // a creature belongs to one map and is drawn from that map's sheet: anything asked for from another map becomes this map's creature of the same kind
+    if (DATA.enemies[def] && DATA.enemies[def].map !== this.mapId) def = this.enemyOfAI(DATA.enemies[def].ai, 'Walker');
     const E = new Enemy(this, def, loc, Math.max(1, this.round), elite, boss, scaleMul, healthMul, affixes, splitChild);
     this.enemies.push(E);
     return E;
