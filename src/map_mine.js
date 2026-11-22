@@ -17,7 +17,7 @@ export function buildMine(M) {
   // where the rock facing must leave the wall bare: doorways, and anything hung on a wall
   const LV = [0, -600, -900, -1200, -300];   // the floor level of each district
   // the ways down: [x, y, across X, upper district, lower district, which way the slope runs (+1 north), price]
-  const WAYS = [[0, -3500, true, 0, 4, -1, 1500], [-4500, -3500, true, 4, 1, 1, 2500], [-4500, 3500, true, 1, 2, 1, 3000], [4500, 3500, true, 2, 3, -1, 3500]];
+  const WAYS = [[0, -3500, true, 0, 4, -1, 1500], [-4500, -3500, true, 4, 1, 1, 2500], [-4500, 3500, true, 1, 2, 1, 3000], [4500, 3500, true, 2, 3, -1, 3500, true]];
   const CLEAR = WAYS.map(([x, y]) => [x, y, 400]).concat([[0, 3500, 720], [4500, -3500, 400]]).concat([[-1440, -900], [1440, 1600], [-1440, 1500], [1440, -1500], [-3675, -300], [-5325, -1250], [-2600, 3560], [6400, 5500], [6400, 0], [4650, 1400], [-2600, -7400], [6400, -5300]].map(([x, y]) => [x, y, 240]));
   // a face of rough rock: slabs of uneven depth and height standing off a flat wall, so no wall reads as a box
   const face = (x0, y0, x1, y1, nx, ny, h, cols) => {
@@ -94,7 +94,7 @@ export function buildMine(M) {
   const RECT = [[-1500, -3500, 1500, 3500], [-6500, -3500, -1500, 3500], [-6500, 3500, 6500, 7500], [1500, -3500, 6500, 3500], [-6500, -7500, 6500, -3500]];
   const FLOOR = [0x4a433e, 0x3d3734, 0x313e3d, 0x3b3646, 0x473b34], ROOFH = [900, 760, 1180, 1100, 900], ROOFC = [0x1c1917, 0x191715, 0x131a1c, 0x17141d, 0x1c1613];
   RECT.forEach(([x0, y0, x1, y1], i) => at(i, () => {
-    Box(V((x0 + x1) / 2, (y0 + y1) / 2, -450), V(x1 - x0 + 120, y1 - y0 + 120, 900), FLOOR[i], true, false);
+    Box(V((x0 + x1) / 2, (y0 + y1) / 2, -450), V(x1 - x0, y1 - y0, 900), FLOOR[i], true, false);
     Floor(V2(x0, y0), V2(x1, y1), 1, FLOOR[i]); ceiling(x0 - 100, y0 - 100, x1 + 100, y1 + 100, ROOFH[i], ROOFC[i]);
   }));
   const cap = 0x24201e, DEEP = -1500, HH = H - DEEP;
@@ -113,15 +113,27 @@ export function buildMine(M) {
   at(3, () => face(6400, -3440, 6400, 3440, -1, 0, 1100, VIOLET));
   at(0, () => { face(-1440, 3440, 1440, 3440, 0, -1, 900, ROCK); face(-1440, -3440, 1440, -3440, 0, 1, 900, ROCK); });
   // every doorway is a heavy timber set at the level of the higher floor, with the tunnel sloping down from it
-  for (const [x, y, ax, up, lo, dir] of WAYS) {
+  for (const [x, y, ax, up, lo, dir, , turn] of WAYS) {
     at(up, () => {
       for (const s of [-1, 1]) Box(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 280), ax ? V(56, 170, 560) : V(170, 56, 560), TIMBER, true, false);
       Box(V(x, y, 590), ax ? V(560, 180, 60) : V(180, 560, 60), TIMBER_D, true, false);
       Box(V(x, y, 912), ax ? V(400, 120, 584) : V(120, 400, 584), ROCK[0], true, false);   // rock over the lintel, up to the roof
-      Box(V(x, y, -700), ax ? V(400, 120, 1400) : V(120, 400, 1400), ROCK[0], true, false);   // and under the sill
+      Box(V(x, y + dir * 32, -700), V(400, 66, 1400), 0x4a3a30, true, false);   // the sill, out to the head of the slope
     });
-    // the slope: a ramp on a rock footing, a rail down each side, and the ground beside it closed so everything comes up the middle
-    const drop = LV[up] - LV[lo], run = 820, y0 = y + dir * 64, y1 = y + dir * (64 + run);
+    const drop = LV[up] - LV[lo], run = 820;
+    if (turn) {
+      // no room to run straight down: the way in lands on a rock shelf right across the ring tunnel, and the tunnel itself
+      // slopes down off the east end of it. (From the west the shelf is a wall; the cross-cut beside it is the way round.)
+      const D = 540, yc = y + dir * (60 + D / 2);
+      Box(V(x, yc, LV[lo] + drop / 2 - 1), V(420, D, drop), 0x4a3a30, true, false);
+      M.Slope(V(x + 210 + run, yc, LV[lo]), V(x + 210, yc, LV[up]), D, 0x4a3a30);
+      for (let k = 0; k < 4; k++) { const h = drop * (1 - (k + 1) / 4); if (h > 4) Box(V(x + 210 + run * (k / 4 + 0.125), yc, LV[lo] + h / 2 - 16), V(run / 4 + 2, D - 20, h), ROCK[1], true, false); }
+      GM.NavBlockBox({ min: V(x - 300, yc - D / 2, LV[lo]), max: V(x - 215, yc + D / 2, LV[lo] + 100) }, 1);
+      at(lo, () => { timber(x + 210, yc, D + 30, false, 520 + drop, true); timber(x + 210 + run * 0.6, yc, D + 30, false, 520 + drop * 0.4, false); lantern(x - 120, yc, 420 + drop); });
+      continue;
+    }
+    // the slope: a ramp on a rock footing, and the ground beside it closed so everything comes up the middle
+    const y0 = y + dir * 64, y1 = y + dir * (64 + run);
     M.Slope(V(x, y1, LV[lo]), V(x, y0, LV[up]), 420, 0x4a3a30);
     for (let k = 0; k < 4; k++) { const t0 = k / 4, h = drop * (1 - (k + 1) / 4); if (h > 4) Box(V(x, y0 + dir * run * (t0 + 0.125), LV[lo] + h / 2 - 16), V(400, run / 4 + 2, h), ROCK[1], true, false); }
     for (const s of [-1, 1]) GM.NavBlockBox({ min: V(x + (s > 0 ? 220 : -320), Math.min(y0, y1), LV[lo]), max: V(x + (s > 0 ? 320 : -220), Math.max(y0, y1), LV[lo] + 100) }, 1);
@@ -129,22 +141,37 @@ export function buildMine(M) {
   }
   // the landing looks out over the Drowned Cavern from near its roof: a balcony, and nothing to stop you stepping off it
   at(0, () => {
-    Box(V(0, 3500, 830), V(1200, 120, 740), ROCK[0], true, false); Box(V(0, 3500, -700), V(1200, 120, 1400), ROCK[0], true, false);
+    Box(V(0, 3500, 830), V(1200, 120, 740), ROCK[0], true, false); Box(V(0, 3531, -700), V(1200, 60, 1400), ROCK[0], true, false);
     for (const s of [-1, 1]) { Box(V(s * 600, 3470, 230), V(60, 180, 460), TIMBER, true, false); Box(V(s * 400, 3540, 52), V(400, 14, 14), TIMBER_D, false, false); Box(V(s * 400, 3540, 26), V(14, 14, 52), TIMBER_D, false, false); Box(V(s * 210, 3540, 26), V(14, 14, 52), TIMBER_D, false, false); }
     Box(V(0, 3470, 470), V(1260, 190, 50), TIMBER_D, true, false); lantern(-420, 3400, 420, 0x4fd8c8, 900); lantern(420, 3400, 420, 0x4fd8c8, 900);
-    Sign(V(0, 3380, 400), -90, 'OPEN SHAFT', { r: 0.95, g: 0.75, b: 0.3 }, 44);
+    Sign(V(0, 3436, 560), -90, 'OPEN SHAFT', { r: 0.95, g: 0.75, b: 0.3 }, 44);
     M.world.ZoneCeiling(V2(0, 3500), 1200, 120, 0, V(1, 0, 0));
     GM.NavBlockBox({ min: V(-640, 3400, 0), max: V(640, 3600, 100) }, 1);   // a way down for you, not a road for them
   });
   // and the ore chute out of the Works drops straight into the Seam
   at(4, () => {
-    Box(V(4500, -3500, 760), V(400, 120, 880), ROCK[0], true, false); Box(V(4500, -3500, -700), V(400, 120, 1400), ROCK[0], true, false);
+    Box(V(4500, -3500, 760), V(400, 120, 880), ROCK[0], true, false); Box(V(4500, -3469, -700), V(400, 60, 1400), ROCK[0], true, false);
     for (const s of [-1, 1]) Box(V(4500 + s * 232, -3540, 170), V(56, 170, 340), IRON, true, false);
-    Box(V(4500, -3540, 350), V(520, 180, 40), IRON, true, false); Sign(V(4500, -3640, 420), -90, 'ORE CHUTE', { r: 0.95, g: 0.75, b: 0.3 }, 40);
+    Box(V(4500, -3540, 350), V(520, 180, 40), IRON, true, false); Sign(V(4500, -3564, 470), -90, 'ORE CHUTE', { r: 0.95, g: 0.75, b: 0.3 }, 40);
     BoxRot(V(4500, -3250, -230), V(620, 380, 16), 0x33363c, R(-34, 90, 0), false);
     M.world.ZoneCeiling(V2(4500, -3500), 400, 120, 0, V(1, 0, 0));
     GM.NavBlockBox({ min: V(4260, -3600, 0), max: V(4740, -3400, 100) }, 1);
   });
+  // where the old cross-drifts ran: timbered mouths, boarded over. (The east one is the bottom of the lift shaft.)
+  const drift = (x, nx, sign) => {
+    const fx = x + nx * 8;
+    for (const s of [-1, 1]) Box(V(fx + nx * 20, s * 232, 280), V(70, 56, 560), TIMBER, true, false);
+    Box(V(fx + nx * 20, 0, 588), V(80, 560, 56), TIMBER_D, true, false); Box(V(fx - nx * 2, 0, 280), V(8, 420, 560), 0x060606, false, false);
+    if (sign === 'LIFT') { Sign(V(fx + nx * 62, 0, 590), nx > 0 ? 0 : 180, 'LIFT', { r: 0.95, g: 0.75, b: 0.3 }, 44); return; }
+    for (let i = 0; i < 6; i++) BoxRot(V(fx + nx * 16, 0, 70 + i * 86), V(14, 500, 62), i % 2 ? 0x5a4030 : 0x6a4a36, R(0, 0, [4, -6, 3, -3, 7, -4][i]), false);
+    BoxRot(V(fx + nx * 26, 0, 290), V(12, 60, 620), TIMBER_D, R(0, 0, 38), false);
+    Sign(V(fx + nx * 62, 0, 590), nx > 0 ? 0 : 180, sign, { r: 0.9, g: 0.35, b: 0.25 }, 36);
+    heap(fx + nx * 150, 150, 0.7, ROCK); GM.NavBlockBox({ min: V(Math.min(fx, fx + nx * 60), -260, 0), max: V(Math.max(fx, fx + nx * 60), 260, 100) }, 1);
+  };
+  at(0, () => { drift(-1440, 1, 'No. 2 DRIFT  -  CLOSED'); });
+  at(1, () => { drift(-1560, -1, 'CLOSED'); Box(V(-1640, 0, 60), V(60, 240, 120), 0x7a2e28, true, true); });   // and a stop block on the end of the gallery road
+  at(3, () => { drift(1560, 1, 'LIFT'); for (const [x, y] of [[1850, 3150], [6150, 3150], [1850, -3150], [6150, -3150]]) { Box(V(x, y, 850), V(6, 6, 500), 0x18181c, false, false); Box(V(x, y, 608), V(40, 40, 10), IRON, false, false); } });   // and the chains the four seals hang from
+  at(0, () => { face(1440, -260, 1440, 260, -1, 0, 900, ROCK); });
   const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), TIMBER_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
   // ------------------------------------------------------------------ 0. THE LIFT LANDING
   at(0, () => {
@@ -350,13 +377,13 @@ export const MINE_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4:
 
 // The lift came down with you and died. Give it power and it runs between the landing and the bottom of the mine;
 // the rest of the job is getting the Baron to send the cage up for you.
-export const MINE_MECH = { lift: { a: [1180, 300, 0, 180], b: [1900, 300, -1200, 0], need: 1, dead: 'The lift has no power. Find the fuses.' } };
+export const MINE_MECH = { lift: { a: [0, 0, 0, 0], b: [1790, 0, -1200, 0], bare: [404, 0], need: 1, dead: 'The lift has no power. Find the fuses.' } };
 export const MINE_QUEST = { name: 'WAKE THE LIFT', after: 'The cage is waiting at the bottom', gate: [3250, 300, -1200], steps: [
   { type: 'collect', text: 'Find three fuses for the lift', item: 'Fuse', n: 3, color: 0xFFB03A, done: 'THE LIFT HAS POWER',
     spots: [[-5600, -6600, -300], [5800, -4300, -300], [-900, -7000, -300], [-5900, -2900, -600], [-2100, 2900, -600], [-4000, 400, -600]] },
   { type: 'souls', text: 'Feed the three miners\' lamps in the Drowned Cavern', need: 9, r: 750, color: 0x4fd8c8, done: 'THE LAMPS ARE LIT',
     at: [[-4200, 5600, -900], [300, 6700, -900], [4300, 5300, -900]] },
-  { type: 'shoot', text: 'Shoot out the four seals on the Crystal Seam', r: 60, color: 0xb565f0, done: 'THE SEAM IS OPEN',
-    at: [[2300, -2800, -620], [5900, -2400, -560], [5800, 2600, -600], [2400, 2700, -640]] },
+  { type: 'shoot', text: 'Shoot out the four seals at the corners of the Crystal Seam', r: 60, color: 0xb565f0, done: 'THE SEAM IS OPEN',
+    at: [[1850, 3150, -640], [6150, 3150, -640], [1850, -3150, -640], [6150, -3150, -640]] },
   { type: 'hold', text: 'Hold the cage at the bottom while it winds', at: [2300, 300, -1200], r: 600, time: 40, color: 0xFFB03A, done: 'THE LIFT IS RUNNING' },
 ] };

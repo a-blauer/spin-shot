@@ -14,7 +14,7 @@ export function buildFrost(M) {
   const K = mapKit(M);
   GM.navInit(-9600, -5500, 13100, 5500, 100);
   const drift = (x, y, w = 420, d = 300, h = 110) => K.mound(x, y, w, d, h, SNOW);
-  const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), TIMBER_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
+  const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), TIMBER_D, false, false); { const t = [-n[1], n[0]]; for (const s of [-1, 1]) Box(V(x - n[0] * 16 + t[0] * s * 158, y - n[1] * 16 + t[1] * s * 158, 170), V(18, 18, 340), TIMBER_D, false, false); Box(V(x - n[0] * 16, y - n[1] * 16, 284), Math.abs(n[0]) > 0.5 ? V(22, 350, 16) : V(350, 22, 16), TIMBER_D, false, false); } WallBuy(name, V(x, y, 0), yaw); };
 
   // ------------------------------------------------------------------ zones
   // The junction is strung along the main line. The line itself is the way through: a long open cutting, west tunnel to
@@ -37,23 +37,24 @@ export function buildFrost(M) {
   // the mountain: slate walls with snow on every ledge, and solid rock wherever the junction does not reach
   const X0 = -9000, X1 = 12500, Y0 = -4900, Y1 = 4900;
   for (const [a, b] of [[V2(X0, Y0), V2(X0, Y1)], [V2(X1, Y0), V2(X1, Y1)], [V2(X0, Y0), V2(X1, Y0)], [V2(X0, Y1), V2(X1, Y1)]]) Wall(a, b, 950, 200, SLATE[0], [], true, SNOW);
-  for (const [x0, y0, x1, y1] of [[-9000, 3400, -5000, 4900], [-500, 3400, 3500, 4900], [3500, 4500, 12500, 4900], [-9000, -4900, -5000, -3400], [-500, -4900, 3500, -400], [3500, -4900, 12500, -1000]]) {
-    Box(V((x0 + x1) / 2, (y0 + y1) / 2, 475), V(x1 - x0, y1 - y0, 950), SLATE[1], true, true); Box(V((x0 + x1) / 2, (y0 + y1) / 2, 962), V(x1 - x0 + 30, y1 - y0 + 30, 24), SNOW, false, false);
-    const n = y0 < 0 ? y1 : y0, s = y0 < 0 ? 1 : -1; K.cliffs(x0 + 200, n - s * 60, x1 - 200, n - s * 60, 965, SLATE, SNOW);
-    for (let x = x0 + 150; x < x1; x += 330) { const h = rr(260, 620), d = rr(60, 150); Box(V(x, n + s * d / 2, h / 2), V(rr(230, 360), d, h), SLATE[(x | 0) & 1 ? 0 : 2], true, false, rr(-6, 6)); Box(V(x, n + s * d / 2, h + 6), V(250, d + 20, 14), SNOW, false, false); }
+  // (each face stands exactly where the old wall or fence of that district stood, so whatever hangs on it still hangs on it)
+  for (const [x0, y0, x1, y1] of [[-9000, 3370, -4970, 4900], [-530, 3300, 3600, 4900], [3500, 4400, 12500, 4900], [-9000, -4900, -4970, -3300], [-530, -4900, 3500, -400], [3500, -4900, 12500, -970], [3500, -1000, 3600, -400]]) {
+    Box(V((x0 + x1) / 2, (y0 + y1) / 2, 475), V(x1 - x0, y1 - y0, 950), SLATE[0], true, true); Box(V((x0 + x1) / 2, (y0 + y1) / 2, 962), V(x1 - x0 + 30, y1 - y0 + 30, 24), SNOW, false, false);
+    if (x1 - x0 > 600) { const n = y0 < 0 ? y1 : y0, s = y0 < 0 ? 1 : -1; K.cliffs(x0 + 200, n - s * 160, x1 - 200, n - s * 160, 965, SLATE, SNOW); }
   }
   K.cliffs(X0 - 60, Y0, X0 - 60, Y1, 965, SLATE, SNOW); K.cliffs(X1 + 60, Y0, X1 + 60, Y1, 965, SLATE, SNOW);
   // palisades between the districts: snow along the top rail, a gate in each
-  const fence = (a, b, gaps) => Wall(a, b, 520, 60, TIMBER, gaps.map((g) => V2(g - 200, g + 200)), true, SNOW, TIMBER_D);
-  const FENCES = [[-5000, -3400, -5000, 3400, [1500, 3400, 5300]], [-500, -400, -500, 3400, [400, 2100]], [3500, -400, 3500, 3400, [400, 2300]], [-9000, -400, -500, -400, [2000, 6250]]];
-  for (const [x0, y0, x1, y1, gaps] of FENCES) fence(V2(x0, y0), V2(x1, y1), gaps);
+  const fence = (a, b, gaps, thick = 60) => Wall(a, b, 520, thick, TIMBER, gaps.map((g) => V2(g - 200, g + 200)), true, SNOW, TIMBER_D);
+  // (the two stockades at the ends of Bunkhouse Row are thicker on one side: a mountain wall stood there before)
+  const FENCES = [[-5000, -3400, -5000, 3400, [1500, 3400, 5300]], [-465, -400, -465, 3400, [400, 2100], 130], [3535, -400, 3535, 3400, [400, 2300], 130], [-9000, -400, -530, -400, [2000, 6250]]];
+  for (const [x0, y0, x1, y1, gaps, th] of FENCES) fence(V2(x0, y0), V2(x1, y1), gaps, th);
   // [x, y, yaw, price, zone, zone]: three crossing gates on the line itself, and a side gate into each yard
   const DOORS = [[-5000, 0, 0, 1500, Z0, Z2], [-5000, 1900, 0, 1500, Z0, Z2], [-7000, -400, 90, 1500, Z0, Z4], [-5000, -1900, 0, 2500, Z4, Z1], [-2750, -400, 90, 2500, Z2, Z1],
     [-500, 0, 0, 3000, Z2, Z5], [-500, 1700, 0, 3000, Z2, Z5], [3500, 0, 0, 4000, Z5, Z3], [3500, 1900, 0, 4000, Z5, Z3]];
   for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Box(V(x + (ax ? s * 226 : 0), y + (ax ? 0 : s * 226), 290), ax ? V(44, 110, 580) : V(110, 44, 580), TIMBER_D, true, false); Box(V(x + (ax ? s * 226 : 0), y + (ax ? 0 : s * 226), 590), V(70, 70, 20), SNOW, false, false); } K.lantern(x + (ax ? 150 : 60), y + (ax ? 60 : 150), 470, LAMP, 800); }
   for (const [x0, y0, x1, y1] of FENCES) {
     const len = Math.hypot(x1 - x0, y1 - y0), n = Math.round(len / 300);
-    for (let i = 1; i < n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (DOORS.some(([dx, dy]) => Math.hypot(dx - x, dy - y) < 330)) continue; Box(V(x, y, 280), V(84, 84, 560), TIMBER_D, false, false); Box(V(x, y, 566), V(92, 92, 16), SNOW, false, false); }
+    for (let i = 1; i < n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (DOORS.some(([dx, dy]) => Math.hypot(dx - x, dy - y) < 330)) continue; Box(V(x, y, 280), x0 === x1 && Math.abs(x0 % 100) === 35 ? V(150, 84, 560) : x0 === x1 && Math.abs(x0 % 100) === 65 ? V(150, 84, 560) : V(84, 84, 560), TIMBER_D, false, false); Box(V(x, y, 566), V(92, 92, 16), SNOW, false, false); }
   }
   // ------------------------------------------------------------------ THE MAIN LINE
   {
@@ -65,7 +66,7 @@ export function buildFrost(M) {
     for (const x of [-6200, -3600, -1900, 900, 2600]) { Box(V(x, 300, 70), V(26, 26, 140), 0x33363c, false, false); Box(V(x, 300, 150), V(70, 12, 40), 0xf2f4f6, false, false); Sign(V(x, 292, 150), -90, String(Math.round((x + 9000) / 100)), { r: 0.1, g: 0.1, b: 0.12 }, 24); }
     for (const [x, y] of [[-7600, -372], [-4400, 372], [-1500, -372], [2200, 372]]) { Box(V(x, y, 250), V(20, 20, 500), 0x33363c, true, false); Box(V(x, y, 470), V(60, 30, 110), 0x18181c, false, false); Box(V(x + 60, y, 430), V(110, 8, 30), 0xc8322a, false, false); Box(V(x, y, 532), V(70, 40, 12), SNOW, false, false); }
     K.cabin(1100, -390, 1700, -60, 230, RED, 0x2e2a30, { door: 90, snow: SNOW, glow: LAMP, chimney: false, rise: 110 }); GM.NavBlockBox({ min: V(1100, -400, 0), max: V(1700, -60, 300) }, 1);
-    Sign(V(-8700, -362, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40); Sign(V(600, -362, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40);
+    Sign(V(-8700, -364, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40); Sign(V(150, -396, 420), 90, 'MAIN LINE  -  KEEP CLEAR', { r: 0.95, g: 0.9, b: 0.8 }, 40);
     for (const [x, y] of [[-8300, 250], [-6000, -250], [-4200, 260], [-2400, -260], [-1000, 250], [600, 260], [2900, -260]]) SpawnAt(V(x, y, 0), x < -5000 ? Z0 : x < -500 ? Z2 : Z5);
   }
   // ------------------------------------------------------------------ 0. FROSTBITE STATION
@@ -117,7 +118,7 @@ export function buildFrost(M) {
     Crate(V(-820, -1450, 0), 150); Crate(V(-820, -1290, 0), 150); Crate(V(-820, -1290, 150), 150); Box(V(-900, -1290, 316), V(170, 150, 16), TIMBER, true, false);
     for (const [x, y] of [[-1675, -500], [425, -500], [-625, -2250], [-2600, -3500], [1250, -3400], [-1675, -3500], [425, -1450]]) K.post(x, y, 380, LAMP, TIMBER_D, 900);
     for (const [x, y, w, d] of [[-2700, -4300, 500, 300], [1300, -4350, 360, 240], [-1700, -700, 420, 260], [400, -2250, 380, 300], [-2750, -1200, 300, 500]]) drift(x, y, w, d);
-    Sign(V(-2996, -1700, 380), 0, 'YARD LIMIT', { r: 0.95, g: 0.9, b: 0.8 }, 44);
+    Sign(V(-2966, -2300, 380), 0, 'YARD LIMIT', { r: 0.95, g: 0.9, b: 0.8 }, 44);
     wallbuy('Iron Mule', -2000, -36, -90); wallbuy('Dynamite Dan', 1466, -900, 180); wallbuy('Sawbuck', -1675, -4396, 90);
     for (const [x, y] of [[-1675, -4250], [425, -4250], [1280, -3000], [-2750, -2000], [-625, -1900], [1250, -350], [-2700, -350]]) SpawnAt(V(x, y, 0), Z1);
     M.Decor(V2(-2900, -4400), V2(1400, -100), 40, ['D_Grime', 'D_Crack', 'P_Bones', 'Blood']);
@@ -150,7 +151,7 @@ export function buildFrost(M) {
     for (const [x, y, w, d] of [[1250, 2900, 380, 600], [-2700, 3200, 400, 260], [1200, 250, 440, 280], [-1300, 3250, 500, 220], [200, 3250, 520, 200]]) drift(x, y, w, d);
     Sign(V(-850, 3376, 660), -90, 'N. & F. R.R.  ENGINE SHED', { r: 0.95, g: 0.9, b: 0.8 }, 56);
     Station('AmmoCrate', V(1380, 3300, 0), 180, 2000, -1, 'Ammo');
-    wallbuy('Homesteader', -2964, 2000, 0); wallbuy('Lawman AR', 1466, 1300, 180);
+    wallbuy('Homesteader', -2964, 2000, 0); wallbuy('Lawman AR', 1466, 880, 180);
     for (const [x, y] of [[-2650, 1750], [1150, 2600], [-1900, 300], [300, 300], [-600, 3050], [1250, 3900], [-2330, 3050]]) SpawnAt(V(x, y, 0), Z2);
     M.Decor(V2(-2900, 100), V2(1400, 3300), 36, ['D_Grime', 'D_Crack', 'P_Bones', 'D_Grime']);
   });
@@ -239,7 +240,7 @@ export function buildFrost(M) {
   for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
 }
 
-export const FROST_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1], 3: [1, 2, 2], 4: [1], 5: [0, 1] }, relics: [[11000, 3100, 438, 270], [-3150, -1850, 478, 0]], box: [-6150, 2780, -90, 0], boxZones: [1, 2, 3, 4, 5] };
+export const FROST_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1], 3: [1, 2, 2], 4: [1], 5: [0, 1] }, relics: [[11000, 3100, 438, 270], [-3150, -1850, 478, 0]], box: [-6150, 2780, -90, 0], avoid: (x, y) => Math.abs(y) < 320, boxZones: [1, 2, 3, 4, 5] };
 
 // snow, always: a slow fall across whatever you are looking at
 let acc = 0;

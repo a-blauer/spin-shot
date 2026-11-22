@@ -24,7 +24,7 @@ export function buildBayou(M) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Ramp, Floor, Wall, Lamp, Sign, Barrel, Crate, Station, WallBuy, Door, SpawnAt, Pyramid, Oct, Ring, AddZone, DeadTree, Wagon, GM } = M;
   const K = mapKit(M);
   GM.navInit(-9900, -7700, 9900, 7700, 100);
-  const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), PLANK_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
+  const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), PLANK_D, false, false); { const t = [-n[1], n[0]]; for (const s of [-1, 1]) Box(V(x - n[0] * 16 + t[0] * s * 158, y - n[1] * 16 + t[1] * s * 158, 170), V(18, 18, 340), BARK_D, false, false); Box(V(x - n[0] * 16, y - n[1] * 16, 284), Math.abs(n[0]) > 0.5 ? V(22, 350, 16) : V(350, 22, 16), BARK_D, false, false); } WallBuy(name, V(x, y, 0), yaw); };
   // a bald cypress: a flared, buttressed foot, knees round it, a flat crown hung with moss
   const cypress = (x, y, h, d, solid = true) => {
     Cyl(V(x, y, 40), d * 1.9, 80, BARK_D, solid, solid); Cyl(V(x, y, 120), d * 1.4, 100, BARK, solid, false); Cyl(V(x, y, h / 2), d, h, BARK, solid, false);
@@ -90,16 +90,17 @@ export function buildBayou(M) {
   for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Cyl(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 300), 70, 600, BARK, true, false); K.lantern(x + (ax ? s * 232 : 90), y + (ax ? 90 : s * 232), 520, s > 0 ? LAMP : 0x8ad04a, 700); } Box(V(x, y, 600), ax ? V(560, 50, 40) : V(50, 560, 40), BARK_D, false, false); for (let i = 0; i < 5; i++) Box(V(x + (ax ? -180 + i * 90 : 0), y + (ax ? 0 : -180 + i * 90), 560 - rr(20, 60)), V(8, 22, rr(60, 150)), MOSS, false, false, ax ? 0 : 90); }
   // an island cannot be reached until its bridge is paid for, whichever way you come at it
   for (const [mx, my, len, dx] of [[-3200, -3550, 7100, 0], [-3200, 700, 1400, 0], [-3200, 4250, 5700, 0], [3200, -3550, 7100, 0], [3200, 700, 1400, 0], [3200, 4250, 5700, 0], [-6250, 0, 6100, 1], [6250, 0, 6100, 1], [0, 1400, 6400, 1]]) M.world.ZoneCeiling(V2(mx, my), len, 60, 0, V(dx, dx ? 0 : 1, 0));
-  // the drowned chapel: what is left of it stands on a hump of ground in the middle of the lagoon
+  // the drowned chapel: what is left of it stands on a hump of ground in the middle of the lagoon. Its door is to the
+  // north, where the causeway from Cypress Deep comes in; the walk from the landing reaches it from the east side.
   {
-    const ST = 0x7a7c70, cx = 0, cy = 600;
-    for (const [x, y, w, d, h] of [[-520, 1000, 60, 360, 520], [520, 1000, 60, 360, 300], [0, 1160, 1100, 60, 620], [-520, 300, 60, 300, 180]]) { Box(V(cx + x, y, h / 2), V(w, d, h), ST, true, true); Box(V(cx + x, y, h + 8), V(w + 20, d + 20, 16), 0x4a5a2a, false, false); }
-    Box(V(cx, 1130, 520), V(240, 30, 360), 0x16301e, false, false); Glow(V(cx, 1112, 520), V(170, 6, 290), 0x2a6a4a); Box(V(cx, 1100, 300), V(16, 16, 520), 0x5e5e52, false, false); Box(V(cx, 1100, 430), V(200, 16, 16), 0x5e5e52, false, false);
-    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { Box(V(cx + s * 260, 420 + k * 220, 34), V(300, 60, 12), PLANK_D, true, false); Box(V(cx + s * 260, 444 + k * 220, 60), V(300, 10, 50), PLANK_D, false, false); }
-    Box(V(cx, 940, 60), V(260, 120, 120), ST, true, true); Box(V(cx, 940, 126), V(290, 150, 12), 0x8a8a7a, false, false); for (const s of [-1, 1]) { Cyl(V(cx + s * 90, 940, 160), 16, 60, 0xe8e2d0, false, false); Glow(V(cx + s * 90, 940, 200), V(10, 10, 20), LAMP); }
-    Lamp(V(cx, 900, 260), LC(1, 0.75, 0.4), 10, 1000, false); cypress(-560, 60, 880, 200, false); cypress(600, 140, 760, 170, false); wisp(-300, 200, 180); wisp(420, 760, 230);
-    Sign(V(cx, 1126, 250), -90, 'ST. MOURN', { r: 0.7, g: 0.8, b: 0.7 }, 44);
-    for (const [x, y] of [[-560, 520], [560, 480]]) SpawnAt(V(x, y, 0), Z0);
+    const ST = 0x7a7c70, cx = 0;
+    for (const [x, y, w, d, h] of [[-520, 200, 60, 360, 520], [520, 200, 60, 360, 300], [0, 40, 1100, 60, 620], [-520, 900, 60, 300, 180]]) { Box(V(cx + x, y, h / 2), V(w, d, h), ST, true, true); Box(V(cx + x, y, h + 8), V(w + 20, d + 20, 16), 0x4a5a2a, false, false); }
+    Box(V(cx, 72, 520), V(240, 12, 360), 0x16301e, false, false); Glow(V(cx, 80, 520), V(170, 6, 290), 0x2a6a4a); Box(V(cx, 88, 300), V(16, 16, 520), 0x5e5e52, false, false); Box(V(cx, 88, 430), V(200, 16, 16), 0x5e5e52, false, false);
+    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { Box(V(cx + s * 260, 780 - k * 220, 34), V(300, 60, 12), PLANK_D, true, false); Box(V(cx + s * 260, 806 - k * 220, 60), V(300, 10, 50), PLANK_D, false, false); }
+    Box(V(cx, 240, 60), V(260, 120, 120), ST, true, true); Box(V(cx, 240, 126), V(290, 150, 12), 0x8a8a7a, false, false); for (const s of [-1, 1]) { Cyl(V(cx + s * 90, 240, 160), 16, 60, 0xe8e2d0, false, false); Glow(V(cx + s * 90, 240, 200), V(10, 10, 20), LAMP); }
+    Lamp(V(cx, 300, 260), LC(1, 0.75, 0.4), 10, 1000, false); cypress(-570, 1090, 880, 200, false); cypress(580, 1060, 760, 170, false); wisp(-300, 1000, 180); wisp(420, 440, 230);
+    Sign(V(cx - 330, 74, 300), 90, 'ST. MOURN', { r: 0.7, g: 0.8, b: 0.7 }, 40);
+    for (const [x, y] of [[-560, 640], [560, 980]]) SpawnAt(V(x, y, 0), Z0);
   }
   for (const [x, y, h, d] of [[-1700, -300, 900, 220], [1500, 1700, 1000, 250], [-1500, 1500, 820, 190], [1300, -700, 760, 170]]) cypress(x, y, h, d, false);   // old trees standing out in the lagoon
   wisp(-1300, 500, 150); wisp(1300, 300, 210); wisp(-2000, 1900, 240); wisp(2300, 1500, 160); wisp(-3200, -1800, 200); wisp(3200, 2600, 190); wisp(-6000, 0, 220); wisp(7300, 0, 180);
@@ -269,12 +270,12 @@ export function bayouAmbient(g, dt) {
 }
 
 export const BAYOU_MECH = { wet: true, drown: 25, drownText: 'Something in the deep water dragged you under' };
-export const BAYOU_QUEST = { name: 'PART THE WATER', after: 'The water has parted', gate: [0, 1120, 0], steps: [
+export const BAYOU_QUEST = { name: 'PART THE WATER', after: 'The water has parted', gate: [0, 420, 0], steps: [
   { type: 'collect', text: 'Find three grave charms on the islands', item: 'Charm', n: 3, color: 0x8ad04a, done: 'THE CHARMS ARE GATHERED',
     spots: [[-7600, 1500, 0], [-4600, 5400, 0], [-7700, -1500, 0], [-4700, -5500, 0], [7600, -5400, 0], [4700, -1500, 0], [7700, 5300, 0]] },
   { type: 'souls', text: 'Feed the three spirit lanterns', need: 10, r: 750, color: 0x8ad04a, done: 'THE LANTERNS BURN',
     at: [[6200, 3400, 0], [0, 4300, 0], [-6200, -3500, 0]] },
   { type: 'order', text: 'Ring the three bells in order (count the lights)', prompt: 'Ring the bell', color: 0xFFB45A, done: 'THE DEAD ARE LISTENING', wrong: 'The water stays still. Start again.',
     at: [[-6100, 3500, 0, 0], [1700, 5400, 0, -90], [6200, -3400, 0, 180]] },
-  { type: 'hold', text: 'Hold the drowned chapel while the water draws back', at: [0, 430, 0], r: 480, time: 45, color: 0x8ad04a, done: 'THE WATER PARTS' },
+  { type: 'hold', text: 'Hold the drowned chapel while the water draws back', at: [0, 760, 0], r: 430, time: 45, color: 0x8ad04a, done: 'THE WATER PARTS' },
 ] };

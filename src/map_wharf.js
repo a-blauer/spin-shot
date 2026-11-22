@@ -49,8 +49,8 @@ export function buildWharf(M) {
   // The town climbs away from the water: the quay, the pier and the shipyard at sea level, the fishmarket and the point
   // one flight up, the warehouses at the top. The low ground is the sea's twice a round.
   [[Z1, 260], [Z2, 520], [Z5, 260]].forEach(([z, h]) => { GM.zones[z].z = h; });
-  M.at({ z: 260 }, () => { Box(V(-4500, 0, -330), V(5100, 3100, 660), 0x3a3c44, true, false); Floor(V2(-7000, -1500), V2(-2000, 1500), 1, 0x444850); Box(V(4500, 1750, -330), V(5100, 6600, 660), 0x33373c, true, false); Floor(V2(2000, -1500), V2(7000, 5000), 1, 0x3a3e40); });
-  M.at({ z: 520 }, () => { Box(V(-3500, -3250, -460), V(7100, 3600, 920), 0x3a3c44, true, false); Floor(V2(-7000, -5000), V2(0, -1500), 1, COBBLE); });
+  M.at({ z: 260 }, () => { Box(V(-4500, 0, -330), V(5000, 3000, 660), 0x3a3c44, true, false); Floor(V2(-7000, -1500), V2(-2000, 1500), 1, 0x444850); Box(V(4500, 1750, -330), V(5000, 6500, 660), 0x33373c, true, false); Floor(V2(2000, -1500), V2(7000, 5000), 1, 0x3a3e40); });
+  M.at({ z: 520 }, () => { Box(V(-3500, -3250, -460), V(7000, 3500, 920), 0x3a3c44, true, false); Floor(V2(-7000, -5000), V2(0, -1500), 1, COBBLE); });
   M.at({ z: 520 }, () => { Wall(V2(-7000, -5000), V2(-7000, -1500), 900, 200, BRICK_D, [], true, 0x2a2a30); Wall(V2(-7000, -5000), V2(0, -5000), 900, 200, BRICK_D, [], true, 0x2a2a30); });
   M.at({ z: 260 }, () => Wall(V2(-7000, -1500), V2(-7000, 1500), 900, 200, BRICK_D, [], true, 0x2a2a30));
   for (const [a, b, h] of [[V2(-7000, -5000), V2(-7000, 5000), 950], [V2(-7000, -5000), V2(7000, -5000), 950], [V2(7000, -5000), V2(7000, 5000), 950], [V2(-7000, 5000), V2(7000, 5000), 260]]) Wall(a, b, h, 200, h > 500 ? BRICK_D : STONE, [], true, h > 500 ? 0x2a2a30 : 0x4a4e54);
@@ -68,10 +68,11 @@ export function buildWharf(M) {
   K.slope(-2000, 0, false, 1, 260, 0, 740, 400, COBBLE, 0x3a3c44); K.slope(2000, 0, false, -1, 260, 0, 740, 400, COBBLE, 0x33373c); K.slope(2000, 1830, false, -1, 260, 0, 740, 400, COBBLE, 0x33373c);
   K.slope(-4500, -1500, true, 1, 520, 260, 740, 400, COBBLE, 0x3a3c44); K.slope(4500, -1500, true, -1, 260, 0, 740, 400, COBBLE, 0x33373c);
   // and two quick ways down from Warehouse Row that nothing can follow you up: over the wall onto the quay, or into the shipyard
+  for (const [x, y, ax] of [[-1000, -1500, true], [0, -3250, false]]) { Box(V(x, y, 260), ax ? V(400, 70, 520) : V(70, 400, 520), BRICK, true, false); Box(V(x, y, 1010), ax ? V(520, 90, 90) : V(90, 520, 90), IRON, false, false); }   // bricked up below the opening, a lifting beam over it
   M.at({ z: 520 }, () => {
     for (const [x, y, ax] of [[-1000, -1500, true], [0, -3250, false]]) {
       for (const s of [-1, 1]) Box(V(x + (ax ? s * 222 : 0), y + (ax ? 0 : s * 222), 60), V(44, 44, 120), IRON, true, false);
-      Box(V(x, y, 14), ax ? V(400, 130, 28) : V(130, 400, 28), PLANK_D, true, false); Sign(V(x + (ax ? 0 : -60), y + (ax ? -60 : 0), 200), ax ? -90 : 180, 'WAY DOWN', { r: 0.9, g: 0.8, b: 0.5 }, 34);
+      Box(V(x, y, 14), ax ? V(400, 130, 28) : V(130, 400, 28), PLANK_D, true, false); Sign(V(x + (ax ? 0 : -48), y + (ax ? -48 : 0), 490), ax ? -90 : 180, 'WAY DOWN', { r: 0.9, g: 0.8, b: 0.5 }, 34);
       M.world.ZoneCeiling(V2(x, y), 400, 70, 0, ax ? V(1, 0, 0) : V(0, 1, 0)); GM.NavBlockBox({ min: V(x - (ax ? 240 : 100), y - (ax ? 100 : 240), 0), max: V(x + (ax ? 240 : 100), y + (ax ? 100 : 240), 100) }, 1);
     }
   });
@@ -79,6 +80,7 @@ export function buildWharf(M) {
   for (const [x, y, yaw, , , , up] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { const px = x + (ax ? s * 240 : 0), py = y + (ax ? 0 : s * 240), z = up; Box(V(px, py, 300 + up / 2), V(90, 90, 600 + up), STONE, true, false); Pyramid(V(px, py, 640 + z), V(110, 110, 80), 0x4a4e54); Glow(V(px, py, 560 + z), V(30, 30, 40), GAS, 2); Lamp(V(px, py, 560 + z), LC(0.9, 0.85, 0.5), 8, 700, false); } }
   // the basin west of the pier: black water, boats at their moorings, the far mole
   sea(-7000, 1500, -2000, 5000, 26); sea(-2000, 2100, -400, 5000, 10); sea(400, 2100, 2000, 5000, 10); sea(-400, 4600, 400, 5000, 2);
+  for (const [x, y] of [[-5400, 2350], [-3000, 2350], [-1250, 3700], [1250, 3700]]) { Cyl(V(x, y, 80), 18, 180, PLANK_D, false, false); Box(V(x, y, 150), V(70, 8, 8), PLANK_D, false, false); }   // stakes the wreckers hang their lanterns on
   M.at({ z: 260 }, () => edge(-6960, 1500, -2040, 1500));
   for (const [x, y, yaw, c] of [[-5600, 2600, 20, 0x3a4a5a], [-3900, 3400, -30, 0x5a3a30], [-6200, 4000, 70, 0x4a4a3a], [-2900, 2400, 8, 0x3a3a40]]) { const P = (dx, dy, z) => M.L(V(x, y, 0), yaw, dx, dy, z); BoxYaw(P(0, 0, 50), V(620, 200, 100), c, yaw, false); BoxYaw(P(350, 0, 60), V(160, 140, 110), c, yaw + 45, false); BoxYaw(P(-120, 0, 140), V(180, 150, 100), 0x8a8474, yaw, false); Cyl(P(60, 0, 420), 16, 640, PLANK_D, false, false); BoxYaw(P(60, 0, 520), V(8, 320, 8), PLANK_D, yaw, false); Glow(P(-120, 80, 150), V(40, 6, 40), GAS); }
   for (const [x, y] of [[-4800, 4300], [-3200, 2800], [1500, 4400], [-1300, 4700]]) { Cyl(V(x, y, 30), 70, 60, 0x7a2a26, false, false); ConeShape(V(x, y, 100), V(60, 60, 90), 0x7a2a26, false); Glow(V(x, y, 160), V(16, 16, 20), 0xb8322a, 2); }

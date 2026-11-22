@@ -37,13 +37,14 @@ export class Mech {
   // ------------------------------------------------------------------ the mine: a cage lift between the top and the bottom
   buildLift(L) {
     const ends = [L.a, L.b].map((e, k) => {
-      const I = this.mk(e, e[3] || 0);
-      for (const [x, y] of [[-90, -90], [-90, 90], [90, -90], [90, 90]]) I.part(null, 0, V(x, y, 150), V(12, 12, 300), IRON);
-      I.part(null, 0, V(0, 0, 4), V(200, 200, 8), TIMBER); I.part(null, 0, V(0, 0, 304), V(210, 210, 12), IRON);
-      for (const s of [-1, 1]) { I.part(null, 0, V(0, s * 94, 110), V(190, 6, 8), IRON); I.part(null, 0, V(-94, s * 0, 110 + (s > 0 ? 0 : 60)), V(6, 190, 8), IRON); }
-      I.part(null, 1, V(0, 0, 900), V(10, 10, 1200), DARK);
-      I.lamp = I.part(null, 2, V(0, 0, 286), V(26, 26, 26), C(0xff5a3a), null, 2.4); I.lampOn = I.part(null, 2, V(0, 0, 286), V(27, 27, 27), C(0x7dff8a), null, 2.6);
-      I.useRadius = 210;
+      const bare = (L.bare || [])[k], I = this.mk(e, e[3] || 0, !bare);   // an end can use a cage the map has already built
+      if (!bare) for (const [x, y] of [[-90, -90], [-90, 90], [90, -90], [90, 90]]) I.part(null, 0, V(x, y, 150), V(12, 12, 300), IRON);
+      if (!bare) { I.part(null, 0, V(0, 0, 4), V(200, 200, 8), TIMBER); I.part(null, 0, V(0, 0, 304), V(210, 210, 12), IRON);
+        for (const s of [-1, 1]) { I.part(null, 0, V(0, s * 94, 110), V(190, 6, 8), IRON); I.part(null, 0, V(0, s * 94, 170), V(190, 6, 8), IRON); I.part(null, 0, V(-94, 0, 110 + (s > 0 ? 0 : 60)), V(6, 190, 8), IRON); }
+        I.part(null, 1, V(0, 0, 900), V(10, 10, 1200), DARK); }
+      const lz = bare ? bare : 286;
+      I.lamp = I.part(null, 2, V(0, 0, lz), V(26, 26, 26), C(0xff5a3a), null, 2.4); I.lampOn = I.part(null, 2, V(0, 0, lz), V(27, 27, 27), C(0x7dff8a), null, 2.6);
+      I.useRadius = bare ? 330 : 210;
       const ready = () => this.g.quest.past(L.need || 0);
       I.q.usable = () => this.cd <= 0;
       I.q.prompt = () => (ready() ? `[E] Ride the lift ${k ? 'up' : 'down'}` : L.dead || 'The lift has no power');
@@ -136,8 +137,8 @@ export class Mech {
   }
   // ------------------------------------------------------------------ the carnival: a turn on the big wheel, above it all
   buildWheel(W) {
-    const I = this.mk(W.at, W.at[3] || 0);
-    I.part(null, 0, V(0, 0, 60), V(60, 110, 120), C(0x5a1a2a)); I.part(null, 0, V(0, 0, 126), V(70, 120, 12), BRASS); I.part(null, 2, V(0, 0, 160), V(34, 34, 34), C(0xffd24d), null, 2.6);
+    const I = this.mk(W.at, W.at[3] || 0, !W.bare);
+    if (!W.bare) { I.part(null, 0, V(0, 0, 60), V(60, 110, 120), C(0x5a1a2a)); I.part(null, 0, V(0, 0, 126), V(70, 120, 12), BRASS); } I.part(null, 2, V(0, 0, W.bare ? 290 : 160), V(34, 34, 34), C(0xffd24d), null, 2.6);
     I.useRadius = 200;
     I.q.usable = () => !this.ride;
     I.q.prompt = (P) => `[E] Ride the wheel  $${W.cost}\nOne turn, out of reach`;

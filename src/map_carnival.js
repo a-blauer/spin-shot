@@ -230,8 +230,6 @@ export function buildCarnival(M) {
 
   for (const [x, y, yaw, cost, a, b] of DOORS) Door(V(x, y, 0), yaw, cost, a, b);
   M.Spawn(V(0, 980, 100));
-  // the kiosk for the wheel
-  Box(V(-420, 5150, 2), V(700, 500, 4), 0x5a1a2a, false, false); Sign(V(-420, 5390, 330), -90, 'THE WHEEL  -  ONE TURN', { r: 1, g: 0.85, b: 0.4 }, 40);
 }
 
 export const CARNIVAL_LOOT = { chests: { 0: [0], 1: [0, 1], 2: [1, 2], 3: [1, 2], 4: [1, 2], 5: [1, 2] }, relics: [[1227, 2977, 282, 225], [6560, 1750, 112, 180]], box: [-900, 2300, 0, 0], boxZones: [1, 2, 3, 4, 5] };
@@ -250,7 +248,7 @@ export function carnivalAmbient(g, dt) {
 export const CARNIVAL_MECH = {
   cabinets: [[[-6300, -1750, 0, 0], [6300, 5250, 0, 180]], [[6300, -1750, 0, 180], [-6300, 5250, 0, 0]], [[1900, -4500, 0, 180], [0, 3150, 0, -90]]],
   cabinetNames: [['the Midway (west end)', 'the far side of the wheel'], ['the Midway (east end)', 'the far side of the wheel'], ['the Front Gate', 'the Big Top']],
-  wheel: { c: [0, 5650, 170], r: 950, axis: 0, at: [-420, 5150, 0, -90], cost: 500, time: 26 },
+  wheel: { c: [0, 5650, 170], r: 950, axis: 0, at: [-600, 5200, 0, -90], bare: true, cost: 500, time: 26 },   // you pay at the booth that is already there
 };
 export const CARNIVAL_QUEST = { name: 'THE LAST ACT', after: 'The band has struck up', gate: [0, 2620, 0], steps: [
   { type: 'shoot', text: 'Shoot the five balloons over the fairground (the wheel gives a clear shot)', r: 80, color: 0xff4a6a, done: 'FIVE FOR FIVE',

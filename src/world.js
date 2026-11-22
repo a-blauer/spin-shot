@@ -273,7 +273,7 @@ export class World {
     const mat = new THREE.Matrix4().makeBasis(r, new THREE.Vector3(0, 1, 0), n);
     m.quaternion.setFromRotationMatrix(mat);
     m.position.copy(loc.to3());
-    this.signs.add(m);
+    m.userData.text = String(text); this.signs.add(m);
   }
 
   // ------------------------------------------------------------------ set pieces
@@ -764,6 +764,7 @@ export class World {
         const x = FMath.FRandRange(Z.min.X + 300, Z.max.X - 300), y = FMath.FRandRange(Z.min.Y + 300, Z.max.Y - 300);
         if (ringOnly && !CFG && Math.max(Math.abs(x), Math.abs(y)) < 11000) continue;
         if (GM.zoneAt({ x, y: 0, z: y }) !== zi) continue;
+        if (CFG && CFG.avoid && CFG.avoid(x, y)) continue;                           // somewhere the map wants kept clear
         if (!free(x, y, 1)) continue;
         const wd = wallDir(x, y); if (!wd || wd[2] < 4) continue;                     // wants something at its back
         if (!clear(x, y, spacing)) continue;

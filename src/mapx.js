@@ -130,6 +130,7 @@ export function mapKit(M) {
   K.slope = (x, y, alongY, dir, zTop, zBot, run = 760, w = 400, col = 0x4a3a30, rock = 0x3a3a3e) => {
     const drop = zTop - zBot, P = (t) => (alongY ? [x, y + dir * (64 + t)] : [x + dir * (64 + t), y]), a = P(0), b = P(run);
     M.Slope(V(b[0], b[1], zBot), V(a[0], a[1], zTop), w, col);
+    { const c = P(-32); Box(V(c[0], c[1], (zTop + zBot) / 2 - 1), alongY ? V(w, 66, drop) : V(66, w, drop), col, true, false); }   // the sill, from the edge of the high ground to the head of the slope
     for (let k = 0; k < 4; k++) { const h = drop * (1 - (k + 1) / 4); if (h < 5) continue; const c = P(run * (k / 4 + 0.125)); Box(V(c[0], c[1], zBot + h / 2 - 16), alongY ? V(w - 20, run / 4 + 2, h) : V(run / 4 + 2, w - 20, h), rock, true, false); }
     for (const s of [-1, 1]) { const o0 = s > 0 ? w / 2 + 10 : -w / 2 - 110, o1 = s > 0 ? w / 2 + 110 : -w / 2 - 10;
       GM.NavBlockBox({ min: V(Math.min(a[0], b[0]) + (alongY ? o0 : 0), Math.min(a[1], b[1]) + (alongY ? 0 : o0), zBot), max: V(Math.max(a[0], b[0]) + (alongY ? o1 : 0), Math.max(a[1], b[1]) + (alongY ? 0 : o1), zBot + 100) }, 1); }
