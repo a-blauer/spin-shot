@@ -64,9 +64,9 @@ export const luckMult = () => 1;   // luck is gone from the game; the rounds dec
 // The mystery box gets better as the rounds go by: Uncommon 55 / Rare 30 / Epic 11 / Legendary 4 at the start, about
 // 37 / 32 / 19 / 12 by round twenty.
 export function rollBoxRarity(round) {
-  const M = 1 + 0.025 * Math.min(24, Math.max(0, round || 0)), W = [0, 55, 30 * M, 11 * M * M, 4 * M * M * M];
-  let r = rand() * (W[1] + W[2] + W[3] + W[4]);
-  for (let i = 1; i < 5; i++) { r -= W[i]; if (r <= 0) return i; }
+  const M = 1 + 0.025 * Math.min(24, Math.max(0, round || 0)), W = [16, 55, 30 * M, 11 * M * M, 4 * M * M * M];   // every gun you have unlocked can come out, the plain ones less often
+  let r = rand() * (W[0] + W[1] + W[2] + W[3] + W[4]);
+  for (let i = 0; i < 5; i++) { r -= W[i]; if (r <= 0) return i; }
   return 1;
 }
 export const luckRerollChance = (luck) => 1 - 1 / (1 + 0.06 * Math.max(0, luck));
@@ -92,7 +92,7 @@ export function rollUpgradeOfRarity(rarity, stacks) {
 export function rollWeaponOfRarity(rarity, exA, exB) {
   let pool = [];
   for (let tier = rarity; tier >= 0 && pool.length === 0; tier--) {
-    for (let i = 1; i < DATA.weapons.length; i++) if (i !== exA && i !== exB && rarityIndex(DATA.weapons[i].rarity) === tier && !Meta.gunLocked(DATA.weapons[i].name)) pool.push(i);
+    for (let i = 0; i < DATA.weapons.length; i++) if (i !== exA && i !== exB && rarityIndex(DATA.weapons[i].rarity) === tier && !Meta.gunLocked(DATA.weapons[i].name)) pool.push(i);
   }
   return pool.length ? pool[randInt(0, pool.length - 1)] : 1;
 }

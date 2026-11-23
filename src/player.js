@@ -1146,7 +1146,7 @@ export class Player {
     this.fovKick += (continuous ? 0.15 : Math.min(7, cam.fov || (0.6 + kick * 1.1))) * (this.aiming ? 0.25 : 1);
     if (!continuous) {
       const G = this.game, e = this.eye(), f = this.forward();
-      G.fx.flash(e.clone().addScaledVector(f, 150), lin(1, 0.75, 0.35), 180 + kick * 90, 0.06, true);
+      G.fx.glowAt(e.clone().addScaledVector(f, 150), lin(0.45, 0.33, 0.15), (180 + kick * 90) * 1.8, 0.06);   // light on the scene only: the flash itself is on the gun
       if (navigator.vibrate && this.game.touch) { try { navigator.vibrate(Math.round(Math.min(40, 8 + kick * 10))); } catch (err) { /* unsupported */ } }
     }
     this.game.vm.fire(kick, continuous);
@@ -1891,7 +1891,7 @@ export class Player {
     const G = this.game, kind = this.altKind(), pw = this.power();
     const muzzle = G.vm.muzzleWorld(), eye = G.camera.position.clone(), dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
     const shell = (gtype, speed, altDmg, radius) => G.projectiles.spawn({ pos: muzzle.clone(), vel: dir.clone().multiplyScalar(speed).add(V3(0, 160, 0)), damage: 0, splash: radius, gtype, altDmg, gravity: 1, bounces: 0, fuse: 3, life: 4, kind: 'Grenade', radius: 12, color: GRENADES[gtype].color, procCoef: 0, fromProc: true });
-    if (kind === 'AltLauncher') { shell(7, 2400, pw * 5, 320); S.altCd = 5; this.play('S_Explosion', 0.35, 1.8); }
+    if (kind === 'AltLauncher') { shell(7, 2400, pw * 5, 320); S.altCd = 12; this.play('S_Explosion', 0.35, 1.8); }
     else if (kind === 'AltGravity') { shell(6, 2000, pw * 4, 520); S.altCd = 10; this.play('S_Grapple', 0.8, 0.6); }
     else if (kind === 'AltRail') { this.fireHitscan(eye, dir, 12000, pw * 6, 99, 1, W, 14, [0.6, 0.9, 1], muzzle); S.altCd = 6; this.play('S_Crit', 0.9, 0.5); }
     else if (kind === 'AltBuck') { for (let k = 0; k < 8; k++) this.fireHitscan(eye, vrandCone(dir, 7 * D2R), 1600, pw * 0.4, 0, 0.12, W, 3, [1, 0.9, 0.6], muzzle); S.altCd = 4; this.play('S_Explosion', 0.3, 2.2); }
@@ -1905,7 +1905,7 @@ export class Player {
     if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
     else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
   }
-  benchCost(S) { return Math.round([2000, 3500, 5500, 8000][Math.min(3, S.mods.length)] * this.priceMult()); }
+  benchCost(S) { return Math.round([2000, 5000, 8500, 12000][Math.min(3, S.mods.length)] * this.priceMult()); }
   benchUpgrade() {
     if (this.wield) return this.honeMelee();
     const S = this.slot;

@@ -56,6 +56,7 @@ export class Hud {
   gotUpgrade(i, stack, tag) { this.cards = this.cards || []; this.cards.push({ i, stack, tag, t: 0, life: 15 }); if (this.cards.length > 3) this.cards.shift(); }
   gotTonic(i, level) { this.cards = this.cards || []; this.cards.push({ tonic: i, stack: level, t: 0, life: 9 }); if (this.cards.length > 3) this.cards.shift(); }
   drawCards() {
+    this.cardsBottom = 0;
     if (!this.cards || !this.cards.length) return;
     const g = this.g, S = this.S, W = this.W, w = 560 * S, x = W / 2 - w / 2; let y = this.H * 0.17;
     for (const c of this.cards) {
@@ -75,6 +76,7 @@ export class Hud {
       g.globalAlpha = 1;
       y += h + 10 * S;
     }
+    this.cardsBottom = y;   // banners start below whatever cards are up
     this.cards = this.cards.filter((c) => c.t < c.life);
   }
   toast(text, color = BONE) { this.toasts.push({ text, color: toCss(color), t: 0, life: 3.2 }); if (this.toasts.length > 6) this.toasts.shift(); }
@@ -229,7 +231,7 @@ export class Hud {
     if (!P.dead) this.drawEnemyBars(game, P);
     if (this.needMouse && !P.dead) { const S2 = this.S; this.g.fillStyle = 'rgba(20,10,16,0.75)'; this.g.fillRect(this.W / 2 - 250 * S2, this.H * 0.62, 500 * S2, 54 * S2); this.text('CLICK TO GRAB THE MOUSE', this.W / 2, this.H * 0.62 + 37 * S2, 30 * S2, GOLD, 'center', F_BIG, 400, 0.1); }
     if (game.net && game.net.active) this.drawTeam(game, W, H, S);
-    if (!P.inMenu()) this.drawCards();
+    if (!P.inMenu() && !P.showInventory) this.drawCards(); else this.cardsBottom = 0;
     this.drawFloaters(game, dt);
     if (!P.dead) {
       this.drawCasinoMarker(game);
@@ -673,12 +675,12 @@ export class Hud {
       const a = k < 0.1 ? k / 0.1 : k > 0.75 ? (1 - k) / 0.25 : 1;
       const sc = 1 + Math.max(0, 0.15 - k) * 3;
       const g = this.g;
-      g.save(); g.translate(W / 2, H * 0.36); g.scale(sc, sc);
+      g.save(); g.translate(W / 2, Math.max(H * 0.36, (this.cardsBottom || 0) + 150 * S)); g.scale(sc, sc);
       this.text(b.text, 0, 0, 120 * S, '#c8211b', 'center', F_BIG, 400, 0.08, a);
       g.restore();
       if (b.t > b.life) this.roundBanner = null;
     }
-    let y = H * 0.22;
+    let y = Math.max(H * 0.22, (this.cardsBottom || 0) + 44 * S);
     for (const b of this.banners) {
       b.t += dt;
       if (hideSmall) continue;
@@ -875,9 +877,30 @@ export class Hud {
   }
   drawInventory(game, P, W, H, S) {
     const g = this.g;
-    const w = Math.min(1240 * S, W - 40 * S), x = (W - w) / 2, y = 90 * S, h = H - 200 * S, pad = 30 * S;
+    const wAll = Math.min(1640 * S, W - 40 * S), xAll = (W - wAll) / 2, y = 90 * S, h = H - 200 * S, pad = 30 * S, lw = 400 * S;
     g.fillStyle = 'rgba(8,4,8,0.4)'; g.fillRect(0, 0, W, H);
-    this.panel(x, y, w, h, GOLD, 'rgba(20,10,16,0.95)', 18 * S);
+    this.panel(xAll, y, wAll, h, GOLD, 'rgba(20,10,16,0.95)', 18 * S);
+    // left column: who you are and what you are carrying
+    { const lx = xAll + pad, rx = lx + lw - 20 * S; let ly = y + 62 * S;
+      this.text(P.cls.name.toUpperCase(), lx, ly, 40 * S, GOLD, 'left', F_BIG, 400, 0.08); ly += 22 * S;
+      g.fillStyle = GOLD; g.fillRect(lx, ly, lw - 20 * S, 2 * S); ly += 30 * S;
+      const pc = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`, st = (n) => P.stat(n);
+      const rows = [['Health', `${Math.ceil(P.health)} / ${Math.round(P.maxHealth)}`], ['Move speed', `${Math.round(P.maxWalk)}`], ['Damage', pc(st('Damage'))], ['Fire rate', pc(st('FireRate'))], ['Reload speed', pc(st('ReloadSpeed'))],
+        ['Crit chance', pc(st('CritChance'))], ['Crit damage', pc(st('CritDamage'))], ['Headshot damage', pc(st('HeadshotDamage'))], ['Armor', pc(st('Armor'))], ['Health regen', `${(+st('HealthRegen')).toFixed(1)} /s`], ['Money gain', pc(st('MoneyGain'))], ['Luck', `${Math.round(P.luck)}`]];
+      for (const [k, v] of rows) { this.text(k, lx, ly, 17 * S, 'rgba(242,232,213,0.7)', 'left', F_TXT, 600, 0.04); this.text(v, rx, ly, 18 * S, BONE, 'right', F_TXT, 700, 0.04); ly += 25 * S; }
+      ly += 22 * S; this.text('WEAPONS', lx, ly, 28 * S, GOLD, 'left', F_BIG, 400, 0.08); ly += 12 * S; g.fillStyle = GOLD; g.fillRect(lx, ly, lw - 20 * S, 2 * S); ly += 32 * S;
+      P.weapons.forEach((Sl, i) => {
+        if (Sl.def < 0) return; const Wd = DATA.weapons[Sl.def], col = RARITY_HEX[Wd.rarity];
+        this.text(`${i + 1}`, lx, ly, 16 * S, 'rgba(242,232,213,0.5)', 'left', F_TXT, 700); this.text(Wd.name.toUpperCase(), lx + 22 * S, ly, 22 * S, col, 'left', F_BIG, 400, 0.08);
+        { const t = Math.min(3, Sl.tier), ew = t < 3 ? this.text('\u2605'.repeat(3 - t), rx, ly, 16 * S, 'rgba(242,232,213,0.18)', 'right', F_TXT, 700) : 0, fw = t ? this.text('\u2605'.repeat(t), rx - ew, ly, 16 * S, GOLD, 'right', F_TXT, 700) : 0; this.text(Wd.cls, rx - ew - fw - 8 * S, ly, 15 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.06); } ly += 22 * S;
+        if (!Sl.mods.length) { this.text('No workbench upgrades', lx + 22 * S, ly, 14 * S, 'rgba(242,232,213,0.4)', 'left', F_TXT, 600); ly += 20 * S; }
+        for (const u of Sl.mods) { const U = DATA.upgrades[u]; this.text(U.name, lx + 22 * S, ly, 15 * S, RARITY_HEX[U.rarity], 'left', F_TXT, 700, 0.06); ly += 18 * S; for (const l of this.wrap(U.desc, lw - 46 * S, 13 * S).slice(0, 2)) { this.text(l, lx + 22 * S, ly, 13 * S, '#b5ab9a', 'left', F_TXT, 600); ly += 16 * S; } ly += 2 * S; }
+        ly += 12 * S;
+      });
+      { const Md = MELEE[P.meleeDef || 0]; this.text('Q', lx, ly, 16 * S, 'rgba(242,232,213,0.5)', 'left', F_TXT, 700); this.text(Md.name.toUpperCase(), lx + 22 * S, ly, 22 * S, RARITY_HEX[Md.rarity] || BONE, 'left', F_BIG, 400, 0.08); this.text(P.meleeTier > 0 ? `Honed x${P.meleeTier}` : 'Blade', rx, ly, 15 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.06); }
+      g.fillStyle = 'rgba(214,170,80,0.35)'; g.fillRect(lx + lw - 2 * S, y + 24 * S, 2 * S, h - 80 * S);
+    }
+    const x = xAll + lw + 14 * S, w = wAll - lw - 14 * S;
     this.text('UPGRADES', x + pad, y + 62 * S, 52 * S, GOLD, 'left', F_BIG, 400, 0.08);
     let cx = x + w - pad;
     for (const [lab, val, col] of [['POWER', Math.round(P.power()), BONE], ['HEADSHOTS', P.headshots, BONE], ['KILLS', P.kills, BONE]]) {

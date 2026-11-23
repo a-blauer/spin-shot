@@ -20,7 +20,8 @@ function quatVM(rot) {
 }
 const ADS_PITCH = -2.5;   // degrees the gun tips down when aimed through an optic
 const ViewScale = 0.31;   // smaller in the frame so the gun does not crowd the view
-const HipPos = { X: 31, Y: 12.5, Z: -14 };
+const HipPos = { X: 37, Y: 14, Z: -16.5 };   // held a little further off, so the gun leaves more of the view
+const HIP_BIG = { LMG: [10, 2, -3.5], Launcher: [10, 2, -3.5], Wonder: [8, 1.5, -3], Shotgun: [4, 0.5, -1.5], Sniper: [5, 0.5, -1.5], Rifle: [3, 0, -1], Energy: [4, 0.5, -1.5] };   // the big ones further still
 const Metal = hex(0x4C4E5C), MetalDark = hex(0x2A2A33), MetalLight = hex(0x8C90A0), Wood = hex(0x7A4528), WoodLight = hex(0xA8643A);
 const Glove = hex(0x4E3324), GloveLight = hex(0x6E4A32), Cuff = hex(0xC9A46A), Sleeve = hex(0xB0603A), SleeveStripe = hex(0xE8C24A), Brass = hex(0xE0A83A);
 const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -474,14 +475,14 @@ export class ViewModel {
     this.Cap(sp, V(-12, -28, -48), V(-5, -8.8, -11.8), 4.2, Sleeve, 5.6);
     // muzzle flash: star facing the camera, flame along the barrel, additive glow
     const big = ['Shotgun', 'Sniper', 'Launcher'].includes(this.cls);
-    this.FS = big ? 30 : (this.cls === 'Pistol' ? 18 : 22);
+    this.FS = big ? 21 : (this.cls === 'Pistol' ? 14 : 17);
     const tint = (this.cls === 'Energy' || this.cls === 'Wonder') ? Accent.clone().lerp(new THREE.Color(1, 1, 1), 0.35) : new THREE.Color(1, 1, 1);
     const star = flashMesh('FX_Star', false); star.material.uniforms.tint.value.set(tint.r, tint.g, tint.b, 1);
     const flame = flashMesh('FX_Flame', false); flame.material.uniforms.tint.value.set(tint.r, tint.g, tint.b, 1);
     const glow = flashMesh('FX_Glow', true); glow.material.uniforms.tint.value.set(1, 0.7, 0.35, 0.6);
     // lies flat along the barrel: texture +X -> forward (-z), normal up
     flame.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0)));
-    flame.position.set(0, 0, -this.FS * 0.55);
+    flame.position.set(0, 0, -this.FS * 0.3);
     for (const q of [star, flame, glow]) { this.muzzle.add(q); this.parts.push(q); }
     this.flash = [star, flame, glow];
     // Aiming down sights puts the highest point on the gun's centre line just under the crosshair, measured from the
@@ -579,9 +580,9 @@ export class ViewModel {
       const [star, flame, glow] = this.flash;
       for (const q of this.flash) q.visible = !this.scoped;
       star.userData.spin = Math.random() * Math.PI * 2;
-      star.scale.set(this.FS * J * 1.3, this.FS * J * 1.3, 1);
-      flame.scale.set(this.FS * 1.3 * J, this.FS * 0.55 * J * (0.8 + Math.random() * 0.4), 1);
-      glow.scale.set(this.FS * 5 * f.flash * K, this.FS * 5 * f.flash * K, 1);
+      star.scale.set(this.FS * J * 0.75, this.FS * J * 0.75, 1);
+      flame.scale.set(this.FS * 0.8 * J, this.FS * 0.34 * J * (0.8 + Math.random() * 0.4), 1);
+      glow.scale.set(this.FS * 2.6 * f.flash * K, this.FS * 2.6 * f.flash * K, 1);
     }
     if (this.cls === 'LMG' || this.cls === 'Wonder') this.spinSpeed = Math.min(this.spinSpeed + 400, 1800);
     this.fireExtras(continuous);
@@ -706,7 +707,8 @@ export class ViewModel {
     // positions in UE-local terms (x fwd, y right, z up) then mapped
     const hipK = 1 - this.aimA, hip = f.hip || [0, 0, 0, 0, 0, 0];
     const ads = this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
-    const pos = { X: HipPos.X + (ads.X - HipPos.X) * this.aimA, Y: HipPos.Y + (ads.Y - HipPos.Y) * this.aimA, Z: HipPos.Z + (ads.Z - HipPos.Z) * this.aimA };
+    const hb = HIP_BIG[this.cls] || [0, 0, 0], hp = { X: HipPos.X + hb[0], Y: HipPos.Y + hb[1], Z: HipPos.Z + hb[2] };
+    const pos = { X: hp.X + (ads.X - hp.X) * this.aimA, Y: hp.Y + (ads.Y - hp.Y) * this.aimA, Z: hp.Z + (ads.Z - hp.Z) * this.aimA };
     const rot = { P: this.adsPose ? this.adsPose.P * this.aimA : 0, Y: 0, R: 0 };
     const add = (x, y, z, k) => { pos.X += x * k; pos.Y += y * k; pos.Z += z * k; };
     const rel = { P: 0, Y: 0, R: 0 }; let relOn = false;   // how far a reload has turned the gun: the off hand does not turn with it

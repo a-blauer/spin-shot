@@ -588,16 +588,18 @@ export function BuildMesa(M, GM) {
 			GM.NavBlockBox(BOX(D.sub(V(40., 40., 0.)), D.add(V(40., 40., 200.))), 1);
 		}
 	}
+	// Neck: the last vertebrae step down from the spine to the skull, which lies on the ground with its jaw in the dirt
+	for (const [y, z, w] of [[1240., 650., 150.], [1345., 575., 140.], [1440., 490., 130.]]) { Box(V(3000., y, z), V(w, 130., 110.), Pal.Bone, true, false); Box(V(3000., y + 62., z - 30.), V(w - 40., 40., 80.), 0xC8BEA4, false, false); }
 	// Skull
-	Ball(V(3000., 1650., 320.), V(560., 520., 480.), Pal.Bone, true);
-	Ball(V(3000., 1900., 180.), V(380., 300., 240.), 0xD8CCB0, true);
-	Ball(V(2860., 1880., 380.), V(120.), 0x1A1214, false);
-	Ball(V(3140., 1880., 380.), V(120.), 0x1A1214, false);
-	Glow(V(2860., 1930., 380.), V(30.), 0xFF3020, 2);
-	Glow(V(3140., 1930., 380.), V(30.), 0xFF3020, 2);
-	ConeShape(V(2720., 1600., 620.), V(110., 110., 320.), Pal.Bone, true, R(0., 0., -25.));
-	ConeShape(V(3280., 1600., 620.), V(110., 110., 320.), Pal.Bone, true, R(0., 0., 25.));
-	GM.NavBlockBox(BOX(V(2720., 1380., 0.), V(3280., 2060., 500.)), 1);
+	Ball(V(3000., 1700., 250.), V(560., 520., 480.), Pal.Bone, true);
+	Ball(V(3000., 1950., 118.), V(380., 300., 240.), 0xD8CCB0, true);
+	Ball(V(2860., 1925., 310.), V(120.), 0x1A1214, false);
+	Ball(V(3140., 1925., 310.), V(120.), 0x1A1214, false);
+	Glow(V(2860., 1975., 310.), V(30.), 0xFF3020, 2);
+	Glow(V(3140., 1975., 310.), V(30.), 0xFF3020, 2);
+	ConeShape(V(2790., 1660., 520.), V(110., 110., 320.), Pal.Bone, true, R(0., 0., -25.));
+	ConeShape(V(3210., 1660., 520.), V(110., 110., 320.), Pal.Bone, true, R(0., 0., 25.));
+	GM.NavBlockBox(BOX(V(2720., 1180., 0.), V(3280., 2110., 500.)), 1);
 	Lamp(V(3000., 2000., 380.), LC(1., 0.2, 0.1), 16., 900., false);
 
 	// Old mine
