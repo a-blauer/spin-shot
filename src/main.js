@@ -463,7 +463,10 @@ function renderLobby() {
     h += group('MAP', chip('', true, false, esc2(MAPS[curMap].name), ''), 'The host chooses the map and the difficulty.');
     h += group('DIFFICULTY', chip('', true, false, 'Host\u2019s choice', ''), 'You will see it when the run starts.');
   } else {
-    h += group('MAP', MAPS.map((M, i) => chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`)).join(''),
+    const dsc = MAPS.findIndex((M) => M.mode === 'descent'), isD = curMap === dsc; if (!isD) window.__survMap = curMap;
+    h += group('GAME TYPE', chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'one map, endless rounds') + chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`),
+      isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by today’s challenge' : '');
+    if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
       `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by today’s challenge' : '');
     h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by today’s challenge' : '');
   }

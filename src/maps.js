@@ -6,6 +6,7 @@ import { buildMine, MINE_LOOT, mineCeil, MINE_QUEST, MINE_MECH } from './map_min
 import { buildFrost, FROST_LOOT, frostAmbient, FROST_QUEST, FROST_MECH } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient, BAYOU_QUEST, BAYOU_MECH, bayouWater } from './map_bayou.js';
 import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient, CARNIVAL_QUEST, CARNIVAL_MECH } from './map_carnival.js';
+import { buildDescent, THEMES } from './map_descent.js';
 import { buildWharf, WHARF_LOOT, wharfAmbient, WHARF_QUEST, WHARF_MECH } from './map_wharf.js';
 
 const C = (h) => new THREE.Color(h);
@@ -130,6 +131,15 @@ export const MAPS = [
     vault: { floor: 0x0c1418, floor2: 0x12222a, wedgeA: 0x6a6e76, wedgeB: 0x0c1014, glow: 0x2A8A78, colA: 0x3a2e26, colB: 0x2a2420, cap: 0x8a7648, slit: 0x2A8A78, lamp: [0.3, 1.0, 0.85], cairn: [0x3a3e44, 0x5a5e66, 0x2e3238, 0x8a8468], chand: 0x8a7648, chandGlow: 0xc8b85a, chandLamp: [0.9, 0.85, 0.5], sign: 'EVERY NECK HAS ITS DAY', signCol: [150, 230, 210] },
     final: { arena: 'UNDER THE GALLOWS', open: 'THE TRAP IS SPRUNG', toast: 'Step into the light to go down through the trap', under: 'UNDER THE GALLOWS', acts: ['THE TIDE COMES IN', 'THE ROPE TIGHTENS'], taunt: 'Every neck has its day',
       win: 'Gallows Wharf is quiet. The Hangman has taken the drop.' } },
+  // not a place but a way of playing: twenty rooms, a door chosen after each, a boss in every fifth
+  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down. Clear a room and choose the next door by the reward written over it. A boss holds every fifth room. No two runs go the same way.',
+    pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
+    palette(P, zone) {
+      const T = THEMES[typeof zone === 'number' && zone >= 16 ? [1, 5, 7, 0][zone - 16] : (typeof zone === 'number' ? zone : 0) % 8];
+      P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
+      P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);
+      return P;
+    } },
 ];
 
 MAPS.forEach((M, i) => {
@@ -138,4 +148,5 @@ MAPS.forEach((M, i) => {
   M.bosses = DATA.bosses.map((b, k) => (b.map === i && !b.final ? k : -1)).filter((k) => k >= 0);
   M.finalBoss = DATA.bosses.findIndex((b) => b.map === i && b.final);
   M.rounds = M.bosses.length * 3;
+  if (M.mode === 'descent') { M.enemies = DATA.enemies.map((e, k) => k).filter((k) => !DATA.enemies[k].boss); M.bosses = DATA.bosses.map((b, k) => (b.tier ? k : -1)).filter((k) => k >= 0); if (!M.bosses.length) M.bosses = [0, 1, 2, 3]; M.rounds = 20; }
 });

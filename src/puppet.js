@@ -3,7 +3,7 @@
 // procedurally: a waddling walk (alternating leg lifts, body rock), breathing, arm sway, wind-up/lunge toward the
 // camera, flinch, death fall.
 import * as THREE from 'three';
-import { sprite, Cam } from './render.js';
+import { sprite, Cam, Atlas } from './render.js';
 
 let PARTS = null;
 export function setParts(p) { PARTS = p; }
@@ -29,6 +29,7 @@ export class Puppet {
       top = Math.max(top, D.pivot[1] + D.offset[1] + D.size[1] * 0.5);
     }
     this.top = top;
+    { const m = this.parts[0] && Atlas.meta[this.parts[0].tex]; this.atlas = m ? m.atlas : ''; }
     this.heightCm = Math.max(40, top) * scale;
     { const Hd = this.parts.find((q) => q.role === 'Head'); this.headFrac = Hd && top > 0 ? Math.min(0.9, Math.max(0.45, (Hd.rest[1] + Hd.off[1] - Hd.size[1] * 0.42) / top)) : 0.74; }   // where the head starts, as a fraction of the height: read off the art
     this.facing = Math.random() < 0.5 ? -1 : 1; this.time = 0; this.walk = Math.random() * 6;

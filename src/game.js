@@ -15,6 +15,7 @@ import { Player } from './player.js';
 import { Net } from './net.js';
 import { VAULT } from './mapzones.js';
 import { MAPS } from './maps.js';
+import { Descent } from './descent.js';
 import { Quest } from './quest.js';
 import { Mech } from './mech.js';
 import { Projectiles, Hazards, Pickups } from './entities.js';
@@ -59,6 +60,7 @@ export class Game {
     this.player = new Player(this);
     this.vm.setWeapon(0, 0, false);
     this.quest = new Quest(this); this.mech = new Mech(this);
+    if (this.map.mode === 'descent') this.descent = new Descent(this);
     this.unlockZone(0, true);
     this.player.pos.copy(this.playerSpawn).add(V3(0, 0, 0));
     // UE yaw 60 -> forward (cos60, sin60) in UE XY -> three (x, z)
@@ -83,8 +85,9 @@ export class Game {
   tips(dt) {
     const P = this.player, F = P.focus; if (P.dead) return;
     this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
-    if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
-    if (this.round >= 2) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
+    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom', 'Kills pay money. Chests behind a door are free; armouries, workbenches and the Mystery Box are where the money goes. Press Tab to see what you carry.'); if (this.descent.cleared) this.tip('ddoor', 'The room is clear. Take what it paid, then walk up to a lit door: the sign over it says what the next room pays. Elite doors are harder and pay better.'); }
+    else if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
+    if (this.round >= 2 && this.quest.def) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
     if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');
     if (F) {
       if (this.mech.traps && this.mech.traps.some((T) => T.I === F)) this.tip('trap', 'A trap: pay to throw the switch and it works the doorway beside it for a while, then needs time to reset. Fire and blast traps hurt you too.');
@@ -403,11 +406,12 @@ export class Game {
     this.time += dt;
     const P = this.player;
     this.flowTimer -= dt;
-    if (this.net.role === 'client') { this.instaKill = Math.max(0, this.instaKill - dt); this.doublePoints = Math.max(0, this.doublePoints - dt); return; }
+    if (this.net.role === 'client') { this.instaKill = Math.max(0, this.instaKill - dt); this.doublePoints = Math.max(0, this.doublePoints - dt); if (this.descent) this.descent.tick(dt); return; }
     if (this.flowTimer <= 0) { this.flowTimer = 0.3; this.navRebuild(P.dead && this.net.alivePositions().length ? this.net.alivePositions()[0] : P.pos, this.net.alivePositions()); }
     this.instaKill = Math.max(0, this.instaKill - dt);
     this.doublePoints = Math.max(0, this.doublePoints - dt);
     if (this.final && (this.final.gate || this.final.active)) return;   // the rounds stop once the vault is open
+    if (this.descent) { this.descent.tick(dt); return; }
     switch (this.phase) {
       case 'PreGame': this.phaseTimer -= dt; if (this.phaseTimer <= 0) this.startRound(); break;
       case 'Round': this.tickRound(dt); break;
@@ -453,7 +457,7 @@ export class Game {
   // Chests are not all there from the start: a few are, and more turn up as the rounds go by, somewhere in a district
   // you have opened. Better ones come later. Never more than six waiting at once.
   dropChest() {
-    if (this.net.role === 'client' || !this.spawnChest) return;
+    if (this.net.role === 'client' || !this.spawnChest || this.descent) return;
     const waiting = this.interactables.filter((I) => { if (I.type !== 'Chest' || I.opened || Math.abs(I.pos.y - this.zoneZ(I.pos.x, I.pos.z)) > 300) return false; const Z = this.zones[this.zoneAt(I.pos)]; return Z && Z.unlocked; }).length;   // unopened chests you can already reach
     if (waiting >= 7) return;
     const r = this.round, W = r < 4 ? [70, 30, 0, 0] : r < 8 ? [45, 40, 15, 0] : r < 14 ? [28, 40, 26, 6] : [18, 34, 32, 16];
@@ -482,6 +486,7 @@ export class Game {
     this.player.onRoundStarted(this.round);
   }
   endRound() {
+    if (this.descent) { if (!this.descent.isBossRoom()) this.descent.clear(); return; }
     this.phase = 'Intermission'; this.phaseTimer = 8;   // long enough to reload and look round, not long enough to get bored
     this.player.onRoundEnded(this.round);
 
@@ -554,6 +559,7 @@ export class Game {
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   pickEnemyType() {
+    if (this.descent) return this.descent.pick();
     const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (w > 0 && D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });   // (the floor of 3 is for THIS map's walker: applied to every walker it sent each map's into all the others, drawn from the wrong sheet as a jumble of parts)
     let r = Math.random() * total;
     for (let i = 0; i < W.length; i++) { r -= W[i]; if (r <= 0) return i; }
@@ -600,7 +606,7 @@ export class Game {
   }
   spawnEnemy(def, loc, elite, boss, scaleMul, healthMul, affixes, splitChild) {
     // a creature belongs to one map and is drawn from that map's sheet: anything asked for from another map becomes this map's creature of the same kind
-    if (DATA.enemies[def] && DATA.enemies[def].map !== this.mapId) def = this.enemyOfAI(DATA.enemies[def].ai, 'Walker');
+    if (!this.descent && DATA.enemies[def] && DATA.enemies[def].map !== this.mapId) def = this.enemyOfAI(DATA.enemies[def].ai, 'Walker');
     const E = new Enemy(this, def, loc, Math.max(1, this.round), elite, boss, scaleMul, healthMul, affixes, splitChild);
     this.enemies.push(E);
     return E;
@@ -626,8 +632,9 @@ export class Game {
     // tonics are permanent, so they are rare: about one every three rounds, never two in a round
     if (!E.isBoss && this.tonicsThisRound < 1 && Math.random() < sup(0.3, 0.02)) { this.tonicsThisRound++; this.pickups.spawn('Tonic', loc.clone().add(V3(-40, 0, 30)), P.rollTonic()); }
     // every boss leaves a buff; later bosses lean toward the higher rarities
-    if (E.isBoss && !E.boss.final) {
-      const k = Math.min(4, Math.max(0, Math.floor(this.round / 3) - 1)), T = [[0, 60, 35, 5, 0], [0, 30, 50, 18, 2], [0, 0, 50, 40, 10], [0, 0, 25, 50, 25], [0, 0, 0, 50, 50]][k];
+    if (this.descent) this.descent.dropBuff(E, loc);
+    if (E.isBoss && !E.boss.final && !E.noLoot) {
+      const k = this.descent ? Math.min(4, Math.floor(this.round / 5)) : Math.min(4, Math.max(0, Math.floor(this.round / 3) - 1)), T = [[0, 60, 35, 5, 0], [0, 30, 50, 18, 2], [0, 0, 50, 40, 10], [0, 0, 25, 50, 25], [0, 0, 0, 50, 50]][k];
       let r = Math.random() * 100, ri = 1; for (let q = 0; q < 5; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
       const u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(120, 0, 120)), u);
     }

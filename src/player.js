@@ -2161,7 +2161,7 @@ export class Player {
     if (I.opened || this.inMenu()) return;
     const offers = this.chestOffers(I.tier);
     if (!offers.length) { this.toast('Nothing left for you in there', '#ccc'); return; }
-    const paid = this.chestPrice(I.tier);
+    const paid = I.free ? 0 : this.chestPrice(I.tier);
     if (!this.spend(paid)) return;
     this.chestsOpened++; I.setOpened(true); I.holding = true;   // it stays until you have chosen
     if (this.S.ChestRefund) this.addMoney(Math.round(paid * Math.min(0.5, this.S.ChestRefund)), false);

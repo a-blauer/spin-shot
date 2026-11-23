@@ -2,7 +2,7 @@
 // gibs that bounce and settle, puffs, shock rings, tracers, lightning, coins and persistent decals.
 // CPU-simulated particles drawn through three instanced sprite batches (masked / translucent / additive).
 import * as THREE from 'three';
-import { SpriteBatch, sprite, Cam } from './render.js';
+import { SpriteBatch, sprite, Cam, Atlas } from './render.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const _r = new THREE.Vector3(), _u = new THREE.Vector3(), _a = new THREE.Vector3(), _t = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -28,8 +28,9 @@ export class Fx {
       sprite: new SpriteBatch(scene, 'sprite', 'fx', 3000, 4),
       fx: new SpriteBatch(scene, 'fx', 'fx', 3000, 5),
       add: new SpriteBatch(scene, 'add', 'fx', 2000, 6),
-      creature: new SpriteBatch(scene, 'sprite', 'creatures' + (game.map && game.map.pack ? game.map.pack : ''), 1600, 4),   // a full horde is 64 bodies of up to 7 parts, plus the dying, the summoned and the limbs on the floor: 600 ran out and the newest bodies went undrawn
+      creature: new SpriteBatch(scene, 'sprite', 'creatures' + (game.map && game.map.pack ? (Array.isArray(game.map.pack) ? game.map.pack[0] : game.map.pack) : ''), 1600, 4),   // a full horde is 64 bodies of up to 7 parts, plus the dying, the summoned and the limbs on the floor: 600 ran out and the newest bodies went undrawn
     };
+    this.scene0 = scene; this.mainAtlas = 'creatures' + (game.map && game.map.pack ? (Array.isArray(game.map.pack) ? game.map.pack[0] : game.map.pack) : '');
     this.parts = [];
     this.decals = [];
     this.serial = 0;
@@ -116,7 +117,7 @@ export class Fx {
       } else {
         _r.copy(P.right); _u.copy(P.up);
       }
-      const masked = P.kind === 'sprite' || P.kind === 'creature';
+      const masked = P.kind === 'sprite' || P.kind === 'creature' || P.kind.charCodeAt(1) === 95;
       if (masked && alpha < 1) { w *= Math.max(0.02, alpha); h *= Math.max(0.02, alpha); }
       const col = P.c0 === P.c1 ? P.c0 : lerpC(P.c0, P.c1, t);
       const a = masked ? (col[3] ?? 1) : (col[3] ?? 1) * alpha;
@@ -124,6 +125,12 @@ export class Fx {
     };
     for (const D of this.decals) draw(D);
     for (const P of this.parts) if (P.delay <= 0) draw(P);
+  }
+  // a creature drawn from another sheet than this map's own gets a batch of its own (the Descent draws on every sheet)
+  kindFor(atlas) {
+    if (!atlas || atlas === this.mainAtlas || !Atlas.tex[atlas]) return 'creature';
+    const k = 'c_' + atlas; if (!this.batches[k]) this.batches[k] = new SpriteBatch(this.scene0, 'sprite', atlas, 900, 4);
+    return k;
   }
   end() { for (const b of Object.values(this.batches)) b.end(); }
   tickDecals(dt) { for (const d of this.decals) d.age += dt; }

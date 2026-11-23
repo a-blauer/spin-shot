@@ -160,9 +160,17 @@ export async function loadAtlas(base = '') {
 }
 
 // each map's creatures are their own atlas, fetched the first time that map is played
-export async function loadCreaturePack(k, base = '') {
+export async function loadCreaturePack(k, base = '', half = false) {
+  if (Array.isArray(k)) { for (let i = 0; i < k.length; i++) await loadCreaturePack(k[i], base, i > 1); return; }   // the Descent: its own two sheets whole, the six maps' sheets at half size to keep the memory down
   const name = 'creatures' + (k || '');
   if (Atlas.tex[name]) return;
+  if (!Object.values(Atlas.meta || {}).some((m) => m.atlas === name)) return;   // no such sheet in this build
+  if (half) {
+    const blob = await (await fetch(base + 'atlas_' + name + '.png')).blob(), bmp = await createImageBitmap(blob), c = document.createElement('canvas');
+    c.width = bmp.width >> 1; c.height = bmp.height >> 1; c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); if (bmp.close) bmp.close();
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.premultiplyAlpha = false;
+    Atlas.tex[name] = t; return;
+  }
   const blob = await (await fetch(base + 'atlas_' + name + '.png')).blob();
   const t = await new THREE.TextureLoader().loadAsync(URL.createObjectURL(blob));
   t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;

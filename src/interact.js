@@ -649,6 +649,7 @@ export class Interactable {
       }
       case 'Chest': {
         const names = ['Wooden', 'Iron', 'Gilded', 'Reliquary'], T = this.tier;
+        if (this.free) return `[E] Open the ${names[T]} chest  (free)\nOne ${RARITIES[T].toLowerCase()} or ${RARITIES[T + 1].toLowerCase()} buff: your pick of three.`;
         return `[E] Open the ${names[T]} chest  $${cash(player ? player.chestPrice(T) : 100)}\nOne ${RARITIES[T].toLowerCase()} or ${RARITIES[T + 1].toLowerCase()} buff. Every chest you open makes the next one dearer.`;
       }
       case 'MysteryBox': {

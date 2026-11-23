@@ -10,7 +10,8 @@ const UP = new THREE.Vector3(0, 1, 0);
 const flat = (v) => new THREE.Vector3(v.x, 0, v.z);
 const safeN2 = (v) => { const f = flat(v); const l = f.length(); return l > 1e-4 ? f.divideScalar(l) : f.set(0, 0, 0); };
 const EyeYellow = [1, 0.93, 0.48];
-const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'];
+import { X_ATTACKS, mechX, hitX, deathX, attackX, thinkTotem } from './bossx.js';
+const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);
 // what the boss bar calls each move while it is winding up, so a fight reads as a set of things to answer
 export const ATTACK_LABEL = { Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM - jump the ring', Volley: 'VOLLEY', Summon: 'CALLING THE HANDS', Leap: 'LEAP - move', Teleport: 'VANISHED', Ring: 'SHOCKWAVES - jump them', Barrage: 'BARRAGE - keep moving',
   Sweep: 'SWEEP - get behind it', Hook: 'CHAIN HOOK - out of the line', Pools: 'BILE - off the green', NailWall: 'NAIL WALL - find the gap', Ambush: 'AMBUSH - it is behind you', Dive: 'DIVE - out of the line' };
@@ -45,7 +46,7 @@ export class Enemy {
       const B = this.boss = DATA.bosses[bossIndex];
       const cycle = Math.max(0, Math.floor((this.round - 5) / 25));
       hp = zombieHealth(this.round) * B.hp * (1 + cycle * 0.5) * healthMul;
-      this.bodyScale = B.scale * scaleMul;
+      this.bodyScale = Math.min(B.scale, B.final ? 2.5 : 2.0) * scaleMul;   // big enough to loom, never so big it is in the rafters
       this.baseSpeed = B.speed;
       this.attackDamage = B.dmg * (1 + 0.03 * (effRound(this.round) - 1));
       this.money = B.reward;
@@ -99,6 +100,7 @@ export class Enemy {
     if (this.isBoss) { auraSize = 300; aura = lin(1, 0.25, 0.1); }
     if (splitChild) tint = lerp3(tint, [0.75, 1, 0.6], 0.25);
     this.puppet = new Puppet(creature, this.bodyScale, tint, aura, auraSize);
+    this.ckind = game.fx.kindFor(this.puppet.atlas);
     // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
     { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
       this.hitR = Math.max(this.radius, w * this.puppet.baseScale * 0.58); this.hitH = Math.max(this.half * 2, this.puppet.heightCm);
@@ -352,6 +354,7 @@ export class Enemy {
     const Me = this.pos, Pl = P.pos;
     const To = Pl.clone().sub(Me);
     const dist = To.length(), dist2D = Math.hypot(To.x, To.z);
+    if (this.ai === 'Totem') { thinkTotem(this, dt); return; }
     const hasteMul = this.has('Hasted') ? 1.6 : 1;
     this.attackCd -= dt * hasteMul; this.special -= dt; this.climb -= dt; this.affixT -= dt;
     if (this.has('Blinking') && this.affixT <= 0 && dist > 700) { this.affixT = 4; this.blink(350, 550); }
@@ -613,6 +616,7 @@ export class Enemy {
     if (this.remote) return this.game.net.sendHit(this, amount, fromDir, headshot);
     if (this.finalInv > 0) return 0;
     if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } return 0; }
+    if (this.isBoss && this.boss.tier && amount < 1e8) { amount = hitX(this, amount, fromDir, headshot); if (amount <= 0) return 0; }
     this.netKiller = this._netHit || null;
     let dmg = amount;
     if (this.exposedT > 0) dmg *= 1.5;   // staggered: a missed charge or a hard landing leaves a boss open
@@ -647,7 +651,7 @@ export class Enemy {
         if (arm) {
           this.armLost = true; this.attackDamage *= 0.75;
           const loc = this.puppet.partWorld(arm), hd = fromDir.lengthSq() > 0 ? fromDir.clone().normalize() : new THREE.Vector3(0, 1, 0);
-          this.game.fx.debris(arm.tex, loc, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160), arm.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, arm.spr, 'creature', this.puppet.facing < 0);
+          this.game.fx.debris(arm.tex, loc, hd.multiplyScalar(380).add(new THREE.Vector3(0, 520, 0)).addScaledVector(randDir(), 160), arm.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, arm.spr, this.ckind, this.puppet.facing < 0);
           this.game.fx.fleshHit(loc, hd, this.bodyScale * 1.2, true);
           this.game.fx.bloodPool(this.pos, 60 * this.bodyScale);
         }
@@ -666,6 +670,7 @@ export class Enemy {
   kill(killer, headshot) {
     if (this.dead || (this.remote && !this.netDying)) return;
     this.dead = true;
+    if (this.isBoss && this.boss.tier) deathX(this);
     const G = this.game, loc = this.pos.clone();
     this.gibbed = this.isBoss || this.ai === 'Bloater' || this.lastHitExplosive || Math.random() < (this.elite ? 0.6 : 0.3);
     const hitDir = this.lastHitDir.lengthSq() < 1e-4 ? new THREE.Vector3(0, 1, 0) : this.lastHitDir.clone().normalize();
@@ -674,7 +679,7 @@ export class Enemy {
       const head = this.puppet.popHead();
       if (head) {
         const v = hitDir.clone().multiplyScalar(420).add(new THREE.Vector3(0, 650, 0)).addScaledVector(randDir(), 120);
-        G.fx.debris(head.tex, headLoc, v, head.size[0] * this.puppet.baseScale, 8, frandRange(-700, 700), true, head.spr, 'creature', this.puppet.facing < 0);
+        G.fx.debris(head.tex, headLoc, v, head.size[0] * this.puppet.baseScale, 8, frandRange(-700, 700), true, head.spr, this.ckind, this.puppet.facing < 0);
       }
       G.fx.fleshHit(headLoc, hitDir, this.bodyScale * 1.4, true);
       G.fx.gibs(headLoc, this.bodyColor, this.bodyScale * 0.6, 4);
@@ -687,7 +692,7 @@ export class Enemy {
       G.fx.fleshHit(loc, hitDir, this.bodyScale, true);
       G.fx.bloodPool(loc, 110 * this.bodyScale);
       { const limb = this.puppet.popPart(['ArmFront', 'ArmBack', 'LegFront', 'LegBack']);   // something always comes off
-        if (limb) G.fx.debris(limb.tex, this.puppet.partWorld(limb), hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200), limb.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, limb.spr, 'creature', this.puppet.facing < 0); }
+        if (limb) G.fx.debris(limb.tex, this.puppet.partWorld(limb), hitDir.clone().multiplyScalar(300).add(new THREE.Vector3(0, 480, 0)).addScaledVector(randDir(), 200), limb.size[0] * this.puppet.baseScale, 8, frandRange(-600, 600), true, limb.spr, this.ckind, this.puppet.facing < 0); }
       this.puppet.startDeath(hitDir);
       G.audio.playAt('S_EnemyDie', loc, 0.8, Math.min(1.3, Math.max(0.7, 1.1 / Math.max(this.bodyScale, 0.5))), 0.12);
     }
@@ -720,11 +725,12 @@ export class Enemy {
     if (this.pools && this.pools.length) { for (const Q of this.pools) { Q.t -= dt; if (Q.t <= 0) { const H = G.hazards.fire(Q.at, this.attackDamage * 0.4, 215, 9, lin(0.35, 0.95, 0.2)); if (H) H.label = 'Bile pool'; } } this.pools = this.pools.filter((Q) => Q.t > 0); }
     // ---- signature mechanics, by boss
     const hpf = this.health / this.maxHealth;
+    if (this.boss.tier) mechX(this, dt, { Pl });
     if (this.boss.mech === 'ward') {   // Mother Carrion (and the Gravedigger once): a ward that only her wisps hold up
       const stage = this.boss.wardStages === 1 ? (hpf < 0.5 ? 1 : 0) : hpf < 0.33 ? 2 : hpf < 0.66 ? 1 : 0;
       if (stage > (this.wardStage || 0)) {
         this.wardStage = stage; this.ward = 14; this.wardKids = []; this.bossAttack = -1; this.windup = 0; this.bossTimer = 2;
-        const wisp = G.enemyOfAI('Flyer');
+        const wisp = this.boss.wardArt ? DATA.enemies.findIndex((e) => e.art === this.boss.wardArt) : G.enemyOfAI('Flyer');
         for (let i = 0; i < 4 + stage; i++) { const a = i / (4 + stage) * Math.PI * 2, at = Me.clone().add(new THREE.Vector3(Math.cos(a) * 420, 160, Math.sin(a) * 420)); const K = G.spawnEnemy(wisp >= 0 ? wisp : this.boss.minion, at, false, -1, 1.25, 1.6, 0, false); if (K) { K.wardOf = this; this.wardKids.push(K); } }
         this.puppet.setTint([0.6, 0.8, 1.25]); G.audio.playAt('S_Screech', Me, 1.1, 0.8);
         G.banner(this.boss.wardText || 'WARDED - KILL THE WISPS', lin(0.5, 0.8, 1), 3);
@@ -749,7 +755,7 @@ export class Enemy {
       if (this.bossAttack < 0) return;
     }
     if (this.bossAttack < 0) {
-      this.bossTimer -= dt * rage;
+      this.bossTimer -= dt * rage * (this.xRate || 1);
       this.attackCd -= dt;
       const dir = this.steer(dist < 1200 && this.canSee(Pl) ? safeN2(To) : G.flowDirection(Me, false, true), 1, dt, Math.hypot(To.x, To.z));
       this.moveToward(dir, 1);
@@ -765,6 +771,7 @@ export class Enemy {
         let pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
         for (let k = 0; k < 6 && (pick === this.lastAttack || ((ATTACKS[pick] === 'Sweep' || ATTACKS[pick] === 'Slam') && dist > 900) || (ATTACKS[pick] === 'Hook' && (dist < 450 || dist > 1900))); k++) pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
         this.lastAttack = pick;
+        if (this.boss.mech === 'heat' && (this.heat = (this.heat || 0) + 1) >= 4) { this.heat = 0; pick = ATTACKS.indexOf('Vent'); }   // the Furnace: every fourth thing it does is let the heat out
         this.startBossAttack(pick);
         this.bossTimer = frandRange(2.0, 3.2);
       }
@@ -962,7 +969,7 @@ export class Enemy {
           if (this.bossT > 0.8) { this.exposedT = 1.0; done(); }
         }
         break;
-      default: done();
+      default: if (!attackX(this, ATTACKS[this.bossAttack], dt, { Pl, To, dist, feet, done })) done();
     }
   }
   // ---- The Founder. Three acts by health: blades, then beams and falling rubble with his hands called in, then the room burns.
@@ -1069,7 +1076,7 @@ export class Enemy {
   attackName() { return ATTACKS[this.bossAttack]; }
 
   draw(batches) {
-    this.puppet.draw(batches.creature, batches.fx, batches.add, !this.dead);
+    this.puppet.draw(batches[this.ckind] || batches.creature, batches.fx, batches.add, !this.dead);
   }
 }
 

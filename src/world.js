@@ -645,7 +645,7 @@ export class World {
     this.scene.add(I.group);
     if (type === 'Door') {
       this.doors.push(I);
-    } else if (type !== 'WallBuy' && type !== 'ExitBell' && type !== 'MysteryBox' && type !== 'Chest') {
+    } else if (!this.rt && type !== 'WallBuy' && type !== 'ExitBell' && type !== 'MysteryBox' && type !== 'Chest') {
       const ext = (type === 'UpgradeCounter' || type === 'StatBooth') ? V(60, 170, 120) : V(60, 70, 120);
       this.game.NavBlockBox({ min: loc.sub(ext), max: loc.add(ext) }, 1);
       I.solid = true;
@@ -745,8 +745,7 @@ export class World {
     this.decor = [];
     M.Decor = (min, max, count, kinds) => { const b = this.Tbox({ min: V(min.X, min.Y, 0), max: V(max.X, max.Y, 0) }); this.decor.push([V2(b.min.X, b.min.Y), V2(b.max.X, b.max.Y), count, kinds]); };
     MAP.build(M);
-    Z.BuildVault(M, null, MAP.vault);
-    this.placeLoot(MAP.loot);
+    if (!MAP.mode) { Z.BuildVault(M, null, MAP.vault); this.placeLoot(MAP.loot); }
     this.finish();
   }
 
