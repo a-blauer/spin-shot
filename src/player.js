@@ -1854,7 +1854,6 @@ export class Player {
       case 'Pawn': { const cost = Math.round(400 * (1 + this.pawnRerolls) * this.priceMult()); if (this.spend(cost)) { this.pawnRerolls++; this.rollPawn(); M.offers = this.pawnOffers; } break; }
       case 'Tonic': M.page = 1 - M.page; this.play('S_UIMove', 0.6); break;
       case 'Vault': this.vaultUpgrade(false); break;
-      case 'Chest': { if (this.spend(this.chestRerollCost(M))) { M.rerolls++; M.banish = false; const o = this.chestOffers(M.tier); if (o.length) M.offers = o; this.play('S_Switch', 0.8, 1.2); } break; }
       default: break;
     }
   }
@@ -2158,7 +2157,6 @@ export class Player {
     }
     return out;
   }
-  chestRerollCost(M) { return Math.round(this.chestPrice(M.tier) * 0.25 * Math.pow(2, M.rerolls) / 50) * 50; }
   openChest(I) {
     if (I.opened || this.inMenu()) return;
     const offers = this.chestOffers(I.tier);
@@ -2295,10 +2293,9 @@ export class Player {
         break;
       case 'Chest': {
         title = `${['WOODEN', 'IRON', 'GILDED', 'RELIQUARY'][M.tier] || ''} CHEST`;
-        help.push({ kind: 'info', text: 'Choose one of three buffs. Reroll draws three new ones for a price that doubles each time on this chest. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
+        help.push({ kind: 'info', text: 'Choose one of three buffs. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
         if (M.banish) res('BANISH WHICH ONE?', '#ff6a5a'); else res('CHOOSE ONE', gold);
         M.offers.forEach((u, i) => { const U = DATA.upgrades[u]; const have = this.upgradeStacks[u]; opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase(), tagColor: RARITY_HEX[U.rarity], color: M.banish ? '#ff9a8a' : RARITY_HEX[U.rarity], desc: U.desc, note: have ? `owned x${have}` : '' }); });
-        opt('E', 'Reroll all three', { price: this.chestRerollCost(M) });
         opt('4', M.banish ? 'Cancel banish' : `Banish one  (${this.banishes} left)`, { color: this.banishes > 0 ? bone : '#8a8078' });
         footer = '[Tab] Take the first';
         break;
