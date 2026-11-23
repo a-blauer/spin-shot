@@ -1,13 +1,14 @@
 // Co-op over the artifact `room` capability. One player hosts and runs the whole simulation (rounds, spawns, enemy AI);
 // everyone else mirrors the host's enemies and sends their hits back. The lobby room carries the server list as presence.
 // Everything heard here is untrusted: numbers are coerced and clamped before use.
-import { difficulty, setDifficulty } from './data.js';
+import { difficulty, setDifficulty, mutators, setMutators } from './data.js';
 import * as THREE from 'three';
 import { Enemy } from './enemies.js';
 import { Meta } from './meta.js';
 import { PeerLobby } from './peernet.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { parseLook } from './cosmetics.js';
+import { gunSound } from './gunsound.js';
 
 const num = (v, lo = -1e6, hi = 1e6) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0; };
 const cleanName = (s) => String(s || 'Player').replace(/[^\w .\-']/g, '').slice(0, 16) || 'Player';
@@ -72,7 +73,7 @@ export const Net = {
     this.ghosts.clear(); this.room = null; this.role = 'solo'; this.hits.clear();
   },
   emit(topic, data) { if (this.room) this.room.emit(topic, data).catch(() => {}); },
-  attach(game) { this.game = game; game.net = this; this.chests = []; for (const G of this.ghosts.values()) G.group = null; },
+  attach(game) { this.rejoining = null; this.game = game; game.net = this; this.chests = []; for (const G of this.ghosts.values()) G.group = null; },
   wire() {
     const R = this.room, on = (t, f) => this.offs.push(R.on(t, (m) => { if (m.isMe && m.sameTab) return; try { f(m.data || {}, m); } catch (e) { /* bad packet */ } }, () => {}));
     this.offs.push(R.onPeers(() => this.syncPeers(), () => {}));
@@ -89,7 +90,7 @@ export const Net = {
       on('k', fromHost((d) => this.onKill(d)));
       on('d', fromHost((d) => { if (d.to === this.me && this.game) this.game.player.receiveDamage(num(d.a, 0, 500), null, !!d.m, num(d.s, 0, 1), num(d.t, 0, 5)); }));
     }
-    on('door', (d, m) => { if (d && Array.isArray(d.a)) { if (this.game && this.game.audio.radio) this.game.audio.radio.net(d.a, !!m && m.peer === this.hostPeer); } else if (d && d.r) { if (this.role === 'host' && this.game && this.game.audio.radio) this.game.audio.radio.command(d.r === 1); } else if (Array.isArray(d.q)) { if (this.game) this.game.quest.apply(d.q.slice(0, 4).map((v, k) => (k ? num(v, 0, 999) : String(v).slice(0, 2)))); } else if (Array.isArray(d.m)) { if (this.game) this.game.mech.net(d.m); } else this.openDoorIdx(num(d.i, 0, 999)); });
+    on('door', (d, m) => { if (d && Array.isArray(d.t)) { if (this.game && this.game.mech) this.game.mech.trapRemote(num(d.t[0], 0, 20) | 0); } else if (d && Array.isArray(d.a)) { if (this.game && this.game.audio.radio) this.game.audio.radio.net(d.a, !!m && m.peer === this.hostPeer); } else if (d && d.r) { if (this.role === 'host' && this.game && this.game.audio.radio) this.game.audio.radio.command(d.r === 1); } else if (Array.isArray(d.q)) { if (this.game) this.game.quest.apply(d.q.slice(0, 4).map((v, k) => (k ? num(v, 0, 999) : String(v).slice(0, 2)))); } else if (Array.isArray(d.m)) { if (this.game) this.game.mech.net(d.m); } else this.openDoorIdx(num(d.i, 0, 999)); });
   },
   // Chests that turn up during a run: the host places them and lists them in its state message, and every guest puts
   // one in the same spot (each player opens their own). The list is sent whole each time, so a lost message costs nothing.
@@ -114,6 +115,10 @@ export const Net = {
       const s = p.presence || {};
       if (s.x === undefined) continue;
       G.to.set(num(s.x), num(s.y), num(s.z)); if (!G.fresh) { G.pos.copy(G.to); G.fresh = true; }
+      G.down = !!s.dn; G.bleed = num(s.bl, 0, 60); G.rp = num(s.rp, 0, 1); G.rv = typeof s.rv === 'string' ? s.rv.slice(0, 80) : '';
+      G.pitch = num(s.pt, -2, 2); G.wdef = num(s.w, -1, 500) | 0;
+      { const sh = num(s.sh, 0, 100000) | 0; if (G.fresh && G.shot !== undefined && sh !== G.shot && !s.dead) G.fired = true; G.shot = sh; }
+      if (Array.isArray(s.pg) && s.pg.length >= 4) { const q = num(s.pg[3], 0, 1e6) | 0; if (G.pingSeq !== undefined && q !== G.pingSeq && this.game) this.game.showPing(new THREE.Vector3(num(s.pg[0], -1e5, 1e5), num(s.pg[1], -1e5, 1e5), num(s.pg[2], -1e5, 1e5)), cleanName(s.name), num(s.pg[4], 0, 3) | 0); G.pingSeq = q; } else if (G.pingSeq === undefined) G.pingSeq = 0;
       G.yaw = num(s.yaw, -100, 100); G.hp = num(s.hp, 0, 1); G.dead = !!s.dead; G.name = cleanName(s.name); G.wantSkin = String(s.look || '').slice(0, 240);
     }
     for (const [peer, G] of this.ghosts) if (!here.has(peer)) {
@@ -123,7 +128,11 @@ export const Net = {
       if (this.role === 'client' && peer === this.hostPeer) this.hostGone();
     }
   },
-  hostGone() { const g = this.game; this.leave(); if (g) { g.banner('HOST LEFT  -  PLAYING SOLO', [1, 0.6, 0.2], 4); g.enemies.forEach((E) => { E.remove = true; }); g.phase = 'Intermission'; g.phaseTimer = 8; } },
+  hostGone() {
+    const g = this.game, code = this.code, name = this.name; this.leave();
+    if (g && code && !this.rejoining) { this.rejoining = { code, name, game: g, until: performance.now() + 25000, next: performance.now() + 1500, busy: false }; g.banner('HOST LOST  -  TRYING TO RECONNECT', [1, 0.6, 0.2], 5); }
+    else if (!this.rejoining) this.goSolo(g);
+  },
   // nearest living player to an enemy (host only); falls back to the local player
   targetOf(E) {
     const P = this.game.player;
@@ -137,6 +146,7 @@ export const Net = {
 
   // ---------------------------------------------------------------- per-frame
   tick(dt) {
+    if (this.rejoining) { this.rejoinTick(); return; }
     const g = this.game; if (!g || !this.room) return;
     if (!this.started) this.lastHost = performance.now();
     const P = g.player;
@@ -145,14 +155,22 @@ export const Net = {
       if (!G.group || G.skin !== G.wantSkin || G.builtName !== G.name) G.build(g.scene, G.wantSkin);
       const prev = G.pos.clone(); G.pos.lerp(G.to, Math.min(1, dt * 12)); G.vel.copy(G.pos).sub(prev).divideScalar(Math.max(dt, 1e-3));
       G.forward.set(Math.sin(G.yaw), 0, Math.cos(G.yaw));
-      G.group.visible = !G.dead; G.group.position.set(G.pos.x, G.pos.y - 95, G.pos.z); G.group.rotation.y = G.yaw + Math.PI;
+      G.group.visible = !G.dead || G.down; G.group.position.set(G.pos.x, G.pos.y - (G.down ? 70 : 95), G.pos.z); G.group.rotation.y = G.yaw + Math.PI;
+      G.char.rotation.x += ((G.down ? -Math.PI / 2 : 0) - G.char.rotation.x) * Math.min(1, dt * 8);   // a downed teammate lies where they fell
+      if (G.down) { G.pulse = (G.pulse || 0) - dt; if (G.pulse <= 0) { G.pulse = 1.1; g.fx.ring(new THREE.Vector3(G.pos.x, G.pos.y - 88, G.pos.z), 150, [1, 0.3, 0.25], 0.9); } }
+      if (G.fired) { G.fired = false; this.ghostShot(G); }
       G.animT = (G.animT || 0) + dt; G.spd = (G.spd || 0) + (Math.hypot(G.vel.x, G.vel.z) - (G.spd || 0)) * Math.min(1, dt * 8); animateCharacter(G.char, G.animT, G.spd);
     }
+    // getting a teammate up: stand by them and hold E
+    this.reviveTarget = null; this.rvPeer = '';
+    if (!P.dead) { let bd = 240; for (const G of this.ghosts.values()) { if (!G.down || !G.fresh) continue; const d = G.pos.distanceTo(P.pos); if (d < bd) { bd = d; this.reviveTarget = G; } } if (this.reviveTarget && P.input && P.input.useHeld && !P.inMenu()) this.rvPeer = this.reviveTarget.peer; }
+    if (P.downed) { let by = null; for (const G of this.ghosts.values()) if (!G.dead && G.fresh && G.rv === this.me && G.pos.distanceTo(P.pos) < 300) by = G; P.tickDowned(dt, !!by, by ? by.name : ''); }
+    if (P.input && P.input.ping && !P.dead && !P.inMenu()) g.ping();
     this.tp -= dt;
     if (this.tp <= 0) {
       this.tp = 0.1;
       this.started = true;
-      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, name: this.name, look: Meta.lookStr() }).catch(() => {});
+      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, dn: P.downed ? 1 : null, bl: P.downed ? Math.round(P.bleed) : null, rp: P.downed ? Math.round((P.reviveP || 0) * 100) / 100 : null, rv: this.rvPeer || null, sh: P.shotSeq || 0, pt: Math.round(P.pitch * 100) / 100, w: P.wield ? -1 : P.slot.def, pg: g.myPing || null, name: this.name, look: Meta.lookStr() }).catch(() => {});
       if (this.role === 'client' && this.hits.size) { this.emit('h', { l: [...this.hits.entries()].slice(0, 80).map(([id, h]) => [id, Math.round(h.a), h.hs, Math.round(h.x * 100) / 100, Math.round(h.z * 100) / 100]) }); this.hits.clear(); }
     }
     if (this.role === 'host') {
@@ -162,7 +180,7 @@ export const Net = {
         this.ts = 0.5;
         const doors = []; g.interactables.forEach((I, i) => { if (I.type === 'Door' && I.open) doors.push(i); });
         const F = g.final, fin = F ? { g: F.gate ? [Math.round(F.gate.x), Math.round(F.gate.y), Math.round(F.gate.z)] : 0, a: F.active ? 1 : 0, d: F.done ? 1 : 0, r: Math.round(F.safeR || 0), b: F.beam ? [Math.round(F.beam.x), Math.round(F.beam.y), Math.round(F.beam.z), Math.round(F.beam.ang * 100) / 100, F.beam.spd, F.beam.n, Math.round(F.beam.dmg), Math.round((F.beam.t || 0) * 10) / 10] : 0 } : 0;
-        this.emit('s', { df: difficulty(), r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, ch: (this.chests || []).slice(-40), q: g.quest.state(), mx: g.mech.state(), rd: g.audio.radio ? g.audio.radio.state() : null, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
+        this.emit('s', { df: difficulty(), mu: mutators(), dy: Meta.dailyOn() ? 1 : 0, r: g.round, ph: g.phase, pt: Math.round(g.phaseTimer || 0), rem: g.remaining(), doors, fin, ch: (this.chests || []).slice(-40), q: g.quest.state(), mx: g.mech.state(), rd: g.audio.radio ? g.audio.radio.state() : null, bar: [Math.round(g.barricadeT || 0), Math.round(g.barricadeCd || 0)] });
         if (g.phase === 'Round' && this.allDead()) g.gameOver();
       }
     } else if (performance.now() - this.lastHost > 12000) this.hostGone();
@@ -184,6 +202,26 @@ export const Net = {
     E.takeHit(num(h[1], 0, 200000), E.pos, new THREE.Vector3(num(h[3], -1, 1), 0, num(h[4], -1, 1)), !!h[2]);
     E._netHit = null;
   },
+  // a teammate fired: flash at their muzzle, a tracer down their line of sight, and the report of their gun
+  ghostShot(G) {
+    const g = this.game, cp = Math.cos(G.pitch || 0), dir = new THREE.Vector3(-Math.sin(G.yaw) * cp, Math.sin(G.pitch || 0), -Math.cos(G.yaw) * cp).normalize();   // the same way Player.forward() reads yaw
+    const side = new THREE.Vector3(dir.z, 0, -dir.x).normalize(), muzzle = G.pos.clone().addScaledVector(dir, 70).addScaledVector(side, -22).add(new THREE.Vector3(0, 28, 0));
+    const hit = g.phys.raycast(muzzle, dir, 6000), end = hit ? hit.point : muzzle.clone().addScaledVector(dir, 6000);
+    g.fx.flash(muzzle, [1, 0.8, 0.4], 26, 0.06, true); g.fx.tracer(muzzle, end, [1, 0.9, 0.6], 4, 0.07);
+    if (hit) g.fx.sparks(hit.point, hit.normal, [1, 0.8, 0.5], 3);
+    const W = G.wdef >= 0 ? g.data.weapons[G.wdef] : null, d = G.pos.distanceTo(g.player.pos);
+    if (W) gunSound(g.audio, W.name, Math.max(0.08, 0.6 / (1 + d / 900)), false);
+  },
+  // the host dropped: hold the line and keep trying the same lobby for a while before carrying on alone
+  rejoinTick() {
+    const R = this.rejoining, g = R.game, now = performance.now();
+    if (now > R.until) { this.rejoining = null; this.goSolo(g); return; }
+    if (R.busy || now < R.next) return;
+    R.busy = true;
+    this.join(R.code, R.name).then(() => { this.rejoining = null; this.game = g; this.started = true; this.lastHost = performance.now(); g.banner('RECONNECTED', [0.5, 0.9, 1], 3); },
+      () => { R.busy = false; R.next = performance.now() + 2500; });
+  },
+  goSolo(g) { if (g) { g.banner('HOST LEFT  -  PLAYING SOLO', [1, 0.6, 0.2], 4); g.enemies.forEach((E) => { E.remove = true; }); g.phase = 'Intermission'; g.phaseTimer = 8; if (g.player.downed || g.coopDown) { g.player.revive(); } } },
   hostFx(d, peer) {
     const E = this.game.enemies.find((e) => e.id === d.id); if (!E || E.dead) return;
     E._netHit = peer;
@@ -231,7 +269,8 @@ export const Net = {
   onState(d) {
     const g = this.game; if (!g) return;
     if (g.audio.radio) g.audio.radio.sync(d.rd);
-    if (d.df != null && (d.df | 0) !== difficulty()) setDifficulty(num(d.df, 0, 2) | 0);   // the host's difficulty is everyone's
+    if (d.df != null && (d.df | 0) !== difficulty()) setDifficulty(num(d.df, 0, 2) | 0);
+    if (d.mu != null && (d.mu | 0) !== mutators()) { setMutators(num(d.mu, 0, 4095) | 0, !!d.dy); g.player.recompute(); }   // the host's difficulty is everyone's
     const r = num(d.r, 0, 999) | 0, ph = ['PreGame', 'Round', 'Intermission', 'GameOver'].includes(d.ph) ? d.ph : 'Round';
     if (r > g.round) {
       g.round = r; g.banner(`ROUND ${r}`, [0.85, 0.08, 0.06], 3.5, 'round'); g.hud.roundFlash = 1;

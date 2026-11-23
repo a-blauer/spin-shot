@@ -78,6 +78,46 @@ export class Game {
   isCasinoOpen() { return true; }
   priceMult() { let m = Math.min(2, Math.max(0.4, 1 - this.player.stat('CasinoDiscount'))); if (this.fireSale) m *= 0.5; return m * (1 + 0.04 * Math.max(0, this.round - 1)); }   // prices rise 4% a round
   banner(text, color, dur = 3, kind = '') { this.hud.banner(text, color, dur, kind); }
+  // a tip: shown once per profile, the first time the thing it explains comes up
+  tip(key, text) { if (Meta.tipSeen(key)) return; Meta.tipMark(key); this.hud.tip(text); }
+  tips(dt) {
+    const P = this.player, F = P.focus; if (P.dead) return;
+    this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
+    if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
+    if (this.round >= 2) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
+    if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');
+    if (F) {
+      if (this.mech.traps && this.mech.traps.some((T) => T.I === F)) this.tip('trap', 'A trap: pay to throw the switch and it works the doorway beside it for a while, then needs time to reset. Fire and blast traps hurt you too.');
+      if (F.type === 'Chest') this.tip('chest', 'A chest sells you a buff: you choose one of three, and nothing can hurt you for five seconds while you do. Each chest costs more than the last.');
+      else if (F.type === 'Workbench') this.tip('bench', 'The workbench adds a random modifier to the gun in your hands, up to four. It takes ten seconds: come back and press E to claim it.');
+      else if (F.type === 'MysteryBox') this.tip('box', 'The Mystery Box sells a random gun from the ones you have unlocked. Take it or leave it.');
+      else if (F.type === 'Door') this.tip('door', 'Doors cost money and stay open for everyone. New areas hold better wall guns, chests and the steps of the task.');
+      else if (F.type === 'WallBuy') this.tip('wall', 'A wall gun can be bought again for a fraction of the price to refill its ammo.');
+    }
+    if (P.slot && P.slot.def >= 0 && P.slot.ammo === 0 && P.slot.reserve === 0) this.tip('dry', 'Out of ammo: buy it back at that gun\u2019s wall outline, pick up a blue ammo drop, or draw your blade with X.');
+    if (P.benchJob && P.benchJob.t <= 0) this.tip('claim', 'Your workbench upgrade is ready. It is not on the gun until you go back and claim it.');
+    if (this.net.active && this.net.ghosts.size) this.tip('coop', 'Press G to ping what you are looking at. If a teammate goes down, stand beside them and hold E to get them up.');
+    if (this.quest && this.quest.def && !this.quest.done && this.quest.S && this.quest.S.type === 'order') this.tip('order', 'This step needs the right order. Each one shows one, two or three lights: use them from fewest to most. A wrong one resets them all.');
+    if (this.quest && this.quest.def && !this.quest.done && this.quest.S && this.quest.S.type === 'hold') this.tip('hold', 'Stand inside the marked ring to fill the timer. It only counts during a round, while enemies are still alive.');
+  }
+  // a ping: mark what you are looking at for everyone (G or the middle mouse button)
+  ping() {
+    const P = this.player, eye = P.eye(), dir = P.forward();
+    if (this.time - (this.pingAt || -9) < 0.4) return; this.pingAt = this.time;
+    const wall = this.phys.raycast(eye, dir, 20000); let far = wall ? wall.distance : 6000, kind = 0, at = null;
+    for (const E of this.enemies) { if (E.dead || E.burrowed) continue; const t = this.rayEnemy(eye, dir, far, E, 40); if (t !== null && t < far) { far = t; kind = E.isBoss || E.elite ? 2 : 1; at = E.pos.clone(); } }
+    if (!at) { at = eye.clone().addScaledVector(dir, Math.max(0, far - 10)); for (const I of this.interactables) if (I.pos.distanceTo(at) < 180) { kind = 3; at = I.pos.clone().add(new THREE.Vector3(0, 60, 0)); break; } }
+    this.pingSeq = ((this.pingSeq || 0) + 1) % 1000000;
+    this.myPing = [Math.round(at.x), Math.round(at.y), Math.round(at.z), this.pingSeq, kind];
+    this.showPing(at, '', kind);
+  }
+  showPing(pos, name, kind) {
+    const col = kind === 1 || kind === 2 ? [1, 0.35, 0.3] : kind === 3 ? [1, 0.82, 0.3] : [0.45, 0.85, 1];
+    (this.pings = this.pings || []).push({ pos: pos.clone(), name: name || '', kind, t: 0, col });
+    if (this.pings.length > 8) this.pings.shift();
+    this.fx.ring(pos.clone(), 110, col, 0.5); this.fx.glowAt(pos, col, 200, 0.5);
+    this.audio.playAt('S_UISelect', pos, 0.9, kind === 1 || kind === 2 ? 0.8 : 1.3, 0);
+  }
   shakeAt(at, radius) { const d = at.distanceTo(this.player.pos); this.player.addShake(Math.max(0, 1 - d / (radius * 4 + 600)) * Math.min(1.2, Math.max(0.3, radius / 250))); }
 
   // ------------------------------------------------------------------ nav grid (UE X,Y == three x,z)
@@ -315,7 +355,7 @@ export class Game {
     const F = this.final; if (F) { F.active = false; F.done = true; F.beam = null; F.safeR = 0; }
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.hazards.list.forEach((H) => { H.life = Math.min(H.life, H.age + 0.1); });
-    this.victory = true; this.levelDone = true; Meta.won(this.map.id, difficulty());
+    this.victory = true; this.levelDone = true; Meta.won(this.map.id, difficulty()); Meta.dailyRound(this.round, true);
     this.audio.play('S_LevelUp', 1); this.player.addShake(2.5); this.hitstop = 0.4;
   }
   tickFinal(dt) {
@@ -510,7 +550,7 @@ export class Game {
   }
   openCasino() {} closeCasino() {}
   ringBell() { this.toggleBarricade(); }
-  playerDied() { if (this.net.active && !this.net.allDead()) { this.deathTime = this.time; this.coopDown = true; this.hud.toast('You are down. You respawn next round if a teammate survives.', '#ff9a4d'); return; } this.gameOver(); }
+  playerDied() { if (this.net.active && !this.net.allDead()) { this.deathTime = this.time; this.coopDown = true; this.hud.toast(this.player.downed ? 'You are down. A teammate can get you up: they hold E beside you.' : 'You are down. You respawn next round if a teammate survives.', '#ff9a4d'); return; } this.gameOver(); }
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   pickEnemyType() {
@@ -671,6 +711,9 @@ export class Game {
     this.quest.tick(dt); this.mech.tick(dt); this.questHeat = Math.max(0, (this.questHeat || 0) - dt);
     if (this.map.ambient && !this.inVault(P.pos)) this.map.ambient(this, dt);
     this.net.tick(dt);
+    this.tips(dt);
+    if (this.pings) { for (const p of this.pings) p.t += dt; this.pings = this.pings.filter((p) => p.t < 7); }
+    if (!this.net.active && this.player.input && this.player.input.ping && !this.player.dead && !this.player.inMenu()) this.ping();
     if (this.net.role !== 'client') { this.separate(dt); this.unstick(dt); this.tickStragglers(dt); }
     this.enemies = this.enemies.filter((E) => !E.remove);
     this.projectiles.update(dt);

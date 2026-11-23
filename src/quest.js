@@ -103,7 +103,8 @@ export class Quest {
     else if (S.type === 'shoot') { n = S.tg.filter((t) => t.hit).length; of = S.tg.length; }
     else if (S.type === 'order') { n = S.k; of = S.seq.length; }
     else if (S.type === 'hold') { n = Math.floor(S.t); of = S.time; }
-    return { title: this.def.name, text: D.text, prog: of ? (S.type === 'hold' ? `${n}s / ${of}s` : S.type === 'souls' ? `${S.v.filter((v) => v.n >= D.need).length} / ${S.v.length}` : `${n} / ${of}`) : '', frac: of ? n / of : 0, step: this.i + 1, steps: this.def.steps.length };
+    const how = D.how || { collect: 'They glow. Walk over each one to pick it up.', souls: `Kill ${D.need || ''} enemies close to each one to fill it.`, shoot: 'Shoot each one. Look up: they hang high.', order: 'Count the lights on each. Use them fewest to most. A wrong one resets them.', hold: 'Stand in the ring during a round, with enemies still alive.', boss: 'Kill the boss of the next third round.', use: 'Find it and press E.' }[S.type] || '';
+    return { how, title: this.def.name, text: D.text, prog: of ? (S.type === 'hold' ? `${n}s / ${of}s` : S.type === 'souls' ? `${S.v.filter((v) => v.n >= D.need).length} / ${S.v.length}` : `${n} / ${of}`) : '', frac: of ? n / of : 0, step: this.i + 1, steps: this.def.steps.length };
   }
   cue(pos, col, big) { const g = this.g; g.fx.flash(pos, col, big ? 500 : 260, 0.5, true); g.fx.ring(pos, big ? 500 : 220, col, 0.5); g.audio.playAt(big ? 'S_LevelUp' : 'S_Pickup', pos, 1, big ? 1 : 1.3); }
   // something a player did. In co-op it goes to everyone, and everyone applies it the same way.

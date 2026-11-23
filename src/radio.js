@@ -66,6 +66,8 @@ export class Radio {
     if (this.db) { try { await tx(this.db, 'readwrite', (s) => s.clear()); } catch (e) { /* nothing to do */ } }
     if (this.onChange) this.onChange();
   }
+  // a song is on, or about to be (decoding, or arriving from the host): the game's own score stays quiet
+  busy() { return this.active && (!!this.src || this.cur >= 0 || !!this.streamKey); }
   setVol(v) { if (this.gain) this.gain.gain.value = v * 0.9; }
   // the game says whether music should be on at all (in a run: yes; on the menus and when the run is over: no)
   setActive(on) {

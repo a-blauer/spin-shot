@@ -112,8 +112,25 @@ export const DIFFS = [
   { name: 'Hard', hp: 0.9, slope: 1.35, count: 0.9, alive: 0.88, dmg: 0.85, spawn: 1.2, desc: 'A real fight. Between the two.' },
   { name: 'Nightmare', hp: 1, slope: 1.7, count: 1, alive: 1, dmg: 1, spawn: 1, desc: 'Full hordes, full damage, the steepest climb.' },
 ];
-let DF = DIFFS[2], dfi = 2;
-export const setDifficulty = (i) => { dfi = Math.max(0, Math.min(2, i | 0)); DF = DIFFS[dfi]; };
+// Challenge modifiers: handicaps a player switches on for extra renown. The ones in `f` bend the difficulty numbers;
+// the others are read where they bite (money in addMoney, health in recompute).
+export const MUTATORS = [
+  { id: 'hides', name: 'Thick Hides', desc: 'Enemies have half again as much health.', xp: 0.25, f: { hp: 1.5 } },
+  { id: 'blood', name: 'Bad Blood', desc: 'Everything hits you half again as hard.', xp: 0.25, f: { dmg: 1.5 } },
+  { id: 'yard', name: 'The Whole Graveyard', desc: 'Bigger hordes, and more of them up at once.', xp: 0.25, f: { count: 1.4, alive: 1.3 } },
+  { id: 'climb', name: 'Steep Climb', desc: 'Every round gets harder faster.', xp: 0.2, f: { slope: 1.3 } },
+  { id: 'purse', name: 'Short Purse', desc: 'You earn 40% less money.', xp: 0.2, money: 0.6 },
+  { id: 'jaw', name: 'Glass Jaw', desc: 'You have 40% less health.', xp: 0.2, health: 0.6 },
+];
+let DF = DIFFS[2], dfi = 2, mutMask = 0, dailyBonus = 0;
+const rebuildDiff = () => { DF = Object.assign({}, DIFFS[dfi]); MUTATORS.forEach((M, i) => { if ((mutMask >> i) & 1 && M.f) for (const k in M.f) DF[k] *= M.f[k]; }); };
+const mutProd = (key) => MUTATORS.reduce((a, M, i) => a * ((mutMask >> i) & 1 && M[key] ? M[key] : 1), 1);
+export const setDifficulty = (i) => { dfi = Math.max(0, Math.min(2, i | 0)); rebuildDiff(); };
+export const setMutators = (mask, daily = 0) => { mutMask = (mask | 0) & ((1 << MUTATORS.length) - 1); dailyBonus = daily ? 0.5 : 0; rebuildDiff(); };
+export const mutators = () => mutMask;
+export const mutMoney = () => mutProd('money');
+export const mutHealth = () => mutProd('health');
+export const mutXp = () => 1 + dailyBonus + MUTATORS.reduce((a, M, i) => a + ((mutMask >> i) & 1 ? M.xp : 0), 0);
 export const difficulty = () => dfi;
 export const diff = () => DF;
 export const effRound = (r) => 1 + (Math.max(1, r) - 1) * DF.slope;

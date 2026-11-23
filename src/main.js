@@ -1,7 +1,7 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
 import { CLASSES, rollBuff, rollGunMod } from './classes.js';
 import { MELEE, rollMelee } from './melee.js';
-import { DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
+import { MUTATORS, setMutators, mutators, mutXp, DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
@@ -53,7 +53,7 @@ document.addEventListener('pointerlockchange', () => { if (document.pointerLockE
 
 // ------------------------------------------------------------------ input
 const keys = new Set();
-const edges = { grenade: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, wield: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
+const edges = { grenade: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, barricade: 0, melee: 0, wield: 0, back: 0, next: 0, prev: 0, firePressed: 0, ping: 0, choice: [0, 0, 0, 0] };
 let mouseL = false, mouseR = false, lookX = 0, lookY = 0;
 let settings = {};
 try { settings = JSON.parse(localStorage.getItem('dmh-settings') || '{}') || {}; } catch (e) { settings = {}; }
@@ -79,6 +79,7 @@ function onKey(e, down) {
       case 'KeyF': edges.grapple = 1; break;
       case 'KeyR': edges.reload = 1; break;
       case 'KeyE': edges.interact = 1; break;
+      case 'KeyG': edges.ping = 1; break;
       case 'KeyB': edges.barricade = 1; break;
       case 'KeyQ': edges.melee = 1; break;
       case 'KeyX': edges.wield = 1; break;
@@ -113,6 +114,7 @@ addEventListener('mousedown', (e) => {
   if (!TEST && !TOUCH && !lockFailed && !document.pointerLockElement) { requestLock(); return; }   // this click takes the mouse back; it does not fire
   if (e.button === 0) { mouseL = true; edges.firePressed = 1; }
   if (e.button === 2) mouseR = true;
+  if (e.button === 1) { edges.ping = 1; e.preventDefault(); }
 });
 addEventListener('mouseup', (e) => { if (e.button === 0) mouseL = false; if (e.button === 2) mouseR = false; });
 addEventListener('mousemove', (e) => {
@@ -131,6 +133,7 @@ function readInput() {
     fire: mouseL || touchFire, aim: mouseR || touchAim,
     lookX: lookX * sens(), lookY: lookY * sens(),
     jump: edges.jump, slide: edges.slide, slideUp: edges.slideUp, dash: edges.dash, grapple: edges.grapple, reload: edges.reload,
+    useHeld: keys.has('KeyE'), ping: edges.ping,
     interact: edges.interact, barricade: edges.barricade, melee: edges.melee, wield: edges.wield, grenade: edges.grenade, back: edges.back, next: edges.next, prev: edges.prev, firePressed: edges.firePressed, choice: edges.choice.slice(),
   };
   if (window.__dmhInput) Object.assign(In, window.__dmhInput(In) || {});
@@ -458,7 +461,13 @@ function renderLobby() {
   h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
   h += '<section><h3>MAP</h3>' + (client ? `<div class="lbpick sel"><b>${MAPS[curMap].name}</b><span>The host chooses</span></div>` : MAPS.map((M, i) => `<div class="lbpick ${curMap === i ? 'sel' : ''}" data-map="${i}"><b>${M.name}</b><span>${M.blurb}</span><span class="dim">${M.rounds} rounds  -  best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`).join('')) + '</section></div>';
-  h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : '<button id="lbstart" class="lbstart">START GAME</button>';
+  // handicaps for extra renown, and today's challenge
+  if (!client) {
+    const mu = Meta.mutators(), T = Meta.today(), B = Meta.dailyBest(), on = Meta.dailyOn();
+    h += `<section><h3>CHALLENGE MODIFIERS</h3><p class="dim">Make it harder on yourself for more renown. ${on ? 'Set by today\u2019s challenge.' : ''}</p>` + MUTATORS.map((M, i) => `<div class="lbpick ${(mu >> i) & 1 ? 'sel' : ''} ${on ? 'locked' : ''}" data-mu="${i}"><b>${M.name}</b><span>${M.desc}</span><span class="dim">+${Math.round(M.xp * 100)}% renown</span></div>`).join('') + '</section>';
+    h += `<section><h3>TODAY\u2019S CHALLENGE</h3><div class="lbpick ${on ? 'sel' : ''}" data-daily="1"><b>${esc2(MAPS[T.map] ? MAPS[T.map].name : '')}  -  Hard</b><span>${esc2(T.names.join(' and '))}. The same for everyone today; it changes at midnight UTC.</span><span class="dim">+50% renown on top  -  ${B.won ? 'beaten today' : B.best ? 'your best today: round ' + B.best : 'not tried today'}  -  ${Meta.dailyWins()} beaten in all</span></div></section>`;
+  }
+  h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : `<button id="lbstart" class="lbstart">${Meta.dailyOn() ? 'START TODAY\u2019S CHALLENGE' : 'START GAME'}</button>`;
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
   q('#lbback').onclick = (e) => { e.stopPropagation(); closeLobby(); };
@@ -471,6 +480,8 @@ function renderLobby() {
   q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
   lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-mu]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (Meta.dailyOn()) return; Meta.toggleMut(+el.dataset.mu); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-daily]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDaily(!Meta.dailyOn()); Net.setMap(Meta.map()); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
@@ -482,7 +493,7 @@ async function beginRun() {
   // the map is chosen in the lobby (the host's choice in co-op); if it is not the one standing, build it now
   const hm = Net.role === 'client' ? Net.hostMap() : Meta.map(), want = MAPS[hm] ? hm : game.mapId;
   if (want !== game.mapId && game.round === 0) { beginning = true; lobby.style.display = 'none'; await rebuildGame(want); beginning = false; }
-  if (Net.role !== 'client') setDifficulty(Meta.difficulty());
+  if (Net.role !== 'client') { setDifficulty(Meta.difficulty()); setMutators(Meta.mutators(), Meta.dailyOn()); }
   if (game.round === 0) game.player.setClass(Meta.cls());
   lobby.style.display = 'none'; locker.style.display = 'none';
   // apply the chosen starting weapon to a fresh run
@@ -526,7 +537,7 @@ document.addEventListener('pointerlockchange', () => {
 // browser takes those before the page hears of them. In a fullscreen the page itself asked for, Chromium browsers
 // (Chrome, Edge, Opera) let it hold named keys with every modifier, so sliding on Ctrl while moving forward, opening the
 // upgrade list or reloading is safe. Esc is not held: it still leaves fullscreen and frees the mouse.
-const LOCK_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyT', 'KeyN', 'KeyQ', 'KeyE', 'KeyF', 'KeyX', 'KeyV', 'KeyC', 'KeyB', 'KeyH', 'KeyP', 'Tab', 'Space', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F3', 'PageUp', 'PageDown'];
+const LOCK_KEYS = ['KeyG', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyT', 'KeyN', 'KeyQ', 'KeyE', 'KeyF', 'KeyX', 'KeyV', 'KeyC', 'KeyB', 'KeyH', 'KeyP', 'Tab', 'Space', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F3', 'PageUp', 'PageDown'];
 const fsOn = () => !!document.fullscreenElement;
 const canHoldKeys = () => !!(navigator.keyboard && navigator.keyboard.lock);
 function holdKeys() {
@@ -557,7 +568,7 @@ function setPaused(p) {
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op only the host needs songs: the host\u2019s radio plays for everyone, and is sent to the other players as it plays.</p></div>' + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op only the host needs songs: the host\u2019s radio plays for everyone, and is sent to the other players as it plays.</p></div>' + `<div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div><div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
@@ -572,6 +583,7 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   pauseEl.querySelector('#prclr').onclick = () => { R.clear(); };
   new MutationObserver(() => { if (pauseEl.style.display !== 'none') draw(); }).observe(pauseEl, { attributes: true, attributeFilter: ['style'] });
 }
+pauseEl.querySelector('#ptips').onclick = (e) => { Meta.tipsReset(); Meta.save(); e.target.textContent = 'TIPS WILL SHOW AGAIN'; };
 pauseEl.querySelector('#presume').onclick = () => { if (pauseEl.classList.contains('menu')) { pauseEl.classList.remove('menu'); pauseEl.style.display = 'none'; } else setPaused(false); };
 pauseEl.querySelector('#pfull').onclick = () => { const on = !fsOn(); settings.fullscreen = on; saveSettings(); setFullscreen(on); };
 pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'; restartRun(true); };
@@ -675,7 +687,7 @@ boot().catch((e) => { console.error(e); status('Failed to load: ' + e.message); 
 // ------------------------------------------------------------------ test hooks (headless play-testing)
 window.__setMode = (m) => { if (TEST) mode = m; };
 window.__sim = (n, inp = {}, dt = 1 / 60) => {
-  const base = { fwd: 0, right: 0, sprint: false, slideHeld: false, fire: false, aim: false, lookX: 0, lookY: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, back: 0, next: 0, prev: 0, firePressed: 0, choice: [0, 0, 0, 0] };
+  const base = { fwd: 0, right: 0, sprint: false, slideHeld: false, fire: false, aim: false, lookX: 0, lookY: 0, jump: 0, slide: 0, slideUp: 0, dash: 0, grapple: 0, reload: 0, interact: 0, back: 0, next: 0, prev: 0, firePressed: 0, ping: 0, choice: [0, 0, 0, 0] };
   const t0 = performance.now();
   for (let i = 0; i < n; i++) {
     const In = Object.assign({}, base, typeof inp === 'function' ? inp(i) : inp);

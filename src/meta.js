@@ -7,6 +7,7 @@
 //   * per-gun XP that unlocks permanent traits for that gun.
 // A reward is EARNED when its goal is met and UNLOCKED when the player claims it on the Progress screen.
 // Everything is a pure function of the lifetime stats, so nothing can be lost by a change to the numbers.
+import { MUTATORS, mutXp } from './data.js';
 import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
 
@@ -131,7 +132,7 @@ export const ACHIEVEMENTS = [
 
 const fresh = () => ({ stats: {}, got: {}, claimed: {}, gunXp: {}, skin: 'drifter', look: Object.assign({}, DEFAULT_LOOK), cos: {} });
 let S = fresh();
-let dirty = false;
+let dirty = false, daily = null;
 const events = [];
 let lockedGuns = new Set(), lockedUps = new Set(), lockedBlades = new Set(), earnedSkins = new Set(), unlockAll = false;
 let run = { xp: 0, xp0: 0, unlocked: [] };
@@ -203,6 +204,10 @@ export const Meta = {
   setUnlockAll(v) { unlockAll = v; },
   get state() { return S; },
   stat(k) { return val(k); },
+  // tips are shown once per profile
+  tipSeen(k) { return !!(S.tips && S.tips[k]); },
+  tipMark(k) { (S.tips = S.tips || {})[k] = 1; dirty = true; },
+  tipsReset() { S.tips = {}; dirty = true; },
   bump(k, n = 1) { S.stats[k] = (S.stats[k] || 0) + n; dirty = true; this.check(); },
   best(k, v) { if (v > (S.stats[k] || 0)) { S.stats[k] = v; dirty = true; this.check(); } },
   check(silent) {
@@ -235,7 +240,7 @@ export const Meta = {
     const xp = this.xp(), r = rankOf(xp), max = r >= RANKS.length, lo = rankXp(r), hi = max ? lo : rankXp(r + 1);
     return { rank: r, name: RANKS[r - 1].name, xp, into: xp - lo, span: hi - lo, max, next: max ? null : { rank: r + 1, name: RANKS[r].name, reward: rewardText(RANKS[r]) } };
   },
-  addXp(n) { n = Math.max(0, Math.round(n)); if (!n) return; S.stats.xp = (S.stats.xp || 0) + n; run.xp += n; dirty = true; this.check(); },
+  addXp(n) { n = Math.max(0, Math.round(n * mutXp())); if (!n) return; S.stats.xp = (S.stats.xp || 0) + n; run.xp += n; dirty = true; this.check(); },
   // ---- what a run reports
   beginRun() { run = { xp: 0, xp0: this.xp(), unlocked: [] }; },
   runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo() }; },
@@ -264,9 +269,23 @@ export const Meta = {
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
   cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },
   setCls(id) { S.cls = id; dirty = true; this.save(); },
-  difficulty() { return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
+  // today's challenge: the same map, difficulty and two handicaps for everyone, changing at midnight UTC
+  today() {
+    const d = new Date(), key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    const n = MUTATORS.length, a = h % n, b = (a + 1 + ((h >>> 8) % (n - 1))) % n;
+    return { key, map: (h >>> 16) % 6, diff: 1, muts: (1 << a) | (1 << b), names: [MUTATORS[a].name, MUTATORS[b].name] };
+  },
+  dailyOn() { return !!daily; },
+  setDaily(on) { daily = on ? this.today() : null; },
+  dailyBest() { const t = this.today(); return S.daily && S.daily.key === t.key ? S.daily : { key: t.key, best: 0, won: 0 }; },
+  dailyRound(round, won) { if (!daily) return; const b = this.dailyBest(); if (round > b.best || (won && !b.won)) { S.daily = { key: daily.key, best: Math.max(b.best, round), won: won ? 1 : b.won }; S.dailies = Math.max(S.dailies || 0, 0); dirty = true; } if (won && !b.won) { S.dailyWins = (S.dailyWins || 0) + 1; dirty = true; } },
+  dailyWins() { return S.dailyWins || 0; },
+  mutators() { return daily ? daily.muts : (S.muts | 0); },
+  toggleMut(i) { S.muts = (S.muts | 0) ^ (1 << i); dirty = true; this.save(); },
+  difficulty() { if (daily) return daily.diff; return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
   setDifficulty(i) { S.diff = i; dirty = true; this.save(); },
-  map() { return Number.isInteger(S.map) && S.map >= 0 ? S.map : 0; },
+  map() { if (daily) return daily.map; return Number.isInteger(S.map) && S.map >= 0 ? S.map : 0; },
   setMap(i) { S.map = i; dirty = true; this.save(); },
   setStarter(w) { if (this.starterUnlocked(w)) { S.starter = w; dirty = true; this.save(); } },
   cosCount() { let n = 0, t = 0; for (const s of SLOTS) for (const I of COSMETICS[s]) { t++; if (this.cosUnlocked(s, I.id)) n++; } return [n, t]; },

@@ -9,6 +9,23 @@ const C = (h) => new THREE.Color(h);
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const to3 = (a) => V3(a[0], a[2] || 0, a[1]);
 const IRON = C(0x2a2c32), DARK = C(0x18181c), BRASS = C(0xb9974a), TIMBER = C(0x4a3226);
+// Traps: switches the players pay to throw. Two guard doorways on every map; the Gulch also has the Noon Bell.
+// kind: 'fire' burns what stands in the doorway, 'shock' pins and fries it, 'blast' goes off once after a short fuse,
+// 'bell' staggers everything in earshot. door = which of the map's doors (in build order) the trap covers.
+const TRAPS = {
+  gulch: [{ kind: 'blast', name: 'Powder Kegs', door: 0 }, { kind: 'fire', name: 'Lamp Oil', door: 0.5 }, { kind: 'bell', name: 'Noon Bell', at: [260, -1250, 0] }],
+  mine: [{ kind: 'fire', name: 'Steam Vent', door: 0 }, { kind: 'blast', name: 'Shot Holes', door: 0.5 }],
+  frost: [{ kind: 'shock', name: 'Signal Wire', door: 0 }, { kind: 'fire', name: 'Brazier Line', door: 0.5 }],
+  bayou: [{ kind: 'shock', name: 'Bug Zapper', door: 0 }, { kind: 'blast', name: 'The Still', door: 0.5 }],
+  carnival: [{ kind: 'shock', name: 'Lightning Machine', door: 0 }, { kind: 'fire', name: 'Fire Breather', door: 0.5 }],
+  wharf: [{ kind: 'shock', name: 'Harpoon Wire', door: 0 }, { kind: 'blast', name: 'Powder Hoist', door: 0.5 }],
+};
+const TRAP_INFO = {
+  fire: { cost: 10000, run: 12, cool: 60, col: [1, 0.5, 0.15], say: 'Sets the doorway alight for 12 seconds' },
+  shock: { cost: 10000, run: 12, cool: 60, col: [0.5, 0.8, 1], say: 'Pins and fries whatever comes through for 12 seconds' },
+  blast: { cost: 12500, run: 1.6, cool: 75, col: [1, 0.75, 0.3], say: 'Blows the doorway after a short fuse' },
+  bell: { cost: 15000, run: 6, cool: 90, col: [1, 0.9, 0.5], say: 'Staggers everything in earshot for 6 seconds' },
+};
 const HALF = 114;   // eye-ish height of the player's centre above the ground
 
 export class Mech {
@@ -20,6 +37,7 @@ export class Mech {
     if (M.train) this.buildTrain(M.train);
     if (M.tide) this.buildTide(M.tide);
     if (M.wheel) this.buildWheel(M.wheel);
+    this.traps = []; (TRAPS[game.map.id] || []).forEach((T, k) => { try { this.buildTrap(T, k); } catch (e) { /* a trap that cannot be placed is left out */ } });
   }
   mk(at, yaw = 0, snap = true) {
     if (snap) at = this.g.quest.spot(at);
@@ -165,6 +183,7 @@ export class Mech {
     if (this.tide) this.tickTide(dt);
     if (this.M.wet) this.tickWater(dt);
     if (this.wheel) this.tickWheel(dt);
+    for (const T of this.traps) this.tickTrap(T, dt);
   }
   // co-op: the host says where the train is and how the tide stands
   state() { if (!this.train && !this.tide) return 0; const tr = this.train, td = this.tide; return [tr ? (tr.x === null ? -1e6 : Math.round(tr.x)) : 0, tr && tr.warn ? 1 : 0, td ? td.state : 0, td ? Math.round(td.t * 10) / 10 : 0]; }
@@ -174,4 +193,103 @@ export class Mech {
     if (td) { if ((a[2] | 0) !== td.state) { td.state = a[2] | 0; if (td.state === 1) this.g.hud.toast(td.T.warnIn || 'The tide is coming in. The low ground will flood.', '#7ad0e8'); } td.t = +a[3] || 0; }
   }
   net() {}
+  // ------------------------------------------------------------------ traps
+  buildTrap(D, idx) {
+    const g = this.g, info = TRAP_INFO[D.kind];
+    const T = { D, idx, info, run: 0, cool: 0, mine: false, fxT: 0, hitT: 0, c: null, n: V3(1, 0, 0), t: V3(0, 0, 1), hw: 300, hl: 380 };
+    let at;
+    if (D.at) { at = D.at; T.c = to3(D.at); T.radius = 2600; }
+    else {
+      const doors = g.interactables.filter((I) => I.type === 'Door' && I.box3); if (!doors.length) return;
+      const Dr = doors[Math.min(doors.length - 1, Math.round(D.door * (doors.length - 1)))];
+      if (this.traps.some((o) => o.door === Dr)) return;
+      const c = Dr.box3.getCenter(V3(0, 0, 0)), sz = Dr.box3.getSize(V3(0, 0, 0)), alongX = sz.x < sz.z;   // the thin side is the way through
+      T.door = Dr; T.c = c; T.n = alongX ? V3(1, 0, 0) : V3(0, 0, 1); T.t = alongX ? V3(0, 0, 1) : V3(1, 0, 0); T.hw = Math.max(sz.x, sz.z) / 2 + 30; T.floor = Dr.box3.min.y;
+      // the switch stands beside the doorway, clear of the path through it
+      let best = null;
+      for (const side of [1, -1]) for (const out of [1, -1]) for (const far of [330, 430, 250, 800, 900, 1000]) {
+        if (best) break;
+        const p = c.clone().addScaledVector(T.n, out * far).addScaledVector(T.t, side * (T.hw + 70)), [cx, cy] = g.cellOf(p.x, p.z);
+        if (!g.navFree(cx, cy)) continue;
+        if (g.interactables.concat(g.quest.objs, this.objs).some((I) => Math.hypot(I.pos.x - p.x, I.pos.z - p.z) < 260)) continue;
+        const h = g.phys.raycastDown(V3(p.x, T.floor + 200, p.z), 600); if (!h || Math.abs(h.point.y - T.floor) > 90) continue;
+        const head = V3(p.x, h.point.y + 200, p.z); if ([T.n, T.t, T.n.clone().negate(), T.t.clone().negate()].some((d) => g.phys.raycast(head, d, 100) || g.phys.raycast(head.clone().setY(h.point.y + 60), d, 60))) continue;   // room for the board: nothing within arm's reach
+        best = { p, yaw: Math.atan2(-(T.n.z * out), -(T.n.x * out)) * 180 / Math.PI, y: h.point.y };
+      }
+      if (!best) return;
+      at = [best.p.x, best.p.z, best.y, best.yaw]; T.yaw = best.yaw;
+    }
+    const I = this.mk(at, at[3] || 0, !!D.at), col = C(new THREE.Color(info.col[0], info.col[1], info.col[2]).getHex());
+    I.part(null, 0, V(0, 0, 55), V(16, 16, 110), IRON);                       // post
+    I.part(null, 0, V(0, 0, 122), V(30, 46, 44), DARK);                       // switch box
+    I.part(null, 0, V(17, 0, 122), V(4, 38, 36), BRASS);                      // face plate
+    T.lever = I.part(null, 0, V(24, 0, 132), V(8, 8, 34), C(0xb8322a), null, 1.2);
+    T.lamp = I.part(null, 2, V(0, 0, 156), V(14, 14, 14), col, null, 2.4);
+    I.part(null, 0, V(0, 0, 4), V(40, 40, 8), IRON);                          // foot
+    I.part(null, 0, V(0, 0, 205), V(8, 150, 44), DARK); I.part(null, 0, V(0, 0, 205), V(4, 158, 52), BRASS);   // name board over the switch, lettered both sides
+    I.text(null, V(6, 0, 205), 0, 26, D.name.toUpperCase(), '#ffcd5a'); I.text(null, V(-6, 0, 205), 180, 26, D.name.toUpperCase(), '#ffcd5a');
+    I.part(null, 0, V(0, 0, 170), V(10, 10, 60), IRON);
+    if (D.kind === 'bell') { I.part(null, 0, V(0, 0, 265), V(12, 12, 80), TIMBER); I.part(null, 0, V(0, 0, 305), V(12, 110, 12), TIMBER); I.part(null, 3, V(0, 40, 272), V(50, 50, 56), BRASS); }
+    I.useRadius = 190; I.glow = info.col.slice();
+    I.q.usable = () => true;
+    I.q.prompt = (P) => T.run > 0 ? `${D.name.toUpperCase()}\nRunning` : T.cool > 0 ? `${D.name.toUpperCase()}\nResetting  ${Math.ceil(T.cool)}s` : `[E] ${D.name}  -  $${Math.round(info.cost * (P ? P.priceMult() : 1) / 10)}\n${info.say}`;
+    I.q.use = (P) => {
+      if (T.run > 0 || T.cool > 0) { P.play('S_Deny', 0.4); return; }
+      if (!P.spend(Math.round(info.cost * P.priceMult()))) return;
+      this.fireTrap(T, true);
+      if (g.net.active) g.net.emit('door', { t: [idx] });
+    };
+    T.I = I; this.traps.push(T);
+  }
+  // someone else threw it: the same show, but the damage is theirs to deal
+  trapRemote(idx) { const T = this.traps.find((o) => o.idx === idx); if (T && T.run <= 0) this.fireTrap(T, false); }
+  fireTrap(T, mine) {
+    const g = this.g, info = T.info;
+    T.run = info.run; T.cool = info.cool + info.run; T.mine = mine; T.fxT = 0; T.hitT = 0; T.done = false;
+    g.audio.playAt('S_Door', T.I.pos, 0.9, 0.7, 0); g.hud.toast(`${T.D.name}: ${T.D.kind === 'blast' ? 'fuse lit, stand clear' : 'running'}`, '#ffcd5a');
+    if (T.D.kind === 'bell') {
+      const p = T.I.pos.clone().add(V3(0, 220, 0));
+      g.audio.play('S_Bell', 1, 0.7); g.fx.ring(T.I.pos.clone(), 900, info.col, 0.9); g.fx.ring(T.I.pos.clone(), 500, [1, 1, 1], 0.6); g.fx.flash(p, info.col, 200, 0.4, true);
+    }
+  }
+  inTrap(T, pos, pad = 0) {
+    if (T.radius) return pos.distanceTo(T.c) < T.radius;
+    const d = pos.clone().sub(T.c); return Math.abs(d.dot(T.n)) < T.hl + pad && Math.abs(d.dot(T.t)) < T.hw + pad && Math.abs(pos.y - (T.floor + HALF)) < 320;
+  }
+  trapHit(E, amount, dir) {
+    const P = this.g.player, dealt = E.takeHit(amount, E.pos, dir || V3(0, 0, 1), false);
+    if (dealt > 0) this.g.hud.floater(E.pos.clone().add(V3(0, E.half || 90, 0)), `${Math.round(dealt)}`, [1, 0.8, 0.4], 0.9);
+    if (!E.remote && !E.dead && E.health <= 0) E.kill(P, false);
+  }
+  tickTrap(T, dt) {
+    const g = this.g, K = T.D.kind, col = T.info.col;
+    T.cool = Math.max(0, T.cool - dt);
+    T.lamp.visible = T.cool <= 0 || T.run > 0 ? (T.run > 0 ? Math.sin(this.t * 20) > 0 : true) : false;
+    T.lever.rotation.x += ((T.run > 0 || T.cool > 0 ? 1.1 : 0) - T.lever.rotation.x) * Math.min(1, dt * 10);
+    if (T.run <= 0) return;
+    T.run -= dt; T.fxT -= dt; T.hitT -= dt;
+    const rnd = (a) => (Math.random() * 2 - 1) * a, floorY = T.radius ? T.c.y : T.floor;
+    const spot = () => T.c.clone().addScaledVector(T.n, rnd(T.hl)).addScaledVector(T.t, rnd(T.hw)).setY(floorY + 8);
+    const enemies = () => g.enemies.filter((E) => !E.dead && !E.emerging && !E.burrowed && this.inTrap(T, E.pos));
+    if (K === 'fire') {
+      if (T.fxT <= 0) { T.fxT = 0.05; for (let k = 0; k < 3; k++) { const p = spot(); g.fx.add({ pos: p, vel: V3(rnd(30), 260 + Math.random() * 200, rnd(30)), life: 0.5 + Math.random() * 0.3, size0: 50, size1: 120, rot: Math.random() * 360, c0: [1, 0.55 + Math.random() * 0.3, 0.12, 0.8], c1: [0.9, 0.15, 0.02, 0], tex: 'FX_Puff', kind: 'add', glow: 2 }); } if (Math.random() < 0.3) g.fx.glowAt(T.c.clone().setY(floorY + 80), col, T.hw * 2.5, 0.25); }
+      if (T.mine && T.hitT <= 0) { T.hitT = 0.5; for (const E of enemies()) { this.trapHit(E, E.maxHealth * (E.isBoss ? 0.012 : 0.14)); if (!E.dead && !E.remote) E.applyBurn(E.maxHealth * 0.03, 2); } }
+      const P = g.player; if (!P.dead && T.hitT > 0.44 && this.inTrap(T, P.pos, -40)) P.receiveDamage(6, null, false);   // it burns you too
+    } else if (K === 'shock') {
+      if (T.fxT <= 0) { T.fxT = 0.07; const a = T.c.clone().addScaledVector(T.t, -T.hw).setY(floorY + 40 + Math.random() * 180), b = T.c.clone().addScaledVector(T.t, T.hw).addScaledVector(T.n, rnd(T.hl * 0.7)).setY(floorY + 40 + Math.random() * 180); g.fx.arc(a, b, col, 0.09, 7); if (Math.random() < 0.25) g.audio.playAt('S_Chain', T.c, 0.5, 1 + Math.random() * 0.4, 0.1); }
+      if (T.hitT <= 0) { T.hitT = 0.5; for (const E of enemies()) { if (!E.remote && !E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 0.6); E.applySlow(0.85, 0.7); } if (T.mine) this.trapHit(E, E.maxHealth * (E.isBoss ? 0.008 : 0.09)); g.fx.arc(T.c.clone().setY(floorY + 200), E.pos, col, 0.1, 5); } }
+    } else if (K === 'blast') {
+      if (T.fxT <= 0) { T.fxT = 0.08; g.fx.sparks(spot().setY(floorY + 30), V3(0, 1, 0), col, 4); if (Math.random() < 0.5) g.audio.playAt('S_Ricochet', T.c, 0.3, 1.6, 0.1); }
+      if (T.run <= 0 && !T.done) {
+        T.done = true; const p = T.c.clone().setY(floorY + 80);
+        g.fx.explosion(p, 620, col); g.fx.ring(p.clone().setY(floorY + 6), 700, col, 0.5); g.fx.dust(p.clone().setY(floorY + 6), [0.5, 0.42, 0.33], 200); g.audio.playAt('S_Explosion', p, 1.2, 0.8, 0);
+        const P = g.player, pd = P.pos.distanceTo(p); P.addShake(Math.max(0, 1.6 - pd / 900));
+        if (T.mine) for (const E of g.enemies) { if (E.dead || E.emerging || E.burrowed) continue; const d = E.pos.distanceTo(p); if (d > 620) continue; this.trapHit(E, E.maxHealth * (E.isBoss ? 0.08 : 0.9) * (1 - 0.4 * d / 620), E.pos.clone().sub(p).normalize()); if (!E.dead && !E.remote && !E.isBoss) E.applyKnock(E.pos.clone().sub(p).setY(0).normalize().multiplyScalar(700).add(V3(0, 420, 0))); }
+        if (!P.dead && pd < 520) P.receiveDamage(40 * (1 - pd / 520), null, false);
+      }
+    } else if (K === 'bell') {
+      if (T.fxT <= 0) { T.fxT = 1.5; g.fx.ring(T.I.pos.clone(), 1400, col, 1.2); g.audio.playAt('S_Bell', T.I.pos, 0.8, 0.7, 0); }
+      if (T.hitT <= 0) { T.hitT = 0.4; for (const E of enemies()) if (!E.remote && !E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 0.6); E.applySlow(0.9, 0.6); E.attackCd = Math.max(E.attackCd || 0, 0.8); } }
+    }
+  }
 }

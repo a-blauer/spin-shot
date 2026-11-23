@@ -79,6 +79,20 @@ export class Hud {
     this.cardsBottom = y;   // banners start below whatever cards are up
     this.cards = this.cards.filter((c) => c.t < c.life);
   }
+  tip(text) { (this.tipQ = this.tipQ || []).push({ text, t: 0 }); if (this.tipQ.length > 4) this.tipQ.splice(1, 1); }
+  drawTip(dt, W, H, S, hide) {
+    const Q = this.tipQ; if (!Q || !Q.length) return;
+    const T = Q[0]; if (!hide) T.t += dt;
+    const life = 9, a = clamp(Math.min(T.t * 3, (life - T.t) * 2), 0, 1);
+    if (T.t >= life) { Q.shift(); return; }
+    if (hide) return;
+    const g = this.g, w = Math.min(640 * S, W - 80 * S), size = 19 * S, lines = this.wrap(T.text, w - 44 * S, size, F_TXT, 600), h = (38 + lines.length * 25) * S, x = (W - w) / 2, y = H * 0.7 - h;
+    g.globalAlpha = a;
+    this.panel(x, y, w, h, 'rgba(143,208,255,0.9)', 'rgba(10,16,24,0.88)', 10 * S);
+    this.text('TIP', x + 22 * S, y + 26 * S, 16 * S, '#8fd0ff', 'left', F_BIG, 400, 0.14);
+    lines.forEach((ln, i) => this.text(ln, x + 22 * S, y + (52 + i * 25) * S, size, BONE, 'left', F_TXT, 600, 0.01));
+    g.globalAlpha = 1;
+  }
   toast(text, color = BONE) { this.toasts.push({ text, color: toCss(color), t: 0, life: 3.2 }); if (this.toasts.length > 6) this.toasts.shift(); }
   banner(text, color = BONE, dur = 3, kind = '') {
     if (kind === 'round') { this.roundBanner = { text, t: 0, life: dur }; return; }
@@ -233,6 +247,8 @@ export class Hud {
     if (game.net && game.net.active) this.drawTeam(game, W, H, S);
     if (!P.inMenu() && !P.showInventory) this.drawCards(); else this.cardsBottom = 0;
     this.drawFloaters(game, dt);
+    this.drawCoop(game);
+    this.drawTip(dt, W, H, S, !!P.menu || P.dead || P.showInventory);
     if (!P.dead) {
       this.drawCasinoMarker(game);
       this.drawStragglers(game);
@@ -538,8 +554,10 @@ export class Hud {
     const Q = game.quest && !(game.final && game.final.active) ? game.quest.hud() : null;
     if (Q) {
       const g = this.g, rx = W - 40 * S, w = 330 * S, top = 34 * S;
-      g.fillStyle = 'rgba(14,10,12,0.55)'; g.fillRect(rx - w - 14 * S, top - 6 * S, w + 28 * S, (Q.prog ? 92 : 70) * S);
-      g.fillStyle = GOLD; g.fillRect(rx + 10 * S, top - 6 * S, 4 * S, (Q.prog ? 92 : 70) * S);
+      const hh = ((Q.prog ? 92 : 70) + (Q.how ? 24 : 0)) * S;
+      g.fillStyle = 'rgba(14,10,12,0.55)'; g.fillRect(rx - w - 14 * S, top - 6 * S, w + 28 * S, hh);
+      g.fillStyle = GOLD; g.fillRect(rx + 10 * S, top - 6 * S, 4 * S, hh);
+      if (Q.how) this.text(Q.how, rx, top + (Q.prog ? 88 : 64) * S, 14 * S, 'rgba(242,232,213,0.7)', 'right', F_TXT, 600, 0.02);
       this.text(Q.title + (Q.steps ? `   ${Q.step} / ${Q.steps}` : ''), rx, top + 12 * S, 15 * S, GOLD, 'right', F_TXT, 700, 0.14);
       this.text(Q.text, rx, top + 38 * S, 19 * S, BONE, 'right', F_TXT, 700, 0.02);
       if (Q.prog) { this.bar(rx - w, top + 56 * S, w - 96 * S, 9 * S, Q.frac, GOLD, 'rgba(40,30,20,0.8)', 4); this.text(Q.prog, rx, top + 66 * S, 16 * S, 'rgba(242,232,213,0.9)', 'right', F_TXT, 700, 0.04); }
@@ -561,6 +579,7 @@ export class Hud {
     const one = (icon, t, col) => { this.icon(icon, x, y, 64 * S, t < 5 && Math.sin(this.time * 12) < 0 ? 0.35 : 1); this.text(`${Math.ceil(t)}`, x, y + 50 * S, 22 * S, col, 'center', F_BIG); x += 120 * S; };
     if (game.instaKill > 0) one('I_InstaKill', game.instaKill, '#ff5a4d');
     if (game.doublePoints > 0) one('I_DoublePoints', game.doublePoints, GOLD);
+    { const Q = game.player; if (Q && Q.safeT > 0.05 && !Q.dead) this.text(`NOTHING CAN TOUCH YOU  ${Math.ceil(Q.safeT)}`, W / 2, Q.menu ? 30 * S : H * 0.14, 20 * S, '#9fe0ff', 'center', F_TXT, 700, 0.08); }
     { const J = game.player && game.player.benchJob; if (J) this.text(J.t > 0 ? `WORKBENCH  ${Math.ceil(J.t)}s` : 'WORKBENCH UPGRADE READY', W / 2, H - 165 * S, 18 * S, J.t > 0 ? '#c9b8cf' : '#ff8cff', 'center', F_TXT, 700); }
     if (game.fireSale) this.text(`HALF PRICE  ${Math.ceil(game.fireSaleT || 0)}s`, W / 2, H - 140 * S, 18 * S, '#ff8cff', 'center', F_TXT, 700);
   }
@@ -617,6 +636,27 @@ export class Hud {
     this.text(game.final && game.final.gate ? 'CRYPT' : 'BOX', x, y + 46 * S + bob, 18 * S, GOLD, 'center', F_BIG);
     this.text(`${Math.round(d / 100)}m`, x, y + 66 * S + bob, 15 * S, BONE, 'center', F_TXT, 600);
   }
+  // things in the world that teammates need to find: pings, and anyone who is down
+  drawCoop(game) {
+    const S = this.S, W = this.W, H = this.H, P = game.player, g = this.g;
+    const mark = (pos, lift, label, sub, col, big) => {
+      _v.copy(pos); _v.y += lift; const d = Math.round(pos.distanceTo(P.pos) / 100);
+      _v.project(game.camera); if (_v.z > 1) return;
+      const x = clamp((_v.x * 0.5 + 0.5) * W, 60 * S, W - 60 * S), y = clamp((-_v.y * 0.5 + 0.5) * H, 70 * S, H - 160 * S), r = (big ? 13 : 9) * S;
+      g.save(); g.translate(x, y); g.rotate(Math.PI / 4); g.fillStyle = col; g.strokeStyle = 'rgba(10,6,10,0.85)'; g.lineWidth = 3 * S; g.fillRect(-r, -r, r * 2, r * 2); g.strokeRect(-r, -r, r * 2, r * 2); g.restore();
+      this.text(`${label}${label ? '  ' : ''}${d}m`, x, y - r - 12 * S, (big ? 20 : 17) * S, col, 'center', F_TXT, 700, 0.06);
+      if (sub) this.text(sub, x, y + r + 24 * S, 16 * S, BONE, 'center', F_TXT, 700, 0.06);
+    };
+    for (const p of game.pings || []) { const a = p.t > 6 ? 7 - p.t : 1; g.globalAlpha = a; mark(p.pos, 40, p.name.toUpperCase(), '', toCss(p.col), false); g.globalAlpha = 1; }
+    if (!game.net.active) return;
+    for (const G of game.net.ghosts.values()) if (G.down && G.fresh) mark(G.pos, 60, `${G.name.toUpperCase()} IS DOWN`, G.rp > 0.02 ? `getting up ${Math.round(G.rp * 100)}%` : `${Math.ceil(G.bleed)}s`, '#ff5a4d', true);
+    const T = game.net.reviveTarget;
+    if (T && !P.dead && !P.menu) {
+      const y = H * 0.62, w = 300 * S;
+      this.hints(`[E] Hold to get ${T.name} up`, W / 2, y, 22 * S, 'center');
+      g.fillStyle = 'rgba(10,6,10,0.7)'; g.fillRect(W / 2 - w / 2, y + 16 * S, w, 10 * S); g.fillStyle = '#7fe0ff'; g.fillRect(W / 2 - w / 2, y + 16 * S, w * clamp(T.rp || 0, 0, 1), 10 * S);
+    }
+  }
   drawFloaters(game, dt) {
     const S = this.S, W = this.W, H = this.H;
     for (const f of this.floaters) {
@@ -654,7 +694,7 @@ export class Hud {
     this.helpT = (this.helpT || 0) + dt;
     if (game.round > 1 || this.helpT > 900 || game.player.menu) return;   // shown for the first round only
     const a = 1;
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['G', 'ping'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
     const x = 44 * S, rh = 34 * S, w = 300 * S;
     let y = H * 0.27;
     const tip = [];
@@ -951,7 +991,13 @@ export class Hud {
     const a = clamp((t - 0.8) * 2, 0, 1);
     const cy = H * 0.38;
     this.text(game.coopDown ? 'YOU ARE DOWN' : 'YOU DIED', W / 2, cy, 140 * S, '#d0241d', 'center', F_BIG, 400, 0.06, a);
-    // what did the damage this run, and what landed in the last few seconds
+    if (P.downed) {
+      const y = H * 0.86, w = 360 * S;
+      this.text(P.reviveP > 0.02 ? 'A TEAMMATE IS GETTING YOU UP' : `BLEEDING OUT  ${Math.ceil(P.bleed)}`, W / 2, y, 30 * S, P.reviveP > 0.02 ? '#7fe0ff' : '#ff8a80', 'center', F_BIG, 400, 0.08);
+      g.fillStyle = 'rgba(10,6,10,0.7)'; g.fillRect(W / 2 - w / 2, y + 16 * S, w, 12 * S);
+      g.fillStyle = P.reviveP > 0.02 ? '#7fe0ff' : '#d0241d'; g.fillRect(W / 2 - w / 2, y + 16 * S, w * (P.reviveP > 0.02 ? P.reviveP : clamp(P.bleed / 30, 0, 1)), 12 * S);
+    }
+      // what did the damage this run, and what landed in the last few seconds
     { const R = P.damageReport().slice(0, 6), x = 40 * S; let y = H * 0.2;
       if (R.length && a > 0.5) {
         this.text('DAMAGE TAKEN THIS RUN', x, y, 20 * S, GOLD, 'left', F_BIG, 400, 0.1); y += 30 * S;
@@ -1008,7 +1054,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('PAUSED', W / 2, cy, 120 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Click to resume', W / 2, cy + 52 * S, 26 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['1-3', 'guns'], ['4', 'blade'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['G', 'ping'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['1-3', 'guns'], ['4', 'blade'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
     const cols = 3, cw = 300 * S, rh = 42 * S, x0 = W / 2 - (cols * cw) / 2, y0 = cy + 110 * S;
     this.panel(x0 - 24 * S, y0 - 36 * S, cols * cw + 48 * S, Math.ceil(rows.length / cols) * rh + 40 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.85)', 12 * S);
     rows.forEach(([k, d], i) => {

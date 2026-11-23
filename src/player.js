@@ -2,7 +2,7 @@
 // mantle, grapple, ground slam, jump pads), camera feel (bob, roll, FOV kick, recoil springs, shake), gunplay
 // (hitscan/pierce, beams, flames, chain lightning, projectiles, crits, headshots), 120 upgrades with proc
 // triggers, and every casino station.
-import { cash, cost10, difficulty } from './data.js';
+import { cash, cost10, difficulty, mutMoney, mutHealth } from './data.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 import {
@@ -43,6 +43,7 @@ const vrandCone = (dir, half) => {
 // cheap 1D value noise for camera shake
 const noise1 = (x) => { const i = Math.floor(x), f = x - i; const h = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return (s - Math.floor(s)) * 2 - 1; }; const u = f * f * (3 - 2 * f); return h(i) * (1 - u) + h(i + 1) * u; };
 
+const ACTIVE_STATS = ['Glide', 'Parry', 'LandShock', 'WallCrit', 'BladeWave', 'AirKillJump', 'Trample', 'DashReload', 'TapedMag', 'FinalRound', 'RampFire', 'HotBarrel', 'LightBolt', 'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'SteadyAim'];
 const PROC_DAMAGE = ['Explode', 'Nova', 'Missile', 'Chain', 'Shockwave', 'Ignite', 'Skip'];
 export class Player {
   constructor(game) {
@@ -203,13 +204,14 @@ export class Player {
     this.stats[STAT.MoveSpeed] += 0.07 * tiers.Wind; this.stats[STAT.DashCooldown] += 0.15 * tiers.Wind;
     if (this.suitTiers) for (const k of SUITS) if (tiers[k] > this.suitTiers[k]) { this.game.banner(`${k.toUpperCase()} SET ${'I'.repeat(tiers[k])}`, lin(1, 0.8, 0.2), 3); this.toast(`${SUIT_BONUS[k]} (x${tiers[k]})`, SUIT_HEX[k]); }
     this.suitCounts = sc; this.suitTiers = tiers;
-    this.maxHealth = Math.max(30, 150 + this.stat('MaxHealth'));
+    this.maxHealth = Math.max(30, Math.round((150 + this.stat('MaxHealth')) * mutHealth()));
     this.health = Math.min(this.health, this.maxHealth);
     this.dashCharges = Math.min(this.dashCharges ?? 1, this.maxDash());
   }
   addUpgrade(i) {
     const U = DATA.upgrades[i];
     if (this.upgradeStacks[i] >= U.stacks) return;
+    if (this.upgradeStacks[i] === 0 && U.mods.some((m) => ACTIVE_STATS.includes(m[0])) && this.game.tip) this.game.tip('u_' + U.name, `${U.name}: ${U.desc}`);   // a buff that changes what your buttons do gets spelled out once
     if (this.upgradeStacks[i] === 0) this.upgradeOrder.push(i);
     this.upgradeStacks[i]++;
     const old = this.maxHealth;
@@ -226,7 +228,7 @@ export class Player {
   addMoney(amount, mult) {
     if (amount <= 0) return;
     let a = amount;
-    if (mult) { a *= Math.max(0, 1 + this.stat('MoneyGain')); if (this.game.doublePoints > 0) a *= 2; }
+    if (mult) { a *= mutMoney() * Math.max(0, 1 + this.stat('MoneyGain')); if (this.game.doublePoints > 0) a *= 2; }
     this.money += Math.max(1, Math.round(a));
     Meta.bump('moneyEarned', Math.max(1, Math.round(a)));
   }
@@ -262,7 +264,7 @@ export class Player {
   }
   onRoundEnded() {
     this.play('S_RoundEnd', 0.8);
-    Meta.roundCleared(this.game.round, this.game.map.id, this.cls.id, difficulty());
+    Meta.roundCleared(this.game.round, this.game.map.id, this.cls.id, difficulty()); Meta.dailyRound(this.game.round, false);
     if (this.S.RoundMoney) { this.addMoney(this.S.RoundMoney, false); this.toast(`Round bonus  +$${cash(this.S.RoundMoney)}`, '#ffd24d'); }
     const rate = this.stat('Interest');
     if (rate > 0) { const pay = Math.min(Math.round(this.money * rate), 2000); if (pay > 0) { this.money += pay; this.toast(`Interest  +$${cash(pay)}`, '#ffd24d'); } }
@@ -309,7 +311,7 @@ export class Player {
     if (this.headCritT > 0) this.headCritT -= dt;
     if (this.S.ShieldRegen && this.sinceDamage > 4 && this.overshield < this.S.ShieldRegen) this.overshield = Math.min(this.S.ShieldRegen, this.shieldCap(), this.overshield + 12 * dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.5);
-    this.invuln = Math.max(0, this.invuln - dt);
+    this.invuln = Math.max(0, this.invuln - dt); this.safeT = Math.min(Math.max(0, (this.safeT || 0) - dt), this.invuln);
     this.hitMarker = Math.max(0, this.hitMarker - dt);
     this.hasteT = Math.max(0, this.hasteT - dt); if (this.hasteT <= 0) this.haste = 0;
     this.rageT = Math.max(0, this.rageT - dt); if (this.rageT <= 0) this.rage = 0;
@@ -779,8 +781,20 @@ export class Player {
     if (this.wallRunning) this.endWallRun();
     this.launch(imp, true, true);
   }
+  // down and waiting: a teammate holding E beside you fills the bar in three seconds; the clock stops while they work
+  tickDowned(dt, helped, by) {
+    const G = this.game;
+    if (helped) { this.reviveP = Math.min(1, (this.reviveP || 0) + dt / 3); if (this.reviveP >= 1) { this.pickedUp(by); return; } }
+    else { this.reviveP = Math.max(0, (this.reviveP || 0) - dt * 0.5); this.bleed -= dt; }
+    if (this.bleed <= 0) { this.downed = false; G.fx.gibs(this.pos, hexRGB(0xB0603A), 1, 16); this.play('S_Gib', 0.8); this.toast('You bled out. You respawn next round if a teammate survives.', '#ff9a4d'); }
+  }
+  pickedUp(by) {
+    const G = this.game; this.dead = false; this.downed = false; this.health = Math.round(this.maxHealth * 0.4); this.invuln = 3; this.safeT = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
+    G.banner(by ? `${String(by).toUpperCase()} GOT YOU UP` : 'BACK ON YOUR FEET', [0.5, 0.9, 1], 2.5); this.play('S_PowerUp', 0.7, 1.2);
+    G.fx.ring(V3(this.pos.x, this.pos.y - 85, this.pos.z), 220, [0.5, 0.9, 1], 0.4);
+  }
   revive() {
-    const G = this.game; this.dead = false; this.health = this.maxHealth; this.invuln = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
+    const G = this.game; this.dead = false; this.downed = false; this.health = this.maxHealth; this.invuln = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
     const mates = G.net.alivePositions(); if (mates.length) this.pos.copy(mates[0]).add(V3(60, 20, 0));
     G.banner('BACK IN THE FIGHT', [0.5, 0.9, 1], 2.5);
   }
@@ -1087,7 +1101,10 @@ export class Player {
       this.health = 0; this.dead = true;
       this.closeMenu();
       if (this.grappling) this.endGrapple(false);
-      G.fx.gibs(this.pos, hexRGB(0xB0603A), 1, 16);
+      // with a teammate still standing you go down instead: they have thirty seconds to get you up
+      this.downed = G.net.active && G.net.alivePositions().length > 0;
+      if (this.downed) { this.bleed = 30; this.reviveP = 0; this.vel.set(0, 0, 0); G.fx.dust(V3(this.pos.x, this.pos.y - 80, this.pos.z), lin(0.6, 0.2, 0.15), 60); }
+      else G.fx.gibs(this.pos, hexRGB(0xB0603A), 1, 16);
       G.vm.hidden = true;
       this.addShake(2);
       this.play('S_Gib', 1);
@@ -1281,6 +1298,7 @@ export class Player {
     }
     this.game.vm.fire(kick, continuous);
     // every gun has its own synthesized voice (gunsound.js); held beams and hoses tick quietly instead of blasting
+    this.shotSeq = ((this.shotSeq || 0) + 1) % 100000;   // teammates see and hear this shot
     if (!continuous || Math.random() < 0.3) gunSound(this.game.audio, W.name, 1, continuous);
     const S = this.slot;
     if (S.ammo > 0 && S.ammo <= Math.max(2, Math.floor(this.magSize(S) / 6))) this.play('S_Dry', 0.35, 1.4);
@@ -1697,7 +1715,8 @@ export class Player {
     if (this.inMenu()) {
       const S = this.menuStation, M = this.menu;
       const spinning = (M.type === 'Slots' || M.type === 'Roulette') ? M.stage === 1 : (M.type === 'MoneyTable' && M.stage === 2);
-      if (!S || (!spinning && Math.hypot(S.pos.x - this.pos.x, S.pos.z - this.pos.z) > S.useRadius + 220) || !G.isCasinoOpen()) this.closeMenu();
+      if (M.type === 'Chest') { /* you paid for it: it waits for your choice */ }
+      else if (!S || (!spinning && Math.hypot(S.pos.x - this.pos.x, S.pos.z - this.pos.z) > S.useRadius + 220) || !G.isCasinoOpen()) this.closeMenu();
       this.focus = S;
       return;
     }
@@ -1757,6 +1776,7 @@ export class Player {
     const M = this.menu;
     if (M) {
       if (false) this.tableResolve();
+      if (M.type === 'Chest') { if (M.offers.length) { this.chestTake(0); return; } }
       else if (M.type === 'Slots' && M.stage >= 1 && M.stage <= 2) { if (M.stage === 1) this.slotsResolve(); if (M.offers.length && M.offers[0] >= 0) this.addUpgrade(M.offers[0]); }
     }
     this.menu = null; this.menuStation = null;
@@ -1809,6 +1829,16 @@ export class Player {
         break;
       case 'Tonic': this.buyTonic(M.page * 4 + i); break;
       case 'Vault': if (i === 0) this.vaultUpgrade(false); else if (i === 1) this.vaultUpgrade(true); break;
+      case 'Chest':
+        if (i === 3) { if (this.banishes > 0) { M.banish = !M.banish; this.play('S_UIMove', 0.6); } else this.play('S_Deny', 0.4); }
+        else if (!(M.offers[i] >= 0)) break;
+        else if (M.banish) {   // strike this one from every chest for the rest of the run and draw another in its place
+          this.banned.add(M.offers[i]); this.banishes--; M.banish = false;
+          const keep = M.offers.filter((_, k) => k !== i), fresh = this.chestOffers(M.tier, keep);
+          M.offers = fresh.length > keep.length ? [...keep.slice(0, i), fresh[fresh.length - 1], ...keep.slice(i)] : keep;
+          this.play('S_Switch', 0.8, 0.8);
+        } else this.chestTake(i);
+        break;
       default: break;
     }
   }
@@ -1824,6 +1854,7 @@ export class Player {
       case 'Pawn': { const cost = Math.round(400 * (1 + this.pawnRerolls) * this.priceMult()); if (this.spend(cost)) { this.pawnRerolls++; this.rollPawn(); M.offers = this.pawnOffers; } break; }
       case 'Tonic': M.page = 1 - M.page; this.play('S_UIMove', 0.6); break;
       case 'Vault': this.vaultUpgrade(false); break;
+      case 'Chest': { if (this.spend(this.chestRerollCost(M))) { M.rerolls++; M.banish = false; const o = this.chestOffers(M.tier); if (o.length) M.offers = o; this.play('S_Switch', 0.8, 1.2); } break; }
       default: break;
     }
   }
@@ -2118,23 +2149,45 @@ export class Player {
   // round if you buy nothing else, and the better tiers are something you save for. Every chest opened makes all of
   // them 8.5% dearer, and prices creep up 2% a round so hoarding cash does not beat the curve.
   chestPrice(tier) { const n = this.chestsOpened, r = Math.max(1, this.game.round || 1); return Math.round([600, 1400, 3000, 6000][tier] * Math.pow(1.085, n) * (1 + 0.02 * (r - 1)) * this.priceMult() / 10) * 10; }
+  // three buffs to choose from; each card rolls its own rarity (the chest's, or one better with luck)
+  chestOffers(tier, keep = []) {
+    const out = keep.slice(), hiChance = Math.min(0.85, 0.3 + this.stat('ChestLuck')), ban = this.banned || (this.banned = new Set());
+    for (let tries = 0; tries < 60 && out.length < 3; tries++) {
+      const u = rollBuff(Math.random() < hiChance ? tier + 1 : tier, this.upgradeStacks, this.cls.id);
+      if (u >= 0 && !out.includes(u) && !ban.has(u)) out.push(u);
+    }
+    return out;
+  }
+  chestRerollCost(M) { return Math.round(this.chestPrice(M.tier) * 0.25 * Math.pow(2, M.rerolls) / 50) * 50; }
   openChest(I) {
-    if (I.opened) return;
-    // each chest holds one of two rarities; luck tips it toward the better one
-    const lo = I.tier, hiChance = Math.min(0.85, 0.3 + this.stat('ChestLuck')), rarity = Math.random() < hiChance ? lo + 1 : lo;
-    const u = rollBuff(rarity, this.upgradeStacks, this.cls.id);
-    if (u < 0) { this.toast('Nothing left for you in there', '#ccc'); return; }
+    if (I.opened || this.inMenu()) return;
+    const offers = this.chestOffers(I.tier);
+    if (!offers.length) { this.toast('Nothing left for you in there', '#ccc'); return; }
     const paid = this.chestPrice(I.tier);
     if (!this.spend(paid)) return;
-    this.chestsOpened++; I.setOpened(true);
+    this.chestsOpened++; I.setOpened(true); I.holding = true;   // it stays until you have chosen
     if (this.S.ChestRefund) this.addMoney(Math.round(paid * Math.min(0.5, this.S.ChestRefund)), false);
     this.runProcs('OnChest', null, this.pos, 0, 1);
-    this.addUpgrade(u);
-    const U = DATA.upgrades[u];
-    this.play(rarityIndex(U.rarity) >= 3 ? 'S_LevelUp' : 'S_Upgrade', 0.9);
+    this.play('S_Upgrade', 0.9);
     this.game.fx.flash(I.pos.clone().add(V3(0, 60, 0)), lin(1, 0.85, 0.4), 140, 0.4, true);
-    if (rarityIndex(U.rarity) >= 3) this.game.banner(U.name.toUpperCase(), lin(1, 0.75, 0.25), 2.5);
     Meta.bump('chests');
+    // nothing can touch you for five seconds: time to read the cards, pick, and move
+    this.invuln = Math.max(this.invuln, 5); this.safeT = 5;
+    if (this.banishes == null) this.banishes = 2;
+    this.menu = { type: 'Chest', stage: 0, offers, tier: I.tier, rerolls: 0, banish: false, result: '', resultColor: '#fff', page: 0 };
+    this.menuStation = I; this.menuHelp = false; this.fireHeld = false; this.aiming = false;
+    if (this.sliding) this.endSlide();
+  }
+  chestTake(i) {
+    const M = this.menu, I = this.menuStation; if (!M || M.type !== 'Chest' || !(M.offers[i] >= 0)) return;
+    const u = M.offers[i], U = DATA.upgrades[u];
+    M.offers = [];
+    this.addUpgrade(u);
+    this.play(rarityIndex(U.rarity) >= 3 ? 'S_LevelUp' : 'S_Upgrade', 0.9);
+    if (rarityIndex(U.rarity) >= 3) this.game.banner(U.name.toUpperCase(), lin(1, 0.75, 0.25), 2.5);
+    if (I) I.holding = false;
+    this.invuln = Math.max(this.invuln, 2); this.safeT = Math.max(this.safeT || 0, this.invuln);   // and a moment to get clear
+    this.menu = null; this.menuStation = null;
   }
   rollTonic() { const w = [5, 5, 4, 4, 4, 3, 1, 1.5], ok = (k) => this.tonicLevels[k] < Math.min(TONICS[k].max, 10) && !(k === 6 && this.maxSlots >= 3); let t = 0; for (let k = 0; k < 8; k++) if (ok(k)) t += w[k]; let r = Math.random() * t; for (let k = 0; k < 8; k++) if (ok(k)) { r -= w[k]; if (r <= 0) return k; } return 0; }
   gainTonic(i) {
@@ -2240,6 +2293,16 @@ export class Player {
         }
         footer = `[E] Page ${M.page + 1}/2   [Tab] Leave`;
         break;
+      case 'Chest': {
+        title = `${['WOODEN', 'IRON', 'GILDED', 'RELIQUARY'][M.tier] || ''} CHEST`;
+        help.push({ kind: 'info', text: 'Choose one of three buffs. Reroll draws three new ones for a price that doubles each time on this chest. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
+        if (M.banish) res('BANISH WHICH ONE?', '#ff6a5a'); else res('CHOOSE ONE', gold);
+        M.offers.forEach((u, i) => { const U = DATA.upgrades[u]; const have = this.upgradeStacks[u]; opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase(), tagColor: RARITY_HEX[U.rarity], color: M.banish ? '#ff9a8a' : RARITY_HEX[U.rarity], desc: U.desc, note: have ? `owned x${have}` : '' }); });
+        opt('E', 'Reroll all three', { price: this.chestRerollCost(M) });
+        opt('4', M.banish ? 'Cancel banish' : `Banish one  (${this.banishes} left)`, { color: this.banishes > 0 ? bone : '#8a8078' });
+        footer = '[Tab] Take the first';
+        break;
+      }
       case 'Vault': {
         title = 'WORKBENCH';
         help.push({ kind: 'info', text: 'Raises the tier of the weapon you are holding (max 3). Each tier: +75% damage, a bigger magazine and faster fire. Tier 3 adds pierce. Gamble pays half price for a chance at the upgrade; if it fails the money is lost.', color: dim });
