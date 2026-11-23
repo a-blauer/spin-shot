@@ -623,7 +623,7 @@ export class Game {
         P.addMoney(400, false);
         break;
       }
-      case 'FireSale': this.fireSale = true; this.fireSaleT = 60; this.banner('EVERYTHING HALF PRICE FOR 60s', lin(0.9, 0.3, 1), 3.5); break;
+      case 'FireSale': this.fireSale = true; this.fireSaleT = 30; this.banner('EVERYTHING HALF PRICE FOR 30s', lin(0.9, 0.3, 1), 3.5); break;
       default: break;
     }
   }

@@ -561,6 +561,7 @@ export class Hud {
     const one = (icon, t, col) => { this.icon(icon, x, y, 64 * S, t < 5 && Math.sin(this.time * 12) < 0 ? 0.35 : 1); this.text(`${Math.ceil(t)}`, x, y + 50 * S, 22 * S, col, 'center', F_BIG); x += 120 * S; };
     if (game.instaKill > 0) one('I_InstaKill', game.instaKill, '#ff5a4d');
     if (game.doublePoints > 0) one('I_DoublePoints', game.doublePoints, GOLD);
+    { const J = game.player && game.player.benchJob; if (J) this.text(J.t > 0 ? `WORKBENCH  ${Math.ceil(J.t)}s` : 'WORKBENCH UPGRADE READY', W / 2, H - 165 * S, 18 * S, J.t > 0 ? '#c9b8cf' : '#ff8cff', 'center', F_TXT, 700); }
     if (game.fireSale) this.text(`HALF PRICE  ${Math.ceil(game.fireSaleT || 0)}s`, W / 2, H - 140 * S, 18 * S, '#ff8cff', 'center', F_TXT, 700);
   }
   drawPrompt(game, P, W, H, S) {

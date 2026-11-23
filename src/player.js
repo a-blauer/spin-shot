@@ -76,7 +76,7 @@ export class Player {
       fireCd: 0, bloom: 0, reloading: false, reloadT: 0, reloadDur: 0, fireConsumed: false, procDepth: 0,
       eyeZ: 66, landDip: 0, landDipVel: 0, bobPhase: 0, footDist: 0, camRoll: 0, camKick: new THREE.Vector2(), camKickVel: new THREE.Vector2(),
       shake: 0, shakeT: 0, fovKick: 0, fov: 100, killPulse: 0, crossKick: 0, damageInd: [], heartbeat: 0, revives: 0, lastRound: 1,
-      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], chestsOpened: 0, benchUses: 0, abilityCd: 0, deadeyeT: 0, rushT: 0, rushGuardT: 0, rushHits: new Set(), rushDir: V3(1, 0, 0), turrets: [], turretNext: 0,
+      slotPulls: 0, pawnRerolls: 0, pawnOffers: [], chestsOpened: 0, benchUses: 0, benchJob: null, abilityCd: 0, deadeyeT: 0, rushT: 0, rushGuardT: 0, rushHits: new Set(), rushDir: V3(1, 0, 0), turrets: [], turretNext: 0,
       aimHold: 0, echoT: 0, healBucket: 12, swapBuffT: 0, wells: [], arFail: false, grenades: [0, 0], grenadeCd: 0, gzones: [], tonicLevels: new Array(8).fill(0), menu: null, menuStation: null, menuTick: 0, focus: null,
       showInventory: false, input: null, lookDelta: { x: 0, y: 0 }, launchedT: 0,
     });
@@ -277,6 +277,7 @@ export class Player {
   update(dt, In) {
     this.input = In;
     const G = this.game;
+    if (this.benchJob && this.benchJob.t > 0) { this.benchJob.t -= dt; if (this.benchJob.t <= 0) { this.toast('Workbench upgrade ready  -  claim it at the bench', '#ff8cff'); this.play('S_Upgrade', 0.5, 1.3); } }
     if (this.dead) {
       this.updateCamera(dt);
       return;
@@ -1905,23 +1906,35 @@ export class Player {
     if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
     else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
   }
-  benchCost(S) { return Math.round([2000, 5000, 8500, 12000][Math.min(3, S.mods.length)] * this.priceMult()); }
+  benchCost(S) { return Math.round([2000, 3500, 5500, 8000][Math.min(3, S.mods.length)] * this.priceMult()); }
   benchUpgrade() {
     if (this.wield) return this.honeMelee();
+    const J = this.benchJob;
+    if (J) {
+      if (J.t > 0) { this.toast(`Still working  -  ${Math.ceil(J.t)}s`, '#ccc'); this.play('S_Deny', 0.4); return; }
+      this.benchJob = null;
+      const S = J.S, W = DATA.weapons[J.def];
+      if (S.def !== J.def) { this.addMoney(J.cost, false); this.toast(`${W.name} is gone  -  money returned`, '#ccc'); return; }
+      S.mods.push(J.u); S.tier = S.mods.length;
+      this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
+      if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
+      this.play('S_Upgrade', 0.9);
+      Meta.bump('mods'); if (S.tier >= 3) Meta.bump('tier3');
+      this.game.hud.gotUpgrade(J.u, 1, `${W.name} modifier`);
+      this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
+      return;
+    }
     const S = this.slot;
     if (S.def < 0) return;
     const W = DATA.weapons[S.def];
     if (S.mods.length >= 4) { this.toast(`${W.name} has all four modifiers`, '#ccc'); return; }
     const u = rollGunMod(S.mods, W, this.cls.id, this.luck);
     if (u < 0) { this.toast('Nothing more this gun can take', '#ccc'); return; }
-    if (!this.spend(this.benchCost(S))) return;
-    S.mods.push(u); S.tier = S.mods.length;
-    this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
-    this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
-    this.play('S_Upgrade', 0.9); this.benchUses++;
-    Meta.bump('mods'); if (S.tier >= 3) Meta.bump('tier3');
-    this.game.hud.gotUpgrade(u, 1, `${W.name} modifier`);
-    this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 90, 0.4, true);
+    const cost = this.benchCost(S);
+    if (!this.spend(cost)) return;
+    this.benchJob = { S, def: S.def, u, t: 10, cost }; this.benchUses++;
+    this.play('S_Switch', 0.9, 0.7);
+    this.toast(`Working on ${W.name}  -  come back in 10s to claim it`, '#ff8cff');
   }
   // ---------------------------------------------------------------- chests and tonics
   // Chests are the main thing money is for, so they are priced against what a round pays: about one wooden chest a

@@ -659,10 +659,12 @@ export class Interactable {
       }
       case 'HighRoller': {
         if (player && player.wield) { const MW = MELEE[player.meleeDef || 0], mt = player.meleeTier || 0; return mt >= HONE_MAX ? `${MW.name} +${mt} is as sharp as it gets` : `[E] Hone ${MW.name}${mt ? ' +' + mt : ''}  $${cash(player.honeCost())}\n+30% damage, more reach and a faster swing (${mt} of ${HONE_MAX}). Honing stays with you if you change blades.`; }
+        const J = player && player.benchJob;
+        if (J) return J.t > 0 ? `Working on ${G.data.weapons[J.def].name}  -  ${Math.ceil(J.t)}s` : `[E] Claim the ${G.data.weapons[J.def].name} upgrade`;
         const S = player && player.slot, W = S && S.def >= 0 ? G.data.weapons[S.def] : null;
         if (!W) return 'Hold a gun to work on it';
         if (S.mods.length >= 4) return `${W.name} has all four modifiers`;
-        return `[E] Modify ${W.name}  $${cash(player.benchCost(S))}\nAdds a random modifier to this gun (${S.mods.length} of 4). It changes how the gun behaves. Draw your blade (X) to hone it instead.`;
+        return `[E] Modify ${W.name}  $${cash(player.benchCost(S))}\nAdds a random modifier to this gun (${S.mods.length} of 4). Takes 10 seconds, then claim it here. Draw your blade (X) to hone it instead.`;
       }
       case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${cash(this.cost)}` : '[E] Refill ammo  (free)';
       case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 3 minutes');
