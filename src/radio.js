@@ -2,9 +2,14 @@
 // this browser (IndexedDB) and never uploaded anywhere; the game ships with none.
 //
 // In co-op the host's radio is the station. Its state (which song, how far in) rides in the host's state message and
-// every guest plays the same song at the same place, provided they have loaded a file with the same name. Anyone can
-// press the keys: a guest's skip or restart is sent to the host, who acts on it for everybody.
+// every guest plays the same song at the same place. A guest who has the same file loaded plays their own copy; one who
+// has not is sent the song by the host while it plays (in small pieces, for this session only: it is held in memory
+// and never added to the guest's own shelf). Anyone can press the keys: a guest's skip or restart goes to the host,
+// who acts on it for everybody.
 const DB = 'polyshot-radio', STORE = 'tracks';
+const CHUNK = 12000, MAXCHUNKS = 5000;   // a song goes out in 12 KB pieces; 60 MB is the most the radio will send
+const b64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 6000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 6000)); return btoa(s); };
+const unb64 = (str) => { const s = atob(str), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 const keyOf = (name) => String(name).replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 60);
 const titleOf = (name) => String(name).replace(/\.[a-z0-9]{2,5}$/i, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 70);
 
@@ -23,7 +28,11 @@ export class Radio {
     this.tracks = [];            // [{ key, title, data: ArrayBuffer }], in name order: the same order on every machine
     this.cur = -1; this.src = null; this.gain = null; this.startAt = 0; this.dur = 0; this.active = false; this.loadSeq = 0;
     this.want = null;            // a guest: what the host says is on, [key, seconds]
-    this.missing = '';           // a guest: the song the host is playing that this machine does not have
+    this.missing = '';           // a guest: the last song the host played that this machine has no file for
+    this.tx = null;              // the host: the song being sent out, { key, u8, n, queue:Set<piece> }
+    this.txRate = 6; this.txBudget = 0;
+    this.rx = new Map();         // a guest: songs coming in from the host, key -> { n, parts, got, dur, title, buf, ... }
+    this.streamKey = '';         // a guest: the incoming song that is playing now
     this.onChange = null;        // the settings panel listens for the list changing
     this.ready = this.restore();
   }
@@ -67,7 +76,7 @@ export class Radio {
     if (this.role === 'client') { if (this.want) this.sync(this.want); return; }
     if (this.tracks.length) this.play(this.cur >= 0 ? this.cur : Math.floor(Math.random() * this.tracks.length), 0);
   }
-  stop() { this.loadSeq++; if (this.src) { try { this.src.onended = null; this.src.stop(); } catch (e) { /* already stopped */ } this.src = null; } }
+  stop() { this.loadSeq++; this.streamKey = ''; if (this.src) { try { this.src.onended = null; this.src.stop(); } catch (e) { /* already stopped */ } this.src = null; } }
   pos() { return this.src && this.audio.ctx ? Math.max(0, this.audio.ctx.currentTime - this.startAt) : 0; }
   // start song i at `at` seconds in
   async play(i, at = 0, quiet = false) {
@@ -84,11 +93,16 @@ export class Radio {
     T.buf = buf; this.dur = buf.duration;
     if (this.role === 'client') at = Math.max(0, at + (performance.now() - t0) / 1000);  // a guest: the host's song moved on while this was decoding
     if (at >= buf.duration - 0.25) { if (this.role !== 'client') this.play(i + 1, 0); return; }
+    this.start(buf, at, () => { if (this.active && this.role !== 'client') this.play(this.cur + 1, 0); });
+    if (!quiet) this.say(`♪  ${T.title}`);
+  }
+  say(text) { if (this.game && this.game.player) this.game.player.toast(text, '#8fd0ff'); }
+  start(buf, at, ended) {
+    const A = this.audio, ctx = A.ctx;
     if (!this.gain) { this.gain = ctx.createGain(); this.gain.gain.value = (A.musicVol ?? 0.5) * 0.9; this.gain.connect(A.musicBus); }
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(this.gain);
-    src.onended = () => { if (this.src === src) { this.src = null; if (this.active && this.role !== 'client') this.play(this.cur + 1, 0); } };
-    src.start(0, at); this.src = src; this.startAt = ctx.currentTime - at;
-    if (!quiet && this.game && this.game.player) this.game.player.toast(`♪  ${T.title}`, '#8fd0ff');
+    src.onended = () => { if (this.src === src) { this.src = null; if (ended) ended(); } };
+    src.start(0, at); this.src = src; this.startAt = ctx.currentTime - at; this.dur = buf.duration;
   }
   // the keys: +1 next song, 0 start this one again
   press(next) {
@@ -102,7 +116,11 @@ export class Radio {
     this.play(next ? this.cur + 1 : Math.max(0, this.cur), 0);
   }
   // host -> guests, in the state message
-  state() { return this.active && this.cur >= 0 && this.tracks[this.cur] ? [this.tracks[this.cur].key, Math.round(this.pos() * 10) / 10] : null; }
+  state() {
+    const T = this.active && this.cur >= 0 ? this.tracks[this.cur] : null; if (!T) return null;
+    const N = this.tracks[(this.cur + 1) % this.tracks.length];
+    return [T.key, Math.round(this.pos() * 10) / 10, T.title, T.data.byteLength, Math.round((T.buf ? T.buf.duration : 0) * 10) / 10, N && N !== T ? N.key : '', N && N !== T ? N.data.byteLength : 0];
+  }
   // a guest hears what the host hears
   sync(rd) {
     if (!Array.isArray(rd) || typeof rd[0] !== 'string') { this.want = null; if (this.src) this.stop(); this.cur = -1; return; }
@@ -110,12 +128,103 @@ export class Radio {
     this.want = [key, at];
     if (!this.active) return;
     const i = this.tracks.findIndex((t) => t.key === key);
-    if (i < 0) {
-      if (this.missing !== key) { this.missing = key; this.stop(); this.cur = -1; if (this.game && this.game.player) this.game.player.toast('The host’s radio is playing a song you have not loaded', '#8fd0ff'); }
-      return;
-    }
+    for (const k of [...this.rx.keys()]) if (k !== key && k !== rd[5]) this.rx.delete(k);   // only this song and the next are kept
+    if (i < 0) { this.syncStream(key, at, rd); return; }
+    if (this.streamKey) this.stop();
+    this.missing = '';
     if (this.cur === i && this.src) { if (Math.abs(this.pos() - at) > 0.75) this.play(i, at, true); return; }
     if (this.cur === i && !this.src) return;                 // still decoding it
     this.play(i, at);
+  }
+  // ---------------------------------------------------------------- sending a song to guests who do not have it
+  ask(key, what) { if (this.game && this.game.net && this.game.net.room) this.game.net.emit('door', { a: ['q', key, what] }); }
+  newRx(key, n) { const R = { key, n, parts: new Array(n), got: 0, head: 0, dur: 0, title: '', buf: null, bufHead: 0, decoding: false, asked: 0, last: performance.now(), full: false }; this.rx.set(key, R); return R; }
+  // ask for a song, and ask again for whatever has gone missing if nothing has arrived for a while
+  fetch(R) {
+    const now = performance.now();
+    if (R.got >= R.n || (R.asked && (now - R.last < 2500 || now - R.asked < 2500))) return;
+    const miss = []; for (let k = R.head; k < R.n && miss.length < 40; k++) if (!R.parts[k]) miss.push(k);
+    this.ask(R.key, R.asked && miss.length < 40 ? miss : R.head); R.asked = now;
+  }
+  swap(buf, at) { if (this.src) { this.src.onended = null; try { this.src.stop(); } catch (e) { /* already stopped */ } this.src = null; } this.start(buf, at, null); }
+  // a guest: the host is on a song this machine has no file for
+  syncStream(key, at, rd) {
+    const n = Math.ceil(Math.max(0, +rd[3] || 0) / CHUNK);
+    if (!n || n > MAXCHUNKS) { if (this.missing !== key) { this.missing = key; this.stop(); this.cur = -1; this.say('The host’s radio is playing a song too big to send'); } return; }
+    let R = this.rx.get(key); if (!R || R.n !== n) R = this.newRx(key, n);
+    R.dur = Math.max(0, +rd[4] || 0) || R.dur; R.title = String(rd[2] || key).slice(0, 70);
+    if (this.cur >= 0 || (this.streamKey && this.streamKey !== key)) { this.stop(); this.cur = -1; }
+    if (this.missing !== key) { this.missing = key; if (R.got < R.n) this.say(`Radio: receiving “${R.title}” from the host…`); }
+    this.fetch(R);
+    // once this one is in, fetch the next one too so it starts on time
+    if (R.got >= R.n && typeof rd[5] === 'string' && rd[5] && !this.tracks.some((t) => t.key === rd[5])) {
+      const nk = rd[5].slice(0, 60), nn = Math.ceil(Math.max(0, +rd[6] || 0) / CHUNK);
+      if (nn && nn <= MAXCHUNKS) { let N = this.rx.get(nk); if (!N || N.n !== nn) N = this.newRx(nk, nn); this.fetch(N); }
+    }
+    const playing = this.streamKey === key && !!this.src;
+    if (playing) { if (Math.abs(this.pos() - at) > 0.75 && at < R.buf.duration - 0.5) this.swap(R.buf, at); }
+    else if (R.buf && !R.decoding && at < R.buf.duration - 0.5) { this.streamKey = key; this.swap(R.buf, at); this.say(`♪  ${R.title}`); }
+    // (re)build what can be played from the pieces in hand: everything once it is all here; before that, the front of
+    // the song as soon as it reaches well past where the host is, and again when the part being played is running out
+    if (R.decoding || R.full) return;
+    const have = R.dur > 0 ? R.dur * R.head / R.n : 0, bufEnd = R.buf ? R.buf.duration : 0;
+    if (R.got >= R.n || (R.head > R.bufHead && have > at + 8 && have > bufEnd + 8 && (!playing || bufEnd - at < 15))) this.decodeStream(R);
+  }
+  async decodeStream(R) {
+    const ctx = this.audio.ctx; if (!ctx) return;
+    R.decoding = true;
+    const head = R.head, all = R.got >= R.n; let len = 0; for (let k = 0; k < head; k++) len += R.parts[k].length;
+    const u = new Uint8Array(len); for (let k = 0, o = 0; k < head; k++) { u.set(R.parts[k], o); o += R.parts[k].length; }
+    let buf = null; try { buf = await ctx.decodeAudioData(u.buffer); } catch (e) { buf = null; }
+    R.decoding = false;
+    if (this.rx.get(R.key) !== R) return;                    // the radio has moved on
+    R.bufHead = head;
+    if (all) R.full = true;
+    if (!buf) { if (all) this.say('The host’s song could not be played here'); return; }   // some formats cannot be played in part: wait for all of it
+    R.buf = buf; if (all) R.dur = buf.duration;
+    if (!this.active || !this.want || this.want[0] !== R.key || this.cur >= 0) return;
+    // carry on from the same place on the longer copy
+    const going = this.streamKey === R.key && !!this.src, at = going ? this.pos() : this.want[1];
+    if (at < buf.duration - 0.5) { this.streamKey = R.key; this.swap(buf, at); if (!going) this.say(`♪  ${R.title}`); }
+  }
+  // messages on the wire: ['q', key, from | [pieces]] guest -> host;  ['c', key, piece, of, base64] host -> guests
+  net(a, fromHost) {
+    if (!Array.isArray(a) || typeof a[1] !== 'string') return;
+    const key = a[1].slice(0, 60);
+    if (a[0] === 'q' && this.role === 'host') {
+      const T = this.tracks.find((t) => t.key === key); if (!T) return;
+      const n = Math.ceil(T.data.byteLength / CHUNK); if (!n || n > MAXCHUNKS) return;
+      if (!this.tx || this.tx.key !== key) this.tx = { key, u8: new Uint8Array(T.data), n, queue: new Set() };
+      const Q = this.tx.queue;
+      if (Array.isArray(a[2])) { for (const v of a[2].slice(0, 60)) { const k = v | 0; if (k >= 0 && k < n) Q.add(k); } }
+      else { for (let k = Math.max(0, a[2] | 0); k < n; k++) Q.add(k); }
+    } else if (a[0] === 'c' && fromHost && this.role === 'client') {
+      const R = this.rx.get(key), k = a[2] | 0;
+      if (!R || (a[3] | 0) !== R.n || k < 0 || k >= R.n || R.parts[k] || typeof a[4] !== 'string' || a[4].length > CHUNK * 1.4) return;
+      let u; try { u = unb64(a[4]); } catch (e) { return; }
+      R.parts[k] = u; R.got++; R.last = performance.now();
+      while (R.head < R.n && R.parts[R.head]) R.head++;
+      if (R.got >= R.n && !R.decoding && !R.full) this.decodeStream(R);
+    }
+  }
+  // the host sends a few pieces a frame: quickly over a direct link, gently through the shared room, and slower still
+  // the moment the room pushes back, so a song never crowds out the game's own traffic
+  tick(dt) {
+    const T = this.tx; if (!T) return;
+    if (this.role !== 'host') { this.tx = null; return; }
+    if (!T.queue.size) return;
+    const net = this.game && this.game.net, room = net && net.room; if (!room) { this.tx = null; return; }
+    const cap = net.direct ? 40 : 10, now = performance.now(), real = Math.min(0.5, (now - (this.txAt || now)) / 1000);   // by the clock, not by the frame
+    this.txAt = now;
+    if (net.direct && !T.fast) { T.fast = true; this.txRate = cap; }
+    this.txBudget = Math.min(net.direct ? 12 : 4, this.txBudget + Math.min(cap, this.txRate) * real);
+    while (this.txBudget >= 1 && T.queue.size) {
+      this.txBudget -= 1;
+      let k = -1; for (const v of T.queue) if (k < 0 || v < k) k = v;
+      T.queue.delete(k);
+      const piece = T.u8.subarray(k * CHUNK, Math.min(T.u8.length, (k + 1) * CHUNK));
+      let pr; try { pr = room.emit('door', { a: ['c', T.key, k, T.n, b64(piece)] }); } catch (e) { pr = Promise.reject(e); }
+      Promise.resolve(pr).then(() => { this.txRate = Math.min(cap, this.txRate + 0.05); }, () => { this.txRate = Math.max(1.5, this.txRate * 0.5); if (this.tx === T) T.queue.add(k); });
+    }
   }
 }

@@ -677,6 +677,7 @@ export class Game {
     this.hazards.update(dt);
     this.pickups.update(dt);
     for (const I of this.interactables) I.update(dt);
+    if (this.audio.radio) this.audio.radio.tick(dt);
     if (this.interactables.some((I) => I.remove)) {
       for (const I of this.interactables) if (I.remove) { (this.goneChests = this.goneChests || []).push([I.pos.x, I.pos.z]); this.scene.remove(I.group); if (this.player.focus === I) this.player.focus = null; }
       this.interactables = this.interactables.filter((I) => !I.remove);
