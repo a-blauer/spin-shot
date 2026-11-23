@@ -654,7 +654,7 @@ export class Hud {
     this.helpT = (this.helpT || 0) + dt;
     if (game.round > 1 || this.helpT > 900 || game.player.menu) return;   // shown for the first round only
     const a = 1;
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['TAB', 'upgrades']];
     const x = 44 * S, rh = 34 * S, w = 300 * S;
     let y = H * 0.27;
     const tip = [];
@@ -1008,7 +1008,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('PAUSED', W / 2, cy, 120 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text('Click to resume', W / 2, cy + 52 * S, 26 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['1-3', 'guns'], ['4', 'blade'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
+    const rows = [['WASD', 'move'], ['SPACE', 'jump'], ['SHIFT', 'dash'], ['C', 'slide'], ['F', (game.player.cls.ability || 'ability').toLowerCase()], ['R', 'reload'], ['\u2190 \u2192', 'radio'], ['Q', 'quick melee'], ['X', 'draw blade'], ['V', 'grenade'], ['E', 'use'], ['1-3', 'guns'], ['4', 'blade'], ['TAB', 'upgrades'], ['[ ]', 'sensitivity'], ['F3', 'fps']];
     const cols = 3, cw = 300 * S, rh = 42 * S, x0 = W / 2 - (cols * cw) / 2, y0 = cy + 110 * S;
     this.panel(x0 - 24 * S, y0 - 36 * S, cols * cw + 48 * S, Math.ceil(rows.length / cols) * rh + 40 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.85)', 12 * S);
     rows.forEach(([k, d], i) => {

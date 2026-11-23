@@ -27,7 +27,7 @@ export class Game {
   constructor(renderer, audio, hud, mapId = 0) {
     this.mapId = MAPS[mapId] ? mapId : 0; this.map = MAPS[this.mapId];
     this.renderer = renderer;
-    this.audio = audio;
+    this.audio = audio; if (audio && audio.radio) audio.radio.game = this;
     this.hud = hud;
     this.data = DATA;
     this.settings = { fov: 100, sens: 0.12, shake: 1, volume: 0.8 };

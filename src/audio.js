@@ -1,6 +1,7 @@
 // WebAudio sound player: lazy-decoded mp3 buffers, 3D panning with distance falloff (~3m..45m), per-sound
 // throttling (35 ms) so crowds of ghouls don't stack the same groan, and looping ambience beds.
 import * as THREE from 'three';
+import { Radio } from './radio.js';
 
 // ---- The mix ---------------------------------------------------------------------------------------------------
 // Every file is peak-normalised, which says nothing about how loud it sounds. TRIM is the correction that puts each
@@ -29,6 +30,7 @@ const DUCK = { S_Explosion: 0.45, S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S
 export class Audio {
   constructor(base = 'audio/') {
     this.base = base;
+    this.radio = new Radio(this);
     this.ctx = null;
     this.buffers = new Map();
     this.loading = new Map();
@@ -36,57 +38,14 @@ export class Audio {
     this.loops = new Map();
     this.listener = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0) };
   }
-  // Small generative score (no samples): bass, plucked lead and drums on a 16-step loop in A minor.
-  // mode: 'off' | 'calm' | 'fight' | 'boss' | 'casino'
-  music(mode) {
-    this.musicMode = mode;
-    if (!this.ctx || this._mus) return;
-    const ctx = this.ctx;
-    this.musicGain = ctx.createGain(); this.musicGain.gain.value = (this.musicVol ?? 0.5) * 0.8; this.musicGain.connect(this.musicBus);
-    const out = this.musicGain;
-    const noise = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate); { const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-    const tone = (t, f, dur, type, vol, cut) => { const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(); o.type = type; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = cut; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02); };
-    const kick = (t) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.2); };
-    const hat = (t, v) => { const s = ctx.createBufferSource(), g = ctx.createGain(), hp = ctx.createBiquadFilter(); s.buffer = noise; hp.type = 'highpass'; hp.frequency.value = 6000; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); s.connect(hp); hp.connect(g); g.connect(out); s.start(t); s.stop(t + 0.06); };
-    const hz = (n) => 55 * Math.pow(2, n / 12);
-    const prog = { calm: [0, 0, 5, 7], fight: [0, 0, 5, 7], boss: [0, 1, 0, 6], casino: [3, 8, 5, 10] };   // roots, semitones above A
-    const arp = [0, 7, 12, 15, 12, 7, 19, 15];
-    let step = 0, next = 0;
-    this._mus = setInterval(() => {
-      if (ctx.state !== 'running') return;
-      if (next < ctx.currentTime) next = ctx.currentTime + 0.05;
-      while (next < ctx.currentTime + 0.25) {
-        const m = this.musicMode, bpm = m === 'boss' ? 132 : m === 'fight' ? 116 : m === 'casino' ? 104 : 84, sd = 60 / bpm / 4;
-        if (m && m !== 'off') {
-          const bar = Math.floor(step / 16) % 4, s = step % 16, root = (prog[m] || prog.calm)[bar], major = m === 'casino';
-          if (s % 8 === 0 || (m !== 'calm' && s % 8 === 6)) tone(next, hz(root), sd * 3.5, 'sawtooth', 0.16, 320);
-          if (m !== 'calm' ? s % 2 === 0 : s % 4 === 0) { let n = arp[(s / 2) % 8 | 0]; if (major && n === 15) n = 16; tone(next, hz(root + 24 + n), sd * 1.6, 'triangle', m === 'calm' ? 0.05 : 0.07, 2400); }
-          if (m === 'fight' || m === 'boss') { if (s % 4 === 0 || (m === 'boss' && s === 14)) kick(next); if (s % 2 === 1) hat(next, 0.05); if (s === 4 || s === 12) hat(next, 0.14); }
-          if (m === 'casino' && (s % 4 === 2)) hat(next, 0.06);
-        }
-        step++; next += sd;
-      }
-    }, 60);
-  }
-  // Body for a gunshot, layered under the sample: a pitched-down thump and a filtered noise crack sized by `weight` (0..1).
-  gunPunch(weight) {
-    const ctx = this.ctx; if (!ctx || ctx.state !== 'running') return;
-    const t = ctx.currentTime, w = Math.max(0, Math.min(1, weight));
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'sine'; o.frequency.setValueAtTime(190 - w * 60, t); o.frequency.exponentialRampToValueAtTime(58, t + 0.09 + w * 0.12);
-    g.gain.setValueAtTime(0.2 + w * 0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12 + w * 0.2);
-    o.connect(g); g.connect(this.gunBus); o.start(t); o.stop(t + 0.4);
-    if (!this._nz) { this._nz = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate); const d = this._nz.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-    const s = ctx.createBufferSource(), ng = ctx.createGain(), bp = ctx.createBiquadFilter();
-    s.buffer = this._nz; bp.type = 'bandpass'; bp.frequency.value = 2600 - w * 1400; bp.Q.value = 0.7;
-    ng.gain.setValueAtTime(0.12 + w * 0.2, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + w * 0.1);
-    s.connect(bp); bp.connect(ng); ng.connect(this.gunBus); s.start(t); s.stop(t + 0.3);
-  }
+  // Music is the radio (radio.js): the player's own songs. The game only says whether it should be on.
+  // mode: 'off' | 'calm' | 'fight' | 'boss' | 'casino'  (anything but 'off' means a run is under way)
+  music(mode) { this.musicMode = mode; if (this.radio) this.radio.setActive(!!mode && mode !== 'off'); }
   // Three levels the player sets. Master is the output trim (0.8 is the level the mix was balanced at); sound effects
   // is everything that is not music: the world, the guns, their reverb and the interface.
   setMasterVol(v) { this.masterVol = v; if (this._out) this._out.gain.value = 0.95 * v / 0.8; }
   setSfxVol(v) { this.sfxVol = v; if (this.sfxBus) { this.sfxBus.gain.value = v; this.sfxDry.gain.value = v; } }
-  setMusicVol(v) { this.musicVol = v; if (this.musicGain) this.musicGain.gain.value = v * 0.8; }
+  setMusicVol(v) { this.musicVol = v; if (this.radio) this.radio.setVol(v); }
   // Push the music down to `to` (0..1) and let it come back over about half a second.
   duck(to = 0.6, hold = 0.12) {
     if (!this.musicBus) return; const t = this.ctx.currentTime, g = this.musicBus.gain;

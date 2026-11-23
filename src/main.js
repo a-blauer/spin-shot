@@ -59,19 +59,21 @@ let settings = {};
 try { settings = JSON.parse(localStorage.getItem('dmh-settings') || '{}') || {}; } catch (e) { settings = {}; }
 const sens = () => settings.sens || 0.11;
 const BIND = {
-  KeyW: 'fwd', ArrowUp: 'fwd', KeyS: 'back_', ArrowDown: 'back_', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
+  KeyW: 'fwd', ArrowUp: 'fwd', KeyS: 'back_', ArrowDown: 'back_', KeyA: 'left', KeyD: 'right',   // the left and right arrows work the radio
 };
 function onKey(e, down) {
   const c = e.code;
   // Ctrl is slide and R is reload, so Ctrl+R comes up in play all the time: during a run it must not reload the page.
   // (On the title screen it still does, and F5 always does.)
   const inRun = mode === 'play' || mode === 'paused';
-  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown', 'F3', 'Slash', 'Quote'].includes(c) || ((e.ctrlKey || e.metaKey) && (c !== 'KeyR' || inRun))) e.preventDefault();
+  if (['Tab', 'Space', 'ControlLeft', 'KeyC', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3', 'Slash', 'Quote'].includes(c) || ((e.ctrlKey || e.metaKey) && (c !== 'KeyR' || inRun))) e.preventDefault();
   if (down) {
     if (e.repeat) return;
     keys.add(c);
     switch (c) {
       case 'Space': edges.jump = 1; break;
+      case 'ArrowRight': if (mode === 'play') audio.radio.press(true); break;    // radio: next song
+      case 'ArrowLeft': if (mode === 'play') audio.radio.press(false); break;    // radio: this song again from the top
       case 'KeyC': case 'ControlLeft': edges.slide = 1; break;
       case 'ShiftLeft': case 'ShiftRight': edges.dash = 1; break;
       case 'KeyF': edges.grapple = 1; break;
@@ -123,7 +125,7 @@ addEventListener('wheel', (e) => { if (mode !== 'play') return; if (e.ctrlKey ||
 function readInput() {
   const In = {
     fwd: Math.max(-1, Math.min(1, (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + stick.y)),
-    right: Math.max(-1, Math.min(1, (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + stick.x)),
+    right: Math.max(-1, Math.min(1, (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x)),
     sprint: false,
     slideHeld: keys.has('KeyC') || keys.has('ControlLeft'), jumpHeld: keys.has('Space') || touchJump,
     fire: mouseL || touchFire, aim: mouseR || touchAim,
@@ -555,12 +557,21 @@ function setPaused(p) {
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
-pauseEl.querySelectorAll('input').forEach((el) => {
+pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op the host\u2019s radio plays for everyone who has loaded the same files.</p></div>' + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
   el.oninput = () => { settings[el.dataset.k] = parseFloat(el.value); el.nextElementSibling.textContent = el.value; applySettings(); saveSettings(); };
 });
+{ // the radio's shelf
+  const R = audio.radio, n = pauseEl.querySelector('#prn'), list = pauseEl.querySelector('#prlist'), file = pauseEl.querySelector('#prfile');
+  const draw = () => { n.textContent = R.tracks.length ? `${R.tracks.length} song${R.tracks.length > 1 ? 's' : ''}` : 'empty'; list.textContent = ''; for (const T of R.tracks) { const d = document.createElement('div'); d.textContent = T.title; if (R.cur >= 0 && R.tracks[R.cur] === T) d.className = 'on'; list.appendChild(d); } };
+  R.onChange = draw; draw();
+  pauseEl.querySelector('#pradd').onclick = () => file.click();
+  file.onchange = async () => { n.textContent = 'loading\u2026'; await R.addFiles([...file.files]); file.value = ''; draw(); };
+  pauseEl.querySelector('#prclr').onclick = () => { R.clear(); };
+  new MutationObserver(() => { if (pauseEl.style.display !== 'none') draw(); }).observe(pauseEl, { attributes: true, attributeFilter: ['style'] });
+}
 pauseEl.querySelector('#presume').onclick = () => { if (pauseEl.classList.contains('menu')) { pauseEl.classList.remove('menu'); pauseEl.style.display = 'none'; } else setPaused(false); };
 pauseEl.querySelector('#pfull').onclick = () => { const on = !fsOn(); settings.fullscreen = on; saveSettings(); setFullscreen(on); };
 pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'; restartRun(true); };
