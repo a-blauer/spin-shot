@@ -426,6 +426,7 @@ let lobbyBusy = false, lobbyMsg = '', lobbyTimer = 0, lobbySig = '';
 const esc2 = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function myName() { let v = 'Player'; try { v = localStorage.getItem('dmh-name') || 'Player'; } catch (e) { /* private mode */ } return v; }
 function openLobby() { title.style.display = 'none'; lobby.style.display = 'block'; lobbyMsg = ''; renderLobby(); }
+const lobbyInfo = {};   // why a locked choice is locked, shown on the line under its group after you click it
 function closeLobby() { if (Net.active) Net.leave(); lobby.style.display = 'none'; title.style.display = 'flex'; progBadge(); }
 function renderLobby() {
   if (lobby.style.display !== 'block') return;
@@ -433,9 +434,14 @@ function renderLobby() {
   const nameV = nmEl ? nmEl.value : myName(), codeV = cdEl ? cdEl.value : '';
   const L = Meta.look(), client = Net.role === 'client', hosting = Net.role === 'host';
   const RI = Meta.rankInfo();
-  let h = `<div class="lbh"><h2>LOBBY</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK</button></div><div class="lbgrid">`;
-  // players + invite
-  h += '<section><h3>PLAYERS</h3>';
+  // ---- the lobby: who is playing on the left, the run on the right, one line of detail per choice, and the
+  // summary and START pinned to the bottom. Options are chips; only the chosen one is described.
+  const chip = (attr, sel, locked, name, sub, extra = '') => `<div class="lbpick chip ${sel ? 'sel' : ''} ${locked ? 'locked' : ''}" ${attr} ${extra}><b>${name}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
+  const group = (label, body, detail, note = '') => `<div class="lbg"><div class="lbgl">${label}${note ? `<i>${note}</i>` : ''}</div><div class="lbgc"><div class="chips">${body}</div>${detail ? `<div class="lbdesc">${detail}</div>` : ''}</div></div>`;
+  const info = (k) => (lobbyInfo[k] ? `<span class="warn">${esc2(lobbyInfo[k])}</span>` : '');
+  let h = `<div class="lbh"><h2>LOBBY</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK</button></div><div class="lbwrap"><aside>`;
+  // party
+  h += '<section><h3>PARTY</h3>';
   const list = Net.active ? Net.lobbyList() : [{ name: nameV, host: true, me: true }];
   for (const p of list) h += `<div class="lbrow ${p.me ? 'me' : ''}"><b>${esc2(p.name)}</b><span>${p.host ? 'Host' : ''}${p.me ? (p.host ? ' - you' : 'You') : ''}</span></div>`;
   if (!Net.active) {
@@ -447,27 +453,45 @@ function renderLobby() {
   h += `<p class="msg">${esc2(lobbyMsg)}</p></section>`;
   // character
   h += `<section><h3>CHARACTER</h3><div class="lbchar">${SLOTS.map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`;
-  // loadout
-  h += '<section><h3>LOADOUT</h3><p class="dim">Starting weapon</p>';
-  for (const T of STARTERS) { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; h += `<div class="lbpick ${ok ? '' : 'locked'} ${Meta.starter() === T.w ? 'sel' : ''}" data-w="${esc2(T.w)}"><b>${esc2(T.w)}</b><span>${ok ? (W ? W.cls : '') : Meta.stateOf(T.key) === 'ready' ? 'Earned  -  claim it in Progress' : esc2(T.text)}</span></div>`; }
-  h += '</section>';
-  // heirloom: one Common buff to start the run with, earned by getting past the first boss of a map
-  { const cur = Meta.heirloomId(), ups = game ? game.data.upgrades : [];
-    h += `<section><h3>HEIRLOOM</h3><p class="dim">Start the run with one buff. Each map gives up its own.</p><div class="lbpick ${cur ? '' : 'sel'}" data-heir=""><b>None</b></div>`;
-    for (const m of WORLD) { const ok = Meta.heirloomUnlocked(m.id), U = ups.find((u) => u.name === m.heirloom); h += `<div class="lbpick ${ok ? '' : 'locked'} ${cur === m.id ? 'sel' : ''}" data-heir="${m.id}"><b>${esc2(m.heirloom)}</b><span>${ok ? esc2(U ? U.desc : '') : Meta.stateOf('h:' + m.id) === 'ready' ? 'Earned  -  claim it in Progress' : `Reach round ${HEIRLOOM_ROUND} in ${esc2(m.name)}`}</span></div>`; }
-    h += '</section>'; }
-  // class
-  h += '<section><h3>CLASS</h3>' + CLASSES.map((C) => { const lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id); return `<div class="lbpick ${Meta.cls() === C.id ? 'sel' : ''}" data-cls="${C.id}"><b style="color:${C.hex}">${C.name}</b><span>${C.blurb}</span><span class="dim">${lv ? CLASS_LEVEL_NAMES[lv - 1] : 'Novice'}${lv < CLASS_LEVELS.length ? `  -  ${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}` : '  -  mastered'}</span>${Meta.cls() === C.id ? '<ul class="lbkit">' + C.kit.map((k) => `<li>${k}</li>`).join('') + '</ul>' : ''}</div>`; }).join('') + '</section>';
-  h += '<section><h3>DIFFICULTY</h3>' + (client ? `<div class="lbpick sel"><b>${DIFFS[difficulty()].name}</b><span>The host chooses</span></div>` : DIFFS.map((D, i) => `<div class="lbpick ${Meta.difficulty() === i ? 'sel' : ''}" data-df="${i}"><b>${D.name}</b><span>${D.desc}</span></div>`).join('')) + '</section>';
+  h += '</aside><main>';
+  const daily = !client && Meta.dailyOn();
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
-  h += '<section><h3>MAP</h3>' + (client ? `<div class="lbpick sel"><b>${MAPS[curMap].name}</b><span>The host chooses</span></div>` : MAPS.map((M, i) => `<div class="lbpick ${curMap === i ? 'sel' : ''}" data-map="${i}"><b>${M.name}</b><span>${M.blurb}</span><span class="dim">${M.rounds} rounds  -  best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`).join('')) + '</section></div>';
-  // handicaps for extra renown, and today's challenge
-  if (!client) {
-    const mu = Meta.mutators(), T = Meta.today(), B = Meta.dailyBest(), on = Meta.dailyOn();
-    h += `<section><h3>CHALLENGE MODIFIERS</h3><p class="dim">Make it harder on yourself for more renown. ${on ? 'Set by today\u2019s challenge.' : ''}</p>` + MUTATORS.map((M, i) => `<div class="lbpick ${(mu >> i) & 1 ? 'sel' : ''} ${on ? 'locked' : ''}" data-mu="${i}"><b>${M.name}</b><span>${M.desc}</span><span class="dim">+${Math.round(M.xp * 100)}% renown</span></div>`).join('') + '</section>';
-    h += `<section><h3>TODAY\u2019S CHALLENGE</h3><div class="lbpick ${on ? 'sel' : ''}" data-daily="1"><b>${esc2(MAPS[T.map] ? MAPS[T.map].name : '')}  -  Hard</b><span>${esc2(T.names.join(' and '))}. The same for everyone today; it changes at midnight UTC.</span><span class="dim">+50% renown on top  -  ${B.won ? 'beaten today' : B.best ? 'your best today: round ' + B.best : 'not tried today'}  -  ${Meta.dailyWins()} beaten in all</span></div></section>`;
+  const curDf = client ? difficulty() : Meta.difficulty(), ups = game ? game.data.upgrades : [];
+  // the run
+  h += '<section><h3>THE RUN</h3>';
+  if (client) {
+    h += group('MAP', chip('', true, false, esc2(MAPS[curMap].name), ''), 'The host chooses the map and the difficulty.');
+    h += group('DIFFICULTY', chip('', true, false, 'Host\u2019s choice', ''), 'You will see it when the run starts.');
+  } else {
+    h += group('MAP', MAPS.map((M, i) => chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`)).join(''),
+      `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by today’s challenge' : '');
+    h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by today’s challenge' : '');
   }
-  h += client ? '<div class="lbstart wait">WAITING FOR THE HOST TO START</div>' : `<button id="lbstart" class="lbstart">${Meta.dailyOn() ? 'START TODAY\u2019S CHALLENGE' : 'START GAME'}</button>`;
+  h += '</section>';
+  // you
+  h += '<section><h3>YOUR LOADOUT</h3>';
+  { const C = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0], lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id);
+    h += group('CLASS', CLASSES.map((K) => { const l = Meta.clsLevel(K.id); return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, l ? CLASS_LEVEL_NAMES[l - 1] : 'Novice'); }).join(''),
+      `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`); }
+  { const curW = Meta.starter();
+    h += group('STARTING GUN', STARTERS.map((T) => { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; return chip(`data-w="${esc2(T.w)}"`, curW === T.w, !ok, esc2(T.w), ok ? (W ? W.cls : '') : 'Locked', `data-why="${esc2(Meta.stateOf(T.key) === 'ready' ? 'Earned: claim it in Progress.' : T.text)}" data-grp="w"`); }).join(''), info('w')); }
+  { const cur = Meta.heirloomId(), curM = WORLD.find((m) => m.id === cur), U = curM ? ups.find((u) => u.name === curM.heirloom) : null;
+    h += group('HEIRLOOM', chip('data-heir=""', !cur, false, 'None', '') + WORLD.map((m) => { const ok = Meta.heirloomUnlocked(m.id); return chip(`data-heir="${m.id}"`, cur === m.id, !ok, esc2(m.heirloom), ok ? '' : 'Locked', `data-why="${esc2(Meta.stateOf('h:' + m.id) === 'ready' ? 'Earned: claim it in Progress.' : `Reach round ${HEIRLOOM_ROUND} in ${m.name}.`)}" data-grp="h"`); }).join(''),
+      info('h') || (U ? `You start the run with it. ${esc2(U.desc)}` : 'One buff to start the run with. Each map gives up its own.')); }
+  h += '</section>';
+  // stakes
+  if (!client) {
+    const mu = Meta.mutators(), T = Meta.today(), B = Meta.dailyBest(), bonus = Math.round((MUTATORS.reduce((a, M, i) => a + ((mu >> i) & 1 ? M.xp : 0), 0) + (daily ? 0.5 : 0)) * 100);
+    const onM = MUTATORS.filter((M, i) => (mu >> i) & 1);
+    h += '<section><h3>STAKES</h3>';
+    h += group('MODIFIERS', MUTATORS.map((M, i) => chip(`data-mu="${i}"`, (mu >> i) & 1, daily, M.name, `+${Math.round(M.xp * 100)}%`)).join(''),
+      onM.length ? onM.map((M) => `<b>${M.name}:</b> ${M.desc}`).join(' &nbsp; ') : 'Optional handicaps. Each one you switch on pays more renown.', daily ? 'set by today’s challenge' : '');
+    h += group('TODAY', chip('data-daily="1"', daily, false, `${esc2(MAPS[T.map] ? MAPS[T.map].name : '')}  -  Hard`, esc2(T.names.join(' + '))),
+      `The same run for everyone today; it changes at midnight UTC. Pays +50% renown on top. <span class="dim2">${B.won ? 'Beaten today.' : B.best ? `Your best today: round ${B.best}.` : 'Not tried today.'} ${Meta.dailyWins()} beaten in all.</span>`);
+    h += '</section>';
+    const W0 = Meta.starter(), C0 = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0];
+    h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span><span>${C0.name}</span><span>${esc2(W0)}</span>${bonus ? `<span class="gold">+${bonus}% renown</span>` : ''}</div><button id="lbstart" class="lbstart">${daily ? 'START TODAY’S CHALLENGE' : 'START GAME'}</button></div>`;
+  } else h += '</main></div><div class="lbfoot"><div class="lbstart wait">WAITING FOR THE HOST TO START</div></div>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
   q('#lbback').onclick = (e) => { e.stopPropagation(); closeLobby(); };
@@ -479,12 +503,13 @@ function renderLobby() {
   if (q('#lbleave')) q('#lbleave').onclick = (e) => { e.stopPropagation(); Net.leave(); lobbyMsg = ''; renderLobby(); };
   q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
   lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick.locked[data-why]').forEach((el) => { el.addEventListener('click', (e) => { e.stopPropagation(); lobbyInfo[el.dataset.grp] = `${el.querySelector('b').textContent}: ${el.dataset.why}`; renderLobby(); }, true); });
   lobby.querySelectorAll('.lbpick[data-mu]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (Meta.dailyOn()) return; Meta.toggleMut(+el.dataset.mu); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-daily]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDaily(!Meta.dailyOn()); Net.setMap(Meta.map()); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setStarter(el.dataset.w); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.h; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.w; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 let beginning = false;
