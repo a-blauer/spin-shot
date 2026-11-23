@@ -39,7 +39,10 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   // the second set of buffs: conditions (who, where, when), ways of not dying, and class perks that change an ability
   'FullHealthDamage', 'CloseDamage', 'FarDamage', 'StatusDamage', 'HealthyDamage', 'MoneyDamage', 'StreakDamage', 'HealthDamage', 'BlockChance', 'AirGuard', 'DashGuard', 'PlateArmor', 'HitCap',
   'SecondWind', 'HealBoost', 'Overheal', 'ShieldRegen', 'KillHealth', 'CritHeal', 'EliteExecute', 'ChestLuck', 'ChestRefund', 'RoundMoney', 'MeleeHeavy', 'MeleeStun', 'MeleeArmor',
-  'SwapSpeed', 'DeadeyeCrit', 'DeadeyeReload', 'RushShield', 'HealthMelee', 'TurretRange', 'TurretBurn', 'TurretBlast', 'StillDamage', 'HeadCrit', 'HeadExecute', 'GrenadeDamage', 'BlastBurn', 'GrenadeSave', 'ClusterAll'];
+  'SwapSpeed', 'DeadeyeCrit', 'DeadeyeReload', 'RushShield', 'HealthMelee', 'TurretRange', 'TurretBurn', 'TurretBlast', 'StillDamage', 'HeadCrit', 'HeadExecute', 'GrenadeDamage', 'BlastBurn', 'GrenadeSave', 'ClusterAll',
+  // buffs that do something rather than add a number
+  'LandShock', 'Quake', 'Glide', 'OpenerStun', 'PointBlank', 'AirKillJump', 'WeakPoint', 'HeadPop', 'LightBolt', 'Parry', 'BladeWave', 'WallCrit', 'LowBurn', 'CritStun', 'Trample', 'BlockShock', 'SpendNova', 'GoldKill',
+  'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);

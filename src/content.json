@@ -807,7 +807,11 @@
    "mods": [
     [
      "ReloadSpeed",
-     0.14
+     0.08
+    ],
+    [
+     "DashReload",
+     1
     ]
    ],
    "trigger": null,
@@ -815,7 +819,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+14% reload speed.",
+   "desc": "Dashing finishes your reload on the spot. +8% reload speed.",
    "insp": "Gungeon"
   },
   {
@@ -824,8 +828,8 @@
    "stacks": 10,
    "mods": [
     [
-     "FireRate",
-     0.1
+     "RampFire",
+     0.3
     ]
    ],
    "trigger": null,
@@ -833,7 +837,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+10% fire rate.",
+   "desc": "Fire rate climbs the longer you keep shooting, up to +30% after 2 seconds.",
    "insp": "RoR2 Soldier's Syringe"
   },
   {
@@ -893,11 +897,15 @@
   {
    "name": "Spring Heels",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "JumpPower",
-     0.12
+     0.08
+    ],
+    [
+     "LandShock",
+     0.6
     ]
    ],
    "trigger": null,
@@ -905,7 +913,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+12% jump height.",
+   "desc": "Coming down from a height sends out a shockwave for 60% Power that throws enemies back. +8% jump height.",
    "insp": "Classic platformer"
   },
   {
@@ -1133,11 +1141,15 @@
   {
    "name": "Pry Bar",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "BossDamage",
-     0.25
+     0.15
+    ],
+    [
+     "WeakPoint",
+     1
     ]
    ],
    "trigger": null,
@@ -1145,7 +1157,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+25% damage to bosses.",
+   "desc": "Every fifth hit on a boss or elite finds a weak point: a guaranteed crit. +15% damage to bosses.",
    "insp": "RoR2 Crowbar"
   },
   {
@@ -1223,15 +1235,15 @@
   {
    "name": "Climber's Chalk",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "WallRunTime",
      0.75
     ],
     [
-     "MoveSpeed",
-     0.04
+     "WallCrit",
+     1
     ]
    ],
    "trigger": null,
@@ -1239,7 +1251,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+0.75s wall-run time, +4% move speed.",
+   "desc": "Jumping off a wall-run makes your next shot within 2 seconds a guaranteed crit. +0.75s wall-run time.",
    "insp": "Titanfall 2"
   },
   {
@@ -1297,11 +1309,15 @@
   {
    "name": "Headhunter Scope",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "HeadshotDamage",
-     0.25
+     0.2
+    ],
+    [
+     "HeadPop",
+     0.5
     ]
    ],
    "trigger": null,
@@ -1309,7 +1325,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+25% headshot damage.",
+   "desc": "Headshot kills burst, hitting enemies nearby for 50% of the shot. +20% headshot damage.",
    "insp": "Sulfur scopes"
   },
   {
@@ -1333,11 +1349,15 @@
   {
    "name": "Featherweight",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "AirDamage",
      0.12
+    ],
+    [
+     "AirKillJump",
+     1
     ]
    ],
    "trigger": null,
@@ -1345,7 +1365,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+12% damage while airborne.",
+   "desc": "Kills in the air give you a mid-air jump back. +12% damage while airborne.",
    "insp": "Gunfire Reborn airborne scrolls"
   },
   {
@@ -1703,6 +1723,10 @@
     [
      "Pierce",
      1
+    ],
+    [
+     "PierceSlow",
+     0.5
     ]
    ],
    "trigger": null,
@@ -1710,7 +1734,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "Bullets pierce +1 enemy.",
+   "desc": "Bullets pierce +1 enemy and pin whatever stood behind the first: slowed 50% for 2.5 seconds.",
    "insp": "Gungeon piercing"
   },
   {
@@ -1741,8 +1765,8 @@
      0.3
     ],
     [
-     "HealthRegen",
-     1
+     "LowBurn",
+     0.3
     ]
    ],
    "trigger": null,
@@ -1750,7 +1774,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+30% damage under 35% HP, +1 HP/s.",
+   "desc": "Under 35% health: +30% damage, and every hit sets the enemy on fire.",
    "insp": "Isaac Bloody Lust"
   },
   {
@@ -1826,7 +1850,11 @@
    "mods": [
     [
      "MagSize",
-     0.35
+     0.15
+    ],
+    [
+     "TapedMag",
+     1
     ]
    ],
    "trigger": null,
@@ -1834,7 +1862,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+35% magazine size.",
+   "desc": "Taped magazines: every second reload is instant. +15% magazine size.",
    "insp": "CoD dual mags"
   },
   {
@@ -2022,20 +2050,16 @@
      0.3
     ],
     [
-     "Knockback",
-     0.3
-    ],
-    [
      "FireRate",
      -0.1
     ]
    ],
-   "trigger": null,
-   "fx": null,
-   "chance": 0,
-   "mag": 0,
+   "trigger": "OnHit",
+   "fx": "Stagger",
+   "chance": 0.25,
+   "mag": 0.8,
    "cd": 0,
-   "desc": "+30% damage, +30% knockback, -10% fire rate.",
+   "desc": "+30% damage, -10% fire rate. Hits have a 25% chance to knock ordinary enemies off their feet for 0.8 seconds.",
    "insp": "Brotato trade-offs"
   },
   {
@@ -2071,15 +2095,15 @@
    "mods": [
     [
      "MoveSpeed",
-     0.2
+     0.15
     ],
     [
      "SlideBoost",
-     0.2
+     0.15
     ],
     [
-     "WallRunTime",
-     1.0
+     "Trample",
+     0.8
     ]
    ],
    "trigger": null,
@@ -2087,7 +2111,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+20% speed, +20% slide speed, +1s wall-run.",
+   "desc": "At a full run you bowl enemies over: 80% Power, a hard shove and a moment's daze. +15% speed and slide speed.",
    "insp": "Hermes"
   },
   {
@@ -2097,19 +2121,19 @@
    "mods": [
     [
      "HeadshotDamage",
-     0.5
+     0.25
     ],
     [
      "Spread",
      0.3
     ]
    ],
-   "trigger": null,
-   "fx": null,
-   "chance": 0,
-   "mag": 0,
+   "trigger": "OnHeadshot",
+   "fx": "Skip",
+   "chance": 1.0,
+   "mag": 0.75,
    "cd": 0,
-   "desc": "+50% headshot damage, 30% tighter spread.",
+   "desc": "Headshots glance on to the nearest other enemy for 75% of the hit. +25% headshot damage, 30% tighter spread.",
    "insp": "Sulfur scopes"
   },
   {
@@ -2184,11 +2208,11 @@
    "mods": [
     [
      "FireRate",
-     0.25
+     0.15
     ],
     [
-     "ReloadSpeed",
-     0.15
+     "HotBarrel",
+     0.3
     ]
    ],
    "trigger": null,
@@ -2196,7 +2220,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+25% fire rate, +15% reload speed.",
+   "desc": "After 2 seconds of sustained fire the barrel runs hot: every round sets its target alight for 30% of the hit per second. +15% fire rate.",
    "insp": "CoD Double Tap"
   },
   {
@@ -2515,15 +2539,19 @@
    "mods": [
     [
      "Damage",
-     0.25
+     0.15
     ],
     [
      "FireRate",
-     0.25
+     0.15
     ],
     [
      "MoveSpeed",
-     0.25
+     0.15
+    ],
+    [
+     "FinalRound",
+     3
     ]
    ],
    "trigger": null,
@@ -2531,7 +2559,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+25% damage, fire rate and speed.",
+   "desc": "The last round of every magazine is a cannon shot: four times the damage, and it explodes. +15% damage, fire rate and speed.",
    "insp": "Balatro Flush"
   },
   {
@@ -2573,6 +2601,10 @@
     [
      "MoneyGain",
      0.25
+    ],
+    [
+     "GoldKill",
+     0.08
     ]
    ],
    "trigger": "OnKill",
@@ -2580,7 +2612,7 @@
    "chance": 1.0,
    "mag": 30,
    "cd": 0,
-   "desc": "+25% money; every kill pays about $3 extra.",
+   "desc": "8% of kills turn to gold and pay five times over. +25% money, and every kill pays about $3 extra.",
    "insp": "Midas"
   },
   {
@@ -2836,7 +2868,11 @@
    "mods": [
     [
      "MeleeRange",
-     0.12
+     0.08
+    ],
+    [
+     "BladeWave",
+     0.5
     ]
    ],
    "trigger": null,
@@ -2844,7 +2880,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+12% melee reach.",
+   "desc": "Heavy blows and finishers throw a wave of force 13 meters down the line for 50% of the blow. +8% melee reach.",
    "insp": "melee"
   },
   {
@@ -2948,11 +2984,15 @@
   {
    "name": "Cheap Shot",
    "rarity": "Uncommon",
-   "stacks": 5,
+   "stacks": 3,
    "mods": [
     [
      "MeleeCrit",
      0.12
+    ],
+    [
+     "CritStun",
+     0.8
     ]
    ],
    "trigger": null,
@@ -2960,7 +3000,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+12% melee crit chance.",
+   "desc": "Melee crits daze the target for 0.8 seconds. +12% melee crit chance.",
    "insp": "melee"
   },
   {
@@ -3397,8 +3437,8 @@
      2
     ],
     [
-     "Damage",
-     0.1
+     "PierceRamp",
+     0.2
     ]
    ],
    "trigger": null,
@@ -3406,7 +3446,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "Shots pierce 2 more enemies, +10% damage.",
+   "desc": "Shots pierce 2 more enemies and hit 20% harder for each one they pass through.",
    "insp": "AP rounds"
   },
   {
@@ -3906,11 +3946,15 @@
   {
    "name": "Crowbar",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 3,
    "mods": [
     [
      "FullHealthDamage",
      0.2
+    ],
+    [
+     "OpenerStun",
+     0.5
     ]
    ],
    "trigger": null,
@@ -3918,17 +3962,21 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+20% damage to enemies above 90% health.",
+   "desc": "Your first hit on a fresh enemy deals +20% damage and staggers it for half a second.",
    "insp": "RoR2 Crowbar"
   },
   {
    "name": "Focus Lens",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "CloseDamage",
      0.12
+    ],
+    [
+     "PointBlank",
+     1
     ]
    ],
    "trigger": null,
@@ -3936,7 +3984,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+12% damage to enemies within 6 meters.",
+   "desc": "Shots from within 4 meters blast ordinary enemies off their feet. +12% damage within 6 meters.",
    "insp": "RoR2 Focus Crystal"
   },
   {
@@ -3978,11 +4026,11 @@
   {
    "name": "Clean Bill",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
-     "HealthyDamage",
-     0.1
+     "LightBolt",
+     0.8
     ]
    ],
    "trigger": null,
@@ -3990,7 +4038,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+10% damage while you are above 90% health.",
+   "desc": "While above 90% health, every fourth shot also fires a bolt of light that passes through everything for 80% Power.",
    "insp": "Dead Cells full-health mutations"
   },
   {
@@ -4111,7 +4159,7 @@
   {
    "name": "Buzzard Feather",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 5,
    "mods": [
     [
      "AirGuard",
@@ -4120,6 +4168,10 @@
     [
      "AirControl",
      0.15
+    ],
+    [
+     "Glide",
+     1
     ]
    ],
    "trigger": null,
@@ -4127,7 +4179,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "Take 8% less damage while airborne. +15% air control.",
+   "desc": "Hold jump while falling to glide. Take 8% less damage while airborne, +15% air control.",
    "insp": "Titanfall"
   },
   {
@@ -4191,11 +4243,15 @@
   {
    "name": "Duelist's Sash",
    "rarity": "Common",
-   "stacks": 10,
+   "stacks": 3,
    "mods": [
     [
      "MeleeArmor",
-     15
+     10
+    ],
+    [
+     "Parry",
+     1
     ]
    ],
    "trigger": null,
@@ -4203,7 +4259,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+15 armor while your blade is drawn.",
+   "desc": "Parry: a melee hit that lands within 0.4 seconds of your swing is turned aside and the attacker is left reeling. +10 armor while your blade is drawn.",
    "insp": "Dead Cells shields"
   },
   {
@@ -4940,6 +4996,10 @@
     [
      "PlateArmor",
      5
+    ],
+    [
+     "BlockShock",
+     2
     ]
    ],
    "trigger": null,
@@ -4947,7 +5007,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "20% chance to shrug off a hit. Every hit you take is reduced by 5.",
+   "desc": "20% chance to shrug off a hit and throw it back as a shockwave for 200% Power. Every hit you take is reduced by 5.",
    "insp": "RoR2 Tougher Times"
   },
   {
@@ -5173,12 +5233,12 @@
    "stacks": 1,
    "mods": [
     [
-     "MoneyDamage",
-     0.03
-    ],
-    [
      "MoneyGain",
      0.3
+    ],
+    [
+     "SpendNova",
+     6
     ]
    ],
    "trigger": null,
@@ -5186,7 +5246,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+3% damage for every $100 you are carrying (up to $2,000). +30% money.",
+   "desc": "Every $1,000 you spend goes off as a golden blast around you for 600% Power. +30% money.",
    "insp": "Isaac Money = Power"
   },
   {
@@ -5199,12 +5259,16 @@
      100
     ],
     [
-     "HealthDamage",
-     0.03
-    ],
-    [
      "PlateArmor",
      4
+    ],
+    [
+     "LandShock",
+     1.5
+    ],
+    [
+     "Quake",
+     1
     ]
    ],
    "trigger": null,
@@ -5212,7 +5276,7 @@
    "chance": 0,
    "mag": 0,
    "cd": 0,
-   "desc": "+100 max health. +3% damage per 25 max health above 150. Hits are reduced by 4.",
+   "desc": "The ground shakes when you land: any jump comes down as a quake for 150% Power. +100 max health, and hits are reduced by 4.",
    "insp": "Brotato"
   },
   {

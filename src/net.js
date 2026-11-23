@@ -99,6 +99,7 @@ export const Net = {
     const d = { x: r[0], y: r[1], w: r[2], t: r[3], z: r[4] };
     const t = Math.max(0, Math.min(3, num(d.t, 0, 3) | 0)), x = num(d.x, -40000, 40000), y = num(d.y, -40000, 40000);
     if (g.interactables.some((I) => I.type === 'Chest' && Math.hypot(I.pos.x - x, I.pos.z - y) < 60)) return;   // already have it
+    if ((g.goneChests || []).some((c) => Math.hypot(c[0] - x, c[1] - y) < 60)) return;                           // had it, opened it, and it is gone
     const C = g.spawnChestAt(x, y, num(d.w, -360, 360), t); if (!C) return;
     const Z = g.zones[num(d.z, 0, 99) | 0];
     g.player.toast(`A ${['wooden', 'iron-bound', 'gilt', 'reliquary'][t]} chest has turned up${Z ? ' in ' + Z.name : ''}`, ['#c9a46a', '#aab4c4', '#ffcd5a', '#c58cff'][t]); g.audio.play('S_Door', 0.6, 1.5);

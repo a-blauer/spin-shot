@@ -43,7 +43,7 @@ const vrandCone = (dir, half) => {
 // cheap 1D value noise for camera shake
 const noise1 = (x) => { const i = Math.floor(x), f = x - i; const h = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return (s - Math.floor(s)) * 2 - 1; }; const u = f * f * (3 - 2 * f); return h(i) * (1 - u) + h(i + 1) * u; };
 
-const PROC_DAMAGE = ['Explode', 'Nova', 'Missile', 'Chain', 'Shockwave', 'Ignite'];
+const PROC_DAMAGE = ['Explode', 'Nova', 'Missile', 'Chain', 'Shockwave', 'Ignite', 'Skip'];
 export class Player {
   constructor(game) {
     this.game = game;
@@ -170,6 +170,7 @@ export class Player {
     this.reloading = true;
     this.arFail = false;
     this.reloadDur = DATA.weapons[S.def].reload / (1 + Math.max(-0.5, this.stat('ReloadSpeed') + (this.nearTurret ? 0.3 * this.stat('TurretAura') : 0))) / (Meta.gunLevel(DATA.weapons[S.def].name) >= 1 ? 1.1 : 1);
+    if (this.stat('TapedMag') > 0) { S.tapeN = (S.tapeN || 0) + 1; if (S.tapeN % 2 === 0) { this.reloadDur = Math.min(this.reloadDur, 0.15); this.play('S_Switch', 0.9, 1.25); this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'TAPED MAG', [1, 0.85, 0.4], 1); } }
     this.reloadT = this.reloadDur;
     this.runProcs('OnReload', null, this.pos, 0, 1);
   }
@@ -234,6 +235,10 @@ export class Player {
     if (amount < 0 || this.money < amount) { this.toast(`Not enough money  ($${cash(amount)} needed)`, '#ff5a4d'); this.play('S_Deny', 0.6); return false; }
     this.money -= amount;
     if (amount > 0) this.play('S_Buy', 0.6, 1, 0.05);
+    if (this.S.SpendNova && amount > 0) {   // Gold Fever: money spent comes back as a blast, once for every $1,000
+      this.spentAcc = (this.spentAcc || 0) + amount;
+      if (this.spentAcc >= 10000) { this.spentAcc %= 10000; this.shockAround(650, this.power() * this.S.SpendNova, lin(1, 0.82, 0.25), 650); this.game.fx.coins(this.pos, 8); this.play('S_Cash', 0.8, 0.8); }
+    }
     return true;
   }
   addLuck() {}   // the luck mechanic was removed; old code paths that grant it now do nothing
@@ -278,6 +283,21 @@ export class Player {
   update(dt, In) {
     this.input = In;
     const G = this.game;
+    // Mercury Sandals: at a full run you go through a crowd like a train
+    if (this.S.Trample && !this.dead && this.grounded && Math.hypot(this.vel.x, this.vel.z) > 900) {
+      const dirv = safeN2(this.vel);
+      for (const E of G.enemies) {
+        if (E.dead || E.emerging || E.burrowed || E.isBoss || G.time - (E.trampleAt || -9) < 1) continue;
+        const d = flat(E.pos.clone().sub(this.pos));
+        if (d.length() > 115 + E.radius || Math.abs(E.pos.y - this.pos.y) > 170 || d.dot(dirv) < 0) continue;
+        E.trampleAt = G.time;
+        const side = this.right().multiplyScalar(d.dot(this.right()) >= 0 ? 1 : -1);
+        this.procDepth++; this.dealDamage(E, this.power() * this.S.Trample, E.pos, dirv, false, 0, true, 0, 0, 0, 0, [0.8, 0.95, 1]); this.procDepth--;
+        if (!E.dead) { E.applyKnock(dirv.clone().multiplyScalar(520).addScaledVector(side, 420).add(V3(0, 300, 0))); this.stun(E, 0.6); }
+        G.fx.dust(V3(E.pos.x, E.pos.y - 60, E.pos.z), lin(0.6, 0.55, 0.45), 50); G.fx.flash(E.pos, [0.8, 0.95, 1], 40, 0.1, false);
+        this.play('S_HitFlesh2', 0.7, 0.8, 0.08); this.addShake(0.3);
+      }
+    }
     if (this.benchJob && this.benchJob.t > 0) { this.benchJob.t -= dt; if (this.benchJob.t <= 0) { this.toast('Workbench upgrade ready  -  claim it at the bench', '#ff8cff'); this.play('S_Upgrade', 0.5, 1.3); } }
     if (this.dead) {
       this.updateCamera(dt);
@@ -433,6 +453,15 @@ export class Player {
     // gravity
     if (!this.grounded || this.launchedT > 0) this.vel.y -= 980 * this.gravityScale * dt;
     else this.vel.y = Math.min(this.vel.y, -40);
+    // Buzzard Feather: hold jump on the way down to spread your coat and glide
+    this.gliding = !!(this.S.Glide && !this.grounded && this.input && this.input.jumpHeld && this.vel.y < -240 && this.dashT <= 0 && !this.grappling && !this.wallRunning && this.timeSinceJump > 0.25);
+    if (this.gliding) {
+      this.vel.y += (-240 - this.vel.y) * Math.min(1, 9 * dt);
+      this.glideFx = (this.glideFx || 0) - dt;
+      if (this.glideFx <= 0) { this.glideFx = 0.09; const s = this.right().multiplyScalar(Math.random() < 0.5 ? 70 : -70); G.fx.puff(V3(this.pos.x, this.pos.y - 40, this.pos.z).add(s), [0.93, 0.96, 1], 34, 0.3, V3(0, 120, 0)); }
+      if (!this.wasGliding) this.play('S_Dash', 0.3, 0.6, 0.05);
+    }
+    this.wasGliding = this.gliding;
     this.vel.y = Math.max(this.vel.y, -4000);
     if (this.launchedT > 0) this.launchedT -= dt;
     // collide
@@ -555,6 +584,7 @@ export class Player {
     if (this.wallRunning) {
       const v = this.wallNormal.clone().multiplyScalar(720).addScaledVector(this.wallDir, Math.max(Math.hypot(this.vel.x, this.vel.z) * 0.85, 700)).add(V3(0, 820 * jm, 0));
       this.endWallRun(); this.wallRunCd = 0.3;
+      if (this.S.WallCrit) { this.headCritT = 2; this.wallCritFx = 2; this.play('S_Crit', 0.4, 1.5, 0.04); this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'CRIT READY', [1, 0.85, 0.2], 1); }
       this.launch(v, true, true);
       this.timeSinceJump = 0;
       this.play('S_AirJump', 0.7, 1.05, 0.05);
@@ -596,6 +626,12 @@ export class Player {
     this.airJumps = this.maxAirJumps();
     if (this.wallRunning) this.endWallRun();
     if (this.slamming) this.slamImpact();
+    // Spring Heels / Colossus: coming down hard sends out a shockwave. A plain hop lands at about 820.
+    if (this.S.LandShock && fall > (this.S.Quake ? 500 : 1000) && this.game.time - (this.landShockAt || -9) > 0.5) {
+      this.landShockAt = this.game.time;
+      this.shockAround(this.S.Quake ? 520 : 380, this.power() * this.S.LandShock, this.S.Quake ? lin(1, 0.75, 0.4) : lin(0.85, 0.95, 1), this.S.Quake ? 700 : 520);
+      if (this.S.Quake) { this.addShake(0.8); this.landDipVel -= 160; }
+    }
     if (!this.sliding && this.input && this.input.slideHeld && Math.hypot(this.vel.x, this.vel.z) > 700 && this.slideCd <= 0) this.startSlide();
     this.lastFall = 0;
   }
@@ -679,6 +715,7 @@ export class Player {
     this.game.fx.puff(this.pos.clone().addScaledVector(this.dashDir, -60), lin(0.8, 0.9, 1), 90, 0.3);
     this.play('S_Dash', 0.8, 1, 0.05);
     this.fovKick += 12; this.addShake(0.25);
+    if (this.reloading && this.stat('DashReload') > 0 && !this.wield) { this.finishReload(); this.play('S_Switch', 0.9, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.5); this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'RELOADED', [0.6, 0.9, 1], 1); }
     this.runProcs('OnDash', null, this.pos, 0, 1);
   }
   startGrapple() {
@@ -834,7 +871,7 @@ export class Player {
   }
   meleeSwing(power = false, charge = 0) {
     const W = MELEE[this.meleeDef], sp = this.meleeSpeed();
-    this.meleeBuffer = 0;
+    this.meleeBuffer = 0; this.swingAt = this.game.time;
     const step = power ? 2 : this.meleeComboT > 0 ? (this.meleeCombo + 1) % 3 : 0;
     this.meleeCombo = step; this.meleeHeavy = step === 2; this.meleeBig = power; this.meleeChargeHit = power ? charge : 0;   // `big`: the wound-up heavy blow
     // a swing thrown out of a dash is a thrust: longer, harder, and it goes through the whole line
@@ -854,6 +891,7 @@ export class Player {
     const chg = this.meleeChargeHit || 0, thrust = this.meleeThrust;
     const range = this.meleeRange() * (thrust ? 1.5 : big ? 1.1 + 0.15 * chg : heavy ? 1.1 : 1), arc = thrust ? 40 : W.arc * (1 + this.stat('MeleeArc')) * (heavy ? 1.15 : 1);
     const T = this.meleeTargets(range, arc).slice(0, Math.round(this.meleeCleave() + (thrust ? 3 : big ? 1 + Math.round(2 * chg) : heavy ? 1 : 0)));
+    if ((heavy || big) && this.S.BladeWave) this.bladeWave(W.dmg * this.meleePower() * 1.6 * this.S.BladeWave * (1 + 0.06 * Math.max(0, effRound(G.round) - 1)), T);
     if (!T.length) {
       const hit = G.phys.raycast(this.eye(), this.forward(), range);   // steel on stone
       if (hit) { G.fx.sparks ? G.fx.sparks(hit.point, hit.normal) : G.fx.flash(hit.point, lin(1, 0.8, 0.4), 30, 0.12, false); this.play('S_HitWall', 0.6, 1.1, 0.1); this.addShake(0.2); }
@@ -871,6 +909,7 @@ export class Player {
       const hp0 = E.health + (E.shield || 0);
       this.dealDamage(E, dmg, at, dir, false, 1, false, (W.crit || 0) + this.stat('MeleeCrit'), (W.burn || 0) + this.stat('MeleeBurn'), W.slow || 0, (W.money || 0) + this.stat('MeleeMoney'), heavy ? [1, 0.75, 0.3] : undefined);
       const did = Math.max(0, hp0 - Math.max(0, E.health) - (E.shield || 0)); dealt += did;
+      if (this.lastCrit && this.S.CritStun && !E.dead && !E.isBoss) { this.stun(E, this.S.CritStun); G.fx.sparks(at, dir.clone().negate(), [1, 0.85, 0.3], 6); G.hud.floater(at.clone().add(V3(0, 50, 0)), 'DAZED', [1, 0.85, 0.3], 0.9); }
       const bleed = (W.bleed || 0) + this.stat('MeleeBleed'); if (bleed > 0 && !E.dead) E.applyBleed(dmg * bleed);
       if (!E.dead && !E.isBoss) E.applyKnock(dir.clone().multiplyScalar(W.knock * (1 + this.stat('MeleeKnock')) * (heavy ? 1.5 : 1)).add(V3(0, heavy ? 420 : 220, 0)));
       // a hit rocks them: ordinary enemies stumble and their next attack is put off, so trading blows is a choice you make badly
@@ -909,6 +948,67 @@ export class Player {
   }
   // healing earned by fighting (kills, lifesteal) comes out of a small bucket that refills at 8 health a second,
   // so a horde of a hundred is not a hundred heals
+  // ---- shared pieces of the buffs that do things
+  stun(E, t) { if (!E || E.dead || E.isBoss) return; if (E.elite) t *= 0.5; E.staggerT = Math.max(E.staggerT || 0, t); E.attackCd = Math.max(E.attackCd || 0, t + 0.25); E.applySlow(0.9, t); }
+  // a shockwave around your feet: two rings, dust, a thump, and everything inside thrown back
+  shockAround(radius, dmg, color, push = 520, lift = 360) {
+    const G = this.game, feet = V3(this.pos.x, this.pos.y - 85, this.pos.z);
+    G.fx.ring(feet, radius, color, 0.42); G.fx.ring(feet, radius * 0.55, lerp3(color, [1, 1, 1], 0.5), 0.26);
+    G.fx.dust(feet, lin(0.5, 0.42, 0.33), Math.min(160, radius * 0.3));
+    G.fx.flash(feet.clone().add(V3(0, 50, 0)), color, radius * 0.35, 0.16, true);
+    this.addShake(0.7); this.play('S_Slam', 0.7, 1.05, 0.05);
+    this.procDepth++;
+    for (const E of G.enemies) {
+      if (E.dead || E.emerging || E.burrowed || E.pos.distanceTo(this.pos) > radius + E.radius) continue;
+      const away = safeN2(E.pos.clone().sub(this.pos));
+      this.dealDamage(E, dmg, E.pos, away, false, 0, true, 0, 0, 0, 0, color);
+      if (!E.dead && !E.isBoss) E.applyKnock(away.multiplyScalar(push).add(V3(0, lift, 0)));
+    }
+    this.procDepth--;
+  }
+  // Clean Bill: a bolt of light down the sights, through everything, as far as the first wall
+  lightBolt(eye, dir, muzzle) {
+    const G = this.game, wall = G.phys.raycast(eye, dir, 6000), far = wall ? wall.distance : 6000, end = eye.clone().addScaledVector(dir, far), col = [1, 0.97, 0.7];
+    G.fx.tracer(muzzle, end, col, 30, 0.2);
+    // a tracer seen from behind is a dot, so the bolt is also a string of lights from the muzzle to wherever it lands
+    { const span = muzzle.distanceTo(end), n = Math.min(44, Math.ceil(span / 70)), d = end.clone().sub(muzzle).divideScalar(n);
+      for (let k = 0; k <= n; k++) G.fx.add({ pos: muzzle.clone().addScaledVector(d, k), life: 0.3 + 0.16 * (k / n), size0: 46, size1: 18, c0: [1, 1, 0.9, 1], c1: [col[0], col[1], col[2], 0], fadeOut: 0.5, tex: 'FX_Glow', kind: 'add', glow: 3 }); }
+    G.fx.flash(muzzle, col, 34, 0.1, true); G.fx.glowAt(end, col, 120, 0.2);
+    if (wall) G.fx.sparks(wall.point, wall.normal, col, 6);
+    this.play('S_Chain', 0.45, 1.7, 0.05);
+    this.procDepth++;
+    for (const E of G.enemies) {
+      if (E.dead || E.burrowed) continue;
+      const t = G.rayEnemy(eye, dir, far, E, 25);
+      if (t === null) continue;
+      const at = eye.clone().addScaledVector(dir, t);
+      G.fx.flash(at, col, 40, 0.12, false);
+      this.dealDamage(E, this.power() * this.S.LightBolt, at, dir, false, 0, true, 0, 0, 0, 0, col);
+    }
+    this.procDepth--;
+  }
+  // Long Reach: the heavy blow carries on as a wave of force down the line you are facing
+  bladeWave(dmg, skip) {
+    const G = this.game, f = this.forward(), eye = this.eye().add(V3(0, -30, 0)), len = 1300, col = [0.72, 0.93, 1];
+    const a = eye.clone().addScaledVector(f, 90), b = eye.clone().addScaledVector(f, len);
+    // seen from behind a beam is a dot, so the wave is a bar of light lying across your view that flies away down the line
+    const rt = this.right(), fly = f.clone().multiplyScalar(len / 0.42), gy = G.fx.groundY(a, 400);
+    G.fx.add({ mode: 'fixed', right: rt, up: UP.clone(), pos: a.clone(), vel: fly.clone(), life: 0.42, size0: 300, size1: 520, stretch: 0.3, c0: [col[0], col[1], col[2], 0.95], c1: [col[0], col[1], col[2], 0], fadeOut: 0.4, tex: 'FX_Spark', kind: 'add', glow: 3 });
+    G.fx.add({ mode: 'fixed', right: rt, up: UP.clone(), pos: a.clone(), vel: fly.clone(), life: 0.42, size0: 260, size1: 460, stretch: 0.07, c0: [1, 1, 1, 1], c1: [1, 1, 1, 0], fadeOut: 0.4, tex: 'FX_Spark', kind: 'add', glow: 3 });
+    G.fx.add({ pos: a.clone(), vel: fly.clone(), life: 0.42, size0: 120, size1: 200, c0: [col[0], col[1], col[2], 0.5], c1: [col[0], col[1], col[2], 0], tex: 'FX_Glow', kind: 'add', glow: 2 });
+    for (let k = 1; k <= 5; k++) { const q = eye.clone().addScaledVector(f, len * k / 5.5); if (gy > -1e8) q.y = gy + 12; G.fx.add({ pos: q, delay: 0.42 * k / 5.5, vel: V3(0, 90, 0), drag: 2, life: 0.35, size0: 40, size1: 110, rot: Math.random() * 360, c0: [0.75, 0.72, 0.66, 0.6], c1: [0.75, 0.72, 0.66, 0], tex: 'FX_Puff' }); }
+    G.fx.flash(a, col, 50, 0.1, true);
+    this.play('S_Dash', 0.7, 1.7, 0.05);
+    this.procDepth++;
+    for (const E of G.enemies) {
+      if (E.dead || E.burrowed || skip.includes(E)) continue;
+      const v = E.pos.clone().sub(eye), t = v.dot(f);
+      if (t < 0 || t > len || v.addScaledVector(f, -t).length() > 120 + E.radius) continue;
+      this.dealDamage(E, dmg, E.pos, f, false, 0, true, 0, 0, 0, 0, col);
+      if (!E.dead && !E.isBoss) E.applyKnock(f.clone().multiplyScalar(420).add(V3(0, 200, 0)));
+    }
+    this.procDepth--;
+  }
   combatHeal(a) { const h = Math.min(a, this.healBucket); if (h > 0) { this.healBucket -= h; this.heal(h); } }
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
@@ -916,7 +1016,19 @@ export class Player {
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
     const raw = amount;
-    if (this.S.BlockChance && !silent && Math.random() < Math.min(0.35, 1 - 1 / (1 + this.S.BlockChance))) { this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(120)), 'BLOCKED', [0.7, 0.85, 1], 1.1); this.play('S_HitWall', 0.5, 0.7, 0.1); return; }
+    // Duelist's Sash: a blow that lands just as you swing is turned aside, and whoever threw it is left reeling
+    if (melee && this.S.Parry && this.wield && !silent && this.game.time - (this.swingAt || -9) < 0.4) {
+      const G = this.game, p = this.eye().add(this.forward().multiplyScalar(110));
+      G.hud.floater(p, 'PARRY', [1, 0.9, 0.5], 1.3); G.fx.sparks(p, this.forward().negate(), [1, 0.9, 0.6], 10); G.fx.flash(p, [1, 0.9, 0.6], 40, 0.12, true);
+      this.play('S_HitWall', 0.9, 1.35, 0.05); this.play('S_Crit', 0.5, 0.8, 0.05); this.addShake(0.45); G.hitstop = Math.max(G.hitstop || 0, 0.09);
+      if (source && source.takeHit) { this.stun(source, 1.2 * this.S.Parry); if (!source.isBoss) source.applyKnock(safeN2(source.pos.clone().sub(this.pos)).multiplyScalar(380).add(V3(0, 160, 0))); }
+      return;
+    }
+    if (this.S.BlockChance && !silent && Math.random() < Math.min(0.35, 1 - 1 / (1 + this.S.BlockChance))) {
+      this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(120)), 'BLOCKED', [0.7, 0.85, 1], 1.1); this.play('S_HitWall', 0.5, 0.7, 0.1);
+      if (this.S.BlockShock && this.game.time - (this.blockShockAt || -9) > 1) { this.blockShockAt = this.game.time; this.shockAround(450, this.power() * this.S.BlockShock, lin(0.6, 0.8, 1)); }   // Bulwark throws it back
+      return;
+    }
     if (this.S.AirGuard && !this.grounded) amount *= 1 - Math.min(0.5, this.S.AirGuard);
     if (this.dashGuardT > 0 && this.S.DashGuard) amount *= 1 - Math.min(0.6, this.S.DashGuard);
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
@@ -1066,7 +1178,13 @@ export class Player {
     const G = this.game, W = DATA.weapons[S.def];
     if (!echo && S.ammo <= 0) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
     if (!echo && this.aiming && S.altCd <= 0 && this.altKind() && this.fireAlt(S, W)) return;   // aiming down the sights fires the gun's alt mode when it is ready
-    const rate = W.rate * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
+    // how long the trigger has been worked without a real pause: Hair Trigger speeds up on it, Overclock heats up on it
+    if (!echo) { const gap = G.time - (this.lastShotAt || -9); this.sustain = gap < Math.max(0.35, 2 / W.rate) ? (this.sustain || 0) + gap : 0; this.lastShotAt = G.time; }
+    const wasHot = this.hotBarrel > 0;
+    this.hotBarrel = (this.sustain || 0) >= 2 ? this.stat('HotBarrel') : 0;
+    if (this.hotBarrel > 0 && !wasHot) { this.play('S_PowerUp', 0.4, 1.6); G.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'BARREL HOT', [1, 0.55, 0.15], 1.1); }
+    const wasLast = !echo && S.ammo === 1;
+    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
@@ -1080,6 +1198,8 @@ export class Player {
       if (this.stat('EchoShot') > 0) this.echoT = 0.085;
     }
     if (last) damage *= 1 + this.stat('LastRounds');                         // Closer
+    const finalRound = wasLast && S.ammo === 0 && mag >= 3 && this.stat('FinalRound') > 0 && W.mode !== 'Beam' && W.mode !== 'Flame';   // Outlaw's Nerve
+    if (finalRound) damage *= 1 + this.stat('FinalRound');
     if (S.hot > 0) { damage *= 1.35; S.hot--; }                              // a perfect active reload
     if (this.aiming && this.cls.id === 'sniper') damage *= 1.15;
     this.aimHold = 0;
@@ -1095,6 +1215,14 @@ export class Player {
     const procCoef = continuous ? 0.25 : 1 / Math.max(1, pellets);
     let tracer = lerp3(hexRGB(W.color), [1, 0.96, 0.8], 0.5);
     if (S.tier > 0) tracer = lerp3(tracer, [1, 0.6, 0.95], 0.5);
+    if (this.hotBarrel > 0) { tracer = [1, 0.5, 0.15]; G.fx.glowAt(muzzle, [1, 0.45, 0.1], 70, 0.12); }
+    if (finalRound) {
+      tracer = [1, 0.85, 0.3];
+      G.fx.flash(muzzle, [1, 0.85, 0.4], 60, 0.14, true); this.addShake(0.9); this.fovKick += 6; this.play('S_Explosion', 0.5, 1.3, 0.05);
+      G.hud.floater(eye.clone().addScaledVector(baseDir, 150), 'LAST ROUND', [1, 0.85, 0.3], 1.1);
+      if (W.mode === 'Hitscan') this.explodeAt(aim, 280 * (1 + this.stat('ExplosionRadius')), damage * 0.5, 0.5, false, false, lin(1, 0.8, 0.3), null);
+    }
+    if (!echo && this.S.LightBolt) { this.boltN = (this.boltN || 0) + 1; if (this.boltN % 4 === 0 && this.health >= this.maxHealth * 0.9) this.lightBolt(eye, baseDir, muzzle); }
     for (let p = 0; p < pellets; p++) {
       const dmgP = p < W.pellets ? damage : damage * 0.5;
       const dir = spread > 0 ? vrandCone(baseDir, spread) : baseDir.clone();
@@ -1194,9 +1322,13 @@ export class Player {
       const head = at.y > best.headY();
       this.dealDamage(best, dmg, at, dir, head, procCoef, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
       if (W.splash > 0) this.explodeAt(at, W.splash * (1 + this.stat('ExplosionRadius')), dmg * 0.6, procCoef, false, false, color, best);
+      if (hits >= 1 && (this.S.PierceRamp || this.S.PierceSlow)) {
+        G.fx.sparks(at, dir.clone().negate(), this.S.PierceRamp ? [1, 0.8, 0.4] : [0.8, 0.85, 0.9], 5);
+        if (this.S.PierceSlow && !best.dead) best.applySlow(this.S.PierceSlow, 2.5);   // Rebar Rounds pin whatever stood behind
+      }
       ignore.add(best);
       remaining -= bestT; from = at;
-      hits++; dmg *= 0.85;
+      hits++; dmg *= this.S.PierceRamp ? 1 + this.S.PierceRamp : 0.85;                 // Hollow Charge gathers force as it goes through
       if (hits > pierce) break;
     }
     if (width > 0) G.fx.tracer(muzzle, final, color, width, W.mode === 'Beam' ? 0.05 : 0.06);
@@ -1277,6 +1409,10 @@ export class Player {
     const mult = this.damageMult(E);
     let crit = !fromProc && Math.random() < Math.min(0.75, 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0));
     if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }   // Second Opinion: the shot after a headshot kill
+    let weak = false;
+    if (!fromProc && this.S.WeakPoint && (E.elite || E.isBoss)) { E.pryN = (E.pryN || 0) + 1; if (E.pryN % 5 === 0) { crit = true; weak = true; } }   // Pry Bar: every fifth hit finds the gap
+    if (!fromProc) this.lastCrit = crit;
+    const fresh = E.health >= E.maxHealth * 0.9;
     let dmg = base * mult;
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
@@ -1290,6 +1426,23 @@ export class Player {
     if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {
       const push = Math.min(420, 90 + (dealt / Math.max(1, E.maxHealth)) * 900) * (E.ai === 'Brute' ? 0.3 : 1);
       E.vel.x += dir.x * push; E.vel.z += dir.z * push; E.staggerT = Math.max(E.staggerT || 0, Math.min(0.3, 0.08 + dealt / Math.max(1, E.maxHealth) * 0.5));
+    }
+    if (!fromProc) {
+      if (weak) { G.hud.floater(at.clone().add(V3(0, 55, 0)), 'WEAK POINT', [1, 0.85, 0.2], 1.1); G.fx.sparks(at, dir ? dir.clone().negate() : UP, [1, 0.85, 0.3], 8); }
+      if (fresh && !killed && this.S.OpenerStun && !E.isBoss) { this.stun(E, this.S.OpenerStun); G.fx.sparks(at, dir ? dir.clone().negate() : UP, [0.9, 0.9, 1], 5); G.audio.playAt('S_HitWall', at, 0.5, 0.8, 0.1); }   // Crowbar
+      if (!killed && !this.meleeHitting && this.S.PointBlank && !E.isBoss && dir && G.time - (E.pbAt || -9) > 0.35 && E.pos.distanceTo(this.pos) < 420) {   // Focus Lens: a muzzle in the ribs
+        E.pbAt = G.time; E.applyKnock(safeN2(dir).multiplyScalar(760).add(V3(0, 330, 0))); this.stun(E, 0.4);
+        G.fx.puff(at, [1, 0.9, 0.7], 70, 0.25, dir.clone().multiplyScalar(300)); G.fx.flash(at, [1, 0.85, 0.5], 46, 0.1, false); this.addShake(0.25);
+      }
+      if (!killed && this.S.LowBurn && this.health < this.maxHealth * 0.35) E.applyBurn(dealt * this.S.LowBurn, 3);                // Adrenal Gland
+      if (!killed && !this.meleeHitting && this.hotBarrel > 0) E.applyBurn(dealt * this.hotBarrel, 3);                              // Overclock
+      if (head && killed && this.S.HeadPop && this.procDepth < 1) {                                                                  // Headhunter Scope
+        this.procDepth++;
+        const hp = E.pos.clone(); hp.y = E.headY() + 10;
+        G.fx.gibs(hp, hexRGB(0x8a2a22), 0.5, 6);
+        this.explodeAt(hp, 250, base * (1.75 + this.stat('HeadshotDamage')) * this.S.HeadPop, 0, true, false, lin(1, 0.3, 0.22), E);
+        this.procDepth--;
+      }
     }
     this.hitMarker = 0.18; this.hitKill = killed; this.hitHead = head; this.hitScale = killed ? 1.6 : head || crit ? 1.25 : 1;
     if (!fromProc || procCoef > 0.3) {
@@ -1388,6 +1541,15 @@ export class Player {
     this.streak = (this.streakT > 0 ? (this.streak || 0) : 0) + 1; this.streakT = 3;
     { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
     if (headshot && this.S.HeadCrit) this.headCritT = 3;
+    if (this.S.AirKillJump && !this.grounded && this.airJumps <= this.maxAirJumps()) {   // Featherweight: a kill in the air is a foothold
+      this.airJumps++; const feet = V3(this.pos.x, this.pos.y - 88, this.pos.z);
+      G.fx.ring(feet, 70, [0.8, 1, 0.85], 0.22); this.play('S_AirJump', 0.4, 1.5, 0.04);
+    }
+    if (this.S.GoldKill && !E.isBoss && Math.random() < this.S.GoldKill) {                // Midas Touch: now and then one turns to gold
+      const bonus = Math.max(20, E.money * 4);
+      this.addMoney(bonus, true); G.fx.coins(E.pos, 8); G.fx.flash(E.pos, lin(1, 0.82, 0.25), 90, 0.22, true); G.fx.ring(V3(E.pos.x, E.pos.y - 60, E.pos.z), 160, lin(1, 0.82, 0.25), 0.3);
+      G.hud.floater(E.pos.clone().add(V3(0, 120, 0)), `GOLD  +$${cash(bonus)}`, [1, 0.85, 0.25], 1.4); this.play('S_Cash', 0.7, 1.2, 0.05);
+    }
     if (this.S.KillHealth && (this.killHP || 0) < 60 * this.S.KillHealth) { this.killHPc = (this.killHPc || 0) + 1; if (this.killHPc >= 8) { this.killHPc = 0; this.killHP = (this.killHP || 0) + 1; this.recompute(); this.health = Math.min(this.maxHealth, this.health + 1); } }
     if (this.procDepth < 2) {
       if (this.multiT.length >= 3) { this.multiT.length = 0; this.runProcs('OnMultiKill', E, E.pos, 0, 1); }
@@ -1511,6 +1673,19 @@ export class Player {
         }
         break;
       }
+      case 'Skip': {   // Deadeye Glass: the round glances off a skull and finds the next one
+        if (!target) break;
+        const nx = this.findNearestEnemy(target.pos, 800, target);
+        if (!nx || nx.burrowed) break;
+        const to = nx.pos.clone(); to.y = nx.headY() + 8;
+        G.fx.tracer(at, to, [1, 0.9, 0.6], 4, 0.12); G.fx.sparks(at, UP, [1, 0.9, 0.6], 4); G.fx.flash(to, [1, 0.5, 0.35], 36, 0.12, false);
+        G.audio.playAt('S_Ricochet', at, 0.7, 1.2, 0.1);
+        this.dealDamage(nx, mag * base, to, to.clone().sub(at).normalize(), false, 0, true, 0, 0, 0, 0, [1, 0.3, 0.25]);
+        break;
+      }
+      case 'Stagger':   // Heavy Barrel: the hit takes them off their feet
+        if (alive && !target.isBoss) { this.stun(target, U.mag); G.fx.sparks(at, UP, [1, 0.9, 0.6], 5); G.fx.puff(at, [0.9, 0.85, 0.75], 50, 0.25); G.audio.playAt('S_HitWall', at, 0.5, 0.7, 0.1); }
+        break;
       default: break;
     }
     this.procDepth--;
@@ -1941,8 +2116,8 @@ export class Player {
   // ---------------------------------------------------------------- chests and tonics
   // Chests are the main thing money is for, so they are priced against what a round pays: about one wooden chest a
   // round if you buy nothing else, and the better tiers are something you save for. Every chest opened makes all of
-  // them 17% dearer, and prices creep up 4% a round so hoarding cash does not beat the curve.
-  chestPrice(tier) { const n = this.chestsOpened, r = Math.max(1, this.game.round || 1); return Math.round([600, 1400, 3000, 6000][tier] * Math.pow(1.17, n) * (1 + 0.04 * (r - 1)) * this.priceMult() / 10) * 10; }
+  // them 8.5% dearer, and prices creep up 2% a round so hoarding cash does not beat the curve.
+  chestPrice(tier) { const n = this.chestsOpened, r = Math.max(1, this.game.round || 1); return Math.round([600, 1400, 3000, 6000][tier] * Math.pow(1.085, n) * (1 + 0.02 * (r - 1)) * this.priceMult() / 10) * 10; }
   openChest(I) {
     if (I.opened) return;
     // each chest holds one of two rarities; luck tips it toward the better one

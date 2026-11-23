@@ -396,7 +396,7 @@ export class Game {
       for (let k = 0; k < Math.min(3, 1 + Math.floor(this.round / 4)) && this.spawned < this.toSpawn && (thin ? this.aliveCount() < floor : this.spawned < allowed + 2) && this.aliveCount() < cap; k++) this.spawnOne();   // they come in packs
     }
     // a new chest turns up part-way through some rounds
-    if (!this.midChest && this.round >= 2 && this.killed >= this.toSpawn * 0.5) { this.midChest = true; if (this.round % 2 === 0) this.dropChest(); }
+    if (!this.midChest && this.round >= 2 && this.killed >= this.toSpawn * 0.5) { this.midChest = true; this.dropChest(); }
     if (this.bossRound && !this.bossSpawned && (this.killed >= this.toSpawn / 4 || this.spawned >= this.toSpawn)) {
       const loc = this.pickSpawn(false);
       if (loc) {
@@ -415,7 +415,7 @@ export class Game {
   dropChest() {
     if (this.net.role === 'client' || !this.spawnChest) return;
     const waiting = this.interactables.filter((I) => { if (I.type !== 'Chest' || I.opened || Math.abs(I.pos.y - this.zoneZ(I.pos.x, I.pos.z)) > 300) return false; const Z = this.zones[this.zoneAt(I.pos)]; return Z && Z.unlocked; }).length;   // unopened chests you can already reach
-    if (waiting >= 5) return;
+    if (waiting >= 7) return;
     const r = this.round, W = r < 4 ? [70, 30, 0, 0] : r < 8 ? [45, 40, 15, 0] : r < 14 ? [28, 40, 26, 6] : [18, 34, 32, 16];
     let roll = Math.random() * 100, tier = 0; for (let i = 0; i < 4; i++) { roll -= W[i]; if (roll < 0) { tier = i; break; } }
     const open = this.zones.map((Z, i) => i).filter((i) => this.zones[i].unlocked && this.zones[i].spawns && i !== this.casinoZone);
@@ -432,7 +432,7 @@ export class Game {
     if (this.bossRound) this.toSpawn = Math.max(6, Math.floor(this.toSpawn * 6 / 10));
     if (this.net.role === 'host') { this.toSpawn = Math.round(this.toSpawn * (1 + 0.6 * this.net.ghosts.size)); if (this.player.dead) this.player.revive(); }
     this.spawned = 0; this.killed = 0; this.bossSpawned = false; this.boss = null; this.powerupsThisRound = 0; this.tonicsThisRound = 0; this.grenadesThisRound = 0; this.ammoThisRound = 0; this.spawnTimer = 1.5; this.roundT = 0; this.midChest = false;
-    if (this.round >= 2) this.dropChest();
+    if (this.round >= 2) { this.dropChest(); if (this.round % 4 === 0) this.dropChest(); }   // two a round and a third every fourth: half as many again as before
     this.phase = 'Round';
     if (this.barricadeT === undefined) this.casinoInit();
     Meta.roundStarted(this.round, this.map.id);
@@ -677,6 +677,10 @@ export class Game {
     this.hazards.update(dt);
     this.pickups.update(dt);
     for (const I of this.interactables) I.update(dt);
+    if (this.interactables.some((I) => I.remove)) {
+      for (const I of this.interactables) if (I.remove) { (this.goneChests = this.goneChests || []).push([I.pos.x, I.pos.z]); this.scene.remove(I.group); if (this.player.focus === I) this.player.focus = null; }
+      this.interactables = this.interactables.filter((I) => !I.remove);
+    }
     this.fx.update(dt);
     // zone atmosphere
     const z = this.zoneAt(P.pos);

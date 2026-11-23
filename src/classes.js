@@ -32,7 +32,8 @@ export const classById = (id) => CLASSES.find((C) => C.id === id) || CLASSES[0];
 
 // ---- tag every upgrade once
 const GUN_STATS = ['Pierce', 'Multishot', 'Spread', 'MagSize', 'ReserveAmmo', 'AmmoSave', 'FireRate', 'ReloadSpeed', 'ExplosionRadius', 'Knockback',
-  'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'EchoShot', 'Ricochet', 'LastRounds', 'FirstShot', 'FullAuto', 'KillReload', 'SteadyAim', 'Shrapnel'];
+  'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'EchoShot', 'Ricochet', 'LastRounds', 'FirstShot', 'FullAuto', 'KillReload', 'SteadyAim', 'Shrapnel',
+  'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound'];
 const GUN_TRIGGERS = ['OnHit', 'OnReload', 'OnCrit', 'OnHeadshot'];
 export const ALT_STATS = ['AltLauncher', 'AltGravity', 'AltRail', 'AltBuck'];
 const FIT = {
@@ -83,7 +84,8 @@ export function rollGunMod(mods, W, cls, luck = 0) {
     if (u.alt && hasAlt) return;
     const names = u.mods.map((m) => m[0]);
     if (names.includes('FullAuto') && W.auto) return;
-    if (cont && names.some((n) => ['EchoShot', 'FullAuto', 'FirstShot', 'LastRounds', 'SteadyAim', 'Ricochet', 'Multishot', 'ActiveReload'].includes(n))) return;
+    if (cont && names.some((n) => ['EchoShot', 'FullAuto', 'FirstShot', 'LastRounds', 'SteadyAim', 'Ricochet', 'Multishot', 'ActiveReload', 'FinalRound', 'TapedMag', 'PierceRamp', 'PierceSlow'].includes(n))) return;
+    if (names.includes('FinalRound') && W.mag < 3) return;
     if (names.includes('ExplosionRadius') && !(W.splash > 0)) return;
     if ((names.includes('FirstShot') && W.mag < 4) || (names.includes('LastRounds') && W.mag < 3)) return;   // magazine tricks need a magazine
     const ri = rarityIndex(u.rarity);

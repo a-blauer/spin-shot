@@ -125,7 +125,7 @@ function readInput() {
     fwd: Math.max(-1, Math.min(1, (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + stick.y)),
     right: Math.max(-1, Math.min(1, (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + stick.x)),
     sprint: false,
-    slideHeld: keys.has('KeyC') || keys.has('ControlLeft'),
+    slideHeld: keys.has('KeyC') || keys.has('ControlLeft'), jumpHeld: keys.has('Space') || touchJump,
     fire: mouseL || touchFire, aim: mouseR || touchAim,
     lookX: lookX * sens(), lookY: lookY * sens(),
     jump: edges.jump, slide: edges.slide, slideUp: edges.slideUp, dash: edges.dash, grapple: edges.grapple, reload: edges.reload,
@@ -598,14 +598,14 @@ async function restartRun(toMenu) {
 // ---- touch controls: left thumb moves, right thumb looks, buttons for everything else
 const TOUCH = !TEST && ('ontouchstart' in window) && matchMedia('(pointer: coarse)').matches;
 const stick = { x: 0, y: 0 };
-let touchFire = false, touchAim = false;
+let touchFire = false, touchAim = false, touchJump = false;
 if (TOUCH) {
   const T = document.getElementById('touch');
   const btn = (id, label, cls, down, up) => { const b = document.createElement('div'); b.className = 'tb ' + cls; b.textContent = label; b.id = id; T.appendChild(b);
     b.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); down(); b.classList.add('on'); }, { passive: false });
     b.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); if (up) up(); b.classList.remove('on'); }, { passive: false }); return b; };
   btn('tfire', 'FIRE', 'big', () => { touchFire = true; edges.firePressed = 1; }, () => { touchFire = false; });
-  btn('tjump', 'JUMP', '', () => { edges.jump = 1; });
+  btn('tjump', 'JUMP', '', () => { edges.jump = 1; touchJump = true; }, () => { touchJump = false; });
   btn('tdash', 'DASH', '', () => { edges.dash = 1; });
   btn('tslide', 'SLIDE', '', () => { edges.slide = 1; }, () => { edges.slideUp = 1; });
   btn('taim', 'AIM', '', () => { touchAim = !touchAim; });

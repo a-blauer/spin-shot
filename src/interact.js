@@ -694,6 +694,12 @@ export class Interactable {
     this.age += dt;
     const PL = this.game.player;
     if (this.lid && this.type === 'Chest') { const want = this.opened ? -1.9 : 0; this.lid.rotation.z += (want - this.lid.rotation.z) * Math.min(1, dt * 7); }
+    // an opened chest has nothing more to give: it stands open for a moment, then sinks out of the world
+    if (this.type === 'Chest' && this.opened) {
+      this.goneT = (this.goneT || 0) + dt;
+      if (this.goneT > 2.2) { const k = Math.max(0, 1 - (this.goneT - 2.2) / 0.6); this.group.scale.setScalar(Math.max(0.001, k)); this.group.position.y = this.pos.y - (1 - k) * 40; }
+      if (this.goneT > 2.8 && !this.remove) { this.remove = true; this.game.fx.puff(this.pos.clone().add(new THREE.Vector3(0, 30, 0)), [0.8, 0.72, 0.55], 90, 0.5); }
+    }
     if (this.box) this.boxTick(dt, PL);
     if (this.type === 'UpgradeCounter' && PL) this.layPawn(PL);
     if (this.wares && PL) this.tickWares(dt, PL);
