@@ -2,6 +2,10 @@
 import content from './content.json';
 
 export const DATA = content;
+// buffs retired for doing the same job as another one. They keep their slot (saves and the net protocol index
+// upgrades by position) but are never offered again.
+const CUT = new Set(["Coin Purse", "Paymaster", "Tax Collector", "Trade License", "Tyrant's Purse", "Master Key", "Surgeon's Kit", "Vampire Fang", "Trophy Rack", "Titan's Belt", "Hard Hat", "Second Skin", "Iron Lung", "Barrier Coil", "Close Quarters", "Sharpshooter's Creed", "Hot Streak", "High Ground", "Featherfall", "Energy Drink", "Wind Chime", "Cowboy Spurs", "Dash Blades", "Fuel Cell", "Wind Walker", "Tailwind Ribbon", "Rattlesnake Skin", "Momentum Core", "Vulture's Due", "Bounty Poster", "Marksman's Monocle", "Wisp Jar", "Brass Knuckles", "Reaper's Whetstone", "Warlord's Banner", "Lead Weight", "Fencer's Glove", "Wide Swing", "Iron Curtain", "Powder Charge", "Reel Spring", "Grapple Shock", "Eagle Eye", "Haymaker", "Deep Pockets"]);
+for (const u of DATA.upgrades) u.cut = CUT.has(u.name);
 // Money is kept in tenths so small payouts still add up; everything the player sees is shown divided by ten.
 export const cash = (x) => Math.max(0, Math.round((+x || 0) / 10)).toLocaleString();
 export const cost10 = (x) => Math.max(10, Math.round(x / 10) * 10);   // prices are whole numbers of what is shown
@@ -84,7 +88,7 @@ import { Meta } from './meta.js';
 export function rollUpgradeOfRarity(rarity, stacks) {
   let pool = [];
   for (let tier = rarity; tier >= 0 && pool.length === 0; tier--) {
-    DATA.upgrades.forEach((u, i) => { if (rarityIndex(u.rarity) === tier && (stacks[i] || 0) < u.stacks && !Meta.upgradeLocked(u.name)) pool.push(i); });
+    DATA.upgrades.forEach((u, i) => { if (!u.cut && rarityIndex(u.rarity) === tier && (stacks[i] || 0) < u.stacks && !Meta.upgradeLocked(u.name)) pool.push(i); });
     if (rarity === 5) break;
   }
   return pool.length ? pool[randInt(0, pool.length - 1)] : -1;

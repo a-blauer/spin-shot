@@ -67,7 +67,7 @@ const RECENT = [];
 export function rollBuff(rarity, stacks, cls) {
   for (let tier = rarity; tier >= 0; tier--) {
     const pool = [];
-    DATA.upgrades.forEach((u, i) => { if (u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls) / (1 + 2.5 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1); if (w > 0) pool.push([i, w]); });
+    DATA.upgrades.forEach((u, i) => { if (u.cut || u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls) / (1 + 2.5 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1); if (w > 0) pool.push([i, w]); });
     if (pool.length) { const got = pick(pool); RECENT.push(got); if (RECENT.length > 12) RECENT.shift(); return got; }
   }
   return -1;
