@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { DATA, RARITY_HEX, cash } from './data.js';
 import { CORE0, CORE_DEFS, coreSvg } from './cores.js';
+import { sigOf, sigProc } from './signatures.js';
 
 const CSS = `
 #craft { display:none; position:fixed; inset:0; z-index:9; cursor:default; color:#f2e8d5; font-family:"Barlow Condensed",sans-serif;
@@ -56,13 +57,20 @@ const CSS = `
 #craft .tune button:hover:not(:disabled) { background:#ffcd5a; color:#1a0f0c; }
 #craft .tune button:disabled { opacity:.4; cursor:default; }
 #craft .tune span { font-size:17px; color:#b9ad98; line-height:1.15; }
-#craft .row { display:grid; grid-template-columns:1fr auto; align-items:baseline; padding:5px 2px; border-bottom:1px solid rgba(255,255,255,0.08); font-size:20px; color:#d8cdb8; }
+#craft .row { display:grid; grid-template-columns:1fr auto; align-items:baseline; padding:3px 2px; border-bottom:1px solid rgba(255,255,255,0.08); font-size:20px; color:#d8cdb8; }
 #craft .row b { font:400 25px "Big Shoulders Display"; color:#f2e8d5; transition:color .5s; }
 #craft .row b.up { color:#7dff8a; transition:none; } #craft .row b.down { color:#ff7a6a; transition:none; }
 #craft .row u { text-decoration:none; font:700 17px "Barlow Condensed"; margin-left:8px; color:#7dff8a; } #craft .row u.neg { color:#ff7a6a; }
 #craft .row.big { border-bottom:2px solid rgba(255,205,90,0.35); } #craft .row.big b { font-size:38px; color:#ffcd5a; }
-#craft .fx { margin-top:10px; font-size:17px; color:#d8cdb8; line-height:1.25; overflow-y:auto; flex:1; }
+#craft .fx { margin-top:10px; font-size:17px; color:#d8cdb8; line-height:1.25; flex:none; }
+#craft #cstats::-webkit-scrollbar { width:6px; } #craft #cstats::-webkit-scrollbar-thumb { background:rgba(255,205,90,0.35); }
 #craft .fx div { padding:2px 0; } #craft .fx b { color:var(--c); }
+#craft .sig { margin:0 0 8px; padding:8px 10px 9px; border-left:4px solid var(--c); background:linear-gradient(90deg, rgba(255,205,90,0.12), rgba(255,205,90,0.02)); font-size:16px; line-height:1.18; color:#e6dcc8; }
+#craft .sig b { display:block; font:400 24px "Big Shoulders Display"; letter-spacing:1px; color:var(--c); margin-bottom:2px; }
+#craft .sig i { display:block; margin-top:5px; font-style:normal; color:#b9ad98; }
+#craft .sig em { display:block; margin-top:5px; font-style:normal; font-weight:700; color:#7dff8a; }
+#craft .chip.suit { border-color:rgba(125,255,138,0.55); box-shadow:inset 3px 0 0 #7dff8a; }
+#craft .chip span u { text-decoration:none; font-weight:700; color:#7dff8a; }
 #craft .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-height:44px; background:rgba(0,0,0,0.32); border:1px solid rgba(255,205,90,0.22); padding:6px 12px; }
 #craft .cf h3 { margin:0 8px 0 0; font:400 21px "Big Shoulders Display"; letter-spacing:1px; color:#ffcd5a; }
 #craft .pas { display:flex; align-items:center; gap:6px; padding:3px 9px 3px 4px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); font-size:16px; }
@@ -117,6 +125,14 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   // ---- what the panels say
   const fmt = { damage: (v) => v.toFixed(v < 20 ? 1 : 0), rate: (v) => v.toFixed(1) + ' /s', dps: (v) => Math.round(v).toLocaleString(), mag: (v) => v, reload: (v) => v.toFixed(2) + 's', crit: (v) => Math.round(v) + '%', critX: (v) => 'x' + v.toFixed(1), head: (v) => '+' + Math.round(v - 100) + '%', pellets: (v) => v, pierce: (v) => v };
   const ROWS = [['dps', 'Damage per second', 1], ['damage', 'Damage per projectile'], ['pellets', 'Projectiles per shot'], ['rate', 'Fire rate'], ['mag', 'Magazine'], ['reload', 'Reload', 0, -1], ['crit', 'Crit chance'], ['critX', 'Crit damage'], ['head', 'Headshot bonus'], ['pierce', 'Pierces']];
+  // why a part is worth more on this gun, in a few words (or '' when it is nothing special here)
+  function suits(sg, d) {
+    if (!sg) return '';
+    const k = d.mods && d.mods[0] ? sg.aff && sg.aff[d.mods[0][0]] : 0, pm = d.fx ? sigProc(sg, d.fx) : 1;
+    if (k > 1) return `x${k} on this gun`;
+    if (pm > 1) return `goes off x${pm} as often on this gun`;
+    return sg.fav && sg.fav.includes(d.name) ? 'suits this gun' : '';
+  }
   function sheetWith(u) {   // the numbers as they would be with one more part fitted
     const p = P(), S = p.slot; if (u < 0) return null;
     S.cores.push(u); p.recompute(); const sh = p.gunSheet(); S.cores.pop(); p.recompute(); return sh;
@@ -124,8 +140,10 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   function statsHtml(flash) {
     const p = P(), sh = p.gunSheet(); if (!sh) return '';
     const nx = hover >= 0 ? sheetWith(hover) : null;
+    const sgRule = sigOf(DATA.weapons[p.slot.def]);
     let h = '';
     for (const [k, label, big, sign] of ROWS) {
+      if (k === 'crit' && sgRule && sgRule.noCrit) { h += `<div class="row"><span>${label}</span><span><b style="font-size:19px">earned, not rolled</b></span></div>`; continue; }
       const v = sh[k], was = lastSheet ? lastSheet[k] : v, better = (sign || 1) * (v - was);
       let d = ''; if (nx && Math.abs(nx[k] - v) > 1e-6) { const good = (sign || 1) * (nx[k] - v) > 0; d = `<u class="${good ? '' : 'neg'}">&#9654; ${fmt[k](nx[k])}</u>`; }
       h += `<div class="row${big ? ' big' : ''}"><span>${label}</span><span><b class="${flash && Math.abs(better) > 1e-6 ? (better > 0 ? 'up' : 'down') : ''}">${fmt[k](v)}</b>${d}</span></div>`;
@@ -135,6 +153,8 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     let fx = ''; for (const [u, c] of n) fx += `<div style="--c:${U(u).hex}"><b>${esc(U(u).name)}${c > 1 ? ' x' + c : ''}</b>  ${esc(U(u).desc)}${c > 1 ? ' (each)' : ''}</div>`;
     if (S.mods.length) fx += `<div style="--c:#ffcd5a"><b>Tune-up ${'I'.repeat(S.mods.length)}</b>  +${20 * S.mods.length}% damage, bigger magazine and reserve</div>`;
     lastSheet = sh;
+    const sg = sigOf(DATA.weapons[S.def]);
+    if (sg) h = `<div class="sig" style="--c:${RARITY_HEX[DATA.weapons[S.def].rarity] || '#ffcd5a'}"><b>${esc(sg.name.toUpperCase())}</b>${esc(sg.text)}<i>${esc(sg.play)}</i><em>Best with: ${esc(sg.fav.join(', '))}</em></div>` + h;
     return h + `<div class="fx">${fx || '<div style="color:#9a8f7c">Nothing fitted yet.</div>'}</div>`;
   }
   function render(flash) {
@@ -143,7 +163,8 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun to fit it, or off it to take it back. Fitting is free and a gun takes any number of parts. Hold Shift to move every copy at once.</div><div class="cash">$${cash(p.money)}</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>PARTS <i>${total} carried</i></h2><div class="list">`;
     if (!inv.length) h += `<div class="empty">You are not carrying any parts.<br><br>They drop from what you kill: the stranger the enemy, the better the part. Bosses always leave three.</div>`;
-    for (const u of inv) h += `<div class="chip" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}</span></div><em>x${p.coreInv[u]}</em></div>`;
+    const sg = sigOf(DATA.weapons[S.def]);
+    for (const u of inv) { const nt = suits(sg, U(u)); h += `<div class="chip${nt ? ' suit' : ''}" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}${nt ? ` <u>${nt}</u>` : ''}</span></div><em>x${p.coreInv[u]}</em></div>`; }
     h += `</div></div><div class="mid"><div class="tabs">`;
     for (const i of G) { const W = DATA.weapons[p.weapons[i].def], s = p.weapons[i]; h += `<div class="tab${i === p.active ? ' on' : ''}" data-i="${i}" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${s.cores.length} part${s.cores.length === 1 ? '' : 's'} fitted</small></div>`; }
     h += `</div><div class="table" id="ctable"><canvas id="ccv"></canvas><div class="hint">${total ? 'Drop a part here' : ''}</div><div class="pop" id="cpop"></div></div><div class="slots">`;
@@ -153,7 +174,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     for (const [u, c] of [...on].sort((a, b) => a[0] - b[0])) h += `<div class="slot fill" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<small>${esc(U(u).name)}</small>${c > 1 ? `<em>x${c}</em>` : ''}</div>`;
     const maxed = S.mods.length >= 4, cost = maxed ? 0 : p.benchCost(S);
     h += `</div><div class="tune"><button id="ctune" ${maxed || p.money < cost ? 'disabled' : ''}>${maxed ? 'FULLY TUNED' : `TUNE-UP  $${cash(cost)}`}</button><span>${maxed ? 'This gun has had all four tune-ups.' : '+20% damage, +15% magazine and reserve, and a little fire rate and reload. Four to a gun; a tune-up stays with the gun.'}</span></div></div>`;
-    h += `<div class="col"><h2>${esc(DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1">${statsHtml(flash)}</div></div></div>`;
+    h += `<div class="col"><h2>${esc(DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto">${statsHtml(flash)}</div></div></div>`;
     // passives
     const pas = []; for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k; if (CORE_DEFS[k].kind === 'me' && p.upgradeStacks[u] > 0) pas.push(u); }
     h += `<div class="cf"><h3>ON YOU</h3>${pas.length ? pas.map((u) => `<div class="pas" style="--c:${U(u).hex}" title="${esc(U(u).desc)}">${gly(u)}<b>${esc(U(u).name)}</b><em>x${p.upgradeStacks[u]}</em><span>${esc(U(u).desc)}</span></div>`).join('') : '<span style="color:#9a8f7c;font-size:17px">Passives (health, speed, armor and the like) work the moment you pick them up. None yet.</span>'}</div></div>`;

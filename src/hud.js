@@ -9,6 +9,7 @@ import { diff } from './data.js';
 import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
 import { coreSvg } from './cores.js';
+import { sigOf, sigState } from './signatures.js';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
@@ -524,6 +525,8 @@ export class Hud {
     let sx = x;
     for (let i = 2; i >= 0; i--) { this.star(sx - 9 * S, y - 82 * S, 9 * S, i < Sl.tier ? '#ff73d9' : null); sx -= 22 * S; }
     this.text(Wd.cls.toUpperCase(), sx - 2 * S, y - 75 * S, 18 * S, 'rgba(242,232,213,0.8)', 'right', F_TXT, 700, 0.12);
+    // the gun's signature, when it has something to say: under the crosshair, where you are already looking
+    { const sg = sigOf(Wd); if (sg) { const st = sg.hud ? sg.hud(P, Sl, Wd, sigState(Sl)) : null; if (st && !P.reloading) this.text(st[0], this.W / 2, this.H / 2 + 66 * S, 18 * S, st[1], 'center', F_TXT, 700, 0.1); } }
     let status = '', sc = GOLD;
     if (P.reloading) status = 'RELOADING';
     else if (Sl.ammo === 0 && Sl.reserve === 0) { status = 'NO AMMO - BUY MORE'; sc = BLOOD; }

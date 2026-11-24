@@ -21,6 +21,7 @@ import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
 import { isCore, coreKind } from './cores.js';
+import { sigOf, sigState, sigProc, sigTick, sigDeath } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -107,7 +108,7 @@ export class Player {
   play(name, vol = 1, pitch = 1, jitter = 0) { this.game.audio.play(name, vol, pitch, jitter); }
 
   // ------------------------------------------------------------------ stats & inventory
-  magSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(1, Math.ceil(W.mag * (1 + this.stat('MagSize')) * (1 + 0.1 * S.tier) * (Meta.gunLevel(W.name) >= 2 ? 1.15 : 1))); }
+  magSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; { const sg = sigOf(W); if (sg && sg.mag) return sg.mag(this, S, W); } return Math.max(1, Math.ceil(W.mag * (1 + this.stat('MagSize')) * (1 + 0.1 * S.tier) * (Meta.gunLevel(W.name) >= 2 ? 1.15 : 1))); }
   reserveSize(S) { if (S.def < 0) return 0; const W = DATA.weapons[S.def]; return Math.max(0, Math.ceil(W.reserve * (1 + this.stat('ReserveAmmo')) * (1 + 0.1 * S.tier))); }
   weaponDps(raw) {
     const S = this.slot; if (S.def < 0) return 50;
@@ -124,6 +125,7 @@ export class Player {
     const W = this.W;
     let s = W.spread * (this.aiming ? 0.55 : 1) * Math.max(0.15, 1 - this.stat('Spread')) * (1 + this.bloom);
     if (!this.grounded) s *= 1.15;
+    { const sg = sigOf(W); if (sg && sg.spread && this.slot.def >= 0) s *= sg.spread(this, this.slot, W, sigState(this.slot)); }
     return s;
   }
   hasWeapon(def) { for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def === def) return true; return false; }
@@ -138,6 +140,7 @@ export class Player {
     this.reloading = false; this.active = target; this.fireCd = 0.45; this.wield = false;
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(def, 0, true);
+    { const W = DATA.weapons[def], sg = sigOf(W); if (sg && this.game.tip) this.game.tip('sig_' + W.name, `${W.name}  -  ${sg.name}: ${sg.short}`); }
   }
   // Melee in hand. Q is still a quick swing with a gun out; drawing the blade (X, 4 or the wheel) puts the gun away:
   // fire swings, aim is a heavy blow, and the blade hits harder, reaches further and you move faster for it.
@@ -172,6 +175,7 @@ export class Player {
     if (this.reloading) return;
     const S = this.slot;
     if (S.def < 0 || S.ammo >= this.magSize(S) || S.reserve <= 0) return;
+    { const W0 = DATA.weapons[S.def], sg = sigOf(W0); if (sg && sg.reload) sg.reload(this, S, W0, sigState(S)); }   // some guns do something with what is left in the magazine
     this.reloading = true;
     this.arFail = false;
     this.reloadDur = DATA.weapons[S.def].reload / (1 + Math.max(-0.5, this.stat('ReloadSpeed') + (this.nearTurret ? 0.3 * this.stat('TurretAura') : 0))) / (Meta.gunLevel(DATA.weapons[S.def].name) >= 1 ? 1.1 : 1);
@@ -197,6 +201,8 @@ export class Player {
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
     for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
     this.eff = eff;
+    // the gun's own leanings: the stats it favours count for more while it is in your hands
+    { const sg = this.slot && this.slot.def >= 0 ? sigOf(DATA.weapons[this.slot.def]) : null; if (sg && sg.aff) for (const k in sg.aff) { const i = STAT[k]; if (i !== undefined && this.stats[i] > 0) this.stats[i] *= sg.aff[k]; } }
     this.statsDirty = true;
     // suit sets: 3 / 6 / 9 different upgrades of a suit
     const sc = { Iron: 0, Blood: 0, Gold: 0, Wind: 0 };
@@ -377,6 +383,7 @@ export class Player {
     this.tickMobility(dt);
     this.tickCombat(dt);
     this.tickProcs(dt);
+    sigTick(this, dt);
     this.tickMenu(dt);
     this.updateFocus();
     this.updateCamera(dt);
@@ -891,6 +898,7 @@ export class Player {
       if (Z.tick <= 0) {
         Z.tick = 0.5;
         for (const E of G.enemies) if (!E.dead && !E.burrowed && Math.hypot(E.pos.x - Z.at.x, E.pos.z - Z.at.z) < Z.r && Math.abs(E.pos.y - Z.at.y) < 260) this.dealDamage(E, Z.dps * 0.5, E.pos, V3(0, 0, 0), false, 0, true, 0, Z.dps * 0.3, 0, 0, [1, 0.6, 0.2]);
+        if (Z.mark) for (const E of G.enemies) if (!E.dead && Math.hypot(E.pos.x - Z.at.x, E.pos.z - Z.at.z) < Z.r && Math.abs(E.pos.y - Z.at.y) < 260) { E.markAmt = Math.max(E.markUntil > G.time ? E.markAmt || 0 : 0, Z.mark); E.markUntil = Math.max(E.markUntil || 0, G.time + 0.8); }   // Scorched Earth: what stands in it takes more from everything
         for (let k = 0; k < 5; k++) { const a = Math.random() * 6.28, r = Math.random() * Z.r; G.fx.add({ pos: V3(Z.at.x + Math.cos(a) * r, Z.at.y + 10, Z.at.z + Math.sin(a) * r), vel: V3(0, 120, 0), drag: 1, gravity: -120, life: 0.6, size0: 50, size1: 120, rot: Math.random() * 360, rotVel: 90, c0: [1, 0.85, 0.4, 1], c1: [1, 0.3, 0.05, 1], fadeOut: 0.5, tex: 'FX_Flame', glow: 0.9 }); }
       }
       if (Z.t <= 0) this.gzones.splice(i, 1);
@@ -1234,13 +1242,18 @@ export class Player {
     this.hotBarrel = (this.sustain || 0) >= 2 ? this.stat('HotBarrel') : 0;
     if (this.hotBarrel > 0 && !wasHot) { this.play('S_PowerUp', 0.4, 1.6); G.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'BARREL HOT', [1, 0.55, 0.15], 1.1); }
     const wasLast = !echo && S.ammo === 1;
-    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
+    // the shot's own context: the gun's signature reads and writes it from the trigger pull to the last thing hit
+    const sig = sigOf(W), sg = sigState(S);
+    const C = this.shotCtx = { sig, W, S, g: sg, echo, mult: 1, pierce: 0, chains: 0, last: wasLast, seen: new Set(), hits: 0, gen: 0 };
+    if (sig && sig.shot && !echo) sig.shot(this, S, W, sg, C);
+    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(this.game.descent ? 6 : 2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
     let pellets = W.pellets + Math.floor(multi);
     if (Math.random() < multi - Math.floor(multi)) pellets++;
-    let damage = W.dmg * (1 + 0.2 * S.tier);
+    const own = W.pellets * (C.pelletMul || 1); if (C.pelletMul) pellets *= C.pelletMul;
+    let damage = W.dmg * (1 + 0.2 * S.tier) * C.mult;
     if (echo) damage *= 0.5;
     else {
       if (full) damage *= 1 + this.stat('FirstShot');                       // Opening Hand
@@ -1253,7 +1266,8 @@ export class Player {
     if (S.hot > 0) { damage *= 1.35; S.hot--; }                              // a perfect active reload
     if (this.aiming && this.cls.id === 'sniper') damage *= 1.15;
     this.aimHold = 0;
-    const pierce = W.pierce + Math.round(this.stat('Pierce')) + (S.tier >= 3 ? 1 : 0) + (this.aiming && this.cls.id === 'sniper' ? 2 : 0);
+    const pierce = W.pierce + Math.round(this.stat('Pierce')) + (S.tier >= 3 ? 1 : 0) + (this.aiming && this.cls.id === 'sniper' ? 2 : 0) + C.pierce;
+    C.base = damage;
     const muzzle = G.vm.muzzleWorld();
     const eye = G.camera.position.clone();
     const baseDir = new THREE.Vector3(); G.camera.getWorldDirection(baseDir);
@@ -1273,8 +1287,9 @@ export class Player {
       if (W.mode === 'Hitscan') this.explodeAt(aim, 280 * (1 + this.stat('ExplosionRadius')), damage * 0.5, 0.5, false, false, lin(1, 0.8, 0.3), null);
     }
     if (!echo && this.S.LightBolt) { this.boltN = (this.boltN || 0) + 1; if (this.boltN % 4 === 0 && this.health >= this.maxHealth * 0.9) this.lightBolt(eye, baseDir, muzzle); }
+    if (C.tracer) tracer = C.tracer;
     for (let p = 0; p < pellets; p++) {
-      const dmgP = p < W.pellets ? damage : damage * 0.5;
+      const dmgP = p < own || (sig && sig.fullMulti) ? damage : damage * 0.5;
       const dir = spread > 0 ? vrandCone(baseDir, spread) : baseDir.clone();
       let pdir = spread > 0 ? vrandCone(projDir, spread) : projDir.clone();
       if (W.name === "Fan of Knives" && pellets > 1) pdir = projDir.clone().applyAxisAngle(new THREE.Vector3().setFromMatrixColumn(G.camera.matrixWorld, 1), -(p - (pellets - 1) / 2) * 0.045).add(vrandCone(projDir, 0.006).sub(projDir)).normalize();   // dealt as a fan, left to right
@@ -1292,6 +1307,8 @@ export class Player {
         default: this.fireProjectile(muzzle, pdir, dmgP, procCoef, W); break;
       }
     }
+    if (sig && sig.after && !echo) sig.after(this, S, W, sg, C);
+    this.shotCtx = null;
     let kick = 0.3;
     switch (W.cls) {
       case 'Shotgun': kick = 1.6; break; case 'Sniper': kick = 2.2; break; case 'Launcher': kick = 1.4; break;
@@ -1344,8 +1361,9 @@ export class Player {
     return eye.clone().addScaledVector(dir, best);
   }
   fireHitscan(start, dir, range, damage, pierce, procCoef, W, width, color, muzzle) {
-    const G = this.game;
+    const G = this.game, C = this.shotCtx, SG = C && C.sig;
     const ignore = new Set();
+    let first = null;
     let from = start.clone(), final = start.clone().addScaledVector(dir, range), hits = 0, dmg = damage, remaining = range;
     for (let guard = 0; guard < 16; guard++) {
       const wall = G.phys.raycast(from, dir, remaining);
@@ -1379,53 +1397,68 @@ export class Player {
       }
       ignore.add(best);
       remaining -= bestT; from = at;
-      hits++; dmg *= this.S.PierceRamp ? 1 + this.S.PierceRamp : 0.85;                 // Hollow Charge gathers force as it goes through
+      if (!first) first = best;
+      hits++;
+      if (SG && SG.pierceGain) { dmg = damage * (1 + SG.pierceGain(this) * hits); if (SG.pin && !best.dead) this.stun(best, SG.pin); }   // Railroad Spike gathers force and nails them where they stand
+      else dmg *= this.S.PierceRamp ? 1 + this.S.PierceRamp : 0.85;                 // Hollow Charge gathers force as it goes through
       if (hits > pierce) break;
     }
     if (width > 0) G.fx.tracer(muzzle, final, color, width, W.mode === 'Beam' ? 0.05 : 0.06);
-    else if (W.mode === 'Flame') G.fx.glowAt(final, lin(1, 0.45, 0.1), 80, 0.15);
+    else if (W.mode === 'Flame') { G.fx.glowAt(final, lin(1, 0.45, 0.1), 80, 0.15); if (SG && SG.flameEnd) SG.flameEnd(this, C, C.g, first ? first.pos : final, !!first); }
     // Ricochet Rounds: the bullet skips on to whoever is nearest
-    let skips = hits > 0 && width > 0 && W.mode === 'Hitscan' ? Math.round(this.stat('Ricochet')) : 0, at0 = final;
+    const R = SG && SG.ric;
+    let skips = hits > 0 && width > 0 && W.mode === 'Hitscan' ? Math.round(this.stat('Ricochet')) + (R ? R.add : 0) : 0, at0 = final, rd = damage * (R ? R.mul : 0.6);
+    const fc = C && C.forceCrit;
     while (skips-- > 0) {
       let nx = null, nd = 750; for (const E of G.enemies) { if (E.dead || E.burrowed || ignore.has(E)) continue; const d = E.pos.distanceTo(at0); if (d < nd && G.phys.lineOfSight(at0, E.pos)) { nd = d; nx = E; } }
-      if (!nx) break;
+      if (!nx) {
+        // Trick Shot with nobody else to hit: off the floor and back into the first one
+        if (R && R.self && first && !first.dead && at0 === final) { const to = first.pos.clone(); G.fx.sparks(V3(to.x, first.feet().y, to.z), UP, color, 4); if (R.crit) C.forceCrit = true; this.dealDamage(first, rd * R.self, to, dir, false, procCoef * 0.5, false, W.critBonus, W.burn, W.slow, 0); }
+        break;
+      }
       const to = nx.pos.clone(); to.y += (nx.hitH || 100) * 0.1; G.fx.tracer(at0, to, color, 2, 0.08);
-      this.dealDamage(nx, damage * 0.6, to, to.clone().sub(at0).normalize(), false, procCoef * 0.5, false, W.critBonus, W.burn, W.slow, 0); ignore.add(nx); at0 = to;
+      if (R && R.crit) C.forceCrit = true;
+      this.dealDamage(nx, rd, to, to.clone().sub(at0).normalize(), false, procCoef * 0.5, false, W.critBonus, W.burn, W.slow, 0); ignore.add(nx); at0 = to;
+      if (R) rd *= R.grow;
     }
+    if (C) C.forceCrit = fc;
   }
   fireChain(start, dir, damage, W) {
-    const G = this.game, col = hexRGB(W.color);
+    const G = this.game, col = hexRGB(W.color), C = this.shotCtx, CH = C && C.sig && C.sig.chain, splash = W.splash * ((C && C.splashMul) || 1) * (1 + this.stat('ExplosionRadius'));
     const wall = G.phys.raycast(start, dir, W.range);
     const wallD = wall ? wall.distance : W.range;
     let E = null, bestT = wallD;
     for (const C of G.enemies) { if (C.dead) continue; const t = G.rayEnemy(start, dir, bestT, C, 25); if (t !== null && t < bestT) { bestT = t; E = C; } }
     const at = start.clone().addScaledVector(dir, bestT);
     G.fx.arc(start, at, col);
-    if (!E) { if (W.splash > 0) this.explodeAt(at, W.splash, damage * 0.6, 0.5, false, false, col, null); return; }
+    if (!E) { if (splash > 0) this.explodeAt(at, splash, damage * 0.6, 0.5, false, false, col, null); return; }
     const done = new Set([E]);
     this.dealDamage(E, damage, at, dir, at.y > E.headY(), 1, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
-    if (W.splash > 0) this.explodeAt(at, W.splash, damage * 0.6, 0.5, false, false, col, E);
+    if (splash > 0) this.explodeAt(at, splash, damage * 0.6, 0.5, false, false, col, E);
     let prev = E, dmg = damage;
-    const links = W.chains + this.slot.tier;
+    const links = W.chains + this.slot.tier + (C ? C.chains : 0) + (CH ? CH.add(this) : 0);
+    let used = 0;
     for (let c = 0; c < links; c++) {
       let best = null, bd = 750 * 750;
       for (const C of G.enemies) { if (C.dead || done.has(C)) continue; const d = C.pos.distanceToSquared(prev.pos); if (d < bd) { bd = d; best = C; } }
       if (!best) break;
-      dmg *= 0.8;
+      dmg *= CH ? CH.mul : 0.8; used++;
       G.fx.arc(prev.pos, best.pos, col);
       done.add(best);
       this.dealDamage(best, dmg, best.pos, best.pos.clone().sub(prev.pos).normalize(), false, 0.5, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
-      if (W.splash > 0) this.explodeAt(best.pos, W.splash, dmg * 0.5, 0.3, false, false, col, best);
+      if (splash > 0) this.explodeAt(best.pos, splash, dmg * 0.5, 0.3, false, false, col, best);
       prev = best;
     }
+    // Conductor: jumps with nowhere new to go come home
+    if (CH && CH.back && used < links && !E.dead) { G.fx.arc(prev.pos.clone().add(V3(0, 90, 0)), E.pos, col); this.dealDamage(E, damage * CH.back * (links - used), E.pos, dir, false, 0.5, false, W.critBonus, W.burn, W.slow, 0); }
   }
   fireProjectile(start, dir, damage, procCoef, W) {
     let kind = 'Orb', radius = 13;
     if (W.mode === 'Rocket') { kind = 'Rocket'; radius = 12; } else if (W.mode === 'Grenade') { kind = 'Grenade'; radius = 12; } else if (W.mode === 'Saw') { kind = 'Saw'; radius = 18; } else if (W.cls === 'Wonder') kind = 'Card';
-    const o = { pos: start.clone(), vel: dir.clone().multiplyScalar(W.projSpeed), damage, splash: W.splash > 0 ? W.splash * (1 + this.stat('ExplosionRadius')) : 0,
-      pierce: W.pierce + Math.round(this.stat('Pierce')), burn: W.burn, slow: W.slow, chains: W.chains, moneyPerHit: W.moneyPerHit, critBonus: W.critBonus, procCoef, life: 5, kind, radius, color: hexRGB(W.color) };
+    const o = { pos: start.clone(), vel: dir.clone().multiplyScalar(W.projSpeed), damage, splash: W.splash > 0 ? W.splash * (1 + this.stat('ExplosionRadius')) * ((this.shotCtx && this.shotCtx.splashMul) || 1) : 0, sx: this.shotCtx || null,
+      pierce: W.pierce + Math.round(this.stat('Pierce')) + (this.shotCtx ? this.shotCtx.pierce || 0 : 0), burn: W.burn, slow: W.slow, chains: W.chains, moneyPerHit: W.moneyPerHit, critBonus: W.critBonus, procCoef, life: 5, kind, radius, color: hexRGB(W.color) };
     if (kind === 'Grenade') Object.assign(o, { gravity: 1, bounces: 3, bounceDamp: 0.5, fuse: 1.4 }), o.vel.y += 260;
-    else if (kind === 'Saw') Object.assign(o, { bounces: 5, bounceDamp: 1, life: 3 });
+    else if (kind === 'Saw') { const sg = sigOf(W); Object.assign(o, { bounces: 5 + (sg && sg.sawBounces ? sg.sawBounces(this) : 0), bounceDamp: 1, life: 3 }); if (o.bounces > 5) o.life = 3 + 0.4 * (o.bounces - 5); }
     this.game.projectiles.spawn(o);
   }
   damageMult(E) {
@@ -1433,7 +1466,7 @@ export class Player {
     const gl = Meta.gunLevel(this.W.name); if (gl >= 3) m += 0.1; if (gl >= 5) m += 0.1;
     if (!this.grounded) m += this.stat('AirDamage');
     if (this.swapBuffT > 0) m += 0.2;
-    if (E && E.markT > 0) m += E.markAmt || 0;
+    if (E && E.markUntil > this.game.time) m += E.markAmt || 0;
     m += this.stat('SpeedDamage') * Math.max(0, this.vel.length() - 600) / 1000;
     if (this.sliding || this.slideDmgWindow > 0) m += this.stat('SlideDamage');
     if (this.health < this.maxHealth * 0.35) m += this.stat('LowHealthDamage');
@@ -1458,11 +1491,15 @@ export class Player {
     if (!E || E.dead) return 0;
     const G = this.game;
     const mult = this.damageMult(E);
-    let crit = !fromProc && Math.random() < Math.min(0.75, 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0));
+    const C = !fromProc && !this.meleeHitting ? this.shotCtx : null, SG = C && C.sig, sgG = C && C.g;   // set while a gun's own shot is landing
+    const cc = (SG && SG.critAdd ? SG.critAdd(this, E, C, sgG) : 0) + 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0);
+    let crit = !fromProc && Math.random() < Math.min((SG && SG.critCap) || 0.75, cc);
+    if (SG && SG.noCrit) crit = false;                                   // some guns never roll a crit: theirs are earned
     if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }
     if (!fromProc && this.goldRound && !this.meleeHitting) crit = true;   // Second Opinion: the shot after a headshot kill
     let weak = false;
     if (!fromProc && this.S.WeakPoint && (E.elite || E.isBoss)) { E.pryN = (E.pryN || 0) + 1; if (E.pryN % 5 === 0) { crit = true; weak = true; } }   // Pry Bar: every fifth hit finds the gap
+    if (SG) { if (C.forceCrit) crit = true; if (SG.crit) { const r = SG.crit(this, E, C, sgG, crit, cc); if (r !== undefined) crit = r; } }
     if (!fromProc) this.lastCrit = crit;
     let hollow = false;
     if (!fromProc && !this.meleeHitting) {
@@ -1475,6 +1512,8 @@ export class Player {
     }
     const fresh = E.health >= E.maxHealth * 0.9;
     let dmg = base * mult;
+    if (SG && SG.pre) dmg *= SG.pre(this, E, C, sgG);
+    if (E.sgFrozen > G.time && !(SG && SG.frost)) dmg *= 1 + (E.sgFrozenAmt || 1);   // frozen solid: everything but the beam that froze it hits double
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
     if (head) dmg *= 1.75 + this.stat('HeadshotDamage');
@@ -1488,6 +1527,7 @@ export class Player {
     if (dealt <= 0) return 0;
     if (!fromProc && this.procDepth < 1) buildHit(this, E, at, dealt, crit, head);
     const killed = E.dead;
+    if (C) { C.hits++; if (SG) { const h = { dealt, crit, head, killed, at, dir }; if (SG.post) SG.post(this, E, C, sgG, h); if (killed && SG.kill) { E.sgKilled = true; SG.kill(this, E, C, sgG, h); } else if (!killed) E.sgLast = { C, t: G.time }; } }
     // bullets shove what they hit: a stumble back in proportion to the damage, and a short freeze on a kill
     if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {
       const push = Math.min(420, 90 + (dealt / Math.max(1, E.maxHealth)) * 900) * (E.ai === 'Brute' ? 0.3 : 1);
@@ -1528,7 +1568,7 @@ export class Player {
     if (!killed && E.elite && !E.isBoss && this.S.EliteExecute && E.health < E.maxHealth * Math.min(0.3, this.S.EliteExecute)) { G.hud.floater(E.pos.clone().add(V3(0, 60, 0)), 'CULLED', [1, 0.2, 0.25], 1.2); E.kill(this, false); }
     const steal = this.stat('Lifesteal');
     if (steal > 0) this.combatHeal(dealt * steal);
-    if (head && !killed && this.stat('HeadMark') > 0) { E.markT = 5; E.markAmt = this.stat('HeadMark'); }
+    if (head && !killed && this.stat('HeadMark') > 0) { E.markAmt = Math.max(E.markUntil > G.time ? E.markAmt || 0 : 0, this.stat('HeadMark')); E.markUntil = Math.max(E.markUntil || 0, G.time + 5); }
     if (!killed) {
       if (burn > 0) E.applyBurn(burn * mult * Math.max(1, this.flatScale()), 3);
       if (slow > 0) E.applySlow(slow, 2);
@@ -1543,7 +1583,8 @@ export class Player {
     return dealt;
   }
   handleProjectileHit(P, E, at) {
-    const head = !P.fromProc && at.y > E.headY();
+    const head = !P.fromProc && at.y > E.headY(), prevC = this.shotCtx;
+    this.shotCtx = P.sx || null;
     this.dealDamage(E, P.damage, at, P.vel.clone().normalize(), head, P.procCoef, P.fromProc, P.critBonus, P.burn, P.slow, P.moneyPerHit, P.fromProc ? [0.75, 0.55, 1] : WHITE);
     if (P.chains > 0) {
       let prev = E; const done = new Set([E]);
@@ -1556,6 +1597,7 @@ export class Player {
         prev = next;
       }
     }
+    this.shotCtx = prevC;
   }
   explodeAt(at, radius, damage, procCoef, fromProc, selfKnock, color, ignore) {
     this.game.quest.blast(at, radius);
@@ -1577,7 +1619,7 @@ export class Player {
       const to = this.pos.clone().sub(at);
       if (to.length() < radius * 1.1) {
         const s = 1 - clamp(to.length() / (radius * 1.1), 0, 1);
-        this.launch(to.normalize().multiplyScalar(1300 * s).add(V3(0, 700 * s, 0)), false, false);
+        const k = (this.shotCtx && this.shotCtx.sig && this.shotCtx.sig.selfLaunch) || 1; this.launch(to.normalize().multiplyScalar(1300 * s * k).add(V3(0, 700 * s * k, 0)), false, false);
       }
     }
   }
@@ -1588,6 +1630,7 @@ export class Player {
   }
   onEnemyKilled(E, headshot) {
     const G = this.game;
+    sigDeath(this, E, headshot);
     this.kills++; if (headshot) this.headshots++;
     Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills');
     Meta.addGunKill(this.W.name);
@@ -1637,7 +1680,7 @@ export class Player {
       if (this.procCd[i] > 0) continue;
       if (this.procDepth > 0 && PROC_DAMAGE.includes(U.fx)) continue;   // a kill made by a buff never sets off another damaging buff: no chains through a crowd
       let ch = U.chance * cm;
-      if (hitT) ch *= procCoef;
+      if (hitT) ch *= procCoef * sigProc(this.shotCtx && this.shotCtx.sig, U.fx);   // some guns set parts off more often
       if (U.chance < 1 && Math.random() >= ch) continue;
       if (U.cd > 0) this.procCd[i] = U.cd;
       this.executeProc(U, stk, target, at, hitT ? base : this.power(), trigger);
@@ -2190,8 +2233,9 @@ export class Player {
   gunSheet() {
     const S = this.slot; if (S.def < 0) return null; const W = DATA.weapons[S.def], st = (n) => this.stat(n);
     const extra = Math.min(this.game.descent ? 6 : 2, st('Multishot'));
-    const dmg = W.dmg * (1 + 0.2 * S.tier) * Math.max(0.1, 1 + st('Damage')), rate = W.rate * (1 + st('FireRate')) * (1 + 0.03 * S.tier);
-    const crit = Math.min(0.75, 0.05 + (W.critBonus || 0) + st('CritChance')), critX = 2 + st('CritDamage');
+    const sg = sigOf(W), sh = sg && sg.sheet ? sg.sheet(this, S, W) : null;
+    const dmg = W.dmg * (1 + 0.2 * S.tier) * Math.max(0.1, 1 + st('Damage')) * ((sh && sh.dmg) || 1), rate = W.rate * (1 + st('FireRate')) * (1 + 0.03 * S.tier);
+    const crit = sg && sg.noCrit ? 0 : Math.min((sg && sg.critCap) || 0.75, 0.05 + (W.critBonus || 0) + st('CritChance')), critX = 2 + st('CritDamage');
     const perShot = dmg * W.pellets * (1 + extra * 0.5);
     return { name: W.name, cls: W.cls, damage: dmg, pellets: W.pellets * (1 + extra), rate, dps: perShot * rate * (1 + crit * (critX - 1)), mag: this.magSize(S), reserve: this.reserveSize(S), reload: W.reload / Math.max(0.2, 1 + st('ReloadSpeed')),
       crit: crit * 100, critX, head: 100 * (1 + st('HeadshotDamage')), pierce: (W.pierce || 0) + st('Pierce'), bounce: st('Ricochet'), save: st('AmmoSave') * 100, steal: st('Lifesteal') * 100 };

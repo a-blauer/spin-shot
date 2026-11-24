@@ -21,6 +21,7 @@ const params = new URLSearchParams(location.search);
 const TEST = params.has('test');
 const URLMAP = params.has('map') ? +params.get('map') : -1;   // ?map=1 builds that map straight away (tests)
 Meta.load(); Meta.setUnlockAll(TEST);
+if (TEST) import('./signatures.js').then((m) => { window.__sig = m; });
 if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
 const glCanvas = document.getElementById('gl');

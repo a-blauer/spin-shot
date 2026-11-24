@@ -83,7 +83,7 @@
 "cls": "Pistol",
 "rarity": "Rare",
 "mode": "Hitscan",
-"dmg": 28,
+"dmg": 32,
 "rate": 7.0,
 "mag": 30,
 "reserve": 210,

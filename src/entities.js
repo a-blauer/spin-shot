@@ -84,7 +84,7 @@ export class Projectiles {
         G.audio.playAt('S_Splat', at, 0.8);
         if (G.player.pos.distanceTo(at) < P.splash + 40) G.player.receiveDamage(P.damage, P, false, P.slow, P.slow > 0 ? 2 : 0);
       } else if (P.gtype != null) G.player.grenadeBlast(P.gtype, at, P);
-      else G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit);   // whoever the round hit directly already took its damage: the blast is for everyone else
+      else { const pc = G.player.shotCtx; G.player.shotCtx = P.sx || null; G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit); G.player.shotCtx = pc; }   // whoever the round hit directly already took its damage: the blast is for everyone else
     } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false);
     this.scene.remove(P.group);
   }
@@ -141,7 +141,7 @@ export class Projectiles {
             const n = wall.normal;
             P.vel.addScaledVector(n, -2 * P.vel.dot(n)).multiplyScalar(P.bounceDamp);
             P.pos.copy(wall.point).addScaledVector(n, P.radius + 2);
-            if (P.kind === 'Saw') { G.fx.sparks(wall.point, n, [1, 0.9, 0.66], 5); P.hit.clear(); G.audio.playAt('S_Ricochet', wall.point, 0.6); }
+            if (P.kind === 'Saw') { G.fx.sparks(wall.point, n, [1, 0.9, 0.66], 5); P.hit.clear(); if (P.sx && P.sx.sig && P.sx.sig.bounceGain) P.damage *= 1 + P.sx.sig.bounceGain; G.audio.playAt('S_Ricochet', wall.point, 0.6); }
             else G.audio.playAt('S_HitWall', wall.point, 0.4, 1.4);
           } else { this.detonate(P, wall.point.clone().addScaledVector(wall.normal, 5)); continue; }
         } else P.pos.copy(end);
