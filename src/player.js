@@ -2173,19 +2173,18 @@ export class Player {
     else { this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${U.name}  -  ${U.desc}.  Fit it at a workbench.`, U.hex); this.coreNew = (this.coreNew || 0) + 1; }
     this.play('S_Upgrade', 0.8, 1.1); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 80, 0.25, true);
   }
-  coreSlots(S) { return S.def < 0 ? 0 : 4 + S.mods.length; }   // four to start, one more with every tune-up
   refit(S) {
     this.recompute();
     S.ammo = Math.min(S.ammo, this.magSize(S)); S.reserve = Math.min(S.reserve, this.reserveSize(S));
     if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), false);
   }
   fitCore(S, u) {
-    if (S.def < 0 || !(this.coreInv[u] > 0) || S.cores.length >= this.coreSlots(S)) return false;
+    if (S.def < 0 || !(this.coreInv[u] > 0)) return false;   // a gun takes as many parts as you care to fit
     this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u];
     const mag0 = this.magSize(S); S.cores.push(u); this.refit(S); if (this.magSize(S) > mag0) S.ammo = Math.min(this.magSize(S), S.ammo + this.magSize(S) - mag0);
     return true;
   }
-  pullCore(S, k) { const u = S.cores[k]; if (u === undefined) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
+  pullCore(S, u) { const k = S.cores.lastIndexOf(u); if (k < 0) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
   returnCores(S) { if (!S.cores || !S.cores.length) return; for (const u of S.cores) this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${S.cores.length} part${S.cores.length > 1 ? 's' : ''} came back to your pack`, '#ffcd5a'); S.cores = []; }
   // the numbers on the bench card, for the gun in hand
   gunSheet() {

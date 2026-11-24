@@ -8,6 +8,7 @@ import { cash } from './data.js';
 import { diff } from './data.js';
 import { GRENADES } from './grenades.js';
 import * as THREE from 'three';
+import { coreSvg } from './cores.js';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
@@ -212,7 +213,12 @@ export class Hud {
   }
   icon(name, x, y, size, alpha = 1) {
     // the Descent's parts have no painted icon: a six-sided tag in the part's colour with its short name
-    if (name[0] === 'U' && name[1] === '_') { const U = DATA.upgrades[+name.slice(2)]; if (U && U.core) { const g = this.g, r = size * 0.5; g.globalAlpha = alpha; g.fillStyle = U.hex; g.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); g.globalAlpha = 1; this.text(U.glyph, x, y + size * 0.13, size * 0.36, '#14100e', 'center', F_BIG, 400, 0, alpha); return; } }
+    if (name[0] === 'U' && name[1] === '_') { const U = DATA.upgrades[+name.slice(2)]; if (U && U.core) {
+      // the Descent's parts: a six-sided tag in the part's colour with its own symbol
+      const g = this.g, r = size * 0.5; g.globalAlpha = alpha; g.fillStyle = U.hex; g.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill();
+      if (!U.img) { U.img = new Image(); U.img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(coreSvg(U).replace('<svg ', '<svg width="96" height="96" ')); }
+      if (U.img.complete && U.img.naturalWidth) g.drawImage(U.img, x - size * 0.29, y - size * 0.29, size * 0.58, size * 0.58);
+      g.globalAlpha = 1; return; } }
     if (!this.icons) return;
     const m = this.icons.meta[name]; if (!m) return;
     const I = this.icons.img, W = I.width, H = I.height;
