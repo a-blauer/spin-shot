@@ -80,12 +80,13 @@ export const Net = {
     if (this.role === 'host') {
       on('h', (d, m) => { for (const h of (Array.isArray(d.l) ? d.l.slice(0, 80) : [])) this.hostHit(h, m.peer); });
       on('fx', (d, m) => this.hostFx(d, m.peer));
+      on('pj', (d) => { if (Array.isArray(d) && d[14] === 1) this.onProjectile(d); });
       on('bar', (d, m) => { const G = this.ghosts.get(m.peer); if (G && G.fresh && !G.dead && this.game) this.game.toggleBarricade(G.pos); });
     } else {
       const fromHost = (f) => (d, m) => { if (m.peer === this.hostPeer) { this.lastHost = performance.now(); f(d, m); } };
       on('e', fromHost((d) => this.onEnemies(d)));
       on('s', fromHost((d) => this.onState(d)));
-      on('pj', fromHost((d) => this.onProjectile(d)));
+      on('pj', (d, m) => { if (Array.isArray(d) && d[14] === 1) this.onProjectile(d); else fromHost((x) => this.onProjectile(x))(d, m); });
       on('hz', fromHost((d) => this.onHazard(d)));
       on('k', fromHost((d) => this.onKill(d)));
       on('d', fromHost((d) => { if (d.to === this.me && this.game) this.game.player.receiveDamage(num(d.a, 0, 500), null, !!d.m, num(d.s, 0, 1), num(d.t, 0, 5)); }));
@@ -117,7 +118,7 @@ export const Net = {
       G.to.set(num(s.x), num(s.y), num(s.z)); if (!G.fresh) { G.pos.copy(G.to); G.fresh = true; }
       G.down = !!s.dn; G.bleed = num(s.bl, 0, 60); G.rp = num(s.rp, 0, 1); G.rv = typeof s.rv === 'string' ? s.rv.slice(0, 80) : '';
       G.pitch = num(s.pt, -2, 2); G.wdef = num(s.w, -1, 500) | 0;
-      { const sh = num(s.sh, 0, 100000) | 0; if (G.fresh && G.shot !== undefined && sh !== G.shot && !s.dead) G.fired = true; G.shot = sh; }
+      { const sh = num(s.sh, 0, 100000) | 0; if (G.fresh && G.shot !== undefined && sh !== G.shot && !s.dead) G.queue = Math.min(10, (G.queue || 0) + Math.min(10, (sh - G.shot + 100000) % 100000)); G.shot = sh; }
       if (Array.isArray(s.pg) && s.pg.length >= 4) { const q = num(s.pg[3], 0, 1e6) | 0; if (G.pingSeq !== undefined && q !== G.pingSeq && this.game) this.game.showPing(new THREE.Vector3(num(s.pg[0], -1e5, 1e5), num(s.pg[1], -1e5, 1e5), num(s.pg[2], -1e5, 1e5)), cleanName(s.name), num(s.pg[4], 0, 3) | 0); G.pingSeq = q; } else if (G.pingSeq === undefined) G.pingSeq = 0;
       G.yaw = num(s.yaw, -100, 100); G.hp = num(s.hp, 0, 1); G.dead = !!s.dead; G.name = cleanName(s.name); G.wantSkin = String(s.look || '').slice(0, 240);
     }
@@ -158,7 +159,7 @@ export const Net = {
       G.group.visible = !G.dead || G.down; G.group.position.set(G.pos.x, G.pos.y - (G.down ? 70 : 95), G.pos.z); G.group.rotation.y = G.yaw + Math.PI;
       G.char.rotation.x += ((G.down ? -Math.PI / 2 : 0) - G.char.rotation.x) * Math.min(1, dt * 8);   // a downed teammate lies where they fell
       if (G.down) { G.pulse = (G.pulse || 0) - dt; if (G.pulse <= 0) { G.pulse = 1.1; g.fx.ring(new THREE.Vector3(G.pos.x, G.pos.y - 88, G.pos.z), 150, [1, 0.3, 0.25], 0.9); } }
-      if (G.fired) { G.fired = false; this.ghostShot(G); }
+      if (G.queue > 0) { G.shotT = (G.shotT || 0) - dt; if (G.shotT <= 0) { G.shotT = Math.min(0.09, 0.1 / G.queue); G.queue--; this.ghostShot(G); } }
       G.animT = (G.animT || 0) + dt; G.spd = (G.spd || 0) + (Math.hypot(G.vel.x, G.vel.z) - (G.spd || 0)) * Math.min(1, dt * 8); animateCharacter(G.char, G.animT, G.spd);
     }
     // getting a teammate up: stand by them and hold E
@@ -204,13 +205,25 @@ export const Net = {
   },
   // a teammate fired: flash at their muzzle, a tracer down their line of sight, and the report of their gun
   ghostShot(G) {
-    const g = this.game, cp = Math.cos(G.pitch || 0), dir = new THREE.Vector3(-Math.sin(G.yaw) * cp, Math.sin(G.pitch || 0), -Math.cos(G.yaw) * cp).normalize();   // the same way Player.forward() reads yaw
-    const side = new THREE.Vector3(dir.z, 0, -dir.x).normalize(), muzzle = G.pos.clone().addScaledVector(dir, 70).addScaledVector(side, -22).add(new THREE.Vector3(0, 28, 0));
-    const hit = g.phys.raycast(muzzle, dir, 6000), end = hit ? hit.point : muzzle.clone().addScaledVector(dir, 6000);
-    g.fx.flash(muzzle, [1, 0.8, 0.4], 26, 0.06, true); g.fx.tracer(muzzle, end, [1, 0.9, 0.6], 4, 0.07);
-    if (hit) g.fx.sparks(hit.point, hit.normal, [1, 0.8, 0.5], 3);
+    const g = this.game, cp = Math.cos(G.pitch || 0), aim = new THREE.Vector3(-Math.sin(G.yaw) * cp, Math.sin(G.pitch || 0), -Math.cos(G.yaw) * cp).normalize();   // the same way Player.forward() reads yaw
+    const side = new THREE.Vector3(aim.z, 0, -aim.x).normalize(), muzzle = G.pos.clone().addScaledVector(aim, 70).addScaledVector(side, -22).add(new THREE.Vector3(0, 28, 0));
     const W = G.wdef >= 0 ? g.data.weapons[G.wdef] : null, d = G.pos.distanceTo(g.player.pos);
-    if (W) gunSound(g.audio, W.name, Math.max(0.08, 0.6 / (1 + d / 900)), false);
+    const col = W && Array.isArray(W.color) ? W.color : [1, 0.9, 0.6], mode = W ? W.mode : 'Hitscan';
+    g.fx.flash(muzzle, mode === 'Hitscan' ? [1, 0.8, 0.4] : col, mode === 'Flame' ? 40 : 30, 0.07, true); g.fx.glowAt(muzzle, [0.45, 0.33, 0.15], 260, 0.06);
+    // what leaves the barrel looks like the gun it came from: pellets fan out, a beam is a wide bright line, a flamethrower throws fire.
+    // Rockets, grenades, plasma and saws are real projectiles and arrive on their own (see sentShot).
+    if (mode === 'Hitscan' || mode === 'Beam' || mode === 'Chain') {
+      const n = Math.max(1, Math.min(8, W ? W.pellets || 1 : 1)), sp = (W ? W.spread || 0 : 0) * Math.PI / 180;
+      for (let k = 0; k < n; k++) {
+        const dir = aim.clone(); if (n > 1 || sp > 0.02) { dir.x += (Math.random() - 0.5) * sp * 1.6; dir.y += (Math.random() - 0.5) * sp * 1.6; dir.z += (Math.random() - 0.5) * sp * 1.6; dir.normalize(); }
+        const range = W ? Math.min(9000, W.range || 6000) : 6000, hit = g.phys.raycast(muzzle, dir, range), end = hit ? hit.point : muzzle.clone().addScaledVector(dir, range);
+        g.fx.tracer(muzzle, end, mode === 'Hitscan' ? [1, 0.9, 0.6] : col, mode === 'Beam' ? 9 : mode === 'Chain' ? 6 : 4, mode === 'Beam' ? 0.09 : 0.08);
+        if (hit) { g.fx.sparks(hit.point, hit.normal, mode === 'Hitscan' ? [1, 0.8, 0.5] : col, 3); if (mode !== 'Hitscan') g.fx.flash(hit.point, col, 40, 0.1, true); }
+      }
+    } else if (mode === 'Flame') {
+      for (let k = 0; k < 4; k++) { const at = muzzle.clone().addScaledVector(aim, 60 + k * 30); g.fx.add({ pos: at, vel: aim.clone().multiplyScalar(1100 + Math.random() * 300).add(new THREE.Vector3((Math.random() - 0.5) * 160, (Math.random() - 0.5) * 160, (Math.random() - 0.5) * 160)), drag: 1.6, gravity: -90, life: 0.5, size0: 26, size1: 150, rot: Math.random() * 360, rotVel: 120, c0: [1, 0.85, 0.4, 1], c1: [1, 0.3, 0.05, 1], fadeOut: 0.5, tex: 'FX_Flame', glow: 0.9 }); }
+    }
+    if (W) gunSound(g.audio, W.name, Math.max(0.08, 0.6 / (1 + d / 900)), mode === 'Flame' || mode === 'Beam');
   },
   // the host dropped: hold the line and keep trying the same lobby for a while before carrying on alone
   rejoinTick() {
@@ -297,6 +310,13 @@ export const Net = {
     if (this.role !== 'host' || this._in) return;
     this.emit('pj', [Math.round(P.pos.x), Math.round(P.pos.y), Math.round(P.pos.z), Math.round(P.vel.x), Math.round(P.vel.y), Math.round(P.vel.z), P.gravity, Math.round(P.damage), P.splash, P.slow, P.kind, P.color.map((c) => Math.round(c * 100) / 100), P.radius, P.life]);
   },
+  // a player's own rockets, grenades, plasma, saws and thrown blades: everyone else gets a copy that flies and bursts the same way
+  // but hurts nothing (the damage is worked out by whoever fired it)
+  sentShot(P) {
+    if (!this.room || !this.started || this._in || P.ghost || P.hostile) return;
+    const now = performance.now(); if (now - (this._pjT || 0) < 45) return; this._pjT = now;
+    this.emit('pj', [Math.round(P.pos.x), Math.round(P.pos.y), Math.round(P.pos.z), Math.round(P.vel.x), Math.round(P.vel.y), Math.round(P.vel.z), P.gravity, 0, P.splash, 0, P.kind, P.color.map((c) => Math.round(c * 100) / 100), P.radius, Math.min(P.life, P.fuse > 0 ? P.fuse : 99), 1, P.bounces | 0, P.bounceDamp, P.gtype == null ? -1 : P.gtype]);
+  },
   sentHazard(kind, at, a, color) {
     if (this.role !== 'host' || this._in) return;
     this.emit('hz', [kind, Math.round(at.x), Math.round(at.y), Math.round(at.z), a.map((v) => Math.round(v * 100) / 100), color ? color.map((c) => Math.round(c * 100) / 100) : null]);
@@ -305,9 +325,11 @@ export const Net = {
     const g = this.game; if (!g || !Array.isArray(d) || g.projectiles.list.length > 150) return;
     const col = Array.isArray(d[11]) ? d[11].slice(0, 3).map((c) => num(c, 0, 4)) : [1, 1, 1]; while (col.length < 3) col.push(1);
     const kind = ['Orb', 'Card', 'Rocket', 'Missile', 'Grenade', 'Saw', 'Dagger'].includes(d[10]) ? d[10] : 'Orb';
+    const mine = d[14] === 1;   // a teammate's own shot: for show
     this._in = true;
-    g.projectiles.spawn({ hostile: true, pos: new THREE.Vector3(num(d[0]), num(d[1]), num(d[2])), vel: new THREE.Vector3(num(d[3], -9000, 9000), num(d[4], -9000, 9000), num(d[5], -9000, 9000)),
-      gravity: num(d[6], 0, 5), damage: num(d[7], 0, 500), splash: num(d[8], 0, 800), slow: num(d[9], 0, 1), kind, color: col, radius: num(d[12], 4, 60), life: num(d[13], 0.1, 10) });
+    g.projectiles.spawn({ hostile: !mine, pos: new THREE.Vector3(num(d[0]), num(d[1]), num(d[2])), vel: new THREE.Vector3(num(d[3], -9000, 9000), num(d[4], -9000, 9000), num(d[5], -9000, 9000)),
+      gravity: num(d[6], 0, 5), damage: mine ? 0 : num(d[7], 0, 500), splash: num(d[8], 0, 800), slow: num(d[9], 0, 1), kind, color: col, radius: num(d[12], 4, 60), life: num(d[13], 0.1, 10),
+      ghost: mine, bounces: mine ? num(d[15], 0, 6) | 0 : 0, bounceDamp: mine ? num(d[16], 0, 1) : 0.5, gcol: mine ? num(d[17], -1, 20) | 0 : -1 });
     this._in = false;
   },
   onHazard(d) {

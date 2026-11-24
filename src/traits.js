@@ -21,7 +21,6 @@ export const TRAITS = {
   Sprinter: { move: 'zigzag' },
   'Tallow Runner': { death: { type: 'burst', r: 260, life: 5, color: [1, 0.5, 0.15], dps: 0.5 } },
   Snowblind: { hit: { slow: 0.5, slowT: 2 } },
-  Mudskipper: { move: 'hop' },
   Tumbler: { dodge: 1 },
   Rigger: { move: 'flank' },
   Skitterling: { pack: 1 },
@@ -51,7 +50,7 @@ export const TRAITS = {
   'Hooded Cobra': { spit: { type: 'spray', n: 3 } },
   // ---- leapers
   'Timber Wolf': { pack: 1 },
-  Bullfrog: { hook: { cd: 6, range: 900 }, move: 'hop' },
+  Bullfrog: { hook: { cd: 6, range: 900 } },
   'Mangy Lion': { roar: { cd: 9, r: 750 } },
   'Wharf Rat': { hit: { steal: 150 } },
   Snapvine: { move: 'ambush', hit: { slow: 0.8, slowT: 1.2 } },

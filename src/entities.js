@@ -70,13 +70,14 @@ export class Projectiles {
     P.group = g;
     P.glowSize = Math.max(60, P.radius * 9);
     this.list.push(P);
-    if (P.hostile) this.game.net.sentProjectile(P);
+    if (P.hostile) this.game.net.sentProjectile(P); else if (!P.ghost && this.game.net.sentShot) this.game.net.sentShot(P);
     return P;
   }
   detonate(P, at) {
     if (P.done) return;
     P.done = true;
     const G = this.game;
+    if (P.ghost) { if (P.splash > 0) { G.fx.explosion(at, P.splash, P.color); G.audio.playAt('S_Explosion', at, 0.6); } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false); this.scene.remove(P.group); return; }
     if (P.splash > 0) {
       if (P.hostile) {
         G.fx.explosion(at, P.splash, P.color);
@@ -123,10 +124,12 @@ export class Projectiles {
         const wall = len > 0 ? G.phys.raycast(start, dir, len + P.radius) : null;
         if (best && (!wall || bestT <= wall.distance)) {
           const at = start.clone().addScaledVector(dir, bestT);
+          if (P.ghost) { if (P.pierce > 0 || P.kind === 'Saw') { P.hit.add(best); G.fx.sparks(at, dir.clone().negate(), P.color, 3); P.pos.copy(end); moved = true; } else { this.detonate(P, at); continue; } } else {
           player.handleProjectileHit(P, best, at);
           P.hit.add(best);
           if (P.kind === 'Grenade' && P.fuse > 0) { this.detonate(P, at); continue; }
           if (P.pierce > 0) { P.pierce--; P.pos.copy(end); moved = true; } else { this.detonate(P, at); continue; }
+          }
         }
       }
       if (!moved) {

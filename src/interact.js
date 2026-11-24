@@ -110,7 +110,7 @@ export class Interactable {
       const melee = isMelee(o), D = melee ? MELEE[o - MELEE_CODE] : this.game.data.upgrades[o], ri = rarityIndex(D.rarity), col = hex(RarityHex[ri]);
       const w = this.ware(V(24, -128 + i * 70, 119), (n) => {
         Pt(n, 1, V(0, 0, 2), V(46, 46, 4), Black); Pt(n, 1, V(0, 0, 5), V(38, 38, 3), Gold, null, 0.4);
-        if (melee) { Pt(n, 0, V(0, 0, 14), V(8, 8, 14), lin(0.3, 0.2, 0.12)); Pt(n, 0, V(0, 0, 36), V(5, 12, 34), col, null, 1.2); Pt(n, 0, V(0, 0, 22), V(8, 22, 4), Gold, null, 0.4); }
+        if (melee) { const h = ViewModel.meleeDisplay(D, 46); h.position.copy(V(0, 0, 31).to3()); h.rotation.y = Math.PI / 2; n.add(h); }
         else { Pt(n, ri >= 3 ? 3 : ri >= 1 ? 2 : 0, V(0, 0, 24), ri >= 3 ? V(26, 26, 34) : V(24), col, R(0, 45, 0), 1.6); if (ri >= 4) Pt(n, 2, V(0, 0, 48), V(10), lin(1, 0.95, 0.7), null, 3); }
       }, () => ({ name: D.name, desc: melee ? `${D.rarity} melee weapon. ${D.desc}` : `${D.rarity} upgrade. ${D.desc}`, price: Math.round((melee ? MELEE_PRICE[D.rarity] : rarityPrice(ri)) * P.priceMult()), color: RARITY_HEX[D.rarity] }), (pl) => pl.buyPawn(i), V(30, 0, -14));
       this.text(w.node, V(0, 0, 58), 0, 7, D.name.toUpperCase(), RARITY_HEX[D.rarity]);
@@ -136,7 +136,7 @@ export class Interactable {
     while (this.holder.children.length) this.holder.remove(this.holder.children[0]);
     if (def < 0) return;
     try {
-      if (isMelee(def)) { this.part(this.holder, 0, V(0, 0, 0), V(8, 70, 14), hex(RarityHex[rarityIndex(MELEE[def - MELEE_CODE].rarity)]), null, 1.4); }
+      if (isMelee(def)) { const h = new THREE.Group(); h.rotation.z = -0.5; h.add(ViewModel.meleeDisplay(MELEE[def - MELEE_CODE], 105)); this.holder.add(h); }
       else { const gun = ViewModel.displayModel(this.game, def, 0); gun.scale.setScalar(1.5); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()); gun.position.sub(c); const h = new THREE.Group(); h.rotation.y = Math.PI / 2; h.add(gun); this.holder.add(h); }
     } catch (e) { /* no model */ }
   }
@@ -236,7 +236,7 @@ export class Interactable {
     if (r >= 4) this.game.banner(`${D.name.toUpperCase()}!`, lin(1, 0.7, 0.18), 2.5);
     const n = new THREE.Group(); this.prizeY = V(95, 0, 190).to3().y; n.position.copy(V(95, 0, 190).to3()); this.group.add(n); this.prizeNode = n;
     try {
-      if (isMelee(prize)) { this.part(n, 0, V(0, 0, 0), V(8, 16, 70), hex(RarityHex[r]), null, 1.6); this.part(n, 0, V(0, 0, -30), V(10, 36, 6), lin(1, 0.72, 0.18), null, 0.6); }
+      if (isMelee(prize)) { const h = new THREE.Group(); h.rotation.x = -0.45; h.add(ViewModel.meleeDisplay(MELEE[prize - MELEE_CODE], 95)); n.add(h); }
       else { const gun = ViewModel.displayModel(this.game, prize, 0); gun.scale.setScalar(1.5); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()); gun.position.sub(c); n.add(gun); }
     } catch (e) { /* no model: the name still shows */ }
     const holder = new THREE.Group(); holder.position.copy(V(95, 0, 250).to3()); this.group.add(holder); n.userData.holder = holder;

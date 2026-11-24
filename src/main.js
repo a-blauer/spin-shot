@@ -616,11 +616,21 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const mSync = () => {
     const S = R.menuSong || BUILT_IN; mName.textContent = R.menuSong ? R.menuSong.title : 'Lucky You (built in)  -  pick a file to use your own';
     const want = !!S && (title.style.display !== 'none' || lobby.style.display === 'block') && !document.hidden;
-    if (S !== mFor) { mAudio.pause(); if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S && S.data ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = S && S.url ? S.url : mUrl; mFor = S || null; }
-    mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.9));
-    if (want) { if (mAudio.paused) mAudio.play().catch(() => { /* waits for the first click */ }); } else if (!mAudio.paused) mAudio.pause();
+    if (S !== mFor) { mAudio.pause(); mGain = 0; if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S && S.data ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = S && S.url ? S.url : mUrl; mFor = S || null; }
+    mWant = want;
+    if (want && mAudio.paused) { mGain = 0; mAudio.volume = 0; mAudio.play().catch(() => { /* waits for the first click */ }); }
   };
-  setInterval(mSync, 400); window.addEventListener('pointerdown', mSync); R.ready.then(mSync);
+  // the song never cuts: it swells in over a second and a half when a menu comes up and falls away as the game takes over
+  let mWant = false, mGain = 0, mLast = performance.now();
+  setInterval(() => {
+    const now = performance.now(), dt = Math.min(0.2, (now - mLast) / 1000); mLast = now;
+    if (mAudio.paused && !mWant) { mGain = 0; return; }
+    mGain = mWant ? Math.min(1, mGain + dt / 1.6) : Math.max(0, mGain - dt / 1.1);
+    const e = mGain * mGain * (3 - 2 * mGain);
+    mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.9 * e));
+    if (!mWant && mGain <= 0 && !mAudio.paused) mAudio.pause();
+  }, 40);
+  setInterval(mSync, 200); window.addEventListener('pointerdown', mSync); R.ready.then(mSync);
   pauseEl.querySelector('#pmenu').onclick = () => mFile.click();
   mFile.onchange = async () => { mName.textContent = 'loading\u2026'; await R.setMenu(mFile.files[0]); mFile.value = ''; mSync(); };
   pauseEl.querySelector('#pmenuclr').onclick = async () => { await R.clearMenu(); mSync(); };

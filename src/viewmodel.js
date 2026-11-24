@@ -177,10 +177,10 @@ export class ViewModel {
     this.flash = [];
   }
   // ---- melee: the off hand whips a weapon across the view. Built once per weapon, in camera space (x right, y up, -z forward).
-  meleeBuild(W) {
-    if (this.mg) { this.scene.remove(this.mg); this.mg.traverse((o) => { if (o.geometry && o.geometry !== BOXG && o.isMesh && o !== this.mslash) o.geometry.dispose(); }); }
-    const g = new THREE.Group(), tool = new THREE.Group(); g.add(tool);
-    const sk = Meta.skin(), M = (c, glow = 0) => vmMat(new THREE.Color(c), glow);
+  // the weapon itself, handle up from the origin, with nothing holding it: used in the hand and on display
+  static meleeTool(W) {
+    const tool = new THREE.Group();
+    const M = (c, glow = 0) => vmMat(new THREE.Color(c), glow);
     const box = (w, h, d, c, x, y, z, glow = 0) => { const m = new THREE.Mesh(BOXG, M(c, glow)); m.scale.set(w, h, d); m.position.set(x, y, z); tool.add(m); return m; };
     const cyl = (r, h, c, x, y, z, glow = 0, r2 = r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r, h, 10), M(c, glow)); m.position.set(x, y, z); tool.add(m); return m; };
     const steel = 0xb9bec8, dark = 0x3c3d46, wood = 0x6a4a32, woodD = 0x4a3222, edge = 0xf4f6fa, brass = 0xd9a441, leather = 0x2c2228, iron = 0x26262c;
@@ -291,13 +291,30 @@ export class ViewModel {
         break;
       }
     }
+    return tool;
+  }
+  // a melee weapon for the world to show (the mystery box, the wheel, the shop shelf): the same model, lit by the world, standing on its butt, centred
+  static meleeDisplay(W, size = 70) {
+    const tool = ViewModel.meleeTool(W);
+    tool.traverse((o) => {
+      if (!o.isMesh) return; const src = o.material, key = src.uniforms.uColor.value.getHexString() + '|' + src.uniforms.uGlow.value;
+      if (!worldMats.has(key)) { const m = toonMaterial({ glow: src.uniforms.uGlow.value }); m.uniforms.uColor.value.copy(src.uniforms.uColor.value); worldMats.set(key, m); }
+      o.material = worldMats.get(key);
+    });
+    const b = new THREE.Box3().setFromObject(tool), c = b.getCenter(new THREE.Vector3()), h = b.max.y - b.min.y; tool.position.sub(c);
+    const g = new THREE.Group(); g.add(tool); g.scale.setScalar(size / h); return g;
+  }
+  meleeBuild(W) {
+    if (this.mg) { this.scene.remove(this.mg); this.mg.traverse((o) => { if (o.geometry && o.geometry !== BOXG && o.isMesh && o !== this.mslash) o.geometry.dispose(); }); }
+    const g = new THREE.Group(), tool = ViewModel.meleeTool(W); g.add(tool);
+    const sk = Meta.skin(), M = (c, glow = 0) => vmMat(new THREE.Color(c), glow);
     // The weapon sits in a fist at the end of a full arm. The arm hangs off a shoulder pivot below the screen, so the
     // swing is the arm rotating about that shoulder, never a weapon sliding through the air.
     const ARM = 21, pivot = new THREE.Group(), hand = new THREE.Group(); hand.position.set(0, 0, -ARM); pivot.add(hand);
     g.remove(tool); hand.add(tool); tool.scale.setScalar(0.62); this.mtool = tool; this.mhand = hand;
     // The handle passes through the fist and the butt shows below it. `shaft` carries the model so the fist stays put
     // while the weapon is slid down in the grip.
-    const shaft = new THREE.Group(); while (tool.children.length) shaft.add(tool.children[0]); shaft.position.y = -0.75; tool.add(shaft);
+    const shaft = new THREE.Group(); while (tool.children.length) shaft.add(tool.children[0]); shaft.position.y = -0.75; tool.add(shaft); this.mshaft = shaft;
     const fistOn = (parent, y, scale = 1) => {
       const F = new THREE.Group(); F.position.set(0, y, 0); F.scale.setScalar(scale); parent.add(F);
       const gl = M(sk.glove), gd = M(new THREE.Color(sk.glove).multiplyScalar(0.78).getHex());
@@ -344,27 +361,36 @@ export class ViewModel {
     if (!this.mg) { this.mDip = 0; return; }
     const active = this.mT !== undefined && this.mT < this.mDur && !this.hidden && !this.scoped;
     this.mDip = (this.mDip || 0) + ((active ? 1 : 0) - (this.mDip || 0)) * Math.min(1, dt * (active ? 40 : 14));   // gun drops out of the way, then comes back up
-    const P0 = this.mpivot, tool0 = this.mtool;
+    const P = this.mpivot, tool = this.mtool, EDGED = { knife: 1, hatchet: 1, machete: 1, cleaver: 1, katana: 1 }[this.mModel];
+    // Every frame works out where the arm should be, then the arm is eased there. Nothing snaps: a swing grows out of the
+    // rest pose and settles back into it, and one swing runs straight into the next.
+    const TP = this.mTP || (this.mTP = [0, 0, 0, 0, 0, 0, 0]);   // pivot x y z, pivot rx ry, tool rx rz
+    const apply = (flip, ease) => {
+      this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
+      const C = this.mCur || (this.mCur = TP.slice()), a = 1 - Math.exp(-dt * ease);
+      for (let k = 0; k < 7; k++) C[k] += (TP[k] - C[k]) * a;
+      P.position.set(C[0], C[1], C[2]); P.rotation.set(C[3], C[4], 0); tool.rotation.set(C[5], 0, C[6]); this.mshaft.rotation.y = flip;
+    };
     if (!active) {
       if (this.mslash) this.mslash.visible = false;
+      if (!(this.wield && !this.hidden)) { this.mg.visible = false; this.wRaise = 0; this.mCur = null; this.meleeArm2(); return; }
       // blade in hand: it rests in the right fist, low and angled across the view, and rides the walk
-      if (this.wield && !this.hidden) {
-        this.wRaise = Math.min(1, (this.wRaise || 0) + dt * 5);
-        const r = this.wRaise, e = 1 - (1 - r) * (1 - r), bob = Math.sin((this.bobPhase || 0) * 2) * 0.3 * (this.bobAmp || 0);
-        this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
-        // winding up a heavy blow: the arm comes up and back over the shoulder, and trembles when it is as far as it goes
-        const c = this.mCharge || 0, cs = c * c * (3 - 2 * c), sh = c >= 1 ? Math.sin(performance.now() * 0.06) * 0.25 : 0;
-        P0.position.set(11 - cs * 1.5 + sh, -15.5 - (1 - e) * 10 + bob + cs * 5, -1 + cs * 2); P0.rotation.set(0.56 + cs * 0.62, 0.16 - cs * 0.3, 0); tool0.rotation.set(-0.95 + cs * 1.5, 0, 0.42 - cs * 0.3);
-      } else { this.mg.visible = false; this.wRaise = 0; }
+      this.wRaise = Math.min(1, (this.wRaise || 0) + dt * 5);
+      const r = this.wRaise, e = 1 - (1 - r) * (1 - r), bob = Math.sin((this.bobPhase || 0) * 2) * 0.3 * (this.bobAmp || 0);
+      // winding up a heavy blow: the arm comes up and back over the shoulder, and trembles when it is as far as it goes
+      const c = this.mCharge || 0, cs = c * c * (3 - 2 * c), sh = c >= 1 ? Math.sin(performance.now() * 0.06) * 0.25 : 0;
+      TP[0] = 11 - cs * 1.5 + sh; TP[1] = -15.5 - (1 - e) * 10 + bob + cs * 5; TP[2] = -1 + cs * 2; TP[3] = 0.56 + cs * 0.62; TP[4] = 0.16 - cs * 0.3; TP[5] = -0.95 + cs * 1.5; TP[6] = 0.42 - cs * 0.3;
+      if (r < 1) this.mCur = null;   // still coming up from below: follow exactly
+      // at rest the cutting edge faces in and down, toward what is in front of you, never back at your own shoulder
+      apply(EDGED ? Math.PI : 0, 15);
       this.meleeArm2();
       return;
     }
-    this.wRaise = 0;
+    if (this.wield) this.wRaise = 1;
     this.mT += dt;
-    // wind back a touch, whip through, then follow through and drop away
-    const t = Math.min(1, this.mT / this.mDur), w = Math.min(1, t / 0.6), wb = (this.mReach || 240) > 280 ? 0.22 : 0.12, s = w < 0.16 ? -wb * Math.sin(w / 0.16 * Math.PI) : 1 - Math.pow(1 - (w - 0.16) / 0.84, 3), out = Math.max(0, (t - 0.72) / 0.28);
-    const L = (a, b) => a + (b - a) * s, P = this.mpivot, tool = this.mtool;
-    this.mg.visible = true; this.mg.position.set(0, 0, 0); this.mg.rotation.set(0, 0, 0);
+    // wind back a touch, whip through, then follow through
+    const t = Math.min(1, this.mT / this.mDur), w = Math.min(1, t / 0.6), wb = (this.mReach || 240) > 280 ? 0.22 : 0.12, s = w < 0.16 ? -wb * Math.sin(w / 0.16 * Math.PI) : 1 - Math.pow(1 - (w - 0.16) / 0.84, 2.4), out = Math.max(0, (t - 0.72) / 0.28);
+    const L = (a, b) => a + (b - a) * s;
     // The last number in each move is which way the cutting edge has to face: 0 leads to the right, 1 to the left, 2 forward
     // and down (chops and thrusts). The blade is turned in the hand to suit, so the edge always leads the cut.
     // Every weapon has its own three moves (two in the chain and a finisher). They are written for the left arm, which
@@ -385,24 +411,31 @@ export class ViewModel {
       sledge: ['haul', 'haulB', 'smash'], brand: ['stab', 'slashA', 'over'], cleaver: ['diagA', 'diagB', 'over'], katana: ['diagA', 'rise', 'over'], shovel: ['stab', 'haul', 'smash'] };
     const name = this.mStep < 3 ? (SETS[this.mModel] || SETS.knife)[this.mStep] : null;
     let edgeTo = -1;
-    if (name) { const m = MOVE[name](); P.position.set(m[0], m[1] - out * (name === 'stab' ? 5 : 9), m[2]); P.rotation.set(m[3], m[4], m[5]); tool.rotation.set(m[6], m[7], m[8]); edgeTo = m[9]; }
-    else { P.position.set(-8, -15 - out * 9, -1); P.rotation.set(0.6 + Math.sin(t * Math.PI) * 0.2, 0.3, 0); tool.rotation.set(-0.4, t * 6.28, -0.2); }                // new weapon: show it off
+    // with the blade drawn the arc is kept inside the view, so you watch the weapon go through them
+    const sweep = this.wield ? 0.78 : 1;
+    if (name) { const m = MOVE[name](); TP[0] = m[0]; TP[1] = m[1] - out * (name === 'stab' ? 5 : 9); TP[2] = m[2]; TP[3] = m[3]; TP[4] = m[4] * sweep; TP[5] = m[6]; TP[6] = m[8]; edgeTo = m[9]; }
+    else { TP[0] = -8; TP[1] = -15 - out * 9; TP[2] = -1; TP[3] = 0.6 + Math.sin(t * Math.PI) * 0.2; TP[4] = 0.3; TP[5] = -0.4; TP[6] = -0.2; }                // new weapon: show it off
     this.mMove = name;
     const mir = this.wield ? -1 : 1;
-    if (mir < 0) { P.position.x = -P.position.x; P.rotation.y = -P.rotation.y; tool.rotation.z = -tool.rotation.z; if (this.wield) P.position.y += out * 9 * 0.75; }   // right hand, and it does not drop out of sight after
-    if (edgeTo === 2) tool.rotation.y = Math.PI / 2;                                                                    // edge forward and down
-    else if (edgeTo >= 0 && (edgeTo === 1) !== (mir < 0)) { tool.rotation.y = Math.PI; tool.rotation.z = -tool.rotation.z; }   // cutting to the left: turn the blade over
+    if (mir < 0) { TP[0] = -TP[0]; TP[4] = -TP[4]; TP[6] = -TP[6]; TP[1] += out * 9 * 0.8; }   // right hand, and it does not drop out of sight after
+    let flip = 0;
+    if (!name) flip = t * 6.28;                                                                       // the flourish turns it over once
+    else if (edgeTo === 2) { flip = Math.PI / 2; TP[5] += TP[6]; TP[6] = 0; }                          // edge forward and down
+    else if (edgeTo >= 0 && (edgeTo === 1) !== (mir < 0)) flip = Math.PI;                             // cutting to the left: turn the blade over
+    if (!this.mCur && !this.wield) { this.mCur = TP.slice(); this.mCur[1] -= 7; }                     // the quick swing comes up from under the view
+    if (this.mBite > 0) { this.mBite = Math.max(0, this.mBite - dt * 7); TP[2] += this.mBite * 2.2; TP[3] -= this.mBite * 0.07; }   // the hit lands: the arm checks against the body before it carries through
+    apply(flip, 46 - 30 * (this.mBite || 0));
     const q = this.mslash;
     if (q && this.mStep < 3) {
-      const a = Math.max(0, 1 - Math.abs(t - 0.3) / 0.16);
+      const a = Math.max(0, 1 - Math.abs(t - 0.26) / 0.13);
       // the streak follows the move: flat for a slash, tilted for a chop, upright for an overhead, a short burst for a thrust
       const mv = this.mMove || 'slashA', reach = Math.max(0.7, Math.min(1.5, (this.mReach || 240) / 240));
       const kind = mv === 'over' || mv === 'smash' ? 'v' : mv === 'stab' ? 's' : mv === 'diagA' || mv === 'diagB' || mv === 'rise' ? 'd' : 'h';
       const ltr = (mv === 'slashA' || mv === 'haul' || mv === 'diagA') === (mir > 0);   // does it travel left to right on screen
       q.visible = a > 0.01; q.position.set(kind === 'v' ? mir : kind === 's' ? 0 : ltr ? -1 : 1, kind === 'v' ? -1 : kind === 's' ? -1.5 : -2.5, -20);
-      q.scale.set((kind === 'v' ? 9 : kind === 's' ? 10 : mv.startsWith('haul') ? 36 : 30) * reach, (kind === 'v' ? 24 : kind === 's' ? 5 : 8) * reach, 1);
+      q.scale.set((kind === 'v' ? 9 : kind === 's' ? 10 : mv.startsWith('haul') ? 36 : 30) * reach, (kind === 'v' ? 24 : kind === 's' ? 4 : 5.5) * reach, 1);
       q.rotation.z = kind === 'v' ? Math.PI / 2 : kind === 's' ? 0 : (ltr ? -0.2 : Math.PI + 0.2) + (kind === 'd' ? (mv === 'rise' ? 0.6 : -0.6) * (ltr ? 1 : -1) : 0);
-      q.material.uniforms.tint.value.set(1, 0.95, 0.85, a * 0.32);
+      q.material.uniforms.tint.value.set(1, 0.95, 0.85, a * 0.5);
     }
     this.meleeArm2();
   }

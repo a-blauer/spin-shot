@@ -343,13 +343,13 @@ export class Player {
     if (In.grapple && !menu) this.useAbility();
     if (In.reload && !menu && !this.wield) { if (this.reloading && this.stat('ActiveReload') > 0) this.activeReload(); else this.startReload(); }
     if (In.interact) this.interact();
-    if (In.melee && !menu) this.meleeBuffer = 0.22;
+    if (In.melee && !menu) this.meleeBuffer = 0.3;
     if (this.flowWin > 0) this.flowWin -= dt;
     if (this.flowT > 0) { this.flowT -= dt; if (this.flowT <= 0) this.flow = 0; }
     if (!this.wield) this.meleeCharge = 0;
     if (In.wield && !menu) this.setWield(!this.wield);
     if (this.wield) {
-      if (!menu && In.fire) this.meleeBuffer = Math.max(this.meleeBuffer || 0, 0.1);          // hold fire to keep swinging
+      if (!menu && In.firePressed) this.meleeBuffer = 0.3; if (!menu && In.fire) this.meleeBuffer = Math.max(this.meleeBuffer || 0, 0.1);          // hold fire to keep swinging
       // Flow: press (not hold) fire in the instant after a swing lands and the chain speeds up and hits harder, up to four
       // stacks. Holding the button still swings, it just never builds any.
       if (!menu && In.firePressed && this.flowWin > 0) { this.flowWin = 0; this.flow = Math.min(4, (this.flow || 0) + 1); this.flowT = 3; this.play('S_UIMove', 0.7, 0.9 + this.flow * 0.15); }
@@ -814,6 +814,8 @@ export class Player {
     const G = this.game;
     if (this.meleeDef === undefined) { this.meleeDef = 0; this.meleeCd = 0; this.meleeCombo = 0; this.meleeComboT = 0; this.meleeHitT = -1; this.meleeBuffer = 0; this.frenzy = 0; this.frenzyT = 0; this.meleeGuardT = 0; this.meleeTier = this.meleeTier || 0; }
     this.meleeCd = Math.max(0, this.meleeCd - dt); this.meleeBuffer = Math.max(0, (this.meleeBuffer || 0) - dt); this.meleeGuardT = Math.max(0, this.meleeGuardT - dt);
+    if (this.meleeTurn) { const st = this.meleeTurn * Math.min(1, dt * 14); this.yaw += st; this.meleeTurn -= st; if (Math.abs(this.meleeTurn) < 0.002) this.meleeTurn = 0; }
+    this.swingRoll = (this.swingRoll || 0) * Math.exp(-dt * 9);
     if (this.meleeComboT > 0) { this.meleeComboT -= dt; if (this.meleeComboT <= 0) this.meleeCombo = 0; }
     if (this.frenzyT > 0) { this.frenzyT -= dt; if (this.frenzyT <= 0) this.frenzy = 0; }
     if (this.dead || menu) { this.meleeHitT = -1; return; }
@@ -899,13 +901,18 @@ export class Player {
     // a swing thrown out of a dash is a thrust: longer, harder, and it goes through the whole line
     this.meleeThrust = !power && (this.dashT > 0 || (this.sinceDash !== undefined && this.sinceDash < 0.3));
     if (this.meleeThrust) this.game.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'DASH STRIKE', [0.6, 0.9, 1], 1.1);
-    const cd = W.cd / sp * (power ? 1.3 + 0.3 * charge : this.meleeHeavy ? 1.2 : 1);
+    const chain = !power && this.meleeComboT > 0 ? 0.88 : 1;   // a swing thrown straight after another comes out quicker: the chain has a rhythm
+    const cd = W.cd / sp * chain * (power ? 1.3 + 0.3 * charge : this.meleeHeavy ? 1.2 : 1);
     this.meleeCd = cd; this.meleeComboT = cd + 0.55; this.meleeHitT = W.wind / sp * (power ? 1.7 : this.meleeHeavy ? 1.3 : 1);
     this.game.vm.meleeSwing(W, step, Math.max(0.16, cd * 0.8));
     this.play('S_Dash', 0.5, (this.meleeHeavy ? 0.8 : 1.25) * Math.max(0.6, Math.min(1.25, 1.45 - W.cd)), 0.06);   // heavier weapons cut the air lower
     // step in toward the nearest target in front so swings connect
     const T = this.meleeTargets(this.meleeRange() * 2.4, 70)[0];
     if (T) { const d = flat(T.pos.clone().sub(this.pos)); const gap = d.length() - T.radius - this.meleeRange() * 0.7; if (gap > 0) { d.normalize(); this.vel.x += d.x * Math.min(950, gap * 8); this.vel.z += d.z * Math.min(950, gap * 8); } }   // a swing carries you in: a long step toward whatever is in front
+    // the view goes with the swing: it leans and turns the way the weapon travels, and the hit knocks it back
+    { const side = (step === 2 ? 0 : step === 0 ? -1 : 1) * (this.wield ? 1 : -1); this.meleeSide = side; this.addKick(step === 2 ? -1.6 : 0.3, side * 1.5); this.swingRoll = side * (this.meleeHeavy ? 0 : 3.2); }
+    // and you turn a little to face what you are swinging at, so a near miss becomes a hit
+    if (T) { const d = T.pos.clone().sub(this.pos), want = Math.atan2(-d.x, -d.z); let e = want - this.yaw; e = Math.atan2(Math.sin(e), Math.cos(e)); this.meleeTurn = clamp(e * 0.5, -0.14, 0.14); }
     this.fovKick += this.meleeHeavy ? 5 : 2.5;
   }
   meleeStrike() {
@@ -940,12 +947,15 @@ export class Player {
       const shock = (W.shock || 0) + this.stat('MeleeShock');
       if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Chain', 0.5, 1.2, 0.1); }
       G.fx.fleshHit(at, dir, E.bodyScale * (heavy ? 1.5 : 1.1), true);
+      G.fx.flash(at, heavy ? [1, 0.8, 0.45] : [1, 0.95, 0.85], heavy ? 150 : 95, 0.09, true); G.fx.sparks(at, dir.clone().negate(), heavy ? [1, 0.8, 0.4] : [1, 0.95, 0.85], heavy ? 9 : 5);
       if (E.dead) { killed++; Meta.bump('meleeKills'); }
     }
     // feel: freeze frames, a kick and a thump scaled by how hard and how many
     G.hitstop = Math.max(G.hitstop || 0, (heavy ? 0.11 : 0.06) + Math.min(0.04, T.length * 0.01) + (big ? 0.05 * chg : 0));
     this.flowWin = 0.24;   // the beat to press on
     this.addShake((heavy ? 0.9 : 0.4) + Math.min(0.4, T.length * 0.1)); this.fovKick += heavy ? 6 : 3;
+    this.addKick(heavy ? 2.2 : 0.5, -(this.meleeSide || 0) * (1.6 + Math.min(1.2, T.length * 0.4))); this.swingRoll = -(this.meleeSide || 0) * 2.2;   // the blade bites and stops: the view jolts back against the swing
+    G.vm.mBite = heavy ? 1 : 0.6;
     this.play('S_HitFlesh2', 0.9, heavy ? 0.7 : 1, 0.08); if (heavy) this.play('S_Slam', 0.6, 1.1, 0.05);
     G.audio.gunPunch(heavy ? 0.9 : 0.45);
     if (W.quake && heavy) { G.fx.ring(V3(this.pos.x, this.pos.y - 85, this.pos.z).addScaledVector(flat(f).normalize(), 120), 380, lin(0.7, 0.55, 0.4), 0.4); for (const E of G.enemies) if (!E.dead && !T.includes(E) && E.pos.distanceTo(this.pos) < 420) { this.dealDamage(E, base * 0.4, E.pos, safeN2(flat(E.pos.clone().sub(this.pos))), false, 0, true); if (!E.isBoss) E.applyKnock(safeN2(flat(E.pos.clone().sub(this.pos))).multiplyScalar(700).add(V3(0, 380, 0))); } }
@@ -1144,6 +1154,7 @@ export class Player {
     let rollT = 0;
     if (this.wallRunning) rollT = -this.wallSide * 11; else if (this.sliding) rollT = -4;
     rollT += clamp(this.inRight || 0, -1, 1) * -1.2;
+    rollT += this.swingRoll || 0;
     this.camRoll = interpTo(this.camRoll, rollT, dt, 7);
     { const ax = -this.camKick.x * 180 - this.camKickVel.x * 17, ay = -this.camKick.y * 180 - this.camKickVel.y * 17; this.camKickVel.x += ax * dt; this.camKickVel.y += ay * dt; this.camKick.x += this.camKickVel.x * dt; this.camKick.y += this.camKickVel.y * dt; }
     this.shake = Math.max(0, this.shake - dt * 3.2);
