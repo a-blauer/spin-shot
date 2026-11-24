@@ -118,7 +118,7 @@ export class World {
   }
   AddInstance(meshId, center, size, rot, color, collide, glow, nav) {
     const m = this._matrix(center, size, rot);
-    const key = meshId + '|' + (glow ? 1 : 0);
+    const key = meshId + '|' + (glow ? 1 : 0) + '|' + (this.chunk === undefined || this.chunk === null ? -1 : this.chunk);   // a map can build in chunks, and show one at a time
     if (!this.inst.has(key)) this.inst.set(key, []);
     this.inst.get(key).push({ m, c: hex(color) });
     if (collide) {
@@ -801,15 +801,18 @@ export class World {
     GM.box = this.Station('MysteryBox', V(60, 640, 0), 90, 950, -1, 'Mystery Box');
   }
 
+  // draw only one chunk of a chunked map (the room you are in); -1 shows them all
+  showChunk(c) { for (const m of this.chunkMeshes || []) m.visible = c < 0 || m.userData.chunk === c; }
   finish() {
     // instanced render batches
     for (const [key, list] of this.inst) {
-      const [meshId, glow] = key.split('|').map(Number);
+      const [meshId, glow, chunk] = key.split('|').map(Number);
       const mesh = new THREE.InstancedMesh(GEOS[meshId], toonMaterial({ glow: glow ? 1.1 : 0 }), list.length);
       list.forEach((it, i) => { mesh.setMatrixAt(i, it.m); mesh.setColorAt(i, it.c); });
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
+      if (chunk >= 0) { mesh.userData.chunk = chunk; (this.chunkMeshes = this.chunkMeshes || []).push(mesh); }
       this.scene.add(mesh);
     }
     // collision

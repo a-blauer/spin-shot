@@ -10,6 +10,14 @@
 //  - each room hands back where it is tall (so nothing is hung from the roof into it) and where it is raised
 //    (so nothing comes up out of the ground inside a platform).
 import { V, V2, R } from './mapkit.js';
+import { props } from './descent_props.js';
+import { ROOMS_A } from './descent_rooms_a.js';
+import { ROOMS_B } from './descent_rooms_b.js';
+import { ROOMS_C } from './descent_rooms_c.js';
+import { ROOMS_D } from './descent_rooms_d.js';
+
+// every room after the first eight: { theme: {...}, dims: [hx, hy, H], wall: {...}, build(K, Q, P) }
+export const EXTRA = [...ROOMS_A, ...ROOMS_B, ...ROOMS_C, ...ROOMS_D];
 
 // what each room is: half-width, half-length, height
 export const ROOM_DIMS = [
@@ -21,6 +29,7 @@ export const ROOM_DIMS = [
   [5000, 4200, 1500],   // 5 Drowned Hall
   [4600, 4600, 1300],   // 6 The Hive
   [5000, 4400, 1700],   // 7 Null Chamber
+  ...EXTRA.map((r) => r.dims),
 ];
 export const BOSS_DIMS = [6000, 6000, 2000];
 
@@ -91,6 +100,7 @@ export function craftRoom(kind, K) {
   const { M, T, hx, hy, H, rnd, rr } = K;
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Floor, Lamp } = M;
   const Q = kit(K), { out, AX, AY, L, hit, solid, deco, tile, tall, slabs, plat, platOct, lowWall, crate, barrel, candle, chain, skull, ring } = Q;
+  if (kind >= 8) { EXTRA[kind - 8].build(K, Q, props(K, Q)); return out; }
 
   switch (kind) {
     // ------------------------------------------------------------------------------------------------ THE OSSUARY

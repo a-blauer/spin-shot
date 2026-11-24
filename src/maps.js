@@ -6,7 +6,7 @@ import { buildMine, MINE_LOOT, mineCeil, MINE_QUEST, MINE_MECH } from './map_min
 import { buildFrost, FROST_LOOT, frostAmbient, FROST_QUEST, FROST_MECH } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient, BAYOU_QUEST, BAYOU_MECH, bayouWater } from './map_bayou.js';
 import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient, CARNIVAL_QUEST, CARNIVAL_MECH } from './map_carnival.js';
-import { buildDescent, THEMES } from './map_descent.js';
+import { buildDescent, THEMES, N_ROOMS } from './map_descent.js';
 import { buildWharf, WHARF_LOOT, wharfAmbient, WHARF_QUEST, WHARF_MECH } from './map_wharf.js';
 
 const C = (h) => new THREE.Color(h);
@@ -135,7 +135,7 @@ export const MAPS = [
   { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down. Clear a room, spend what you earned at its workbench and chest, and go on down. A boss holds every fifth room.',
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
-      const T = THEMES[typeof zone === 'number' && zone >= 8 ? [0, 7][(zone - 8) % 2] : (typeof zone === 'number' ? zone : 0) % 8];
+      const z = typeof zone === 'number' ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, 7][(z - N_ROOMS) % 2] : z] || THEMES[0];
       P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
       P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);
       return P;

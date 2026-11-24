@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { DATA, lin, randInt, zombieCount, maxAlive } from './data.js';
 import { V, R } from './mapkit.js';
 import { Interactable } from './interact.js';
-import { ARENAS, spots } from './map_descent.js';
+import { ARENAS, spots, N_ROOMS } from './map_descent.js';
 import { rollCore } from './cores.js';
 import { Meta } from './meta.js';
 
@@ -22,16 +22,15 @@ function chestTier(room) {
 export class Descent {
   constructor(game) {
     this.g = game; this.room = 0; this.arena = 0; this.flip = 1; this.cleared = false; this.guns = [1, 2]; this.tier = 0; this.gates = []; this.things = []; this.late = []; this.seq = 0; this.bossT = -1; this.seen = -1; this.zones = []; this.zkey = ''; this.rdy = new Set(); this.rdyN = [0, 1];
-    // eight rooms, each met twice in a run: the second time from the other end. Never the same room twice running.
-    const sh = () => { const o = [...Array(8).keys()]; for (let i = 7; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; } return o; };
-    const a = sh(); let b = sh(); while (b[0] === a[7]) b = sh();
-    this.order = a.concat(b);
+    // sixteen rooms out of all there are, none of them twice in a run
+    const o = [...Array(N_ROOMS).keys()]; for (let i = o.length - 1; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; }
+    this.order = o.length >= 16 ? o.slice(0, 16) : o.concat(o).slice(0, 16);
     this.bossPick = this.pickBosses();
   }
   get host() { return this.g.net.role !== 'client'; }
   isBossRoom(r = this.room) { return r > 0 && r % 5 === 0; }
-  arenaFor(room) { return room % 5 === 0 ? 8 + ((room / 5 - 1) % 2) : this.order[room - 1 - Math.floor(room / 5)]; }
-  flipFor(room) { return room % 5 === 0 ? (room > 10 ? -1 : 1) : (room - 1 - Math.floor(room / 5) >= 8 ? -1 : 1); }
+  arenaFor(room) { return room % 5 === 0 ? N_ROOMS + ((room / 5 - 1) % 2) : this.order[room - 1 - Math.floor(room / 5)]; }
+  flipFor(room) { return room % 5 === 0 ? (room > 10 ? -1 : 1) : (room % 2 ? 1 : -1); }
   A() { return ARENAS[this.arena]; }
   S() { return spots(this.A(), this.flip); }
   // one boss from each of the four tiers; which one is the luck of the run
@@ -98,6 +97,7 @@ export class Descent {
     if (P.menu) P.closeMenu();
     P.pos.set(S.spawn[0] + (Math.random() - 0.5) * 300, 100, S.spawn[1]); P.vel.set(0, 0, 0); P.pitch = 0; P.yaw = S.yaw; P.invuln = Math.max(P.invuln || 0, 2.5);
     g.zones.forEach((Z, i) => { Z.unlocked = i === A.zone; });
+    if (g.world.showChunk) g.world.showChunk(this.arena);
     g.hud.hurtWhite = 0.3; g.audio.play('S_Door', 1, 0.7);
     const boss = this.isBossRoom();
     g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
