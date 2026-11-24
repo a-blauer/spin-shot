@@ -785,11 +785,15 @@
 {
 "name": "Hollow Points",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "Damage",
-0.1
+0.05
+],
+[
+"HollowN",
+0.75
 ]
 ],
 "trigger": null,
@@ -797,7 +801,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+10% damage.",
+"desc": "Every fifth round you fire mushrooms: +75% damage, and it throws the target back. +5% damage.",
 "insp": "RoR2 Crowbar-style stat item"
 },
 {
@@ -973,11 +977,15 @@
 {
 "name": "Lens Shard",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "CritChance",
 0.05
+],
+[
+"CritFlash",
+1
 ]
 ],
 "trigger": null,
@@ -985,7 +993,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+5% crit chance.",
+"desc": "Crits go off like a flashbulb: enemies near the target are dazed for a moment (2s cooldown). +5% crit chance.",
 "insp": "RoR2 Lens-Maker's Glasses"
 },
 {
@@ -1013,11 +1021,15 @@
 {
 "name": "Scrap Plating",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "Armor",
-12
+6
+],
+[
+"Bulwark",
+1
 ]
 ],
 "trigger": null,
@@ -1025,7 +1037,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+12 armor.",
+"desc": "Once every 10 seconds a blow rings off the plate: no damage, and the ring throws back everything near you. +6 armor.",
 "insp": "RoR2 Repulsion Armor (lite)"
 },
 {
@@ -1070,11 +1082,15 @@
 {
 "name": "Slide Grease",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [
 [
-"SlideBoost",
+"SlideSpeed",
 0.2
+],
+[
+"SlideLaunch",
+1
 ]
 ],
 "trigger": null,
@@ -1082,7 +1098,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+20% slide speed.",
+"desc": "Slide into enemies and they are thrown in the air, dazed, for 40% Power. +20% slide speed.",
 "insp": "Titanfall slide-hop"
 },
 {
@@ -1123,11 +1139,15 @@
 {
 "name": "Rusty Shiv",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [
 [
 "EliteDamage",
-0.25
+0.15
+],
+[
+"EliteBlast",
+1
 ]
 ],
 "trigger": null,
@@ -1135,7 +1155,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+25% damage to elites.",
+"desc": "Elites you kill erupt for 200% Power. +15% damage to elites.",
 "insp": "RoR2 Armor-Piercing Rounds"
 },
 {
@@ -1634,15 +1654,15 @@
 {
 "name": "Energy Drink",
 "rarity": "Uncommon",
-"stacks": 5,
+"stacks": 3,
 "mods": [
 [
-"MoveSpeed",
-0.12
+"SlideSpeed",
+0.1
 ],
 [
-"SlideBoost",
-0.1
+"KillRush",
+0.06
 ]
 ],
 "trigger": null,
@@ -1650,21 +1670,21 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+12% move speed, +10% slide speed.",
+"desc": "Each kill makes you 6% faster for 5 seconds, stacking five times. +10% slide speed.",
 "insp": "RoR2 Energy Drink"
 },
 {
 "name": "Marksman's Monocle",
 "rarity": "Uncommon",
-"stacks": 5,
+"stacks": 3,
 "mods": [
 [
 "CritChance",
-0.08
+0.05
 ],
 [
-"CritDamage",
-0.15
+"HeadStreak",
+0.12
 ]
 ],
 "trigger": null,
@@ -1672,7 +1692,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+8% crit chance, +15% crit damage.",
+"desc": "Each headshot in a row adds +12% damage, up to five. A shot that is not a headshot ends the run. +5% crit chance.",
 "insp": "Balatro"
 },
 {
@@ -3747,11 +3767,11 @@
 "stacks": 3,
 "mods": [
 [
-"FireRate",
-0.12
+"MoveSpeed",
+0.04
 ],
 [
-"MoveSpeed",
+"KillTempo",
 0.06
 ]
 ],
@@ -3760,7 +3780,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+12% fire rate, +6% move speed.",
+"desc": "Kills in quick succession speed your trigger: +6% fire rate each, up to six, lost if two seconds pass without one.",
 "insp": "Gunslinger"
 },
 {

@@ -56,8 +56,10 @@ for (const u of DATA.upgrades) {
 export function classWeight(u, cls) {
   if (u.cls) return u.cls === cls ? 1.8 : 0;
   if (u.grapple && cls !== 'sniper') return 0;          // nobody else has a hook to improve
-  if (u.fits.includes(cls)) return 1.7;
-  return u.fits.length ? 0.6 : 1;
+  // fewer plain numbers and fewer blade buffs for people who are not using a blade: what a chest offers should change how you play
+  const dull = (u.plain ? 0.4 : 1) * (u.meleeOnly && cls !== 'brawler' ? 0.3 : 1);
+  if (u.fits.includes(cls)) return 1.7 * dull;
+  return (u.fits.length ? 0.6 : 1) * dull;
 }
 const pick = (pool) => { let t = 0; for (const p of pool) t += p[1]; let r = Math.random() * t; for (const p of pool) { r -= p[1]; if (r <= 0) return p[0]; } return pool.length ? pool[pool.length - 1][0] : -1; };
 

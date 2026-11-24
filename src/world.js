@@ -651,6 +651,7 @@ export class World {
       I.solid = true;
     }
     this.game.registerInteractable(I);
+    if (type === 'HighRoller' && !this.rt) I.makeSolid(-12, 140, -185, 185, 0, 170);   // a bench is a thing you walk round, in every mode
     return I;
   }
   WallBuy(name, loc, yaw) {

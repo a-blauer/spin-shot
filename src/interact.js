@@ -118,6 +118,12 @@ export class Interactable {
     this.ware(V(24, 152, 119), (n) => { Pt(n, 1, V(0, 0, 2), V(34, 34, 4), Black); Pt(n, 2, V(0, 0, 6), V(28, 28, 22), Gold, null, 0.8); Pt(n, 1, V(0, 0, 20), V(6, 6, 8), Black); },
       () => ({ name: 'Ring for new stock', desc: 'Swaps everything on the counter for four new items.', price: P.pawnRerollPrice() }), (pl) => pl.pawnReroll(), V(30, 0, -14));
   }
+  // a box of the thing, in its own space (x out from its back, y along it, z up), that players and enemies cannot walk through
+  makeSolid(x0, x1, y0, y1, z0, z1) {
+    const box = new THREE.Box3(), rot = R(0, this.yaw, 0);
+    for (let i = 0; i < 8; i++) box.expandByPoint(this.locUE.add(rot.RotateVector(V((i & 1) ? x1 : x0, (i & 2) ? y1 : y0, (i & 4) ? z1 : z0))).to3());
+    this.solid = this.game.phys.addDoor(box); return this.solid;
+  }
   setOpened(on) { this.opened = on; if (this.beam) this.beam.visible = !on; if (this.inside) this.inside.visible = on; }
   // ---- the mystery box ----
   boxShow(def) {
@@ -519,6 +525,12 @@ export class Interactable {
         for (let i = 0; i < 4; i++) P(null, 1, V(110, -120 + i * 13, 112), V(7, 7, 8), Steel);
         // work lamp on an arm
         P(null, 0, V(20, 150, 300), V(8, 8, 120), SteelD); P(null, 0, V(50, 150, 356), V(70, 8, 8), SteelD); P(null, 3, V(84, 150, 340), V(50, 50, 34), lin(0.75, 0.6, 0.2)); P(null, 2, V(84, 150, 326), V(20), lin(1, 0.9, 0.6), null, 2.2);
+        // so it stands on its own: a framed back with buttresses, a cabinet of drawers under the top, a roof with a strip light
+        P(null, 0, V(-6, 0, 250), V(14, 400, 500), DarkWood); for (const y of [-196, 196]) { P(null, 0, V(0, y, 250), V(26, 14, 500), SteelD); P(null, 0, V(-40, y, 70), V(90, 12, 140), SteelD, R(0, 0, 0)); }
+        P(null, 0, V(132, 0, 62), V(6, 330, 56), Wood); for (const y of [-110, 0, 110]) { P(null, 0, V(136, y, 62), V(4, 96, 44), DarkWood); P(null, 0, V(140, y, 62), V(5, 40, 6), Steel); }
+        P(null, 0, V(70, 0, 8), V(140, 370, 16), SteelD);
+        P(null, 0, V(60, 0, 512), V(170, 420, 12), SteelD); P(null, 0, V(142, 0, 500), V(8, 420, 30), Gold, null, 0.5); P(null, 0, V(70, 0, 500), V(60, 300, 6), lin(1, 0.9, 0.6), null, 2.2);
+        P(null, 0, V(110, -150, 126), V(40, 40, 22), SteelD); P(null, 1, V(110, -150, 150), V(34, 34, 12), Steel, R(90, 0, 0));   // a bench grinder
         // sign: big name, plain purpose, three rising chevrons
         P(null, 0, V(8, 0, 432), V(12, 390, 96), Black); P(null, 0, V(10, 0, 482), V(14, 400, 8), Gold, null, 0.6); P(null, 0, V(10, 0, 382), V(14, 400, 8), Gold, null, 0.6);
         this.text(null, V(16, -40, 446), 0, 46, 'WORKBENCH', '#ffcd5a');
@@ -696,7 +708,7 @@ export class Interactable {
     const PL = this.game.player;
     if (this.lid && this.type === 'Chest') { const want = this.opened ? -1.9 : 0; this.lid.rotation.z += (want - this.lid.rotation.z) * Math.min(1, dt * 7); }
     // an opened chest has nothing more to give: it stands open for a moment, then sinks out of the world
-    if (this.type === 'Chest' && this.opened && !this.holding) {
+    if (this.type === 'Chest' && this.opened && !this.holding && !this.keep) {
       this.goneT = (this.goneT || 0) + dt;
       if (this.goneT > 2.2) { const k = Math.max(0, 1 - (this.goneT - 2.2) / 0.6); this.group.scale.setScalar(Math.max(0.001, k)); this.group.position.y = this.pos.y - (1 - k) * 40; }
       if (this.goneT > 2.8 && !this.remove) { this.remove = true; this.game.fx.puff(this.pos.clone().add(new THREE.Vector3(0, 30, 0)), [0.8, 0.72, 0.55], 90, 0.5); }

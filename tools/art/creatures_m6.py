@@ -395,11 +395,11 @@ def scorpion():
     cn = 'Scorpion'; sh, dark, sting = '#8a5a2a', '#4a2e16', '#b8ff5a'
     parts = []
     t = pt(cn, TAIL, (0, 60), 0)
-    segs = [(0, 62), (0, 100), (10, 134), (34, 160), (62, 160), (78, 136)]
+    segs = [(0, 62), (5, 98), (-4, 132), (4, 162), (0, 186)]   # the tail, seen from in front: straight up over its back
     for i in range(len(segs) - 1):
         (ax, ay), (bx, by) = segs[i], segs[i + 1]
-        S(t, path_limb([(ax, ay), (bx, by)], [12 - i * 1.2, 11 - i * 1.2], n_end=5), sh if i % 2 == 0 else light(sh, 1.15))
-    S(t, ellipse(80, 126, 12, 14, n=12), dark); spikes(t, [(80, 114, 22, 4, -100)], sting)
+        S(t, path_limb([(ax, ay), (bx, by)], [13 - i * 1.4, 12 - i * 1.4], n_end=5), sh if i % 2 == 0 else light(sh, 1.15))
+    S(t, ellipse(0, 190, 15, 13, n=12), dark); spikes(t, [(0, 180, 40, 6, -90)], sting); t.circle(0, 144, 3, sting, opacity=0.8)   # and the sting hanging over, pointed at you
     parts.append(t)
     for side in (-1, 1):
         p = pt(cn, LEG_F if side > 0 else LEG_B, (side * 34, 34), 0)
@@ -478,9 +478,10 @@ def snapvine(cn='Snapvine', k=1.0, green='#3a6a2a', pod='#a82a4a'):
 def grub(cn='Grub', k=1.0, col='#d8c8a0', dark='#8a6a4a', mawcol='#7a1c24', rings=5):
     Q = Qk(k); parts = []
     t = pt(cn, TAIL, (0, 30 * k), 0)
-    for i in range(rings):   # the body trailing off behind, each ring a little smaller
-        x = 30 + i * 26; r = 30 - i * 4
-        S(t, ellipse(x * k, (r + 2) * k, (r * 0.75) * k, r * k, n=14), col if i % 2 == 0 else shade(col, 0.88))
+    for i in range(rings, 0, -1):   # the rest of it, seen head-on: ring behind ring, rising and narrowing
+        r = 38 - i * 4.4; y = 40 + i * 17; x = (4 if i % 2 else -4) * (i > 1)
+        S(t, ellipse(x * k, y * k, r * 1.02 * k, r * k, n=16), shade(col, 0.62 + 0.07 * (rings - i)) if i % 2 else shade(col, 0.74 + 0.05 * (rings - i)))
+        spikes(t, [((x - r * 0.9) * k, y * k, 9 * k, 2.4 * k, 170), ((x + r * 0.9) * k, y * k, 9 * k, 2.4 * k, 10)], dark)
     parts.append(t)
     b = pt(cn, BODY, (0, 34 * k), 1)
     td = S(b, ellipse(0, 40 * k, 40 * k, 40 * k, n=20), col, hl='#fffbe8')

@@ -90,7 +90,7 @@ export const Net = {
       on('k', fromHost((d) => this.onKill(d)));
       on('d', fromHost((d) => { if (d.to === this.me && this.game) this.game.player.receiveDamage(num(d.a, 0, 500), null, !!d.m, num(d.s, 0, 1), num(d.t, 0, 5)); }));
     }
-    on('door', (d, m) => { if (d && Array.isArray(d.t)) { if (this.game && this.game.mech) this.game.mech.trapRemote(num(d.t[0], 0, 20) | 0); } else if (d && Array.isArray(d.a)) { if (this.game && this.game.audio.radio) this.game.audio.radio.net(d.a, !!m && m.peer === this.hostPeer); } else if (d && d.r) { if (this.role === 'host' && this.game && this.game.audio.radio) this.game.audio.radio.command(d.r === 1); } else if (Array.isArray(d.q)) { if (this.game) this.game.quest.apply(d.q.slice(0, 4).map((v, k) => (k ? num(v, 0, 999) : String(v).slice(0, 2)))); } else if (Array.isArray(d.m)) { if (this.game) this.game.mech.net(d.m); } else if (d && d.g != null) { if (this.role === 'host' && this.game && this.game.descent) this.game.descent.choose(num(d.g, 0, 3) | 0); } else this.openDoorIdx(num(d.i, 0, 999)); });
+    on('door', (d, m) => { if (d && Array.isArray(d.t)) { if (this.game && this.game.mech) this.game.mech.trapRemote(num(d.t[0], 0, 20) | 0); } else if (d && Array.isArray(d.a)) { if (this.game && this.game.audio.radio) this.game.audio.radio.net(d.a, !!m && m.peer === this.hostPeer); } else if (d && d.r) { if (this.role === 'host' && this.game && this.game.audio.radio) this.game.audio.radio.command(d.r === 1); } else if (Array.isArray(d.q)) { if (this.game) this.game.quest.apply(d.q.slice(0, 4).map((v, k) => (k ? num(v, 0, 999) : String(v).slice(0, 2)))); } else if (Array.isArray(d.m)) { if (this.game) this.game.mech.net(d.m); } else if (d && d.g != null) { if (this.role === 'host' && this.game && this.game.descent) this.game.descent.next(); } else this.openDoorIdx(num(d.i, 0, 999)); });
   },
   // Chests that turn up during a run: the host places them and lists them in its state message, and every guest puts
   // one in the same spot (each player opens their own). The list is sent whole each time, so a lost message costs nothing.
@@ -304,7 +304,7 @@ export const Net = {
   onProjectile(d) {
     const g = this.game; if (!g || !Array.isArray(d) || g.projectiles.list.length > 150) return;
     const col = Array.isArray(d[11]) ? d[11].slice(0, 3).map((c) => num(c, 0, 4)) : [1, 1, 1]; while (col.length < 3) col.push(1);
-    const kind = ['Orb', 'Card', 'Rocket', 'Missile', 'Grenade', 'Saw'].includes(d[10]) ? d[10] : 'Orb';
+    const kind = ['Orb', 'Card', 'Rocket', 'Missile', 'Grenade', 'Saw', 'Dagger'].includes(d[10]) ? d[10] : 'Orb';
     this._in = true;
     g.projectiles.spawn({ hostile: true, pos: new THREE.Vector3(num(d[0]), num(d[1]), num(d[2])), vel: new THREE.Vector3(num(d[3], -9000, 9000), num(d[4], -9000, 9000), num(d[5], -9000, 9000)),
       gravity: num(d[6], 0, 5), damage: num(d[7], 0, 500), splash: num(d[8], 0, 800), slow: num(d[9], 0, 1), kind, color: col, radius: num(d[12], 4, 60), life: num(d[13], 0.1, 10) });

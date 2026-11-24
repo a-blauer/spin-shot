@@ -85,7 +85,7 @@ export class Game {
   tips(dt) {
     const P = this.player, F = P.focus; if (P.dead) return;
     this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
-    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom', 'Kills pay money. Chests behind a door are free; armouries, workbenches and the Mystery Box are where the money goes. Press Tab to see what you carry.'); if (this.descent.cleared) this.tip('ddoor', 'The room is clear. Take what it paid, then walk up to a lit door: the sign over it says what the next room pays. Elite doors are harder and pay better.'); }
+    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom', 'Kills pay money. Every room has an ammo box by the way in and two guns on the side walls. Press Tab to see what you carry.'); if (this.descent.cleared) this.tip('ddoor2', 'The room is clear. The workbench and the chest by the far door are open now: the chest can be bought as often as you can pay, dearer each time. The lit door leads on.'); }
     else if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
     if (this.round >= 2 && this.quest.def) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
     if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');
@@ -620,7 +620,7 @@ export class Game {
     P.onEnemyKilled(E, headshot);
     if (E.has('Gilded') || E.ai === 'Gilded') this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40);
     if (E.isBoss) {
-      this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
+      if (!this.descent) this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bossKilled(!!E.boss.final, difficulty());
       if (E.boss.final) this.levelComplete();
@@ -644,7 +644,7 @@ export class Game {
       // magazines: two or three a round, a little more as the hordes grow, capped
       if (!E.isBoss && this.ammoThisRound < 4 + Math.floor(this.round / 8) && Math.random() < Math.min(0.035, (2.2 + this.round * 0.08) / nKills)) { this.ammoThisRound++; this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0))); }
       // power-ups: about one a round, two at most
-      if (!E.isBoss && this.powerupsThisRound < 2 && Math.random() < Math.min(0.022, 1.1 / nKills)) {
+      if (!E.isBoss && !this.descent && this.powerupsThisRound < 2 && Math.random() < Math.min(0.022, 1.1 / nKills)) {
         this.powerupsThisRound++;
         this.pickups.spawn(['MaxAmmo', 'InstaKill', 'DoublePoints', 'Nuke', 'FireSale'][randInt(0, 4)], loc);
       }
@@ -765,9 +765,9 @@ export class Game {
       // nowhere to walk from here (sealed room, off the nav grid): never leave it waiting
       const [cx, cy] = this.cellOf(E.pos.x, E.pos.z), lost = !E.burrowed && this.navFree(cx, cy) && this.navDist[cy * this.navW + cx] === INF;
       E.lostT = lost ? (E.lostT || 0) + dt : 0;
-      const T = this.net.targetOf(E), dT = Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z), far = dT > (last ? 1500 : 4200);
+      const T = this.net.targetOf(E), dT = Math.hypot(E.pos.x - T.pos.x, E.pos.z - T.pos.z), far = dT > (last ? 3400 : 5200) && !(dT < 4200 && E.canSee(T.pos));   // only the truly lost: one that is a room away, or can see you, walks
       E.farT = far ? (E.farT || 0) + dt : 0;
-      if ((E.lostT > 3 || E.farT > (last ? 2 : 4) || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
+      if ((E.lostT > 3 || E.farT > (last ? 5 : 7) || (last && E.burrowed && (E.burT = (E.burT || 0) + dt) > 6)) && !(this.barricadeT > 0)) { if (E.burrowed) { E.burrowed = false; E.burT = 0; } this.relocate(E); }
     }
   }
   unstick(dt) {
@@ -792,8 +792,11 @@ export class Game {
       }
       E.stuckT = (E.stuckT || 0) + dt;
       if (!E.stuckAt) E.stuckAt = E.pos.clone();
-      if (E.pos.distanceTo(E.stuckAt) > 90 || E.pos.distanceTo(this.player.pos) < 450 || E.sinceHit < 2) { E.stuckT = 0; E.stuckAt.copy(E.pos); }
-      else if (E.stuckT > 6 && !(this.barricadeT > 0)) {
+      const ST = this.net.targetOf(E), sd = E.pos.distanceTo(ST.pos);
+      // standing still is not being stuck: anything near you, winding up, or planted where it is
+      if (E.pos.distanceTo(E.stuckAt) > 90 || sd < 700 || E.sinceHit < 2 || E.ai === 'Totem' || E.windup > 0) { E.stuckT = 0; E.stuckAt.copy(E.pos); }
+      else if (E.stuckT > 9 && sd < 3200 && E.canSee(ST.pos)) E.stuckT = 4;   // a spitter holding its range can see you: leave it be
+      else if (E.stuckT > 9 && !(this.barricadeT > 0)) {
         this.relocate(E);   // dig back up near the player rather than vanishing to a far spawn
         E.stuckT = 0; E.stuckAt.copy(E.pos);
       }

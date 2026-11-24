@@ -132,10 +132,10 @@ export const MAPS = [
     final: { arena: 'UNDER THE GALLOWS', open: 'THE TRAP IS SPRUNG', toast: 'Step into the light to go down through the trap', under: 'UNDER THE GALLOWS', acts: ['THE TIDE COMES IN', 'THE ROPE TIGHTENS'], taunt: 'Every neck has its day',
       win: 'Gallows Wharf is quiet. The Hangman has taken the drop.' } },
   // not a place but a way of playing: twenty rooms, a door chosen after each, a boss in every fifth
-  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down. Clear a room and choose the next door by the reward written over it. A boss holds every fifth room. No two runs go the same way.',
+  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down. Clear a room, spend what you earned at its workbench and chest, and go on down. A boss holds every fifth room.',
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
-      const T = THEMES[typeof zone === 'number' && zone >= 16 ? [1, 5, 7, 0][zone - 16] : (typeof zone === 'number' ? zone : 0) % 8];
+      const T = THEMES[typeof zone === 'number' && zone >= 8 ? [0, 7][(zone - 8) % 2] : (typeof zone === 'number' ? zone : 0) % 8];
       P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
       P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);
       return P;

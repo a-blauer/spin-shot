@@ -5,7 +5,7 @@ export const DATA = content;
 // buffs retired for doing the same job as another one. They keep their slot (saves and the net protocol index
 // upgrades by position) but are never offered again.
 const CUT = new Set(["Coin Purse", "Paymaster", "Tax Collector", "Trade License", "Tyrant's Purse", "Master Key", "Surgeon's Kit", "Vampire Fang", "Trophy Rack", "Titan's Belt", "Hard Hat", "Second Skin", "Iron Lung", "Barrier Coil", "Close Quarters", "Sharpshooter's Creed", "Hot Streak", "High Ground", "Featherfall", "Energy Drink", "Wind Chime", "Cowboy Spurs", "Dash Blades", "Fuel Cell", "Wind Walker", "Tailwind Ribbon", "Rattlesnake Skin", "Momentum Core", "Vulture's Due", "Bounty Poster", "Marksman's Monocle", "Wisp Jar", "Brass Knuckles", "Reaper's Whetstone", "Warlord's Banner", "Lead Weight", "Fencer's Glove", "Wide Swing", "Iron Curtain", "Powder Charge", "Reel Spring", "Grapple Shock", "Eagle Eye", "Haymaker", "Deep Pockets"]);
-for (const u of DATA.upgrades) u.cut = CUT.has(u.name);
+for (const u of DATA.upgrades) { u.cut = CUT.has(u.name); u.plain = !u.trigger && /^([+\-\u2212]\d[^.]*\.\s*)+$/.test((u.desc || '') + ' '); u.meleeOnly = !u.cls && /melee|heavy blow|swing/i.test(u.desc || ''); }
 // Money is kept in tenths so small payouts still add up; everything the player sees is shown divided by ten.
 export const cash = (x) => Math.max(0, Math.round((+x || 0) / 10)).toLocaleString();
 export const cost10 = (x) => Math.max(10, Math.round(x / 10) * 10);   // prices are whole numbers of what is shown
@@ -42,7 +42,8 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   'SwapSpeed', 'DeadeyeCrit', 'DeadeyeReload', 'RushShield', 'HealthMelee', 'TurretRange', 'TurretBurn', 'TurretBlast', 'StillDamage', 'HeadCrit', 'HeadExecute', 'GrenadeDamage', 'BlastBurn', 'GrenadeSave', 'ClusterAll',
   // buffs that do something rather than add a number
   'LandShock', 'Quake', 'Glide', 'OpenerStun', 'PointBlank', 'AirKillJump', 'WeakPoint', 'HeadPop', 'LightBolt', 'Parry', 'BladeWave', 'WallCrit', 'LowBurn', 'CritStun', 'Trample', 'BlockShock', 'SpendNova', 'GoldKill',
-  'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound'];
+  'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound',
+  'HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);

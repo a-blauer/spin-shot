@@ -546,7 +546,7 @@ export class Hud {
     if (game.final && (game.final.active || game.final.gate)) { info = game.final.active ? game.map.final.arena : game.map.final.open; ic = GOLD; }
     else if (game.phase === 'Round') info = `${game.remaining()} LEFT`;
     else if (game.phase === 'PreGame') info = `STARTS IN ${Math.ceil(game.phaseTimer)}`;
-    else if (game.phase === 'Intermission') info = game.descent ? 'CHOOSE A DOOR' : `NEXT ROUND IN ${Math.ceil(game.phaseTimer)}`;
+    else if (game.phase === 'Intermission') info = game.descent ? 'ROOM CLEAR  -  GO ON WHEN READY' : `NEXT ROUND IN ${Math.ceil(game.phaseTimer)}`;
     else if (game.phase === 'Casino') { info = `BREAK  ${Math.ceil(game.phaseTimer)}`; ic = GOLD; }
     this.text(info, tx, y - 46 * S, 28 * S, ic, 'left', F_BIG, 400, 0.12);
     this.text(zn, tx, y - 16 * S, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 700, 0.14);

@@ -147,8 +147,8 @@ export function attackX(E, name, dt, C) {
       return true; }
     case 'Tide': {   // Grandfather Toad: the floor goes under; the four slabs do not
       E.stop();
-      if (E.bossStep === 0) { E.bossStep = 1; E.windup = 1; G.banner('THE MIRE RISES  -  GET ON A SLAB', lin(0.5, 1, 0.3), 3); G.audio.playAt('S_BossRoar', E.pos, 1, 0.5); for (const p of Rm.pl) G.fx.ring(V3(p[0], 96, p[1]), 380, [0.6, 1, 0.5], 0.8); }
-      if (E.bossStep === 1 && E.bossT > 3) { E.bossStep = 2; E.windup = 0; G.hazards.fire(V3(Rm.c.x, 4, Rm.c.z), 0, Rm.r + 240, 5, lin(0.3, 0.8, 0.2)); }
+      if (E.bossStep === 0) { E.bossStep = 1; E.windup = 1; G.banner('THE MIRE RISES  -  GET ON A SLAB', lin(0.5, 1, 0.3), 3); G.audio.playAt('S_BossRoar', E.pos, 1, 0.5); for (const p of Rm.pl) G.fx.ring(V3(p[0], 96, p[1]), 380, [0.6, 1, 0.5], 0.8); if (G.descent) { G.descent.zone(Rm.c.x, Rm.c.z, Rm.r + 1600, 0x1e4a1a, 6, 0.3, 3); for (const p of Rm.pl) G.descent.zone(p[0], p[1], 330, 0xc8ffb0, 94, 0.5, 8); } }
+      if (E.bossStep === 1 && E.bossT > 3) { E.bossStep = 2; E.windup = 0; if (G.descent) G.descent.zone(Rm.c.x, Rm.c.z, Rm.r + 1600, 0x1e4a1a, 50, 0.7, 5); G.audio.playAt('S_Stomp', E.pos, 1, 0.5); }
       if (E.bossStep === 2) { E.tideT = (E.tideT || 0) - dt; if (E.tideT <= 0) { E.tideT = 0.5; for (const P of players(G)) if (P.pos.y - 90 < 55) P.receiveDamage(dmg * 0.3, E, false); } }
       if (E.bossT > 8) done();
       return true; }
@@ -180,7 +180,7 @@ export function attackX(E, name, dt, C) {
       E.windup = 1; E.stop();
       if (E.bossStep === 0) {
         E.bossStep = 1; const a = Math.random() * Math.PI * 2, r = Rm.r * 0.5; E.safe = ground(E, V3(Rm.c.x + Math.cos(a) * r, 0, Rm.c.z + Math.sin(a) * r));
-        G.banner('STAND IN THE LIGHT', lin(1, 1, 0.85), 3); G.hazards.fire(E.safe, 0, 470, 4.4, [1, 1, 0.85]); G.audio.playAt('S_BossRoar', E.pos, 1, 0.45);
+        G.banner('STAND IN THE LIGHT', lin(1, 1, 0.85), 3); if (G.descent) { G.descent.zone(E.safe.x, E.safe.z, 470, 0xfff0c0, E.safe.y + 6, 0.55, 4.3); G.descent.zone(E.safe.x, E.safe.z, 500, 0xffffff, E.safe.y + 4, 0.35, 4.3); } G.audio.playAt('S_BossRoar', E.pos, 1, 0.45);
       }
       if (E.bossStep === 1 && E.bossT > 4.2) {
         E.bossStep = 2; G.hud.hurtWhite = 0.5; G.shakeAt(E.pos, 1200);

@@ -14,76 +14,108 @@ export const THEMES = [
   { name: 'The Hive', floor: 0x221c10, floor2: 0x332a14, wall: 0x40341a, trim: 0x8a6a2a, glow: 0xffb020, lamp: [1.0, 0.75, 0.2], fog: 0x30260c, sh: [0.64, 0.56, 0.36] },
   { name: 'Null Chamber', floor: 0x18141f, floor2: 0x261e33, wall: 0x30263f, trim: 0x8a7ab8, glow: 0xc58cff, lamp: [0.75, 0.5, 1.0], fog: 0x1e1430, sh: [0.54, 0.46, 0.76] },
 ];
-const NAMES = ['The Ossuary', 'Cinder Works', 'Rime Vault', 'Mire Cellar', 'The Gilded Ring', 'Drowned Hall', 'The Hive', 'Null Chamber',
-  'Bone Gallery', 'The Slag Pit', 'Glacier Lock', 'Rot Garden', 'The Counting Room', 'Brine Cistern', 'Wax Cells', 'The Blind Stair'];
-const BOSS_NAMES = ['The First Seal', 'The Second Seal', 'The Third Seal', 'The Bottom'];
+const NAMES = ['The Colonnade', 'Four Corners', 'The Ziggurat', 'The Breakwater', 'Twin Drums', 'The Foundry', 'The Hypostyle', 'The Ring'];
+const BOSS_NAMES = ['The Seal', 'The Bottom'];
 const up = (h, k) => { const r = Math.min(255, Math.round(((h >> 16) & 255) * k)), g = Math.min(255, Math.round(((h >> 8) & 255) * k)), b = Math.min(255, Math.round((h & 255) * k)); return (r << 16) | (g << 8) | b; };
-for (const T of THEMES) { T.floor = up(T.floor, 1.35); T.floor2 = up(T.floor2, 1.5); T.wall = up(T.wall, 1.3); }
-const SP = 6400;
-// filled in as the arenas are built: { c: [x, y], hx, hy, reward: [x, y], gates: [[x, y], ...], spawn: [x, y], zone, theme, boss, plinths }
+for (const T of THEMES) { T.floor = up(T.floor, 1.35); T.floor2 = up(T.floor2, 1.5); T.wall = up(T.wall, 1.3); T.roof = up(T.wall, 0.45); }
+const SP = 9600;
+// filled in as the arenas are built: { c: [x, y], hx, hy, H, zone, theme, boss, plinths }
 export const ARENAS = [];
+// Where things stand in a room, given which end you came in by (s = 1: in at the south, out at the north; -1 the other way).
+export function spots(A, s) {
+  const [cx, cy] = A.c, hy = A.hy, hx = A.hx;
+  return { spawn: [cx, cy - s * (hy - 320)], yaw: s > 0 ? Math.PI : 0, exit: [cx, cy + s * (hy - 110)], textYaw: s > 0 ? -90 : 90,
+    bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + 900, cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
+    ammo: [cx + 700, cy - s * (hy - 110)], ammoYaw: s > 0 ? 90 : -90, guns: [[cx - hx + 8, cy - s * 500, 0], [cx + hx - 8, cy + s * 500, 180]] };
+}
 
 export function buildDescent(M) {
   const { Box, Glow, Cyl, Oct, Floor, Lamp, SpawnAt, AddZone, GM } = M;
-  GM.navInit(-16000, -12800, 16000, 12800, 100);
-  let seed = 7;
-  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  GM.navInit(-24200, -9800, 24200, 9800, 100);
   const brazier = (x, y, T, h = 150) => { Cyl(V(x, y, h / 2), 70, h, T.trim, true, true); Cyl(V(x, y, h + 8), 110, 16, T.wall, false, false); Glow(V(x, y, h + 34), V(60, 60, 44), T.glow, 2); Lamp(V(x, y, h + 90), { r: T.lamp[0], g: T.lamp[1], b: T.lamp[2] }, 2.2, 1500, false); };
   const one = (i, cx, cy, boss) => {
-    const T = THEMES[boss ? [1, 5, 7, 0][i - 16] : i % 8], kind = boss ? -1 : (i * 3 + (i >> 3)) % 8;
-    const hx = boss ? 2800 : [1800, 2200, 1700, 2000][i % 4], hy = boss ? 2800 : [1700, 1500, 2000, 1800][(i + (i >> 2)) % 4], H = boss ? 1500 : 720;
-    const zone = AddZone(boss ? BOSS_NAMES[i - 16] : NAMES[i], V2(cx - hx, cy - hy), V2(cx + hx, cy + hy));
+    const T = THEMES[boss ? [0, 7][i - 8] : i], kind = boss ? -1 : i;
+    const hx = boss ? 4000 : 3400, hy = boss ? 4000 : 3000, H = boss ? 2000 : 1000;
+    const zone = AddZone(boss ? BOSS_NAMES[i - 8] : NAMES[i], V2(cx - hx, cy - hy), V2(cx + hx, cy + hy));
     GM.zones[zone].group = zone;
-    const A = { c: [cx, cy], hx, hy, zone, theme: THEMES.indexOf(T), boss, gates: [], plinths: [], reward: [cx, cy], spawn: [cx, cy - hy + 260] };
+    const A = { c: [cx, cy], hx, hy, H, zone, theme: THEMES.indexOf(T), boss, plinths: [] };
+    const L = { r: T.lamp[0], g: T.lamp[1], b: T.lamp[2] };
     M.at({ x: cx, y: cy, z: 0, rot: 0 }, () => {
+      // ---- the shell: a floor, four dead-flat walls you can run along, and a roof
       Box(V(0, 0, -60), V(hx * 2 + 400, hy * 2 + 400, 120), T.floor, true, false);
-      // inlay: a border and a few slabs, so the floor reads as laid stone and gives the eye something to measure speed by
-      for (const s of [-1, 1]) { Floor(V2(-hx + 120, s * (hy - 160) - 20), V2(hx - 120, s * (hy - 160) + 20), 2, T.floor2); Floor(V2(s * (hx - 160) - 20, -hy + 120), V2(s * (hx - 160) + 20, hy - 120), 2, T.floor2); }
-      for (let k = 0; k < (boss ? 26 : 12); k++) { const w = 160 + rnd() * 260, x = (rnd() * 2 - 1) * (hx - 400), y = (rnd() * 2 - 1) * (hy - 400); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 1.2 + rnd(), T.floor2); }
+      Box(V(0, 0, H + 60), V(hx * 2 + 400, hy * 2 + 400, 120), T.roof, true, false);
+      for (const s of [-1, 1]) { Box(V(0, s * (hy + 100), H / 2), V(hx * 2 + 400, 200, H), T.wall, true, true); Box(V(s * (hx + 100), 0, H / 2), V(200, hy * 2 + 400, H), T.wall, true, true); }
+      // laid stone: a grid of joints, a border, a runner from door to door
+      for (let x = -hx + 800; x < hx; x += 800) Floor(V2(x - 5, -hy), V2(x + 5, hy), 1.2, T.floor2);
+      for (let y = -hy + 800; y < hy; y += 800) Floor(V2(-hx, y - 5), V2(hx, y + 5), 1.2, T.floor2);
+      Floor(V2(-260, -hy), V2(260, hy), 1.6, T.floor2); Floor(V2(-230, -hy), V2(230, hy), 2, T.floor);
+      for (const s of [-1, 1]) { Floor(V2(-hx, s * (hy - 90) - 90), V2(hx, s * (hy - 90) + 90), 1.8, T.floor2); Floor(V2(s * (hx - 90) - 90, -hy), V2(s * (hx - 90) + 90, hy), 1.8, T.floor2); }
+      // the walls are dressed flush (nothing here collides, so nothing catches a wall-run): a skirting, a band of light, a dark frieze under the roof
       for (const s of [-1, 1]) {
-        Box(V(0, s * (hy + 60), H / 2), V(hx * 2 + 240, 120, H), T.wall, true, true); Box(V(s * (hx + 60), 0, H / 2), V(120, hy * 2 + 240, H), T.wall, true, true);
-        Box(V(0, s * (hy - 6), 30), V(hx * 2, 12, 60), T.trim, false, false); Box(V(s * (hx - 6), 0, 30), V(12, hy * 2, 60), T.trim, false, false);
-        Glow(V(0, s * (hy - 10), H - 60), V(hx * 2, 6, 10), T.glow, 0); Glow(V(s * (hx - 10), 0, H - 60), V(6, hy * 2, 10), T.glow, 0);
-        for (let x = -hx + 300; x < hx; x += 600) Box(V(x, s * (hy - 20), H / 2), V(90, 40, H), T.floor2, false, false);
-        for (let y = -hy + 300; y < hy; y += 600) Box(V(s * (hx - 20), y, H / 2), V(40, 90, H), T.floor2, false, false);
+        Box(V(0, s * (hy - 2), 40), V(hx * 2, 4, 80), T.trim, false, false); Box(V(s * (hx - 2), 0, 40), V(4, hy * 2, 80), T.trim, false, false);
+        Glow(V(0, s * (hy - 2), H * 0.56), V(hx * 2, 4, 14), T.glow, 0); Glow(V(s * (hx - 2), 0, H * 0.56), V(4, hy * 2, 14), T.glow, 0);
+        Box(V(0, s * (hy - 2), H - 90), V(hx * 2, 4, 180), T.roof, false, false); Box(V(s * (hx - 2), 0, H - 90), V(4, hy * 2, 180), T.roof, false, false);
+        for (let x = -hx + 400; x < hx; x += 800) Box(V(x, s * (hy - 1.5), H * 0.5), V(26, 3, H - 180), T.floor2, false, false);
+        for (let y = -hy + 400; y < hy; y += 800) Box(V(s * (hx - 1.5), y, H * 0.5), V(3, 26, H - 180), T.floor2, false, false);
       }
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 200), sy * (hy - 200), T);
-      for (const s of [-1, 1]) for (const t of [-0.45, 0.45]) { Glow(V(s * (hx - 30), t * hy, 330), V(16, 60, 90), T.glow, 0); Glow(V(t * hx, s * (hy - 30), 330), V(60, 16, 90), T.glow, 0); }
-      Lamp(V(0, 0, 520), { r: T.lamp[0], g: T.lamp[1], b: T.lamp[2] }, 2.4, boss ? 3200 : 2200, false);
-      // the three doorways in the far wall: dressed stone now, lit when the room is clear
-      for (const gx of [-800, 0, 800]) {
-        for (const s of [-1, 1]) Box(V(gx + s * 190, hy - 30, 210), V(70, 70, 420), T.trim, false, false);
-        Box(V(gx, hy - 30, 450), V(480, 80, 70), T.trim, false, false); Box(V(gx, hy - 4, 205), V(310, 10, 410), 0x050608, false, false);
-        A.gates.push([cx + gx, cy + hy - 110]);
+      // the roof: beams across it and lamps hung from them
+      for (let y = -hy + 600; y < hy; y += 1200) Box(V(0, y, H - 40), V(hx * 2, 90, 80), T.floor2, false, false);
+      const lx = boss ? [-2400, 0, 2400] : [-2000, 0, 2000], ly = boss ? [-2400, 0, 2400] : [-1800, 0, 1800];
+      for (const x of lx) for (const y of ly) { Box(V(x, y, H - 130), V(14, 14, 180), T.roof, false, false); Glow(V(x, y, H - 240), V(120, 120, 40), T.glow, 0); Lamp(V(x, y, H - 320), L, 2.6, 2600, false); }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 260), sy * (hy - 260), T);
+      // a doorway at each end: you come in by one and leave by the other
+      for (const s of [-1, 1]) {
+        for (const e of [-1, 1]) Box(V(e * 230, s * (hy - 30), 250), V(90, 60, 500), T.trim, false, false);
+        Box(V(0, s * (hy - 30), 540), V(600, 60, 90), T.trim, false, false); Box(V(0, s * (hy - 3), 245), V(370, 6, 490), 0x050608, false, false);
+        Glow(V(0, s * (hy - 34), 596), V(520, 8, 8), T.glow, 0);
       }
-      // where you come in: a dead doorway behind you
-      for (const s of [-1, 1]) Box(V(s * 190, -hy + 30, 210), V(70, 70, 420), T.floor2, false, false);
-      Box(V(0, -hy + 30, 450), V(480, 80, 70), T.floor2, false, false); Box(V(0, -hy + 4, 205), V(310, 10, 410), 0x050608, false, false);
-      const pillar = (x, y, d = 240, h = H) => { Cyl(V(x, y, h / 2), d, h, T.wall, true, true); Cyl(V(x, y, 30), d + 50, 60, T.trim, false, false); Glow(V(x, y, h * 0.55), V(d + 6, d + 6, 8), T.glow, 1); };
-      const crate = (x, y, s = 190, n = 1) => { for (let k = 0; k < n; k++) Box(V(x + (k ? (rnd() - 0.5) * 40 : 0), y, s / 2 + k * s), V(s, s, s), k ? T.floor2 : T.trim, true, k === 0, rnd() * 30); };
-      const lowWall = (x, y, len, alongX, h = 170) => Box(V(x, y, h / 2), alongX ? V(len, 70, h) : V(70, len, h), T.wall, true, true);
+      const pillar = (x, y, d = 300, h = H) => { Cyl(V(x, y, h / 2), d, h, T.wall, true, true); Cyl(V(x, y, 35), d + 70, 70, T.trim, false, false); Cyl(V(x, y, h - 35), d + 70, 70, T.trim, false, false); Glow(V(x, y, h * 0.56), V(d + 6, d + 6, 12), T.glow, 1); };
+      const block = (x, y, w, d, h, glow = true) => { Box(V(x, y, h / 2), V(w, d, h), T.wall, true, true); Box(V(x, y, 30), V(w + 30, d + 30, 60), T.trim, false, false); if (glow) Glow(V(x, y, Math.min(h, H) * 0.56), V(w + 6, d + 6, 12), T.glow, 0); if (h < H) Box(V(x, y, h + 6), V(w + 30, d + 30, 12), T.trim, false, false); };
+      const lowWall = (x, y, len, alongX, h = 180) => { Box(V(x, y, h / 2), alongX ? V(len, 90, h) : V(90, len, h), T.wall, true, true); Box(V(x, y, h + 5), alongX ? V(len + 20, 110, 10) : V(110, len + 20, 10), T.trim, false, false); };
+      // broad steps anything can walk up: three risers of forty
+      const terrace = (x, y, w, d, n = 3) => { for (let k = 0; k < n; k++) Box(V(x, y, 20 + k * 40), V(w - k * 360, d - k * 360, 40), k % 2 ? T.trim : T.floor2, true, false); };
       if (boss) {
-        for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 1900, sy * 1900, 340); Box(V(sx * 1150, sy * 1150, 45), V(520, 520, 90), T.trim, true, false); Glow(V(sx * 1150, sy * 1150, 92), V(440, 440, 3), T.glow, 0); A.plinths.push([cx + sx * 1150, cy + sy * 1150]); }
-        for (const s of [-1, 1]) { brazier(s * 2400, 0, T, 220); brazier(0, s * 2400 - (s > 0 ? 500 : -500), T, 220); }
-        Glow(V(0, 0, 3), V(900, 900, 2), T.glow, 8);   // the seal in the middle of the floor
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 2700, sy * 2700, 440); Box(V(sx * 1500, sy * 1500, 45), V(640, 640, 90), T.trim, true, false); Glow(V(sx * 1500, sy * 1500, 92), V(560, 560, 3), T.glow, 0); A.plinths.push([cx + sx * 1500, cy + sy * 1500]); }
+        for (const s of [-1, 1]) { brazier(s * 3300, 0, T, 240); brazier(s * 1300, s * 3300, T, 240); brazier(-s * 1300, s * 3300, T, 240); }
+        Glow(V(0, 0, 3), V(1300, 1300, 2), T.glow, 8); Glow(V(0, 0, 3), V(700, 700, 2), T.glow, 8);
       } else switch (kind) {
-        case 0: for (const sx of [-1, 1]) for (const sy of [-1, 1]) pillar(sx * hx * 0.45, sy * hy * 0.45); break;
-        case 1: for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + 0.3; crate(Math.cos(a) * hx * 0.5, Math.sin(a) * hy * 0.5, 190, 1 + (k % 3 === 0 ? 1 : 0)); crate(Math.cos(a) * hx * 0.5 + 200, Math.sin(a) * hy * 0.5 + 30, 150); } break;
-        case 2: for (const s of [-1, 1]) { lowWall(s * hx * 0.42, 0, hx * 0.5, true); lowWall(0, s * hy * 0.5, hy * 0.42, false); } A.reward = [cx, cy]; break;
-        case 3: Box(V(0, 0, 20), V(1100, 1100, 40), T.floor2, true, false); Box(V(0, 0, 60), V(820, 820, 40), T.trim, true, false); Box(V(0, 0, 100), V(540, 540, 40), T.floor2, true, false); for (const sx of [-1, 1]) for (const sy of [-1, 1]) pillar(sx * 760, sy * 760, 150, 420); A.reward = [cx, cy - hy * 0.5]; break;
-        case 4: Oct(V(0, 0, 260), V(900, 900, 520), T.wall, true, true); Glow(V(0, 0, 524), V(700, 700, 4), T.glow, 8); for (const sx of [-1, 1]) for (const sy of [-1, 1]) pillar(sx * hx * 0.6, sy * hy * 0.6, 170); A.reward = [cx, cy - hy * 0.55]; break;
-        case 5: for (const x of [-0.5, 0, 0.5]) for (const s of [-1, 1]) lowWall(x * hx, s * hy * 0.38, hy * 0.42, false, 230); A.reward = [cx + hx * 0.25, cy]; break;
-        case 6: for (let k = 0; k < 9; k++) { const x = (rnd() * 2 - 1) * hx * 0.62, y = (rnd() * 2 - 1) * hy * 0.5; if (Math.hypot(x, y) < 420) continue; lowWall(x, y, 260 + rnd() * 380, rnd() < 0.5, 150 + rnd() * 260); } break;
-        default: for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; brazier(Math.cos(a) * hx * 0.5, Math.sin(a) * hy * 0.5, T, 120); } break;
+        case 0:   // The Colonnade: three lanes between two rows of columns, a stepped gallery along each side wall
+          for (const sx of [-1, 1]) { for (let y = -1800; y <= 1800; y += 1200) pillar(sx * 1250, y, 320); for (let k = 0; k < 3; k++) Box(V(sx * (hx - 300 + k * 90), 0, 20 + k * 40), V(600 - k * 180, hy * 2 - 1600, 40), k % 2 ? T.trim : T.floor2, true, false); }
+          break;
+        case 1:   // Four Corners: four blocks, the streets between them and the road around
+          for (const sx of [-1, 1]) for (const sy of [-1, 1]) { block(sx * 1550, sy * 1300, 1300, 1100, H); brazier(sx * 520, sy * 420, T, 120); }
+          break;
+        case 2:   // The Ziggurat: high ground in the middle that anything can climb
+          terrace(0, 0, 2600, 2600, 3); for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 760, sy * 760, 200, 520); lowWall(sx * 2400, sy * 1900, 900, sx * sy > 0); }
+          Glow(V(0, 0, 122), V(700, 700, 3), T.glow, 8);
+          break;
+        case 3:   // The Breakwater: staggered waist-high walls; you go over, they go round
+          for (let r = 0; r < 5; r++) { const y = -1800 + r * 900; for (const x of (r % 2 ? [-1100, 1100] : [-2200, 0, 2200])) lowWall(x, y, 1200, true); }
+          for (const s of [-1, 1]) pillar(s * 3000, 0, 260);
+          break;
+        case 4:   // Twin Drums: two great drums to run rings round, a figure of eight between them
+          for (const s of [-1, 1]) { Oct(V(s * 1550, 0, H / 2), V(1500, 1500, H), T.wall, true, true); Oct(V(s * 1550, 0, 35), V(1580, 1580, 70), T.trim, false, false); Glow(V(s * 1550, 0, H * 0.56), V(1510, 1510, 12), T.glow, 7); pillar(0, s * 1700, 260); lowWall(s * 1550, s * 2200, 1000, true); lowWall(s * 1550, -s * 2200, 1000, true); }
+          break;
+        case 5:   // The Foundry: machines in two rows and the furnace in the middle
+          for (const sx of [-1, 1]) for (const sy of [-1, 1]) { block(sx * 1700, sy * 1350, 800, 1500, 440); Glow(V(sx * 1700, sy * 1350, 448), V(500, 1100, 6), T.glow, 0); Cyl(V(sx * 1700, sy * 1350, 440 + (H - 440) / 2), 160, H - 440, T.floor2, false, false); }
+          block(0, 0, 900, 900, 300); Glow(V(0, 0, 308), V(620, 620, 6), T.glow, 0); for (const s of [-1, 1]) Box(V(s * 2900, 0, H - 260), V(120, hy * 2, 120), T.trim, false, false);
+          break;
+        case 6:   // The Hypostyle: a forest of columns
+          for (let x = -2400; x <= 2400; x += 1200) for (let y = -2100; y <= 2100; y += 1400) { if (x === 0 && Math.abs(y) > 1500) continue; pillar(x + ((y / 1400) % 2 ? 300 : 0), y, 210); }
+          break;
+        default:   // The Ring: a broken circle of wall round a raised middle
+          for (let k = 0; k < 8; k++) { const a = (k + 0.5) / 8 * Math.PI * 2, x = Math.cos(a) * 1900, y = Math.sin(a) * 1700; Box(V(x, y, 210), V(1000, 110, 420), T.wall, true, true, 90 + a * 180 / Math.PI); }
+          terrace(0, 0, 1500, 1500, 2); brazier(0, 0, T, 200);
+          break;
       }
-      // where they come up: round the walls, never by the way in
-      const n = boss ? 12 : 10;
-      for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * Math.PI * 1.5 - Math.PI * 0.25, x = Math.cos(a) * (hx - 330), y = Math.sin(a) * (hy - 330) + (boss ? 0 : 120); SpawnAt(V(Math.max(-hx + 260, Math.min(hx - 260, x)), Math.max(-hy + 700, Math.min(hy - 300, y)), 0), zone); }
+      // where they come up: all over the room, never on top of a doorway
+      const n = boss ? 14 : 16;
+      for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * Math.PI * 2, r = k % 2 ? 0.86 : 0.55, x = Math.cos(a) * (hx - 300) * r, y = Math.sin(a) * (hy - 700) * r; SpawnAt(V(x, y, 0), zone); }
     });
     ARENAS[i] = A;
   };
   ARENAS.length = 0;
-  for (let i = 0; i < 16; i++) one(i, ((i % 4) - 2) * SP, (Math.floor(i / 4) - 1.5) * SP, false);
-  for (let i = 16; i < 20; i++) one(i, 2 * SP, (i - 16 - 1.5) * SP, true);
-  M.Spawn(V(ARENAS[0].spawn[0], ARENAS[0].spawn[1], 100));
+  for (let i = 0; i < 8; i++) one(i, ((i % 4) - 2) * SP, (i < 4 ? -0.5 : 0.5) * SP, false);
+  for (let i = 8; i < 10; i++) one(i, 2 * SP, (i === 8 ? -0.5 : 0.5) * SP, true);
+  const S0 = spots(ARENAS[0], 1); M.Spawn(V(S0.spawn[0], S0.spawn[1], 100));
 }

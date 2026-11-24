@@ -45,6 +45,11 @@ export class Projectiles {
         P.body.rotation.x = Math.PI / 2;
         part(g, 2, V3(0, 0, D * 1.4), V3(D * 0.9, D * 0.9, D * 0.9), P.color, 1.3);
         break;
+      case 'Dagger':   // long steel blade, a crossguard, a dark grip; it flies point first
+        P.body = part(g, 0, V3(0, 0, D * 1.3), V3(D * 0.42, 3, D * 2.6), [0.86, 0.9, 0.95], 0.7);
+        part(g, 0, V3(0, 0, D * 2.75), V3(D * 0.22, 2.4, D * 0.5), [0.95, 0.98, 1], 1.1); part(g, 0, V3(0, 0, -D * 0.02), V3(D * 1.3, 5, D * 0.22), [0.7, 0.55, 0.25], 0.3);
+        part(g, 0, V3(0, 0, -D * 0.75), V3(D * 0.3, 6, D * 1.3), [0.14, 0.1, 0.1], 0.05); part(g, 2, V3(0, 0, -D * 1.5), V3(D * 0.5, D * 0.5, D * 0.5), [0.7, 0.55, 0.25], 0.3);
+        break;
       case 'Grenade':
         P.body = part(g, 1, V3(0, 0, 0), V3(D * 0.8, D * 1.8, D * 0.8), [0.9, 0.2, 0.15]);
         part(g, 0, V3(0, D, 0), V3(4, D * 0.6, 4), [1, 0.93, 0.66], 1.3);
@@ -139,6 +144,7 @@ export class Projectiles {
         } else P.pos.copy(end);
       }
       P.group.position.copy(P.pos);
+      if (P.kind === 'Rocket' || P.kind === 'Missile' || P.kind === 'Dagger') { if (P.vel.lengthSq() > 1) P.group.lookAt(P.pos.x + P.vel.x, P.pos.y + P.vel.y, P.pos.z + P.vel.z); if (P.kind === 'Dagger') { P.trail -= dt; if (P.trail <= 0) { P.trail = 0.03; G.fx.puff(P.pos, [0.6, 0.9, 1], 14, 0.25); } } }
       if (P.vel.lengthSq() > 1) {
         if (P.kind === 'Saw') P.body.rotation.y += 25 * dt;
         else if (P.kind === 'Card') P.group.rotation.y += 15.7 * dt;

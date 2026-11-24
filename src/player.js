@@ -43,7 +43,7 @@ const vrandCone = (dir, half) => {
 // cheap 1D value noise for camera shake
 const noise1 = (x) => { const i = Math.floor(x), f = x - i; const h = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return (s - Math.floor(s)) * 2 - 1; }; const u = f * f * (3 - 2 * f); return h(i) * (1 - u) + h(i + 1) * u; };
 
-const ACTIVE_STATS = ['Glide', 'Parry', 'LandShock', 'WallCrit', 'BladeWave', 'AirKillJump', 'Trample', 'DashReload', 'TapedMag', 'FinalRound', 'RampFire', 'HotBarrel', 'LightBolt', 'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'SteadyAim'];
+const ACTIVE_STATS = ['HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch', 'Glide', 'Parry', 'LandShock', 'WallCrit', 'BladeWave', 'AirKillJump', 'Trample', 'DashReload', 'TapedMag', 'FinalRound', 'RampFire', 'HotBarrel', 'LightBolt', 'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'SteadyAim'];
 const PROC_DAMAGE = ['Explode', 'Nova', 'Missile', 'Chain', 'Shockwave', 'Ignite', 'Skip'];
 export class Player {
   constructor(game) {
@@ -315,6 +315,11 @@ export class Player {
     this.hitMarker = Math.max(0, this.hitMarker - dt);
     this.hasteT = Math.max(0, this.hasteT - dt); if (this.hasteT <= 0) this.haste = 0;
     this.rageT = Math.max(0, this.rageT - dt); if (this.rageT <= 0) this.rage = 0;
+    this.krT = Math.max(0, (this.krT || 0) - dt); this.ktT = Math.max(0, (this.ktT || 0) - dt);
+    if (this.S.SlideLaunch && this.sliding && (this.slT = (this.slT || 0) - dt) <= 0) {   // Slide Grease: slide into them and they go up
+      let hit = 0; for (const E of this.game.enemies) if (!E.dead && !E.isBoss && E.pos.distanceTo(this.pos) < 190 + E.radius) { hit++; E.launch(V3(this.vel.x * 0.4, 760, this.vel.z * 0.4)); this.stun(E, 0.9); this.procDepth++; this.dealDamage(E, this.power() * 0.4 * this.S.SlideLaunch, E.pos, V3(0, 1, 0), false, 0, true); this.procDepth--; }
+      if (hit) { this.slT = 0.3; const f = V3(this.pos.x, this.pos.y - 85, this.pos.z); this.game.fx.ring(f, 220, [0.9, 0.95, 1], 0.25); this.game.fx.dust(f, lin(0.5, 0.45, 0.4), 120); this.play('S_Stomp', 0.5, 1.5, 0.05); }
+    }
     this.slowT = Math.max(0, this.slowT - dt);
     // Healing in a fight (kills, lifesteal, leech, procs) all draws on one budget that refills at 2.2% of max health a
     // second and holds 6%. It used to be 8 a second flat, which a horde of a hundred filled without you noticing.
@@ -399,7 +404,7 @@ export class Player {
   // ------------------------------------------------------------------ movement
   updateMoveSpeed() {
     if (this.sliding) return;
-    let s = WalkSpeed * (1 + Math.min(1, this.stat('MoveSpeed')) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
+    let s = WalkSpeed * (1 + Math.min(1, this.stat('MoveSpeed')) + (this.krT > 0 ? (this.krN || 0) * this.S.KillRush : 0) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
     if (this.sprintHeld && this.inFwd > 0.1 && !this.aiming) s *= SprintMult;
     if (this.aiming) s *= 0.7;
     s *= this.game.mech.slow(this);   // wading
@@ -1027,6 +1032,10 @@ export class Player {
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
     if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
+    if (this.S.Bulwark && this.game.time > (this.bwT || 0)) {   // Scrap Plating: one blow in ten seconds rings off the plate, and the ring knocks them back
+      this.bwT = this.game.time + Math.max(5, 11 - this.S.Bulwark); this.shockAround(400, this.power() * 0.8, [0.75, 0.82, 0.9]); this.play('S_Ricochet', 0.8, 0.7, 0.05);
+      this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'DEFLECTED', [0.75, 0.85, 1], 1); return;
+    }
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
     const raw = amount;
@@ -1201,7 +1210,7 @@ export class Player {
     this.hotBarrel = (this.sustain || 0) >= 2 ? this.stat('HotBarrel') : 0;
     if (this.hotBarrel > 0 && !wasHot) { this.play('S_PowerUp', 0.4, 1.6); G.hud.floater(this.eye().add(this.forward().multiplyScalar(140)), 'BARREL HOT', [1, 0.55, 0.15], 1.1); }
     const wasLast = !echo && S.ammo === 1;
-    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate')) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
+    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
@@ -1430,11 +1439,22 @@ export class Player {
     let weak = false;
     if (!fromProc && this.S.WeakPoint && (E.elite || E.isBoss)) { E.pryN = (E.pryN || 0) + 1; if (E.pryN % 5 === 0) { crit = true; weak = true; } }   // Pry Bar: every fifth hit finds the gap
     if (!fromProc) this.lastCrit = crit;
+    let hollow = false;
+    if (!fromProc && !this.meleeHitting) {
+      if (this.S.HollowN) { this.hollowN = (this.hollowN || 0) + 1; if (this.hollowN % 5 === 0) hollow = true; }                       // Hollow Points: every fifth round mushrooms
+      if (this.S.HeadStreak) { this.hsN = headshot ? Math.min(5, (this.hsN || 0) + 1) : 0; if (this.hsN >= 2) G.hud.floater(at.clone().add(V3(0, 40, 0)), `HEADS x${this.hsN}`, [1, 0.9, 0.4], 0.8); }   // Marksman's Monocle
+      if (crit && this.S.CritFlash && G.time > (this.cfT || 0)) {                                                                      // Lens Shard: a crit goes off like a flashbulb
+        this.cfT = G.time + 2; G.fx.flash(E.pos, [1, 1, 0.8], 300, 0.22, true); G.fx.ring(E.feet(), 420, [1, 1, 0.8], 0.3);
+        for (const K of G.enemies) if (!K.dead && K !== E && K.pos.distanceTo(E.pos) < 420) this.stun(K, 0.5 + 0.15 * this.S.CritFlash);
+      }
+    }
     const fresh = E.health >= E.maxHealth * 0.9;
     let dmg = base * mult;
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
     if (head) dmg *= 1.75 + this.stat('HeadshotDamage');
+    if (this.hsN > 0 && this.S.HeadStreak && !fromProc) dmg *= 1 + this.hsN * this.S.HeadStreak;
+    if (hollow) { dmg *= 1 + this.S.HollowN; G.fx.flash(at, [1, 0.8, 0.3], 150, 0.16, true); G.fx.sparks(at, dir ? dir.clone().negate() : V3(0, 1, 0), [1, 0.85, 0.4], 10); if (!E.isBoss && dir) E.launch(V3(dir.x * 620, 260, dir.z * 620)); G.hud.floater(at.clone().add(V3(0, 30, 0)), 'HOLLOW POINT', [1, 0.8, 0.3], 0.8); }
     if (G.instaKill > 0 && !E.isBoss) dmg = Math.max(dmg, E.health + E.shield + 1);
     if (head && !E.isBoss && this.S.HeadExecute && E.health < E.maxHealth * this.S.HeadExecute) dmg = Math.max(dmg, E.health + E.shield + 1);   // Killshot
     const dealt = E.takeHit(dmg, at, dir || V3(0, 0, 0), head);
@@ -1559,6 +1579,9 @@ export class Player {
     this.streak = (this.streakT > 0 ? (this.streak || 0) : 0) + 1; this.streakT = 3;
     { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
     if (headshot && this.S.HeadCrit) this.headCritT = 3;
+    if (this.S.EliteBlast && E.elite && this.procDepth < 1) { this.procDepth++; this.explodeAt(E.pos, 440, this.power() * 2 * this.S.EliteBlast, 0, true, false, [1, 0.5, 0.2], E); this.procDepth--; }   // Rusty Shiv: an elite goes up when it goes down
+    if (this.S.KillRush) { this.krN = Math.min(5, (this.krT > 0 ? this.krN || 0 : 0) + 1); this.krT = 5; }           // Energy Drink
+    if (this.S.KillTempo) { this.ktN = Math.min(6, (this.ktT > 0 ? this.ktN || 0 : 0) + 1); this.ktT = 2; }        // Fanning Practice
     if (this.S.AirKillJump && !this.grounded && this.airJumps <= this.maxAirJumps()) {   // Featherweight: a kill in the air is a foothold
       this.airJumps++; const feet = V3(this.pos.x, this.pos.y - 88, this.pos.z);
       G.fx.ring(feet, 70, [0.8, 1, 0.85], 0.22); this.play('S_AirJump', 0.4, 1.5, 0.04);
@@ -1655,8 +1678,9 @@ export class Player {
         const from = Me.clone().add(V3(0, 90, 0));
         const aimE = alive ? target : this.findNearestEnemy(at, 2500, null);
         const dir = aimE ? aimE.pos.clone().sub(from).normalize().add(V3(0, 0.8, 0)) : V3(0, 1, 0);
-        G.projectiles.spawn({ pos: from, vel: dir.normalize().multiplyScalar(1500), damage: mag * base, splash: 140, fromProc: true, procCoef: 0, target: aimE, homing: 6, life: 4, kind: 'Missile', color: lin(1, 0.5, 0.2), radius: 10 });
-        G.audio.playAt('S_Launcher', from, 0.35, 1.5);
+        const knife = /Dagger/.test(U.name);   // a thrown blade is a blade, not a rocket
+        G.projectiles.spawn({ pos: from, vel: dir.normalize().multiplyScalar(knife ? 1900 : 1500), damage: mag * base, splash: knife ? 0 : 140, fromProc: true, procCoef: 0, target: aimE, homing: knife ? 9 : 6, life: 4, kind: knife ? 'Dagger' : 'Missile', color: knife ? lin(0.6, 0.9, 1) : lin(1, 0.5, 0.2), radius: 10 });
+        G.audio.playAt(knife ? 'S_Swing' : 'S_Launcher', from, knife ? 0.6 : 0.35, 1.5);
         break;
       }
       case 'RefundAmmo': { const S = this.slot; if (S.def >= 0) S.ammo = Math.min(this.magSize(S), S.ammo + Math.max(1, Math.ceil(mag * this.magSize(S)))); break; }
@@ -2183,7 +2207,7 @@ export class Player {
     this.addUpgrade(u);
     this.play(rarityIndex(U.rarity) >= 3 ? 'S_LevelUp' : 'S_Upgrade', 0.9);
     if (rarityIndex(U.rarity) >= 3) this.game.banner(U.name.toUpperCase(), lin(1, 0.75, 0.25), 2.5);
-    if (I) I.holding = false;
+    if (I) { I.holding = false; if (I.keep) I.setOpened(false); }
     this.invuln = Math.max(this.invuln, 2); this.safeT = Math.max(this.safeT || 0, this.invuln);   // and a moment to get clear
     this.menu = null; this.menuStation = null;
   }
