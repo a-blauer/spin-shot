@@ -124,7 +124,7 @@ export class Descent {
   open() {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 2500, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
-    const Ch = this.station('Chest', S.chest[0], S.chest[1], S.chestYaw, 0, this.tier, 'Chest'); Ch.keep = true;
+    for (let t = 0; t < 4; t++) { const Ch = this.station('Chest', S.chest[0] + t * 300, S.chest[1], S.chestYaw, 0, t, 'Chest'); Ch.keep = true; }   // one of each: wooden, iron, gilt, reliquary
     g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 950, -1, 'Mystery Box');
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));

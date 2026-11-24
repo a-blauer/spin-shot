@@ -124,6 +124,12 @@ export class Interactable {
     for (let i = 0; i < 8; i++) box.expandByPoint(this.locUE.add(rot.RotateVector(V((i & 1) ? x1 : x0, (i & 2) ? y1 : y0, (i & 4) ? z1 : z0))).to3());
     this.solid = this.game.phys.addDoor(box); return this.solid;
   }
+  // the colour the first line of the prompt is written in: a gun on offer is named in the colour of its rarity
+  promptHex() {
+    const st = this.box && this.box.state === 'offer' ? this.box.prize : this.wheel && this.wheel.state === 'prize' ? this.wheel.prize : null;
+    if (st === null || st === undefined || st < 0) return null;
+    const D = isMelee(st) ? MELEE[st - MELEE_CODE] : this.game.data.weapons[st]; return D ? RARITY_HEX[D.rarity] || null : null;
+  }
   setOpened(on) { this.opened = on; if (this.beam) this.beam.visible = !on; if (this.inside) this.inside.visible = on; }
   // ---- the mystery box ----
   boxShow(def) {

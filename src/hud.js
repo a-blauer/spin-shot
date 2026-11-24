@@ -155,7 +155,7 @@ export class Hud {
     return w;
   }
   // a row of "[Key] label" hints, e.g. "[E] Play again   [Tab] Leave"
-  hints(str, x, cy, size, align = 'center', alpha = 0.9) {
+  hints(str, x, cy, size, align = 'center', alpha = 0.9, hex = null) {
     const parts = str.split(/(\[[^\]]+\])/).map((t) => t.trim()).filter(Boolean);
     const H = this.fs(size) * 1.35, gap = size * 0.45;
     const widths = parts.map((t) => (t[0] === '[' ? Math.max(H, this.measure(t.slice(1, -1), H * 0.6, F_BIG) + H * 0.55) : this.measure(t, size, F_TXT, 700)));
@@ -163,7 +163,7 @@ export class Hud {
     let px = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
     parts.forEach((t, i) => {
       if (t[0] === '[') px += this.key(t.slice(1, -1), px, cy, H, BONE, alpha) + gap;
-      else { this.text(t, px, cy + this.fs(size) * 0.36, size, `rgba(242,232,213,${alpha})`, 'left', F_TXT, 700, 0.12); px += widths[i] + gap * 3.2; }
+      else { this.text(t, px, cy + this.fs(size) * 0.36, size, hex || `rgba(242,232,213,${alpha})`, 'left', F_TXT, 700, 0.12); px += widths[i] + gap * 3.2; }
     });
     return total;
   }
@@ -595,7 +595,7 @@ export class Hud {
     const cy = H * 0.64, hh = l2 ? 84 * S : 56 * S;
     this.rrect(W / 2 - tw / 2 - 22 * S, cy - 28 * S, tw + 44 * S, hh, 10 * S);
     g.fillStyle = 'rgba(20,10,16,0.86)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = 'rgba(255,205,90,0.85)'; g.stroke();
-    this.hints(l1, W / 2, cy, size, 'center', 1);
+    this.hints(l1, W / 2, cy, size, 'center', 1, P.focus.promptHex ? P.focus.promptHex() : null);
     if (l2) this.text(l2, W / 2, cy + 36 * S, s2, '#d9cfbd', 'center', F_TXT, 500);
   }
   // when only a handful of enemies are left, point at each one

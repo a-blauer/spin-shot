@@ -122,7 +122,7 @@ export const ACHIEVEMENTS = [
   { id: 'win_frost', group: 3, name: 'End of the Line', desc: 'Clear Frostbite Junction', stat: 'clear_frost', need: 1, upgrades: ["Winter's Halo"] },
   { id: 'win_bayou', group: 3, name: 'Last Rites', desc: 'Clear Mourning Bayou', stat: 'clear_bayou', need: 1, upgrades: ["Guardian Angel"] },
   { id: 'win_carnival', group: 3, name: 'Final Curtain', desc: 'Clear Carnival of Ash', stat: 'clear_carnival', need: 1, upgrades: ['Master of Ceremonies'] },
-  { id: 'win_wharf', group: 3, name: 'Cut Down', desc: 'Clear Gallows Wharf', stat: 'clear_wharf', need: 1, upgrades: ['Colossus'] },
+  { id: 'win_wharf', group: 3, name: 'Cut Down', desc: 'Clear Gallows Wharf', stat: 'clear_wharf', need: 1, upgrades: ['Aegis'] },
   { id: 'maps3', group: 3, name: 'Globetrotter', desc: 'Clear three different maps', stat: 'mapsCleared', need: 3, skin: 'trail' },
   { id: 'maps6', group: 3, name: 'Polyshot', desc: 'Clear all six maps', stat: 'mapsCleared', need: 6, skin: 'frontier' },
   { id: 'hard1', group: 3, name: 'Hardened', desc: 'Clear any map on Hard or above', stat: 'hardClears', need: 1, upgrades: ['Unbroken'] },

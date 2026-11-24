@@ -3,6 +3,7 @@
 //     don't turn up less, and each class has perks nobody else can find.
 //   * gun modifiers: come only from the workbench and live on one gun. Anything that changes how a gun behaves
 //     (extra projectiles, pierce, on-hit effects, reload tricks, alt-fire) is in this pool.
+import { buildOf, countBuilds } from './builds.js';
 import { DATA, RARITIES, rarityIndex } from './data.js';
 import { Meta } from './meta.js';
 
@@ -68,9 +69,10 @@ const pick = (pool) => { let t = 0; for (const p of pool) t += p[1]; let r = Mat
 const RECENT = [];
 // a buff of this rarity (falls to the tier below when that tier is spent)
 export function rollBuff(rarity, stacks, cls) {
+  const have = Array.isArray(stacks) ? countBuilds(stacks) : {};   // a build you have started turns up more: a run should be able to commit
   for (let tier = rarity; tier >= 0; tier--) {
     const pool = [];
-    DATA.upgrades.forEach((u, i) => { if (u.cut || u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const w = classWeight(u, cls) / (1 + 2.5 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1); if (w > 0) pool.push([i, w]); });
+    DATA.upgrades.forEach((u, i) => { if (u.cut || u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const b = buildOf(u), w = classWeight(u, cls) / (1 + 1.2 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1) * (b ? 1 + 0.5 * Math.min(4, have[b] || 0) : 0.6); if (w > 0) pool.push([i, w]); });
     if (pool.length) { const got = pick(pool); RECENT.push(got); if (RECENT.length > 12) RECENT.shift(); return got; }
   }
   return -1;

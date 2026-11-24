@@ -475,7 +475,6 @@ export class Enemy {
         break;
       }
       case 'Bloater': {
-        if (dist < 190 * this.bodyScale) { this.kill(null, false); return; }
         desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
@@ -549,7 +548,7 @@ export class Enemy {
       return;
     }
     if (dist < reach && this.canSee(P.pos)) {   // no hitting through walls
-      P.receiveDamage(this.attackDamage, this, true, this.has('Frozen') ? 0.5 : 0, 2);
+      P.receiveDamage(this.attackDamage * (this.ai === 'Bloater' ? 0.4 : 1), this, true, this.has('Frozen') ? 0.5 : 0, 2);
       if (this.has('Vampiric')) this.health = Math.min(this.maxHealth, this.health + this.maxHealth * 0.05);
     }
   }

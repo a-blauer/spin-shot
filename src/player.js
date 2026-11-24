@@ -2,6 +2,7 @@
 // mantle, grapple, ground slam, jump pads), camera feel (bob, roll, FOV kick, recoil springs, shake), gunplay
 // (hitscan/pierce, beams, flames, chain lightning, projectiles, crits, headshots), 120 upgrades with proc
 // triggers, and every casino station.
+import { buildHit, buildKill, buildHurt, buildTick, buildChanged, buildNote } from './builds.js';
 import { cash, cost10, difficulty, mutMoney, mutHealth } from './data.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
@@ -207,6 +208,7 @@ export class Player {
     this.maxHealth = Math.max(30, Math.round((150 + this.stat('MaxHealth')) * mutHealth()));
     this.health = Math.min(this.health, this.maxHealth);
     this.dashCharges = Math.min(this.dashCharges ?? 1, this.maxDash());
+    buildChanged(this);
   }
   addUpgrade(i) {
     const U = DATA.upgrades[i];
@@ -315,6 +317,7 @@ export class Player {
     this.hitMarker = Math.max(0, this.hitMarker - dt);
     this.hasteT = Math.max(0, this.hasteT - dt); if (this.hasteT <= 0) this.haste = 0;
     this.rageT = Math.max(0, this.rageT - dt); if (this.rageT <= 0) this.rage = 0;
+    buildTick(this, dt);
     this.krT = Math.max(0, (this.krT || 0) - dt); this.ktT = Math.max(0, (this.ktT || 0) - dt);
     if (this.S.SlideLaunch && this.sliding && (this.slT = (this.slT || 0) - dt) <= 0) {   // Slide Grease: slide into them and they go up
       let hit = 0; for (const E of this.game.enemies) if (!E.dead && !E.isBoss && E.pos.distanceTo(this.pos) < 190 + E.radius) { hit++; E.launch(V3(this.vel.x * 0.4, 760, this.vel.z * 0.4)); this.stun(E, 0.9); this.procDepth++; this.dealDamage(E, this.power() * 0.4 * this.S.SlideLaunch, E.pos, V3(0, 1, 0), false, 0, true); this.procDepth--; }
@@ -1037,6 +1040,7 @@ export class Player {
       this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'DEFLECTED', [0.75, 0.85, 1], 1); return;
     }
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
+    buildHurt(this, source);
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
     const raw = amount;
     // Duelist's Sash: a blow that lands just as you swing is turned aside, and whoever threw it is left reeling
@@ -1459,6 +1463,7 @@ export class Player {
     if (head && !E.isBoss && this.S.HeadExecute && E.health < E.maxHealth * this.S.HeadExecute) dmg = Math.max(dmg, E.health + E.shield + 1);   // Killshot
     const dealt = E.takeHit(dmg, at, dir || V3(0, 0, 0), head);
     if (dealt <= 0) return 0;
+    if (!fromProc && this.procDepth < 1) buildHit(this, E, at, dealt, crit, head);
     const killed = E.dead;
     // bullets shove what they hit: a stumble back in proportion to the damage, and a short freeze on a kill
     if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {
@@ -1579,6 +1584,7 @@ export class Player {
     this.streak = (this.streakT > 0 ? (this.streak || 0) : 0) + 1; this.streakT = 3;
     { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
     if (headshot && this.S.HeadCrit) this.headCritT = 3;
+    buildKill(this, E);
     if (this.S.EliteBlast && E.elite && this.procDepth < 1) { this.procDepth++; this.explodeAt(E.pos, 440, this.power() * 2 * this.S.EliteBlast, 0, true, false, [1, 0.5, 0.2], E); this.procDepth--; }   // Rusty Shiv: an elite goes up when it goes down
     if (this.S.KillRush) { this.krN = Math.min(5, (this.krT > 0 ? this.krN || 0 : 0) + 1); this.krT = 5; }           // Energy Drink
     if (this.S.KillTempo) { this.ktN = Math.min(6, (this.ktT > 0 ? this.ktN || 0 : 0) + 1); this.ktT = 2; }        // Fanning Practice
@@ -1680,7 +1686,7 @@ export class Player {
         const dir = aimE ? aimE.pos.clone().sub(from).normalize().add(V3(0, 0.8, 0)) : V3(0, 1, 0);
         const knife = /Dagger/.test(U.name);   // a thrown blade is a blade, not a rocket
         G.projectiles.spawn({ pos: from, vel: dir.normalize().multiplyScalar(knife ? 1900 : 1500), damage: mag * base, splash: knife ? 0 : 140, fromProc: true, procCoef: 0, target: aimE, homing: knife ? 9 : 6, life: 4, kind: knife ? 'Dagger' : 'Missile', color: knife ? lin(0.6, 0.9, 1) : lin(1, 0.5, 0.2), radius: 10 });
-        G.audio.playAt(knife ? 'S_Swing' : 'S_Launcher', from, knife ? 0.6 : 0.35, 1.5);
+        G.audio.playAt(knife ? 'S_Dash' : 'S_Launcher', from, knife ? 0.6 : 0.35, 1.5);
         break;
       }
       case 'RefundAmmo': { const S = this.slot; if (S.def >= 0) S.ammo = Math.min(this.magSize(S), S.ammo + Math.max(1, Math.ceil(mag * this.magSize(S)))); break; }
@@ -2137,7 +2143,7 @@ export class Player {
     if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
     else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
   }
-  benchCost(S) { return Math.round([2000, 3500, 5500, 8000][Math.min(3, S.mods.length)] * this.priceMult()); }
+  benchCost(S) { return Math.round([10000, 20000, 40000, 50000][Math.min(3, S.mods.length)] * this.priceMult()); /* $1,000, $2,000, $4,000, $5,000 */ }
   benchUpgrade() {
     if (this.wield) return this.honeMelee();
     const J = this.benchJob;
@@ -2318,9 +2324,9 @@ export class Player {
         break;
       case 'Chest': {
         title = `${['WOODEN', 'IRON', 'GILDED', 'RELIQUARY'][M.tier] || ''} CHEST`;
-        help.push({ kind: 'info', text: 'Choose one of three buffs. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
+        help.push({ kind: 'info', text: 'Choose one of three buffs. Every buff feeds a build (Ember, Frost, Storm, Blood, Powder, Deadeye, Bulwark, Rush, Fortune, Blade): hold 2 of one build to wake its power, 5 to wake the second. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
         if (M.banish) res('BANISH WHICH ONE?', '#ff6a5a'); else res('CHOOSE ONE', gold);
-        M.offers.forEach((u, i) => { const U = DATA.upgrades[u]; const have = this.upgradeStacks[u]; opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase(), tagColor: RARITY_HEX[U.rarity], color: M.banish ? '#ff9a8a' : RARITY_HEX[U.rarity], desc: U.desc, note: have ? `owned x${have}` : '' }); });
+        M.offers.forEach((u, i) => { const U = DATA.upgrades[u]; const have = this.upgradeStacks[u]; const B = buildNote(this, U); opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase() + (B ? '  ·  ' + B.name : ''), tagColor: RARITY_HEX[U.rarity], color: M.banish ? '#ff9a8a' : RARITY_HEX[U.rarity], desc: U.desc + (B ? `\n${B.text}` : ''), note: have ? `owned x${have}` : '' }); });
         opt('4', M.banish ? 'Cancel banish' : `Banish one  (${this.banishes} left)`, { color: this.banishes > 0 ? bone : '#8a8078' });
         footer = '[Tab] Take the first';
         break;
