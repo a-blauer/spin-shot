@@ -47,7 +47,7 @@ const FIT = {
 for (const u of DATA.upgrades) {
   const names = u.mods.map((m) => m[0]), melee = names.some((n) => n.startsWith('Melee'));
   u.cls = (CLASSES.find((C) => C.name === u.insp) || {}).id || null;           // class perk: only that class is offered it
-  u.gun = !u.cls && !melee && u.rarity !== 'Cursed' && (names.some((n) => GUN_STATS.includes(n)) || GUN_TRIGGERS.includes(u.trigger));
+  u.gun = !!u.bench;   // the bench only tunes a gun's numbers now; everything that changes how a gun behaves comes out of chests with the rest
   u.alt = names.find((n) => ALT_STATS.includes(n)) || null;
   u.grapple = u.trigger === 'OnGrapple' || (names.length > 0 && names.every((n) => n === 'GrappleCooldown'));   // only perks that do nothing without a hook
   u.fits = [];
@@ -69,10 +69,11 @@ const pick = (pool) => { let t = 0; for (const p of pool) t += p[1]; let r = Mat
 const RECENT = [];
 // a buff of this rarity (falls to the tier below when that tier is spent)
 export function rollBuff(rarity, stacks, cls) {
-  const have = Array.isArray(stacks) ? countBuilds(stacks) : {};   // a build you have started turns up more: a run should be able to commit
+  const have = Array.isArray(stacks) ? countBuilds(stacks) : {};
+  const hasAlt = Array.isArray(stacks) && stacks.some((n, i) => n > 0 && DATA.upgrades[i].alt);   // one alternate fire at a time   // a build you have started turns up more: a run should be able to commit
   for (let tier = rarity; tier >= 0; tier--) {
     const pool = [];
-    DATA.upgrades.forEach((u, i) => { if (u.cut || u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const b = buildOf(u), w = classWeight(u, cls) / (1 + 1.2 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1) * (b ? 1 + 0.5 * Math.min(4, have[b] || 0) : 0.6); if (w > 0) pool.push([i, w]); });
+    DATA.upgrades.forEach((u, i) => { if (u.alt && !(stacks[i] > 0) && hasAlt) return; if (u.cut || u.gun || rarityIndex(u.rarity) !== tier || (stacks[i] || 0) >= u.stacks || Meta.upgradeLocked(u.name)) return; const b = buildOf(u), w = classWeight(u, cls) / (1 + 1.2 * (stacks[i] || 0)) * (RECENT.includes(i) ? 0.15 : 1) * (b ? 1 + 0.5 * Math.min(4, have[b] || 0) : 0.6); if (w > 0) pool.push([i, w]); });
     if (pool.length) { const got = pick(pool); RECENT.push(got); if (RECENT.length > 12) RECENT.shift(); return got; }
   }
   return -1;
@@ -80,6 +81,7 @@ export function rollBuff(rarity, stacks, cls) {
 // a modifier for one gun. `mods` is what that gun already has, W its weapon definition.
 const RW = [12, 30, 28, 16, 7];   // the bench favours modifiers that change how a gun plays over plain numbers
 export function rollGunMod(mods, W, cls, luck = 0) {
+  { const bi = DATA.upgrades.findIndex((u) => u.bench); if (bi >= 0) return mods.length < 4 ? bi : -1; }
   const have = {}; for (const m of mods) have[m] = (have[m] || 0) + 1;
   const hasAlt = mods.some((m) => DATA.upgrades[m].alt), cont = W.mode === 'Beam' || W.mode === 'Flame';
   const pool = [];

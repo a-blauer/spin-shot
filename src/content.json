@@ -5829,6 +5829,37 @@
 "cd": 0,
 "desc": "Every grenade bursts into five more.",
 "insp": "Bomber"
+},
+{
+"name": "Tune-Up",
+"rarity": "Common",
+"stacks": 4,
+"mods": [
+[
+"MagSize",
+0.15
+],
+[
+"ReserveAmmo",
+0.15
+],
+[
+"FireRate",
+0.05
+],
+[
+"ReloadSpeed",
+0.05
+]
+],
+"trigger": null,
+"fx": null,
+"chance": 0,
+"mag": 0,
+"cd": 0,
+"desc": "+20% damage, +15% magazine and reserve ammo, +5% fire rate and reload speed, on this gun.",
+"insp": "",
+"bench": true
 }
 ],
 "enemies": [

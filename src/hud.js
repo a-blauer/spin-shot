@@ -845,7 +845,16 @@ export class Hud {
     const left = 24 * S + kh * 1.6 + (ic ? ic + 8 * S : 0);
     const descL = it.desc ? this.wrap(it.desc + (it.note ? `  (${it.note})` : ''), iw - left - pw - 20 * S, descSize) : [];
     const dlh = this.fs(descSize) * 1.32;
-    const h = Math.max(ic ? 74 * S : 62 * S, 50 * S + descL.length * dlh + (descL.length ? 6 * S : 0));
+    // the build bar: pips for what you hold, one more for this buff, and in plain words what that does
+    const B = it.build, bSize = 15 * S, blh = this.fs(bSize) * 1.35; let bLines = [];
+    if (B) {
+      const head = !B.target ? `${B.name}: fully awake` : B.wakes ? `WAKES ${B.name} ${B.rankName}` : B.owned ? `${B.name}  ${B.n + 1} of ${B.target}` : `Starts ${B.name}  (1 of ${B.target})`;
+      bLines.push({ head, pips: B.target ? [B.n, B.target] : null });
+      if (B.power) for (const l of this.wrap((B.wakes ? '' : `At ${B.target}: `) + B.power, iw - left - pw - 30 * S, bSize)) bLines.push({ text: l, bright: B.wakes });
+      for (const c of B.combos) for (const l of this.wrap('+ ' + c, iw - left - pw - 30 * S, bSize)) bLines.push({ text: l, combo: true });
+    }
+    const bh = bLines.length ? bLines.length * blh + 14 * S : 0;
+    const h = Math.max(ic ? 74 * S : 62 * S, 50 * S + descL.length * dlh + (descL.length ? 6 * S : 0)) + bh;
     return { h: h + 10 * S, draw: (x, y) => {
       const afford = it.price === undefined || P.money >= it.price;
       const a = it.disabled ? 0.45 : 1;
@@ -860,6 +869,19 @@ export class Hud {
       if (it.suit) { this.suit(SUITS.indexOf(it.suit), tgx + 9 * S, y + 30 * S, 10 * S, SUIT_HEX[it.suit]); tgx += 26 * S; }
       if (it.tag) this.chip(it.tag, tgx, y + 30 * S, 14 * S, toCss(it.tagColor || it.color));
       descL.forEach((l, i) => this.text(l, x + left, y + 50 * S + (i + 0.8) * dlh, descSize, '#cdc3b2', 'left', F_TXT, 600, 0.06, a));
+      if (bLines.length) {
+        let by = y + h - bh + 4 * S; const bx = x + left;
+        g.fillStyle = B.hex; g.globalAlpha = B.wakes ? 0.22 : B.owned ? 0.12 : 0.05; this.rrect(bx - 10 * S, by - 2 * S, iw - left - pw - 4 * S, bh - 6 * S, 6 * S); g.fill(); g.globalAlpha = 1;
+        g.fillStyle = B.hex; g.fillRect(bx - 10 * S, by - 2 * S, 3 * S, bh - 6 * S);
+        for (const L of bLines) {
+          const ty = by + blh * 0.78;
+          if (L.head) {
+            const tw = this.text(L.head, bx, ty, bSize, B.hex, 'left', F_TXT, 800, 0.06);
+            if (L.pips) { let px = bx + tw + 14 * S; const r = 5 * S; for (let k = 0; k < L.pips[1]; k++) { g.beginPath(); g.arc(px + r, ty - r * 0.9, r, 0, Math.PI * 2); if (k < L.pips[0]) { g.fillStyle = B.hex; g.fill(); } else if (k === L.pips[0]) { g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = B.hex; g.stroke(); } else { g.lineWidth = 1.5 * S; g.strokeStyle = 'rgba(255,255,255,0.3)'; g.stroke(); } px += r * 2 + 5 * S; } if (B.owned && !B.wakes) this.text('in your build', px + 8 * S, ty, 13 * S, '#d9cfbd', 'left', F_TXT, 500); }
+          } else this.text(L.text, bx, ty, bSize, L.combo ? '#ffffff' : L.bright ? '#fff4d0' : '#b5ab9a', 'left', F_TXT, L.combo || L.bright ? 700 : 500, 0.06);
+          by += blh;
+        }
+      }
       if (priceStr) this.text(priceStr, x + iw - 18 * S, y + h / 2 + this.fs(priceSize) * 0.36, priceSize, afford ? GOLD : '#c0463c', 'right', F_BIG, 400, 0.1, a);
     } };
   }
