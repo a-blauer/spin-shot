@@ -2,30 +2,23 @@
 // throttling (35 ms) so crowds of ghouls don't stack the same groan, and looping ambience beds.
 import * as THREE from 'three';
 import { Radio } from './radio.js';
+import { TRIM, VAR, LOOPS } from './audio_trim.js';
 
 // ---- The mix ---------------------------------------------------------------------------------------------------
-// Every file is peak-normalised, which says nothing about how loud it sounds. TRIM is the correction that puts each
-// sound's loudest 100 ms where its job needs it (measured with tools/meter_audio.py against the volume the game
-// plays it at): the player's gun and explosions on top (-9 to -14 dBFS), hit feedback and the player's own pain
-// just under (-12 to -17), creature voices and rewards behind that (-13 to -16), foley and interface lowest.
-const TRIM = {
-  S_HitMarker: 2.6, S_Headshot: 1.27, S_Kill: 1.11, S_Crit: 1.33, S_Explosion: 1.69, S_Slam: 1.07, S_Stomp: 0.93, S_BossRoar: 1.58, S_Screech: 0.72,
-  S_Groan0: 1.62, S_Groan1: 1.44, S_Groan2: 1.51, S_Groan3: 1.41, S_Snarl: 1.17, S_Wings: 1.68, S_Attack: 1.18, S_Spit: 0.89, S_EnemyDie: 0.86, S_Gib: 0.65, S_Splat: 1.13,
-  S_RoundStart: 0.74, S_RoundEnd: 0.75, S_LevelUp: 0.69, S_Upgrade: 0.85, S_Win: 0.79, S_Lose: 0.92, S_Jackpot: 0.75, S_PowerUp: 0.93, S_Luck: 0.98,
-  S_Buy: 0.71, S_Deny: 0.68, S_Cash: 0.75, S_Coin: 0.76, S_JumpPad: 0.61, S_Hurt: 1.42, S_Heartbeat: 1.49,
-  S_Step0: 0.98, S_Step1: 1.03, S_Step2: 1.06, S_Step3: 1.01, S_Land: 0.89, S_Jump: 0.72, S_AirJump: 0.81, S_Dash: 1.08, S_Slide: 0.92, S_Wallrun: 0.90, S_Grapple: 0.99,
-  S_MagIn: 0.95, S_MagOut: 1.16, S_Rack: 1.55, S_ShellIn: 1.55, S_ShellDrop: 0.9, S_HullDrop: 0.9, S_Switch: 1.45, S_Dry: 1.7,
-  S_HitFlesh: 1.09, S_HitFlesh2: 1.01, S_HitWall: 1.68, S_Ricochet: 0.82, S_Door: 0.99, S_Chain: 1.74, S_Beam: 0.80, S_Energy: 1.09, S_Launcher: 1.87,
-  S_UIMove: 1.0, S_UISelect: 1.11, S_SlotTick: 1.1, S_SlotStop: 1.02, S_SlotPull: 0.99, S_Saw: 1.52, S_Flame: 1.75, S_Plasma: 1.37,
-};
+// Every sound is synthesised by tools/sfx (no samples) and mastered there. A file's peak says nothing about how loud it
+// sounds, so each has a trim (audio_trim.js, generated) that puts its loudest 100 ms where its job needs it: the
+// player's gun and explosions on top, hit feedback and the player's own pain just under, creature voices and rewards
+// behind that, foley and interface lowest.
 // Dry bus: interface, rewards and hit confirmation. No room reverb, and never muffled when you are hurt.
 const DRY = new Set(['S_UIMove', 'S_UISelect', 'S_Buy', 'S_Deny', 'S_Upgrade', 'S_LevelUp', 'S_Luck', 'S_Coin', 'S_Cash', 'S_PowerUp', 'S_HitMarker', 'S_Headshot', 'S_Kill', 'S_Crit',
-  'S_RoundStart', 'S_RoundEnd', 'S_Win', 'S_Lose', 'S_Jackpot', 'S_Heartbeat', 'S_Hurt', 'S_SlotTick']);
+  'S_RoundStart', 'S_RoundEnd', 'S_Win', 'S_Lose', 'S_Jackpot', 'S_Heartbeat', 'S_Hurt', 'S_SlotTick',
+  'S_Clear', 'S_Enter', 'S_Phase', 'S_Part', 'S_Fit', 'S_Unfit', 'S_Bench', 'S_Revive']);
 // Sounds that repeat many times a second are never played at exactly the same pitch twice.
 const JIT = { S_HitMarker: 0.05, S_HitFlesh: 0.09, S_HitFlesh2: 0.09, S_HitWall: 0.1, S_Step0: 0.09, S_Step1: 0.09, S_Step2: 0.09, S_Step3: 0.09, S_ShellDrop: 0.06, S_HullDrop: 0.06, S_ShellIn: 0.05, S_Kill: 0.04,
-  S_Coin: 0.06, S_Cash: 0.05, S_Dash: 0.05, S_Jump: 0.05, S_Land: 0.07, S_Explosion: 0.1, S_Gib: 0.1, S_Splat: 0.12, S_EnemyDie: 0.1, S_Attack: 0.1, S_Ricochet: 0.15, S_Chain: 0.08, S_Rack: 0.03 };
+  S_Coin: 0.06, S_Cash: 0.05, S_Dash: 0.05, S_Jump: 0.05, S_Land: 0.07, S_Explosion: 0.1, S_Gib: 0.1, S_Splat: 0.12, S_EnemyDie: 0.1, S_Attack: 0.1, S_Ricochet: 0.15, S_Chain: 0.08, S_Rack: 0.03,
+  S_Swing: 0.08, S_SwingBig: 0.06, S_Blade: 0.08, S_Blunt: 0.08, S_Zap: 0.1, S_Frost: 0.08, S_Groan0: 0.07, S_Groan1: 0.07, S_Groan2: 0.07, S_Groan3: 0.07, S_Snarl: 0.07, S_Hurt: 0.05 };
 // The loud ones push the music down for a moment so they land in clear air.
-const DUCK = { S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S_Screech: 0.6 };
+const DUCK = { S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S_Screech: 0.6, S_Phase: 0.4, S_RoundStart: 0.6 };
 
 export class Audio {
   constructor(base = 'audio/') {
@@ -34,7 +27,7 @@ export class Audio {
     this.ctx = null;
     this.buffers = new Map();
     this.loading = new Map();
-    this.last = new Map();
+    this.last = new Map(); this.lastTake = new Map(); this.TRIM = TRIM; this.VAR = VAR; this.LOOPS = LOOPS;
     this.loops = new Map();
     this.listener = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0) };
   }
@@ -172,7 +165,8 @@ export class Audio {
     this.loading.set(name, p);
     return p;
   }
-  preload(names) { if (this.ctx) for (const n of names) this.load(n); }
+  preload(names) { if (this.ctx) for (const n of names) for (let k = 0; k < (VAR[n] || 1); k++) this.load(k ? n + '_' + k : n); }
+  take(name) { const n = VAR[name]; if (!n) return name; let k = Math.floor(Math.random() * n); if (k === this.lastTake.get(name)) k = (k + 1) % n; this.lastTake.set(name, k); return k ? name + '_' + k : name; }
   setListener(pos, fwd, up) {
     this.listener.pos.copy(pos); this.listener.fwd.copy(fwd); this.listener.up.copy(up);
     if (!this.ctx) return;
@@ -203,13 +197,14 @@ export class Audio {
   }
   _play(name, pos, vol, pitch, jitter) {
     if (!this.ctx || this._throttled(name)) return;
+    const file = this.take(name);
     const go = (buf) => {
       if (!buf) return;
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       src.playbackRate.value = pitch * (1 + (Math.random() * 2 - 1) * Math.max(jitter, JIT[name] || 0));
       const g = this.ctx.createGain();
-      g.gain.value = vol * (TRIM[name] || 1);
+      g.gain.value = vol * (TRIM[file] || TRIM[name] || 1);
       src.connect(g);
       const bus = DRY.has(name) ? this.uiBus : this.master;
       if (DUCK[name] && (!pos || pos.distanceTo(this.listener.pos) < 2500)) this.duck(DUCK[name], 0.25);
@@ -228,23 +223,28 @@ export class Audio {
       } else g.connect(bus);
       src.start();
     };
-    const b = this.buffers.get(name);
-    if (b) go(b); else this.load(name).then(go);
+    const b = this.buffers.get(file);
+    if (b) go(b); else this.load(file).then(go);
   }
   loop(name, vol) {
     if (!this.ctx) return;
     let L = this.loops.get(name);
     if (!L) {
+      if (!(vol > 0)) return;   // nothing is fetched until it is first wanted
       L = { gain: this.ctx.createGain(), started: false };
       L.gain.gain.value = 0;
-      L.gain.connect(this.master);
+      L.gain.connect(this.sfxBus);
       this.loops.set(name, L);
       this.load(name).then((buf) => {
         if (!buf) return;
-        const src = this.ctx.createBufferSource();
-        src.buffer = buf; src.loop = true; src.connect(L.gain); src.start(); L.started = true;
+        const src = this.ctx.createBufferSource(), R = LOOPS[name];
+        src.buffer = buf; src.loop = true;
+        if (R) { src.loopStart = R[0]; src.loopEnd = Math.min(R[1], buf.duration - 0.05); }
+        src.connect(L.gain); src.start(0, R ? R[0] : 0); L.started = true;
       });
     }
-    L.gain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.5);
+    L.gain.gain.setTargetAtTime(vol * (TRIM[name] || 1), this.ctx.currentTime, 0.8);
   }
+  // one bed of room tone at a time: the named one comes up, the others go down
+  ambience(name, vol) { for (const n of Object.keys(LOOPS)) if (n !== 'S_AmbCasino') this.loop(n, n === name ? vol : 0); }
 }

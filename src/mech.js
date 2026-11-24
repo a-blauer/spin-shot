@@ -128,7 +128,7 @@ export class Mech {
     const td = this.tide, T = td.T, g = this.g;
     if (g.net.role !== 'client') {
       td.t -= dt;
-      if (td.t <= 0) { td.state = (td.state + 1) % 4; td.t = [T.out || 75, T.turn || 14, T.in || 40, T.turn || 14][td.state]; if (td.state === 1) g.hud.toast(T.warnIn || 'The tide is coming in. The low ground will flood.', '#7ad0e8'); if (td.state === 3) g.hud.toast(T.warnOut || 'The tide is going out.', '#7ad0e8'); if (td.state % 2) g.audio.play('S_Wings', 0.7, 0.4); }
+      if (td.t <= 0) { td.state = (td.state + 1) % 4; td.t = [T.out || 75, T.turn || 14, T.in || 40, T.turn || 14][td.state]; if (td.state === 1) g.hud.toast(T.warnIn || 'The tide is coming in. The low ground will flood.', '#7ad0e8'); if (td.state === 3) g.hud.toast(T.warnOut || 'The tide is going out.', '#7ad0e8'); if (td.state % 2) g.audio.play('S_Tide', 0.8); }
     }
     const k = td.state === 0 ? 0 : td.state === 2 ? 1 : td.state === 1 ? 1 - td.t / (T.turn || 14) : td.t / (T.turn || 14), want = T.low + (T.high - T.low) * Math.max(0, Math.min(1, k));
     td.level += (want - td.level) * Math.min(1, dt * 3); td.m.position.y = td.level + Math.sin(this.t * 0.9) * 2;
@@ -276,7 +276,7 @@ export class Mech {
       if (T.mine && T.hitT <= 0) { T.hitT = 0.5; for (const E of enemies()) { this.trapHit(E, E.maxHealth * (E.isBoss ? 0.012 : 0.14)); if (!E.dead && !E.remote) E.applyBurn(E.maxHealth * 0.03, 2); } }
       const P = g.player; if (!P.dead && T.hitT > 0.44 && this.inTrap(T, P.pos, -40)) P.receiveDamage(6, null, false);   // it burns you too
     } else if (K === 'shock') {
-      if (T.fxT <= 0) { T.fxT = 0.07; const a = T.c.clone().addScaledVector(T.t, -T.hw).setY(floorY + 40 + Math.random() * 180), b = T.c.clone().addScaledVector(T.t, T.hw).addScaledVector(T.n, rnd(T.hl * 0.7)).setY(floorY + 40 + Math.random() * 180); g.fx.arc(a, b, col, 0.09, 7); if (Math.random() < 0.25) g.audio.playAt('S_Chain', T.c, 0.5, 1 + Math.random() * 0.4, 0.1); }
+      if (T.fxT <= 0) { T.fxT = 0.07; const a = T.c.clone().addScaledVector(T.t, -T.hw).setY(floorY + 40 + Math.random() * 180), b = T.c.clone().addScaledVector(T.t, T.hw).addScaledVector(T.n, rnd(T.hl * 0.7)).setY(floorY + 40 + Math.random() * 180); g.fx.arc(a, b, col, 0.09, 7); if (Math.random() < 0.25) g.audio.playAt('S_Zap', T.c, 0.5, 0.9 + Math.random() * 0.3, 0.1); }
       if (T.hitT <= 0) { T.hitT = 0.5; for (const E of enemies()) { if (!E.remote && !E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 0.6); E.applySlow(0.85, 0.7); } if (T.mine) this.trapHit(E, E.maxHealth * (E.isBoss ? 0.008 : 0.09)); g.fx.arc(T.c.clone().setY(floorY + 200), E.pos, col, 0.1, 5); } }
     } else if (K === 'blast') {
       if (T.fxT <= 0) { T.fxT = 0.08; g.fx.sparks(spot().setY(floorY + 30), V3(0, 1, 0), col, 4); if (Math.random() < 0.5) g.audio.playAt('S_Ricochet', T.c, 0.3, 1.6, 0.1); }

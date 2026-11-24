@@ -200,15 +200,15 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const all = d.all || e.shiftKey;
     if (d.kind === 'fit' && (on || !d.moved)) {
       let n = 0; while (p.fitCore(S, d.u)) { n++; if (!all) break; }
-      if (n) { bump = 1; H.audio.play('S_Upgrade', 0.8, 1.15); H.audio.play('S_MagIn', 0.7, 0.9); render(true); pop(U(d.u).hex); return; }
+      if (n) { bump = 1; H.audio.play('S_Fit', 0.9); render(true); pop(U(d.u).hex); return; }
       H.audio.play('S_Deny', 0.6);
-    } else if (d.kind === 'pull' && (!on || !d.moved)) { let n = 0; while (p.pullCore(S, d.u)) { n++; if (!all) break; } if (n) { H.audio.play('S_MagOut', 0.7, 1.1); bump = 0.5; render(true); return; } }
+    } else if (d.kind === 'pull' && (!on || !d.moved)) { let n = 0; while (p.pullCore(S, d.u)) { n++; if (!all) break; } if (n) { H.audio.play('S_Unfit', 0.8); bump = 0.5; render(true); return; } }
     render(false);
   });
   addEventListener('keydown', (e) => { if (!open) return; e.stopImmediatePropagation(); if (e.code === 'KeyE' || e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyF') { e.preventDefault(); close(); } }, true);
   addEventListener('keyup', (e) => { if (open) e.stopImmediatePropagation(); }, true);
 
-  function show() { if (open || !H.game() || !H.game().descent) return; open = true; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Switch', 0.7, 0.8); }
+  function show() { if (open || !H.game() || !H.game().descent) return; open = true; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
   function close() { if (!open) return; open = false; if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
   return { show, close, tick, isOpen: () => open, refresh: () => { if (open) render(false); } };
 }

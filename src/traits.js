@@ -100,7 +100,7 @@ export function traitTick(E, dt, C) {
   if (T.bomb && (X.b -= dt) <= 0 && Math.hypot(Pl.x - E.pos.x, Pl.z - E.pos.z) < 260) { X.b = T.bomb.cd; const at = ground(G, Pl); G.hazards.marker(at, E.attackDamage * 0.6, T.bomb.r, 0.7, T.bomb.color); G.hazards.fire(at, E.attackDamage * T.bomb.dps, T.bomb.r, T.bomb.life, T.bomb.color); }
   if (T.aura && (X.a -= dt) <= 0 && dist < T.aura.r) {
     X.a = T.aura.cd; const c = T.aura.type === 'shock' ? [0.5, 0.8, 1] : [0.8, 0.6, 1];
-    G.fx.ring(E.pos.clone(), T.aura.r, c, 0.35); G.audio.playAt(T.aura.type === 'shock' ? 'S_Chain' : 'S_Screech', E.pos, 0.6, 1.3);
+    G.fx.ring(E.pos.clone(), T.aura.r, c, 0.35); G.audio.playAt(T.aura.type === 'shock' ? 'S_Zap' : 'S_Screech', E.pos, 0.6, T.aura.type === 'shock' ? 1 : 1.3);
     for (const Q of ranks(G)) if (Q.pos.distanceTo(E.pos) < T.aura.r) Q.receiveDamage(T.aura.type === 'shock' ? E.attackDamage * 0.5 : 1, E, false, T.aura.type === 'shock' ? 0 : 0.45, 2);
   }
   if (T.roar && los && (X.ro -= dt) <= 0 && dist < T.roar.r) {

@@ -58,7 +58,7 @@ export function phaseX(E, dt, C) {
     E.queue = (want >= 3 ? D.p3 : D.p2).map(C.idx).filter((i) => i >= 0);   // the new moves first, so you meet them
     E.phase = want; E.phaseT = 2.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0; E.shellT = 0;
     E.attackMask = E.baseMask.concat(add.filter((i) => !E.baseMask.includes(i)));
-    G.banner(D.n[want - 2], lin(D.col[0], D.col[1], D.col[2]), 3); G.audio.playAt('S_BossRoar', E.pos, 1.2, want === 3 ? 0.7 : 0.85); G.shakeAt(E.pos, 900);
+    G.banner(D.n[want - 2], lin(D.col[0], D.col[1], D.col[2]), 3); G.audio.play('S_Phase', 1); G.audio.playAt('S_BossRoar', E.pos, 0.9, want === 3 ? 0.75 : 0.9); G.shakeAt(E.pos, 900);
     G.hazards.ring(ground(E, E.pos), dmg * 0.5, 1000, Rm.r * 1.6, D.col); G.fx.flash(E.pos, D.col, 500, 0.5, true);
     E.puppet.setTint([1.5, 1.5, 1.5]);
   }
@@ -111,7 +111,7 @@ export function mechX(E, dt, C) {
       break; }
     case 'reflect':   // the Mirror Queen: when she shines, what you fire comes back
       if (M.up > 0) { M.up -= dt; if (M.up <= 0) { E.puppet.setTint(E.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); E.exposedT = 2; M.t = 0; } }
-      else if (M.t > 11) { M.up = 4; G.banner('THE MIRROR IS UP  -  HOLD YOUR FIRE', lin(0.7, 0.95, 1), 2.6); E.puppet.setTint([1.7, 1.9, 2.1]); G.audio.playAt('S_Door', E.pos, 1, 1.8); G.fx.ring(E.feet(), 500, [0.7, 0.95, 1], 0.5); }
+      else if (M.t > 11) { M.up = 4; G.banner('THE MIRROR IS UP  -  HOLD YOUR FIRE', lin(0.7, 0.95, 1), 2.6); E.puppet.setTint([1.7, 1.9, 2.1]); G.audio.playAt('S_Shield', E.pos, 1, 1.2); G.fx.ring(E.feet(), 500, [0.7, 0.95, 1], 0.5); }
       break;
     case 'stealth':   // the Mantis: you see it when it strikes
       if (E.bossAttack >= 0 || E.sinceHit < 1.2 || E.exposedT > 0) { M.t = 0; if (M.hid) { M.hid = false; E.puppet.setTint([1, 1, 1]); } }

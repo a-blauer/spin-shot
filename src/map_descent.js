@@ -16,6 +16,11 @@ export const THEMES = [
   { name: 'Null Chamber', floor: 0x18141f, floor2: 0x261e33, wall: 0x30263f, trim: 0x8a7ab8, glow: 0xc58cff, lamp: [0.75, 0.5, 1.0], fog: 0x1e1430, sh: [0.54, 0.46, 0.76] },
 ];
 for (const r of EXTRA) THEMES.push(r.theme);
+// the air of each room: which bed of room tone plays there
+const BEDS = { S_AmbFire: ['Cinder Works', 'Magma Chamber', 'Feast Hall'], S_AmbWater: ['Mire Cellar', 'Drowned Hall', 'Sunken Library', 'Sewer Junction', 'The Bathhouse', 'The Cistern', 'Glasshouse'],
+  S_AmbMachine: ['Clockwork Hall', 'Pump Station', 'Meat Locker', 'The Warehouse', 'The Scrapyard', 'Apothecary', 'The Distillery', 'Deep Station'], S_AmbCave: ['Crystal Cavern', 'Fungal Grotto', 'Salt Mine', 'Webbed Den', 'The Hive'],
+  S_AmbWind: ['Rime Vault', 'Null Chamber'] };
+export function bedOf(arena) { if (arena === N_ROOMS + 1) return 'S_AmbWind'; const T = THEMES[arena]; if (!T) return 'S_AmbStone'; for (const k of Object.keys(BEDS)) if (BEDS[k].includes(T.name)) return k; return 'S_AmbStone'; }
 const BOSS_NAMES = ['The Seal', 'The Bottom'];
 const up = (h, k) => { const r = Math.min(255, Math.round(((h >> 16) & 255) * k)), g = Math.min(255, Math.round(((h >> 8) & 255) * k)), b = Math.min(255, Math.round((h & 255) * k)); return (r << 16) | (g << 8) | b; };
 for (const T of THEMES) { T.floor = up(T.floor, 1.35); T.floor2 = up(T.floor2, 1.5); T.wall = up(T.wall, 1.3); T.roof = up(T.wall, 0.45); }

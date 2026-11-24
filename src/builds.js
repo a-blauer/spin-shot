@@ -85,7 +85,7 @@ const shield = (P, a) => { P.overshield = Math.min(P.shieldCap(), P.overshield +
 // ---------------------------------------------------------------- a shot of yours has landed
 function strike(P, E, r, hit) {
   const G = P.game, pw = hit || P.power(), c = BUILDS.Storm.col, top = E.pos.clone().add(V3((Math.random() - 0.5) * 300, 1400, (Math.random() - 0.5) * 300));
-  G.fx.shockStrike(E.feet(), 230, c); G.fx.flash(E.pos, c, 200, 0.16, true); G.audio.playAt('S_Chain', E.pos, 0.7, 0.8);
+  G.fx.shockStrike(E.feet(), 230, c); G.fx.flash(E.pos, c, 200, 0.16, true); G.audio.playAt('S_Zap', E.pos, 0.7, 0.9);
   hurt(P, E, pw * (r > 1 ? 1.2 : 1.5), c); if (P.duo && P.duo.Superconductor) { E.applySlow(0.6, 2.5); P.stun(E, 0.7); }
   if (r > 1) { let from = E.pos; for (const K of near(G, E.pos, 600, E).slice(0, 2)) { G.fx.arc(from, K.pos, c); hurt(P, K, pw * 0.4, c); P.stun(K, 0.5); if (P.duo && P.duo.Superconductor) K.applySlow(0.6, 2.5); from = K.pos; } }
 }
@@ -125,7 +125,7 @@ export function buildKill(P, E) {
     if (r > 1) P.combatHeal(2);
   }
   if (E.slowT > 0 && (r = rank(P, 'Frost'))) {
-    const c = BUILDS.Frost.col; G.fx.frostBurst(E.feet(), 360, c); G.audio.playAt('S_Ricochet', at, 0.6, 1.2);
+    const c = BUILDS.Frost.col; G.fx.frostBurst(E.feet(), 360, c); G.audio.playAt('S_Frost', at, 0.7);
     for (const K of near(G, at, 360, E)) { hurt(P, K, pw * 0.6, c); K.applySlow(0.6, 2.5); if (r > 1) P.stun(K, 0.9); }
     if (r > 1) shield(P, 4);
   }
@@ -160,7 +160,7 @@ export function buildTick(P, dt) {
   const G = P.game; if (P.dead || !P.build) return; let r;
   if (rank(P, 'Ember') > 1 && (P.emT = (P.emT || 0) + dt) > (rank(P, 'Ember') > 2 ? 3.5 : 7)) { P.emT = 0; if (near(G, P.pos, 520).length) { const c = BUILDS.Ember.col; P.shockAround(520, P.power() * 0.6, c, 200, 120, 'fire'); for (const K of near(G, P.pos, 520)) K.applyBurn(P.power() * 0.5, 3); } else P.emT = 6; }
   if (rank(P, 'Bulwark') > 1 && (P.bpT = (P.bpT || 0) + dt) > 6) { P.bpT = 0; if (P.overshield > 1 && near(G, P.pos, 460).length) P.shockAround(460, P.overshield * 2, BUILDS.Bulwark.col, 420, 200); else P.bpT = 5; }
-  if (rank(P, 'Frost') > 2 && (P.fzT = (P.fzT || 0) + dt) > 8) { P.fzT = 0; const L = near(G, P.pos, 620); if (L.length) { const c = BUILDS.Frost.col, f = V3(P.pos.x, P.pos.y - 85, P.pos.z); G.fx.frostBurst(f, 620, c); G.audio.playAt('S_Ricochet', P.pos, 0.7, 0.6); for (const K of L) { K.applySlow(0.7, 3); P.stun(K, 1.4); hurt(P, K, P.power() * 0.5, c); } } else P.fzT = 7; }
+  if (rank(P, 'Frost') > 2 && (P.fzT = (P.fzT || 0) + dt) > 8) { P.fzT = 0; const L = near(G, P.pos, 620); if (L.length) { const c = BUILDS.Frost.col, f = V3(P.pos.x, P.pos.y - 85, P.pos.z); G.fx.frostBurst(f, 620, c); G.audio.playAt('S_Frost', P.pos, 0.9, 0.75); for (const K of L) { K.applySlow(0.7, 3); P.stun(K, 1.4); hurt(P, K, P.power() * 0.5, c); } } else P.fzT = 7; }
   if (rank(P, 'Rush') > 2 && Math.hypot(P.vel.x, P.vel.z) > 700 && (P.crT = (P.crT || 0) + dt) > 0.5) { P.crT = 0; const K = near(G, P.pos, 520).sort((a, b) => a.pos.distanceTo(P.pos) - b.pos.distanceTo(P.pos))[0]; if (K) { const c = BUILDS.Rush.col; G.fx.arc(P.pos, K.pos, c); G.fx.flash(K.pos, c, 100, 0.1, true); hurt(P, K, P.power() * 0.3, c); } }
   if ((r = rank(P, 'Rush'))) {
     if (P.dashT > 0) {

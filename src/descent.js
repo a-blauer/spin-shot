@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { DATA, lin, randInt, zombieCount, maxAlive } from './data.js';
 import { V, R } from './mapkit.js';
 import { Interactable } from './interact.js';
-import { ARENAS, spots, N_ROOMS } from './map_descent.js';
+import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore } from './cores.js';
 import { Meta } from './meta.js';
 
@@ -27,6 +27,7 @@ export class Descent {
     this.order = o.length >= 16 ? o.slice(0, 16) : o.concat(o).slice(0, 16);
     this.bossPick = this.pickBosses();
   }
+  bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
   isBossRoom(r = this.room) { return r > 0 && r % 5 === 0; }
   arenaFor(room) { return room % 5 === 0 ? N_ROOMS + ((room / 5 - 1) % 2) : this.order[room - 1 - Math.floor(room / 5)]; }
@@ -98,7 +99,7 @@ export class Descent {
     P.pos.set(S.spawn[0] + (Math.random() - 0.5) * 300, 100, S.spawn[1]); P.vel.set(0, 0, 0); P.pitch = 0; P.yaw = S.yaw; P.invuln = Math.max(P.invuln || 0, 2.5);
     g.zones.forEach((Z, i) => { Z.unlocked = i === A.zone; });
     if (g.world.showChunk) g.world.showChunk(this.arena);
-    g.hud.hurtWhite = 0.3; g.audio.play('S_Door', 1, 0.7);
+    g.hud.hurtWhite = 0.3; g.audio.play('S_Enter', 1);
     const boss = this.isBossRoom();
     g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
     g.hud.roundFlash = 1;
@@ -153,7 +154,7 @@ export class Descent {
       use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
     g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); g.fx.ring(V3(S.bench[0], 6, S.bench[1] - f * 120), 260, lin(0.4, 0.9, 1), 0.5); g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
-    g.audio.play('S_LevelUp', 0.6, 1.2);
+    g.audio.play('S_Clear', 0.9);
   }
   wipe() {
     const g = this.g;

@@ -746,7 +746,8 @@ export class Game {
     // audio listener + ambience
     const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd);
     this.audio.setListener(this.camera.position, fwd, V3(0, 1, 0));
-    this.audio.loop('S_AmbWind', this.map.wind !== undefined ? this.map.wind : this.zone === this.casinoZone ? 0.05 : 0.22);
+    if (this.descent) this.audio.ambience(this.descent.bed(), 0.3);   // every room has its own air: stone, cave, machinery, fire, water or wind
+    else this.audio.ambience('S_AmbWind', this.map.wind !== undefined ? this.map.wind : this.zone === this.casinoZone ? 0.05 : 0.22);
 
   }
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked

@@ -255,7 +255,7 @@ export class Player {
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${cash(amount)}`, '#ffd23a'); this.play('S_Cash', 0.8); }
     else if (type === 'Tonic') this.gainTonic(amount);
-    else if (type === 'Buff' && isCore(amount)) this.gainCore(amount);
+    else if (type === 'Buff' && isCore(amount)) { this.gainCore(amount); this.play('S_Part', 0.9); return; }
     else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { const u = rollBuff(rarityIndex(DATA.upgrades[amount].rarity), this.upgradeStacks, this.cls.id); if (u >= 0) this.addUpgrade(u); else { this.addMoney(500, true); this.toast('Nothing left to learn  +$50', '#ffd23a'); } } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
     else if (type === 'Grenade') { const N = GRENADES[amount]; if (this.grenades.length >= this.grenadeMax()) this.grenades.shift(); this.grenades.push(amount); this.toast(`${N.name} grenade  -  ${N.desc}`, N.hex); this.play('S_MagIn', 0.8, 0.8); }
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
@@ -801,7 +801,7 @@ export class Player {
   }
   pickedUp(by) {
     const G = this.game; this.dead = false; this.downed = false; this.health = Math.round(this.maxHealth * 0.4); this.invuln = 3; this.safeT = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
-    G.banner(by ? `${String(by).toUpperCase()} GOT YOU UP` : 'BACK ON YOUR FEET', [0.5, 0.9, 1], 2.5); this.play('S_PowerUp', 0.7, 1.2);
+    G.banner(by ? `${String(by).toUpperCase()} GOT YOU UP` : 'BACK ON YOUR FEET', [0.5, 0.9, 1], 2.5); this.play('S_Revive', 0.9);
     G.fx.rune(V3(this.pos.x, this.pos.y - 85, this.pos.z), 220, [0.5, 0.9, 1], 1.2); G.fx.heal(this.pos);
   }
   revive() {
@@ -908,7 +908,7 @@ export class Player {
     const cd = W.cd / sp * chain * (power ? 1.3 + 0.3 * charge : this.meleeHeavy ? 1.2 : 1);
     this.meleeCd = cd; this.meleeComboT = cd + 0.55; this.meleeHitT = W.wind / sp * (power ? 1.7 : this.meleeHeavy ? 1.3 : 1);
     this.game.vm.meleeSwing(W, step, Math.max(0.16, cd * 0.8));
-    this.play('S_Dash', 0.5, (this.meleeHeavy ? 0.8 : 1.25) * Math.max(0.6, Math.min(1.25, 1.45 - W.cd)), 0.06);   // heavier weapons cut the air lower
+    this.play(this.meleeHeavy ? 'S_SwingBig' : 'S_Swing', 0.7, Math.max(0.75, Math.min(1.2, 1.4 - W.cd)), 0.06);   // heavier weapons cut the air lower
     // step in toward the nearest target in front so swings connect
     const T = this.meleeTargets(this.meleeRange() * 2.4, 70)[0];
     if (T) { const d = flat(T.pos.clone().sub(this.pos)); const gap = d.length() - T.radius - this.meleeRange() * 0.7; if (gap > 0) { d.normalize(); this.vel.x += d.x * Math.min(950, gap * 8); this.vel.z += d.z * Math.min(950, gap * 8); } }   // a swing carries you in: a long step toward whatever is in front
@@ -948,7 +948,7 @@ export class Player {
       if (!E.dead && !E.isBoss) { const st = (heavy ? 0.7 : 0.35) * (E.elite ? 0.5 : 1); E.staggerT = Math.max(E.staggerT || 0, st); E.attackCd = Math.max(E.attackCd || 0, st + 0.25); if (big && chg >= 1) { E.staggerT = Math.max(E.staggerT, 1.0); E.applySlow(0.8, 1.2); } }
       if (heavy && !E.dead && !E.isBoss && this.S.MeleeStun) { E.staggerT = Math.max(E.staggerT || 0, this.S.MeleeStun); E.applySlow(0.9, this.S.MeleeStun); }
       const shock = (W.shock || 0) + this.stat('MeleeShock');
-      if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Chain', 0.5, 1.2, 0.1); }
+      if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Zap', 0.5, 1.1, 0.1); }
       G.fx.fleshHit(at, dir, E.bodyScale * (heavy ? 1.5 : 1.1), true);
       G.fx.flash(at, heavy ? [1, 0.8, 0.45] : [1, 0.95, 0.85], heavy ? 150 : 95, 0.09, true); G.fx.sparks(at, dir.clone().negate(), heavy ? [1, 0.8, 0.4] : [1, 0.95, 0.85], heavy ? 9 : 5);
       if (E.dead) { killed++; Meta.bump('meleeKills'); }
@@ -959,7 +959,7 @@ export class Player {
     this.addShake((heavy ? 0.9 : 0.4) + Math.min(0.4, T.length * 0.1)); this.fovKick += heavy ? 6 : 3;
     this.addKick(heavy ? 2.2 : 0.5, -(this.meleeSide || 0) * (1.6 + Math.min(1.2, T.length * 0.4))); this.swingRoll = -(this.meleeSide || 0) * 2.2;   // the blade bites and stops: the view jolts back against the swing
     G.vm.mBite = heavy ? 1 : 0.6;
-    this.play('S_HitFlesh2', 0.9, heavy ? 0.7 : 1, 0.08); if (heavy) this.play('S_Slam', 0.6, 1.1, 0.05);
+    { const blunt = ['bat', 'sledge', 'prod', 'shovel', 'brand'].includes(W.model); this.play(blunt ? 'S_Blunt' : 'S_Blade', 0.9, heavy ? 0.8 : 1, 0.08); if (heavy) this.play('S_HitFlesh2', 0.7, 0.8, 0.08); }
     G.audio.gunPunch(heavy ? 0.9 : 0.45);
     if (W.quake && heavy) { G.fx.quake(V3(this.pos.x, this.pos.y - 85, this.pos.z).addScaledVector(flat(f).normalize(), 120), 380); for (const E of G.enemies) if (!E.dead && !T.includes(E) && E.pos.distanceTo(this.pos) < 420) { this.dealDamage(E, base * 0.4, E.pos, safeN2(flat(E.pos.clone().sub(this.pos))), false, 0, true); if (!E.isBoss) E.applyKnock(safeN2(flat(E.pos.clone().sub(this.pos))).multiplyScalar(700).add(V3(0, 380, 0))); } }
     const leech = (W.leech || 0) + this.stat('MeleeLifesteal'); if (leech > 0) this.combatHeal(Math.min(12, dealt * leech));
@@ -1010,7 +1010,7 @@ export class Player {
       for (let k = 0; k <= n; k++) G.fx.add({ pos: muzzle.clone().addScaledVector(d, k), life: 0.3 + 0.16 * (k / n), size0: 46, size1: 18, c0: [1, 1, 0.9, 1], c1: [col[0], col[1], col[2], 0], fadeOut: 0.5, tex: 'FX_Glow', kind: 'add', glow: 3 }); }
     G.fx.flash(muzzle, col, 34, 0.1, true); G.fx.glowAt(end, col, 120, 0.2);
     if (wall) G.fx.sparks(wall.point, wall.normal, col, 6);
-    this.play('S_Chain', 0.45, 1.7, 0.05);
+    this.play('S_Zap', 0.5, 1.3, 0.05);
     this.procDepth++;
     for (const E of G.enemies) {
       if (E.dead || E.burrowed) continue;
@@ -1033,7 +1033,7 @@ export class Player {
     G.fx.add({ pos: a.clone(), vel: fly.clone(), life: 0.42, size0: 120, size1: 200, c0: [col[0], col[1], col[2], 0.5], c1: [col[0], col[1], col[2], 0], tex: 'FX_Glow', kind: 'add', glow: 2 });
     for (let k = 1; k <= 5; k++) { const q = eye.clone().addScaledVector(f, len * k / 5.5); if (gy > -1e8) q.y = gy + 12; G.fx.add({ pos: q, delay: 0.42 * k / 5.5, vel: V3(0, 90, 0), drag: 2, life: 0.35, size0: 40, size1: 110, rot: Math.random() * 360, c0: [0.75, 0.72, 0.66, 0.6], c1: [0.75, 0.72, 0.66, 0], tex: 'FX_Puff' }); }
     G.fx.flash(a, col, 50, 0.1, true);
-    this.play('S_Dash', 0.7, 1.7, 0.05);
+    this.play('S_SwingBig', 0.7, 1.3, 0.05);
     this.procDepth++;
     for (const E of G.enemies) {
       if (E.dead || E.burrowed || skip.includes(E)) continue;
@@ -1085,7 +1085,7 @@ export class Player {
     if (this.meleeGuardT > 0) dmg *= 1 - Math.min(0.6, this.stat('MeleeGuard'));
     if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; if (this.overshield <= 0 && !silent) this.runProcs('OnShieldBreak', null, this.pos, 0, 1); }
     this.health -= dmg;
-    if (this.S.SecondWind && !this.secondWindUsed && this.health > 0 && this.health < this.maxHealth * 0.25) { this.secondWindUsed = true; this.health = Math.min(this.maxHealth, this.health + this.maxHealth * Math.min(0.8, this.S.SecondWind)); this.invuln = Math.max(this.invuln, 0.6); this.toast('Second wind', '#7dff8a'); this.play('S_PowerUp', 0.7, 1.2); }
+    if (this.S.SecondWind && !this.secondWindUsed && this.health > 0 && this.health < this.maxHealth * 0.25) { this.secondWindUsed = true; this.health = Math.min(this.maxHealth, this.health + this.maxHealth * Math.min(0.8, this.S.SecondWind)); this.invuln = Math.max(this.invuln, 0.6); this.toast('Second wind', '#7dff8a'); this.play('S_Revive', 0.8, 1.1); }
     this.sinceDamage = 0;
     // damage report: what hit you, totalled for the run and kept in order for the last few seconds
     { let who = 'Other';
@@ -1687,7 +1687,7 @@ export class Player {
           this.dealDamage(best, mag * base, best.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, lin(0.55, 0.8, 1));
           done.add(best); from = best.pos.clone();
         }
-        G.audio.playAt('S_Chain', from, 0.5);
+        G.audio.playAt('S_Zap', from, 0.5);
         break;
       }
       case 'Ignite':

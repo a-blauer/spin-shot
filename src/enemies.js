@@ -608,7 +608,7 @@ export class Enemy {
     this.pos.set(out.x, out.y + this.feetOffset + 10, out.z);
     this.vel.set(0, 0, 0);
     G.fx.flash(this.pos, this.accent(), 70 * this.bodyScale, 0.3, true);
-    G.audio.playAt('S_Dash', this.pos, 0.6, 0.8);
+    G.audio.playAt('S_Blink', this.pos, 0.8);
   }
   applyBurn(dps, time) { if (this.remote) { this.game.net.sendFx(this, 'burn', dps, time); return; } this.burnDps = Math.max(this.burnDps, dps); this.burnT = Math.max(this.burnT, time); }
   applyBleed(total) { if (this.remote) { this.game.net.sendFx(this, 'bleed', total); return; } this.bleedDps += total / 3; this.bleedT = 3; }
@@ -748,12 +748,12 @@ export class Enemy {
         this.wardStage = stage; this.ward = 14; this.wardKids = []; this.bossAttack = -1; this.windup = 0; this.bossTimer = 2;
         const wisp = this.boss.wardArt ? DATA.enemies.findIndex((e) => e.art === this.boss.wardArt) : G.enemyOfAI('Flyer');
         for (let i = 0; i < 4 + stage; i++) { const a = i / (4 + stage) * Math.PI * 2, at = Me.clone().add(new THREE.Vector3(Math.cos(a) * 420, 160, Math.sin(a) * 420)); const K = G.spawnEnemy(wisp >= 0 ? wisp : this.boss.minion, at, false, -1, 1.25, 1.6, 0, false); if (K) { K.wardOf = this; this.wardKids.push(K); } }
-        this.puppet.setTint([0.6, 0.8, 1.25]); G.audio.playAt('S_Screech', Me, 1.1, 0.8);
+        this.puppet.setTint([0.6, 0.8, 1.25]); G.audio.playAt('S_Screech', Me, 0.9, 0.8); G.audio.playAt('S_Shield', Me, 1);
         G.banner(this.boss.wardText || 'WARDED - KILL THE WISPS', lin(0.5, 0.8, 1), 3);
       }
       if (this.ward > 0) {
         this.ward -= dt; this.wardKids = this.wardKids.filter((K) => !K.dead);
-        if (!this.wardKids.length || this.ward <= 0) { this.ward = 0; this.exposedT = 3.5; this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); G.banner('THE WARD BREAKS', lin(1, 0.85, 0.4), 2); G.audio.playAt('S_Door', Me, 1, 1.4); }
+        if (!this.wardKids.length || this.ward <= 0) { this.ward = 0; this.exposedT = 3.5; this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); G.banner('THE WARD BREAKS', lin(1, 0.85, 0.4), 2); G.audio.playAt('S_ShieldBreak', Me, 1); }
       }
     }
     if (this.boss.mech === 'shed') {   // the Abomination comes apart as it is hurt
@@ -970,7 +970,7 @@ export class Enemy {
         break;
       }
       case 'Ambush':   // gone, then right behind you and already swinging
-        if (this.bossStep === 0) { this.bossStep = 1; this.blink(280, 430); G.audio.playAt('S_Wings', this.pos, 1, 0.6); }
+        if (this.bossStep === 0) { this.bossStep = 1; this.blink(280, 430); }
         this.stop();
         if (this.bossT > 0.4) this.startBossAttack(ATTACKS.indexOf('Sweep'));
         break;
