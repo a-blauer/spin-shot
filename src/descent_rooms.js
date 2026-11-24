@@ -1,344 +1,454 @@
-// The Descent's eight rooms, each laid out by hand. Every room is one idea carried through its floor, its centrepiece
-// and the things you fight around: a bone nave, a foundry floor, a frozen vault, a flooded wine cellar, a gaming hall,
-// a wreck on the sea bed, a hive and a chamber that is coming apart.
-// What is solid here is what you fight around (and the nav grid knows about it). Everything else is for the eye.
-// The four outer walls are never touched by anything solid, so a wall-run never snags.
+// The Descent's eight rooms and two boss floors, each laid out by hand and each a different shape: a long bone nave,
+// a wide foundry floor, a round frozen lake, a low wine cellar, a rail station under the ground, a wreck on the sea
+// bed, a hive, and a chamber that is coming apart.
+// Rules every room keeps:
+//  - what you fight around is solid and on the nav grid; anything raised is stepped on every side (risers of forty),
+//    so whatever can walk can climb it and nothing is left staring at a ledge;
+//  - things a person uses are a person's size (a table is waist high, a crate is a crate); only the building is big;
+//  - nothing solid touches the four outer walls, so a wall-run never snags; the strip inside each end wall and the
+//    two wall-gun spots on the side walls are left clear for the room's stations;
+//  - each room hands back where it is tall (so nothing is hung from the roof into it) and where it is raised
+//    (so nothing comes up out of the ground inside a platform).
 import { V, V2, R } from './mapkit.js';
 
-export function craftRoom(kind, K) {
-  const { M, T, hx, hy, H, rnd, rr, pillarBase } = K;
-  const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Ring, Floor, Lamp, Wedge } = M;
-  const L = (x, y, z, c, r = 1300, k = 2.2) => Lamp(V(x, y, z), { r: c[0], g: c[1], b: c[2] }, k, r, false);
+// what each room is: half-width, half-length, height
+export const ROOM_DIMS = [
+  [3400, 5400, 1500],   // 0 Ossuary: a nave, long and tall
+  [5200, 3600, 1300],   // 1 Cinder Works: wide
+  [4600, 4600, 1400],   // 2 Rime Vault: round the lake
+  [5000, 3900, 760],    // 3 Mire Cellar: broad and low
+  [3600, 5600, 1200],   // 4 Deep Station: a tunnel
+  [5000, 4200, 1500],   // 5 Drowned Hall
+  [4600, 4600, 1300],   // 6 The Hive
+  [5000, 4400, 1700],   // 7 Null Chamber
+];
+export const BOSS_DIMS = [6000, 6000, 2000];
+
+function kit(K) {
+  const { M, T, hx, hy, H, rnd, rr } = K;
+  const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Floor, Lamp } = M;
+  const out = { tall: [], raised: [], tops: [], avoid: null, noCorners: false };
   const AX = R(90, 0, 0), AY = R(0, 0, 90);   // a cylinder laid along X, along Y
-  const hit = (x, y, w, d, h, nav = true, z = 0) => M.Solid(V(x, y, z + h / 2), V(w, d, h), nav);   // the unseen body of something drawn from loose parts
-  const solid = (x, y, w, d, h, col, yaw = 0) => Box(V(x, y, h / 2), V(w, d, h), col, true, true, yaw);
-  const deco = (x, y, z, w, d, h, col, yaw = 0) => Box(V(x, y, z), V(w, d, h), col, false, false, yaw);
-  // a floor of laid slabs: two tones, a few picked out darker, on a grid of `s`
-  const slabs = (s, a, b, c, skip = () => false) => {
-    for (let x = -hx; x < hx - 1; x += s) for (let y = -hy; y < hy - 1; y += s) {
-      if (skip(x + s / 2, y + s / 2)) continue;
-      const r = rnd(); Floor(V2(x + 6, y + 6), V2(x + s - 6, y + s - 6), 1.4, r < 0.12 ? c : (Math.round(x / s) + Math.round(y / s)) % 2 ? a : b);
-    }
+  const k = {
+    out, AX, AY,
+    L: (x, y, z, c, r = 1300, i = 2.2) => Lamp(V(x, y, z), { r: c[0], g: c[1], b: c[2] }, i, r, false),
+    // everything below takes the height of its underside, not its middle
+    hit: (x, y, z, w, d, h, nav = true) => M.Solid(V(x, y, z + h / 2), V(w, d, h), nav),
+    solid: (x, y, z, w, d, h, col, nav = true) => Box(V(x, y, z + h / 2), V(w, d, h), col, true, nav),
+    deco: (x, y, z, w, d, h, col, yaw = 0) => Box(V(x, y, z + h / 2), V(w, d, h), col, false, false, yaw),
+    tile: (x0, y0, x1, y1, z, col) => Floor(V2(x0, y0), V2(x1, y1), z, col),
+    tall: (x, y, r) => out.tall.push([x, y, r]),
+    // a thin ring of light laid in the floor: a lit disc with the floor's own colour put back over all but its rim
+    ring: (x, y, z, d, w, col, fill) => { Glow(V(x, y, z), V(d, d, 1.2), col, 1); Cyl(V(x, y, z + 1.4), d - w * 2, 1.2, fill, false, false); },
+    // a floor of laid slabs: two tones, a few picked out darker, on a grid of `s`
+    slabs: (s, a, b, c, skip = () => false) => {
+      for (let x = -hx; x < hx - 1; x += s) for (let y = -hy; y < hy - 1; y += s) {
+        if (skip(x + s / 2, y + s / 2)) continue;
+        Floor(V2(x + 5, y + 5), V2(Math.min(hx, x + s) - 5, Math.min(hy, y + s) - 5), 1.4, rnd() < 0.1 ? c : (Math.round(x / s) + Math.round(y / s)) % 2 ? a : b);
+      }
+    },
+    // a raised floor, stepped on all four sides: `h` in risers of forty, each tread seventy deep; the top is w by d
+    plat: (x, y, w, d, h, top, side, spots = []) => {
+      for (const [dx, dy] of spots) out.tops.push([x + dx, y + dy, h]);
+      const n = Math.round(h / 40);
+      for (let i = 0; i < n; i++) { const g = (n - 1 - i) * 140; Box(V(x, y, 20 + i * 40), V(w + g, d + g, 40), i === n - 1 ? top : side, true, false); }
+      out.raised.push([x - w / 2 - n * 70, y - d / 2 - n * 70, x + w / 2 + n * 70, y + d / 2 + n * 70]);
+    },
+    // the same, eight-sided
+    platOct: (x, y, d, h, top, side) => {
+      const n = Math.round(h / 40);
+      for (let i = 0; i < n; i++) { const g = (n - 1 - i) * 170; Oct(V(x, y, 20 + i * 40), V(d + g, d + g, 40), i === n - 1 ? top : side, true, false); }
+      const r = d / 2 + n * 85; out.raised.push([x - r, y - r, x + r, y + r]);
+    },
+    // a wall to crouch behind and shoot over
+    lowWall: (x, y, len, alongX, col, cap, h = 110, th = 70) => {
+      Box(V(x, y, h / 2), alongX ? V(len, th, h) : V(th, len, h), col, true, true);
+      Box(V(x, y, h + 6), alongX ? V(len + 16, th + 16, 12) : V(th + 16, len + 16, 12), cap, false, false);
+    },
+    crate: (x, y, z = 0, s = 110, col = 0x6a4e30, band = 0x2a2420, nav = true) => {
+      Box(V(x, y, z + s / 2), V(s, s, s), col, true, nav);
+      for (const e of [-1, 1]) { Box(V(x, y, z + s / 2 + e * (s / 2 - 8)), V(s + 6, s + 6, 12), band, false, false); }
+      Box(V(x, y, z + s / 2), V(s + 4, 14, s - 28), band, false, false); Box(V(x, y, z + s / 2), V(14, s + 4, s - 28), band, false, false);
+    },
+    barrel: (x, y, z = 0, col = 0x5a3e26, hoop = 0x2a2420) => {
+      Cyl(V(x, y, z + 55), 78, 110, col, true, false); Cyl(V(x, y, z + 55), 86, 70, col, false, false);
+      for (const e of [-1, 1]) Cyl(V(x, y, z + 55 + e * 34), 90, 8, hoop, false, false);
+      Cyl(V(x, y, z + 111), 70, 3, hoop, false, false);
+    },
+    candle: (x, y, z, h = 30) => { Cyl(V(x, y, z + h / 2), 10, h, 0xe8dcc0, false, false); Glow(V(x, y, z + h + 9), V(9, 9, 18), 0xffc86a, 3); },
+    chain: (x, y, z0, z1, col = 0x2a2e30) => { for (let z = z0; z < z1 - 20; z += 44) Box(V(x, y, z + 15), V(11, 11, 30), col, false, false, (z / 44 | 0) % 2 ? 45 : 0); },
+    skull: (x, y, z, s, yaw = 0, eye = T.glow) => {   // a carved skull, facing +Y before the turn
+      const c = Math.cos(yaw * Math.PI / 180), n = Math.sin(yaw * Math.PI / 180), at = (fx, fy, fz) => V(x + (fx * c - fy * n) * s, y + (fx * n + fy * c) * s, z + fz * s);
+      Ball(at(0, 0, 0.55), V(s, s * 1.05, s * 0.95), 0xd8cfb8); Box(at(0, 0.12, 0.08), V(s * 0.62, s * 0.6, s * 0.36), 0xc8bea4, false, false, yaw);
+      for (const e of [-1, 1]) { Ball(at(e * 0.2, 0.43, 0.52), V(s * 0.24, s * 0.16, s * 0.26), 0x0e0c0c); Glow(at(e * 0.2, 0.47, 0.52), V(s * 0.08, s * 0.08, s * 0.08), eye, 2); }
+      Pyramid(at(0, 0.5, 0.3), V(s * 0.12, s * 0.1, s * 0.16), 0x0e0c0c);
+    },
   };
-  const candle = (x, y, z, h = 40) => { Cyl(V(x, y, z + h / 2), 14, h, 0xe8dcc0, false, false); Glow(V(x, y, z + h + 12), V(12, 12, 24), 0xffc86a, 3); };
-  const chain = (x, y, z0, z1, col = 0x2a2e30) => { for (let z = z0; z < z1; z += 46) deco(x, y, z, 12, 12, 30, col, (z / 46 | 0) % 2 ? 45 : 0); };
-  const skull = (x, y, z, s, yaw = 0, eye = T.glow) => {   // a carved skull, facing +Y before the turn
-    const c = Math.cos(yaw * Math.PI / 180), n = Math.sin(yaw * Math.PI / 180), at = (fx, fy, fz) => V(x + (fx * c - fy * n) * s, y + (fx * n + fy * c) * s, z + fz * s);
-    Ball(at(0, 0, 0.55), V(s, s * 1.05, s * 0.95), 0xd8cfb8); Box(at(0, 0.12, 0.08), V(s * 0.62, s * 0.6, s * 0.36), 0xc8bea4, false, false, yaw);
-    for (const e of [-1, 1]) { Ball(at(e * 0.2, 0.43, 0.52), V(s * 0.24, s * 0.16, s * 0.26), 0x0e0c0c); Glow(at(e * 0.2, 0.47, 0.52), V(s * 0.08, s * 0.08, s * 0.08), eye, 2); }
-    Pyramid(at(0, 0.5, 0.3), V(s * 0.12, s * 0.1, s * 0.16), 0x0e0c0c);
-    for (let k = -2; k <= 2; k++) Box(at(k * 0.11, 0.42, -0.06), V(s * 0.08, s * 0.05, s * 0.14), 0xefe8d4, false, false, yaw);
-  };
+  return k;
+}
+
+export function craftRoom(kind, K) {
+  const { M, T, hx, hy, H, rnd, rr } = K;
+  const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Floor, Lamp } = M;
+  const Q = kit(K), { out, AX, AY, L, hit, solid, deco, tile, tall, slabs, plat, platOct, lowWall, crate, barrel, candle, chain, skull, ring } = Q;
 
   switch (kind) {
     // ------------------------------------------------------------------------------------------------ THE OSSUARY
+    // A nave: fourteen great columns in two rows, a tomb on a dais at the crossing, and the dead laid out in the aisles.
+    // Long sight lines down the middle; the columns and the tombs are what you break them with.
     case 0: {
-      const bone = 0xd8cfb8, stone = T.wall, dark = 0x12181a;
-      slabs(400, T.floor, T.floor2, 0x141a1e, (x, y) => Math.abs(x) < 300);
-      // the nave: a runner of pale stone down the middle, edged in bone, with a line of grave slabs set into it
-      Floor(V2(-300, -hy), V2(300, hy), 1.6, 0x39464c); for (const s of [-1, 1]) Floor(V2(s * 300 - 14, -hy), V2(s * 300 + 14, hy), 2.2, bone);
-      for (let y = -2400; y <= 2400; y += 800) { if (Math.abs(y) < 500) continue; Floor(V2(-150, y - 250), V2(150, y + 250), 2.4, 0x232c30); Floor(V2(-110, y - 200), V2(110, y + 200), 2.8, 0x2c383e); Floor(V2(-12, y - 120), V2(12, y + 150), 3.2, bone); Floor(V2(-70, y + 50), V2(70, y + 74), 3.2, bone); }
-      // two arcades: clustered columns, and a pointed arch sprung from each to the next and across the nave
-      const cols = [-2100, -700, 700, 2100];
-      for (const sx of [-1, 1]) for (const y of cols) {
-        const x = sx * 1250;
-        Cyl(V(x, y, H / 2), 260, H, stone, true, true); Oct(V(x, y, 50), V(420, 420, 100), T.trim, false, false); Oct(V(x, y, 120), V(340, 340, 40), stone, false, false);
-        for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; Cyl(V(x + Math.cos(a) * 150, y + Math.sin(a) * 150, 140 + 280), 70, 560, 0x3c4a50, false, false); }
-        Oct(V(x, y, 720), V(400, 400, 60), T.trim, false, false); Glow(V(x, y, 690), V(300, 300, 8), T.glow, 7);
-        for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; skull(x + Math.cos(a) * 150, y + Math.sin(a) * 150, 250, 90, -90 + a * 180 / Math.PI); }
-        // across the nave to its twin (one side builds both halves)
-        if (sx > 0) for (const e of [-1, 1]) BoxRot(V(e * 640, y, 860), V(1340, 70, 60), 0x3c4a50, R(0, 0, e * -13), false);
-      }
-      for (const sx of [-1, 1]) for (let k = 0; k < cols.length - 1; k++) { const y0 = cols[k], y1 = cols[k + 1], m = (y0 + y1) / 2; for (const e of [-1, 1]) BoxRot(V(sx * 1250, m + e * 350, 850), V(70, 760, 60), 0x3c4a50, R(0, 0, 0), false); Glow(V(sx * 1250, m, 930), V(40, 40, 60), T.glow, 2); chain(sx * 1250, m, 700, 1000); deco(sx * 1250, m, 640, 150, 150, 120, 0x1a1e20); skull(sx * 1250, m, 590, 80, sx > 0 ? 90 : -90); }
-      // the dais: three shallow steps, a sarcophagus with its lid pushed aside, four candle stands, and something in it that is not dead enough
-      for (let k = 0; k < 2; k++) Box(V(0, 0, 20 + k * 40), V(1500 - k * 300, 1100 - k * 300, 40), k ? T.trim : T.floor2, true, false);
-      solid(0, 0, 300, 620, 190, 0x39464c); Box(V(0, 0, 80 + 95), V(340, 660, 30), T.trim, false, false); Box(V(0, 0, 80 + 20), V(340, 660, 40), T.trim, false, false);
-      BoxRot(V(150, 40, 80 + 215), V(320, 640, 36), 0x4a5a60, R(0, 14, -16), false); Glow(V(-30, 0, 80 + 196), V(200, 500, 6), T.glow, 0); L(0, 0, 420, T.lamp, 1500, 2.6);
-      for (const k of [-1, 0, 1]) Box(V(-152, k * 190, 80 + 110), V(8, 120, 110), bone, false, false);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 480, y = sy * 400; hit(x, y, 70, 70, 210, false, 80); Cyl(V(x, y, 80 + 90), 26, 180, 0x2a2e30, false, false); Cyl(V(x, y, 80 + 186), 90, 12, 0x2a2e30, false, false); for (let k = 0; k < 3; k++) candle(x + Math.cos(k * 2.1) * 28, y + Math.sin(k * 2.1) * 28, 80 + 192, 30 + k * 12); }
-      // the galleries along each side wall: steps up to a row of standing coffins, some of them open
-      for (const sx of [-1, 1]) {
-        for (let k = 0; k < 3; k++) Box(V(sx * (hx - 300 + k * 90), 0, 20 + k * 40), V(600 - k * 180, hy * 2 - 1600, 40), k % 2 ? T.trim : T.floor2, true, false);
-        for (let y = -1950, i = 0; y <= 1950; y += 325, i++) {
-          if (Math.abs(Math.abs(y) - 500) < 250) continue;
-          const x = sx * (hx - 46), open = i % 3 === 1;
-          BoxRot(V(x, y, 120 + 230), V(70, 200, 460), 0x2a1e18, R(0, 0, 0), false); deco(x - sx * 36, y, 120 + 230, 6, 170, 420, open ? 0x0a0808 : 0x3a2a20);
-          if (open) { Ball(V(x - sx * 40, y, 120 + 380), V(60, 60, 66), bone); deco(x - sx * 40, y, 120 + 250, 30, 100, 190, 0x8a8468); Glow(V(x - sx * 64, y - 12, 120 + 386), V(8, 8, 8), T.glow, 2); Glow(V(x - sx * 64, y + 12, 120 + 386), V(8, 8, 8), T.glow, 2); }
-          else { deco(x - sx * 42, y, 120 + 300, 4, 20, 200, T.trim); deco(x - sx * 42, y, 120 + 340, 4, 90, 20, T.trim); }
-          candle(x - sx * 110, y + 150, 120, 26);
+      const bone = 0xd8cfb8, rib = 0x3c4a50, stone = 0x39464c;
+      slabs(450, T.floor, T.floor2, 0x141a1e, (x) => Math.abs(x) < 360);
+      tile(-360, -hy, 360, hy, 1.6, stone); for (const s of [-1, 1]) tile(s * 360 - 12, -hy, s * 360 + 12, hy, 2.2, bone);
+      for (let y = -4550; y <= 4550; y += 700) { if (Math.abs(y) < 900) continue; tile(-130, y - 210, 130, y + 210, 2.4, 0x232c30); tile(-10, y - 110, 10, y + 130, 3, bone); tile(-60, y + 40, 60, y + 60, 3, bone); }
+      const rows = [-4200, -2800, -1400, 0, 1400, 2800, 4200];
+      for (const y of rows) {
+        for (const sx of [-1, 1]) {
+          const x = sx * 1500;
+          Cyl(V(x, y, H / 2), 300, H, T.wall, true, true); Oct(V(x, y, 45), V(460, 460, 90), T.trim, false, false); Oct(V(x, y, 110), V(380, 380, 40), stone, false, false);
+          Oct(V(x, y, 1090), V(440, 440, 60), T.trim, false, false); Glow(V(x, y, 1052), V(330, 330, 8), T.glow, 7);
+          for (let q = 0; q < 4; q++) { const a = q * Math.PI / 2; skull(x + Math.cos(a) * 168, y + Math.sin(a) * 168, 250, 84, -90 + a * 180 / Math.PI); }
+          tall(x, y, 420);
+          // a rib from the head of each column up to the ridge
+          BoxRot(V(sx * 750, y, 1290), V(1540, 60, 60), rib, R(0, 0, sx * -11.5), false);
         }
+        Oct(V(0, y, 1400), V(130, 130, 90), T.trim, false, false); Glow(V(0, y, 1345), V(60, 60, 24), T.glow, 2);
       }
-      // heaps of the dead at the feet of the end walls, and the great skull over each door
-      for (const sy of [-1, 1]) { skull(0, sy * (hy - 20), 640, 300, sy > 0 ? 180 : 0); for (const e of [-1, 1]) { for (let i = 0; i < 26; i++) { const x = e * rr(700, 2500), y = sy * (hy - rr(40, 300)); if (Math.abs(x + 900) < 400 || Math.abs(x - 1300) < 800 || Math.abs(x - 700) < 250) continue; if (rnd() < 0.45) Ball(V(x, y, rr(20, 90)), V(58, 56, 62), bone); else BoxRot(V(x, y, rr(14, 60)), V(rr(90, 170), 14, 14), bone, R(rr(-20, 20), rr(0, 180), 0), false); } } }
+      for (const sx of [-1, 1]) for (let i = 0; i < rows.length - 1; i++) Box(V(sx * 1500, (rows[i] + rows[i + 1]) / 2, 1150), V(60, 1100, 60), rib, false, false);
+      out.avoid = (x, y) => Math.abs(Math.abs(x) - 1500) < 160 || rows.some((r) => Math.abs(y - r) < 170);
+      // the crossing: a dais of two steps, a stone tomb with its lid pushed aside, a candle stand at each corner
+      plat(0, 0, 900, 700, 80, T.trim, T.floor2);
+      solid(0, 0, 80, 130, 300, 100, stone, false); deco(0, 0, 80, 150, 320, 16, T.trim); deco(0, 0, 164, 150, 320, 16, T.trim);
+      BoxRot(V(52, 14, 196), V(140, 310, 22), 0x4a5a60, R(0, 12, -12), false); Glow(V(-12, 0, 181), V(84, 250, 6), T.glow, 0); L(0, 0, 380, T.lamp, 1500, 2.4);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 380, y = sy * 280; hit(x, y, 80, 44, 44, 130, false); Cyl(V(x, y, 140), 16, 120, 0x2a2e30, false, false); Cyl(V(x, y, 203), 56, 8, 0x2a2e30, false, false); for (let q = 0; q < 3; q++) candle(x + Math.cos(q * 2.1) * 17, y + Math.sin(q * 2.1) * 17, 207, 20 + q * 9); }
+      // the aisles: stone tombs in pairs (each a man long), and a low charnel wall between the bays
+      for (const sx of [-1, 1]) for (const y of [-3500, -2100, 2100, 3500]) {
+        for (const e of [-1, 1]) {
+          const x = sx * 2450 + e * 190;
+          solid(x, y, 0, 110, 250, 80, stone); deco(x, y, 80, 126, 266, 14, T.trim); deco(x, y, 94, 14, 150, 5, bone); deco(x, y + 34, 94, 60, 14, 5, bone);
+        }
+        candle(sx * 2450, y - 150, 0, 34); candle(sx * 2450, y + 150, 0, 26);
+      }
+      for (const sx of [-1, 1]) for (const y of [-2800, -700, 700, 2800]) {
+        const x = sx * 2300;
+        lowWall(x, y, 620, false, 0x2c383e, bone, 110, 90);
+        for (let q = -2; q <= 2; q++) skull(x - sx * 44, y + q * 120, 22, 76, sx > 0 ? 90 : -90);
+      }
+      // bone chandeliers down the nave, hung well clear of heads
+      for (const y of [-3500, -2100, 2100, 3500]) { chain(0, y, 960, H); Oct(V(0, y, 940), V(420, 420, 22), bone, false, false); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; candle(Math.cos(a) * 180, y + Math.sin(a) * 180, 951, 26); } L(0, y, 880, [1, 0.8, 0.5], 1500, 1.6); tall(0, y, 300); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ CINDER WORKS
+    // A foundry floor, wider than it is deep: the crucible on its stepped plinth in the middle, four furnaces making
+    // streets between them, and the casting floor's clutter (ingots, coal, quench troughs) for cover in the outer lanes.
     case 1: {
-      const iron = 0x3a3e46, rust = 0x6a3a22, hot = 0xff6a1a, white = 0xffd27a, soot = 0x14100e, brick = 0x4a2a20;
-      slabs(425, T.floor, 0x2c1e18, 0x1a1210, (x, y) => (Math.abs(x) < 140 || Math.abs(y) < 140) && Math.abs(x) < 2600 && Math.abs(y) < 2400);
-      // channels of slag cut into the floor: from the crucible out to each wall, with gratings to cross on
-      const chan = (x0, y0, x1, y1) => { const ax = x0 === x1; Floor(V2(Math.min(x0, x1) - (ax ? 120 : 0), Math.min(y0, y1) - (ax ? 0 : 120)), V2(Math.max(x0, x1) + (ax ? 120 : 0), Math.max(y0, y1) + (ax ? 0 : 120)), 1.8, soot);
-        Glow(V((x0 + x1) / 2, (y0 + y1) / 2, 2.6), ax ? V(130, Math.abs(y1 - y0), 2) : V(Math.abs(x1 - x0), 130, 2), hot, 0); Glow(V((x0 + x1) / 2, (y0 + y1) / 2, 3.4), ax ? V(46, Math.abs(y1 - y0), 2) : V(Math.abs(x1 - x0), 46, 2), white, 0); };
-      chan(0, 520, 0, 2300); chan(0, -520, 0, -2300); chan(520, 0, 2600, 0); chan(-520, 0, -2600, 0);
-      for (const [x, y, ax] of [[0, 1300, 0], [0, -1300, 0], [1500, 0, 1], [-1500, 0, 1], [0, 2000, 0], [0, -2000, 0]]) { for (let k = -3; k <= 3; k++) Box(V(x + (ax ? k * 50 : 0), y + (ax ? 0 : k * 50), 5), ax ? V(22, 300, 10) : V(300, 22, 10), iron, false, false); for (const e of [-1, 1]) Box(V(x + (ax ? 0 : e * 140), y + (ax ? e * 140 : 0), 6), ax ? V(360, 24, 12) : V(24, 360, 12), 0x55585f, false, false); }
-      for (const [x, y] of [[0, 2300], [0, -2300], [2600, 0], [-2600, 0]]) { Cyl(V(x, y, 3), 420, 6, soot, false, false); Glow(V(x, y, 5), V(330, 330, 3), hot, 1); Glow(V(x, y, 6.5), V(170, 170, 3), white, 1); L(x, y, 260, [1, 0.5, 0.15], 1100, 2); }
-      // the crucible: a brick hearth, an iron pot of bright metal, and a ladle hanging over it from the gantry
-      Oct(V(0, 0, 70), V(1100, 1100, 140), brick, true, true); Oct(V(0, 0, 146), V(1160, 1160, 16), iron, false, false);
-      Cyl(V(0, 0, 140 + 150), 760, 300, iron, true, true); Cyl(V(0, 0, 140 + 290), 820, 40, 0x55585f, false, false); for (let k = 0; k < 3; k++) Cyl(V(0, 0, 140 + 60 + k * 90), 780, 22, rust, false, false);
-      Glow(V(0, 0, 140 + 304), V(700, 700, 8), hot, 1); Glow(V(0, 0, 140 + 310), V(460, 460, 8), white, 1); L(0, 0, 600, [1, 0.55, 0.2], 2000, 3);
-      for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; Glow(V(Math.cos(a) * 390, Math.sin(a) * 390, 140 + 160), V(14, 14, 14), hot, 2); }
-      Box(V(0, 0, H - 120), V(hx * 2, 160, 120), iron, false, false); for (let x = -hx + 300; x < hx; x += 600) deco(x, 0, H - 120, 40, 200, 150, rust);
-      deco(0, 0, H - 210, 300, 240, 70, 0x55585f); chain(-90, 0, 760, H - 230, 0x55585f); chain(90, 0, 760, H - 230, 0x55585f);
-      Cyl(V(0, 0, 660), 330, 220, iron, false, false); Cyl(V(0, 0, 764), 360, 26, rust, false, false); Glow(V(0, 0, 772), V(280, 280, 6), white, 1); Glow(V(60, 0, 610), V(26, 26, 130), white, 1); Glow(V(60, 0, 500), V(18, 18, 100), hot, 1);
-      // four furnaces: brick stacks with an arched mouth on each open face, banded in iron, a flue up into the roof
+      const iron = 0x3a3e46, dark = 0x17181c, brick = 0x4a2c22, hot = 0xff6a1a, steel = 0x6a6e76;
+      slabs(520, T.floor, T.floor2, 0x15110f);
+      // slag runs in the floor, from each furnace to the crucible
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-        const x = sx * 1650, y = sy * 1350, w = 1150, d = 950;
-        solid(x, y, w, d, H, brick); Box(V(x, y, 40), V(w + 50, d + 50, 80), iron, false, false);
-        for (const z of [330, 620, 900]) Box(V(x, y, z), V(w + 16, d + 16, 26), iron, false, false);
-        for (let z = 120; z < H - 60; z += 70) for (let k = 0; k < 4; k++) { const e = (k < 2 ? -1 : 1), on = k % 2; deco(x + (on ? e * (w / 2 + 1) : rr(-w / 2 + 80, w / 2 - 80)), y + (on ? rr(-d / 2 + 80, d / 2 - 80) : e * (d / 2 + 1)), z, on ? 3 : rr(90, 150), on ? rr(90, 150) : 3, 26, rnd() < 0.5 ? 0x5a3428 : 0x3c2019); }
-        // mouths face the middle of the room and the two side streets
-        for (const [fx, fy] of [[-sx, 0], [0, -sy], [sx, 0]]) {
-          const mx = x + fx * (w / 2 + 2), my = y + fy * (d / 2 + 2), ax = fx !== 0, mw = 420;
-          deco(mx, my, 150, ax ? 6 : mw + 90, ax ? mw + 90 : 6, 300, iron); Cyl(V(mx, my, 300), mw + 90, 6, iron, false, false, ax ? AX : AY);
-          Glow(V(mx + fx * 3, my + fy * 3, 140), ax ? V(4, mw, 260) : V(mw, 4, 260), hot, 0); Glow(V(mx + fx * 3, my + fy * 3, 270), V(ax ? 4 : mw, ax ? mw : 4, ax ? mw : mw), hot, 1, ax ? AX : AY);
-          Glow(V(mx + fx * 5, my + fy * 5, 110), ax ? V(4, mw * 0.55, 150) : V(mw * 0.55, 4, 150), white, 0);
-          for (let k = -2; k <= 2; k++) deco(mx + fx * 8 + (ax ? 0 : k * 90), my + fy * 8 + (ax ? k * 90 : 0), 150, 14, 14, 300, soot);
-          L(mx + fx * 260, my + fy * 260, 200, [1, 0.5, 0.15], 900, 2);
-          // a gauge and a wheel valve beside it
-          const gx = mx + (ax ? fx * 4 : 330), gy = my + (ax ? 330 : fy * 4); Cyl(V(gx, gy, 430), 110, 10, 0xd8d2c0, false, false, ax ? AX : AY); Cyl(V(gx + fx * 4, gy + fy * 4, 430), 126, 6, 0x8a6a2a, false, false, ax ? AX : AY); deco(gx + fx * 8, gy + fy * 8, 448, ax ? 4 : 8, ax ? 8 : 4, 44, 0xc8211b);
-        }
-        Cyl(V(x + sx * 300, y, H - 150), 300, 300, iron, false, false);
+        tile(sx * 760 - 130, sy * 1500 - 130, sx * 760 + 130, sy * 1500 + 130, 2, dark); tile(Math.min(sx * 760, sx * 2050), sy * 1500 - 130, Math.max(sx * 760, sx * 2050), sy * 1500 + 130, 2, dark); tile(sx * 760 - 130, Math.min(sy * 1000, sy * 1500), sx * 760 + 130, Math.max(sy * 1000, sy * 1500), 2, dark);
+        Glow(V(sx * 1405, sy * 1500, 3.4), V(1290, 130, 2), hot, 0); Glow(V(sx * 760, sy * 1250, 3.4), V(130, 630, 2), hot, 0);
       }
-      // rails along both side walls with ore tubs standing on them
-      for (const sx of [-1, 1]) { const x = sx * 2900; for (const e of [-1, 1]) Box(V(x + e * 70, 0, 6), V(16, hy * 2 - 500, 12), 0x8a8f99, false, false); for (let y = -hy + 300; y < hy - 250; y += 140) Box(V(x, y, 3), V(220, 46, 6), 0x3a2a1c, false, false);
-        for (const y of [-1900, 1500 * sx, 2200]) { if (Math.abs(Math.abs(y) - 500) < 300) continue; solid(x, y, 240, 360, 150, iron); deco(x, y, 156, 250, 370, 12, rust); for (let k = 0; k < 5; k++) Pyramid(V(x + rr(-70, 70), y + rr(-120, 120), 180), V(90, 90, 70), k % 2 ? 0x15151a : 0x2a1a14); Glow(V(x + rr(-50, 50), y + rr(-80, 80), 196), V(26, 26, 16), hot, 2); for (const e of [-1, 1]) for (const f of [-1, 1]) Cyl(V(x + e * 70, y + f * 110, 30), 60, 20, 0x15151a, false, false, AX); } }
-      // great gears turning nowhere on the end walls
-      for (const sy of [-1, 1]) for (const [gx, gd, gz] of [[-2300, 760, 560], [-1640, 500, 760], [2100, 900, 600]]) { if (Math.abs(gx + 900) < 500 && sy > 0) continue; const y = sy * (hy - 14); Cyl(V(gx, y, gz), gd, 20, iron, false, false, AY); Cyl(V(gx, y - sy * 8, gz), gd * 0.72, 20, rust, false, false, AY); Cyl(V(gx, y - sy * 16, gz), gd * 0.2, 26, 0x8a8f99, false, false, AY); const n = Math.round(gd / 60); for (let k = 0; k < n; k++) { const a = k / n * 6.283; BoxRot(V(gx + Math.cos(a) * gd * 0.52, y, gz + Math.sin(a) * gd * 0.52), V(gd * 0.1, 22, gd * 0.09), iron, R(-a * 57.3, 0, 0), false); } }
+      // the crucible
+      platOct(0, 0, 1500, 120, steel, iron);
+      for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + 0.39; Glow(V(Math.cos(a) * 690, Math.sin(a) * 690, 122), V(150, 26, 2), 0xffc040, 0, R(0, a * 57.3 + 90, 0)); }
+      Cyl(V(0, 0, 120 + 150), 560, 300, dark, true, true); Cyl(V(0, 0, 120 + 20), 620, 40, iron, false, false); Cyl(V(0, 0, 120 + 290), 620, 30, iron, false, false); Cyl(V(0, 0, 120 + 150), 590, 26, steel, false, false);
+      Glow(V(0, 0, 120 + 302), V(500, 500, 6), hot, 1); L(0, 0, 620, [1, 0.5, 0.15], 2400, 3);
+      chain(0, 0, 760, H); Cyl(V(0, 0, 690), 220, 150, iron, false, false); Cyl(V(0, 0, 772), 250, 16, steel, false, false); Glow(V(0, 0, 612), V(150, 150, 8), hot, 1); Glow(V(0, 0, 520), V(22, 22, 180), hot, 1); tall(0, 0, 500);
+      // four furnaces: brick, banded in iron, a mouth toward the middle, a stack through the roof
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const x = sx * 2700, y = sy * 1500;
+        solid(x, y, 0, 1200, 820, 640, brick); deco(x, y, 0, 1240, 860, 60, iron); deco(x, y, 290, 1224, 844, 34, iron); deco(x, y, 640, 1260, 880, 40, iron);
+        Cyl(V(x, y, 680 + (H - 680) / 2), 380, H - 680, dark, false, false); Cyl(V(x, y, 700), 440, 40, iron, false, false); Cyl(V(x, y, H - 60), 440, 30, iron, false, false);
+        const mx = x - sx * 604;   // the mouth, on the side facing the crucible
+        deco(mx, y, 70, 14, 380, 300, 0x0a0606); Glow(V(mx - sx * 6, y, 200), V(6, 300, 220), hot, 0); for (const e of [-1, 0, 1]) deco(mx - sx * 10, y + e * 110, 70, 10, 18, 300, iron);
+        deco(mx - sx * 8, y, 372, 30, 430, 34, iron); L(mx - sx * 260, y, 260, [1, 0.5, 0.15], 1300, 2);
+        tall(x, y, 760);
+      }
+      // the casting floor
+      const ingots = (x, y, along) => { solid(x, y, 0, along ? 230 : 150, along ? 150 : 230, 16, 0x5a4630, false); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) deco(x + (along ? c * 70 : 0), y + (along ? 0 : c * 70), 16 + r * 24, along ? 60 : 130 - r * 10, along ? 130 - r * 10 : 60, 22, r === 2 && c === 0 ? 0xb8923a : steel); hit(x, y, 16, along ? 220 : 140, along ? 140 : 220, 72, true); };
+      const coal = (x, y) => { solid(x, y, 0, 300, 220, 100, 0x2a2420); deco(x, y, 100, 312, 232, 10, iron); Ball(V(x, y, 100), V(270, 190, 90), 0x101014); Glow(V(x + 40, y - 20, 132), V(14, 14, 8), hot, 2); };
+      const trough = (x, y, along) => { solid(x, y, 0, along ? 420 : 130, along ? 130 : 420, 80, iron); Glow(V(x, y, 78), along ? V(380, 90, 6) : V(90, 380, 6), 0x3aa8ff, 0); };
+      const anvil = (x, y) => { solid(x, y, 0, 70, 70, 50, 0x3a2c20, false); deco(x, y, 50, 46, 110, 14, dark); deco(x, y, 64, 62, 150, 26, dark); };
+      for (const sx of [-1, 1]) {
+        coal(sx * 4350, sx * 1500); coal(sx * 4350, -sx * 2700); trough(sx * 4300, -sx * 1500, false); ingots(sx * 4300, sx * 2700, true); ingots(sx * 3900, sx * 2700, true);
+        for (const sy of [-1, 1]) { ingots(sx * 1500, sy * 2750, false); trough(sx * 2700, sy * 2750, true); anvil(sx * 1150, sy * 380); crate(sx * 3700, sy * 480, 0, 110); }
+        lowWall(sx * 1700, 0, 700, false, iron, steel, 110, 60);
+      }
+      for (const sy of [-1, 1]) { lowWall(0, sy * 2200, 760, true, iron, steel, 110, 60); barrel(-470, sy * 2200); barrel(470, sy * 2200); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ RIME VAULT
+    // Round: a frozen lake with a ring of eight ice columns, a cairn of spires on an island in the middle, and blocks
+    // of cut ice stacked where the ring opens. You circle here; the columns keep cutting the line between you and them.
     case 2: {
-      const ice = 0xbfe6ff, pale = 0xdff2ff, deep = 0x4a90c4, snow = 0xeef4f8, steel = 0x5a6a78, navy = 0x18222c;
-      // the floor is a frozen lake under drifted snow: plates of ice with dark cracks, and a ring of old vault flagstones round the dais
-      slabs(500, 0x30404e, 0x384a5a, 0x283440, (x, y) => Math.hypot(x, y) > 1750 && Math.hypot(x, y) < 3200 && Math.abs(x) < 2700);
-      for (let i = 0; i < 34; i++) { const a = rnd() * 6.283, r = rr(1800, 3000), x = Math.cos(a) * r * 0.95, y = Math.sin(a) * r * 0.82, w = rr(200, 520); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 1.6 + (i % 5) * 0.1, i % 3 ? 0x8fb8d4 : 0xa8cce2); }
-      for (let i = 0; i < 40; i++) { const a = rnd() * 6.283, r = rr(1700, 3000), x = Math.cos(a) * r * 0.95, y = Math.sin(a) * r * 0.82; BoxRot(V(x, y, 2.6), V(rr(160, 520), 7, 2), navy, R(0, rr(0, 180), 0), false); if (i % 2) BoxRot(V(x + 40, y + 30, 2.6), V(rr(80, 220), 5, 2), navy, R(0, rr(0, 180), 0), false); }
-      // the dais: three steps of rimed stone, and the thing the vault was built to keep: a figure frozen in a spire of ice
-      for (let k = 0; k < 3; k++) { Box(V(0, 0, 20 + k * 40), V(2600 - k * 360, 2600 - k * 360, 40), k % 2 ? 0x8fa6b8 : 0x5a6e80, true, false); for (const e of [-1, 1]) { Box(V(0, e * (1300 - k * 180 - 14), 42 + k * 40), V(2600 - k * 360, 28, 6), snow, false, false); Box(V(e * (1300 - k * 180 - 14), 0, 42 + k * 40), V(28, 2600 - k * 360, 6), snow, false, false); } }
-      Cyl(V(0, 0, 120 + 300), 380, 600, deep, true, true);
-      BoxRot(V(0, 0, 120 + 420), V(430, 430, 840), ice, R(0, 22, 4), false); BoxRot(V(40, -30, 120 + 330), V(360, 500, 640), pale, R(5, 58, -4), false); Pyramid(V(0, 0, 120 + 950), V(340, 340, 300), ice);
-      for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283 + 0.3, r = rr(280, 430), h = rr(260, 620); Pyramid(V(Math.cos(a) * r, Math.sin(a) * r, 120 + h / 2), V(rr(130, 220), rr(130, 220), h), k % 3 ? ice : deep, R(Math.sin(a) * 14, rr(0, 90), -Math.cos(a) * 14)); }
-      // the figure, dark inside the ice, seen from either door
-      for (const e of [-1, 1]) { deco(0, e * 222, 120 + 330, 150, 6, 330, navy); Ball(V(0, e * 222, 120 + 540), V(110, 10, 120), navy); deco(0, e * 222, 120 + 400, 300, 6, 60, navy); Glow(V(-26, e * 228, 120 + 548), V(14, 4, 10), T.glow, 0); Glow(V(26, e * 228, 120 + 548), V(14, 4, 10), T.glow, 0); }
-      Glow(V(0, 0, 124), V(1300, 1300, 3), T.glow, 8); L(0, 0, 700, T.lamp, 2200, 3); for (const e of [-1, 1]) L(e * 700, e * 700, 300, T.lamp, 1000, 2);
-      // four broken columns on the dais corners, sheathed in ice, their tops fallen
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 800, y = sy * 800, h = sx * sy > 0 ? 520 : 360; Cyl(V(x, y, 120 + h / 2), 200, h, 0x6a7e90, true, true); Oct(V(x, y, 120 + 30), V(290, 290, 60), 0x8fa6b8, false, false); Box(V(x, y, 120 + h + 20), V(240, 240, 40), ice, false, false); for (let k = 0; k < 5; k++) { const a = k * 1.3; ConeShape(V(x + Math.cos(a) * 96, y + Math.sin(a) * 96, 120 + h - 70 - k * 12), V(40, 40, 150), pale, false, R(180, 0, 0)); }
-        hit(x + sx * 420, y + sy * 260, 300, 300, 150, true, 100); BoxRot(V(x + sx * 420, y + sy * 260, 120 + 60), V(190, 190, 330), 0x6a7e90, R(sy * 70, 40 * sx, 0), false); Ball(V(x + sx * 420, y + sy * 260, 110), V(420, 380, 110), snow); }
-      // barricades: blocks of sawn ice stacked like a wall, capped with snow, where the low walls stood
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 2400, y = sy * 1900, alongX = sx * sy > 0, len = 900;
-        Box(V(x, y, 90), alongX ? V(len, 110, 180) : V(110, len, 180), deep, true, true);
-        for (let k = 0; k < 6; k++) { const o = (k - 2.5) * (len / 6); for (let r = 0; r < 2; r++) Box(V(x + (alongX ? o + r * 40 : 0), y + (alongX ? 0 : o + r * 40), 45 + r * 90), alongX ? V(len / 6 - 10, 122, 84) : V(122, len / 6 - 10, 84), (k + r) % 2 ? ice : pale, false, false); }
-        Box(V(x, y, 188), alongX ? V(len + 20, 136, 16) : V(136, len + 20, 16), snow, false, false); for (let k = 0; k < 7; k++) { const o = rr(-len / 2, len / 2); ConeShape(V(x + (alongX ? o : 62), y + (alongX ? 62 : o), 120), V(26, 26, 110), pale, false, R(180, 0, 0)); } }
-      // the frozen: a rank of the vault's guards along each side wall, each in a block of ice, weapons still raised
-      for (const sx of [-1, 1]) for (const y of [-2300, -1500, 1500, 2300]) { const x = sx * (hx - 330);
-        solid(x, y, 250, 250, 460, 0x7fb4d8); Box(V(x, y, 468), V(280, 280, 18), snow, false, false); Ball(V(x, y, 10), V(520, 520, 90), snow);
-        for (const [fx, fy] of [[-sx, 0], [0, 1], [0, -1]]) { const px = x + fx * 127, py = y + fy * 127, ax = fx !== 0; deco(px, py, 200, ax ? 4 : 90, ax ? 90 : 4, 250, navy); Ball(V(px, py, 365), ax ? V(6, 74, 80) : V(74, 6, 80), navy); deco(px + (ax ? 0 : 70), py + (ax ? 70 : 0), 300, ax ? 4 : 16, ax ? 16 : 4, 330, 0x2a3a48); } }
-      // a hard frost of icicles over the whole roof, thickest over the dais
-      for (let i = 0; i < 70; i++) { const a = rnd() * 6.283, r = Math.pow(rnd(), 0.7) * 3200, Lg = rr(140, 520) * (r < 1200 ? 1.5 : 1); ConeShape(V(Math.cos(a) * r, Math.sin(a) * r * 0.85, H - Lg / 2), V(rr(40, 100), rr(40, 100), Lg), rnd() < 0.3 ? deep : ice, false, R(180, 0, 0)); }
-      // drifts against the side walls, and lanterns frozen where they were dropped
-      for (const sx of [-1, 1]) for (let y = -hy + 300; y < hy - 200; y += 420) { if (Math.abs(Math.abs(y) - 500) < 300) continue; Ball(V(sx * (hx - 40), y + rr(-80, 80), 10), V(rr(300, 560), rr(420, 640), rr(120, 300)), snow); }
-      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + 0.4, x = Math.cos(a) * 2300, y = Math.sin(a) * 2000; hit(x, y, 50, 50, 80, false); deco(x, y, 26, 44, 44, 52, steel); Glow(V(x, y, 28), V(30, 30, 34), 0xffc86a, 0); Pyramid(V(x, y, 66), V(54, 54, 28), steel); L(x, y, 120, [1, 0.75, 0.4], 600, 1.6); }
+      const ice = 0xbfe6ff, deep = 0x5aa0d0, snow = 0xe8f2f8, blue = 0x9fc4dc;
+      slabs(520, T.floor, T.floor2, 0x16202a, (x, y) => Math.hypot(x, y) < 2950);
+      Cyl(V(0, 0, 1.2), 5900, 2, 0x35566c, false, false); ring(0, 0, 2, 5680, 40, ice, 0x6f9db8); ring(0, 0, 5, 3300, 26, ice, 0x6f9db8);
+      for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, r = rr(500, 2500); Glow(V(Math.cos(a) * r, Math.sin(a) * r, 8), V(rr(260, 700), 7, 1.4), 0xe8f8ff, 0, R(0, rr(0, 180), 0)); }
+      for (let q = 0; q < 8; q++) {
+        const a = (q + 0.5) / 8 * 6.283, x = Math.cos(a) * 2500, y = Math.sin(a) * 2500;
+        Oct(V(x, y, H / 2), V(420, 420, H), q % 2 ? ice : deep, true, true); Oct(V(x, y, 60), V(620, 620, 120), deep, false, false); Ball(V(x, y, 0), V(900, 900, 150), snow);
+        Glow(V(x, y, H * 0.5), V(440, 440, 10), 0xdff6ff, 7); for (let c = 0; c < 4; c++) { const b = a + c * 1.571 + 0.6; ConeShape(V(x + Math.cos(b) * 250, y + Math.sin(b) * 250, 90), V(90, 90, 180), ice); }
+        tall(x, y, 520);
+      }
+      // the island
+      platOct(0, 0, 900, 80, snow, blue);
+      Pyramid(V(0, 0, 80 + 380), V(300, 300, 760), ice); hit(0, 0, 80, 220, 220, 420, false); Glow(V(0, 0, 80 + 250), V(60, 60, 380), 0xdff6ff, 1); L(0, 0, 560, [0.6, 0.85, 1], 2400, 2.8); tall(0, 0, 420);
+      for (let c = 0; c < 5; c++) { const a = c / 5 * 6.283 + 0.4, h = 200 + c * 50; Pyramid(V(Math.cos(a) * 280, Math.sin(a) * 280, 80 + h / 2), V(120, 120, h), c % 2 ? deep : ice, R(0, c * 31, 0)); }
+      // cut ice, stacked like a quarry's
+      const blocks = (x, y) => { for (const [dx, dy, s] of [[-110, -60, 200], [110, -40, 180], [0, 150, 160]]) { solid(x + dx, y + dy, 0, s, s, s * 0.8, deep); deco(x + dx, y + dy, s * 0.8, s + 10, s + 10, 10, snow); } solid(x - 30, y - 50, 160, 150, 150, 120, ice, false); deco(x - 30, y - 50, 280, 160, 160, 10, snow); };
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { blocks(sx * 3450, sy * 1750); blocks(sx * 1750, sy * 3450); }
+      // low walls of packed snow on the lake, facing each door and each side
+      for (const s of [-1, 1]) { lowWall(0, s * 1450, 760, true, blue, snow, 110, 110); lowWall(s * 1450, 0, 760, false, blue, snow, 110, 110); }
+      // a sledge and its load, frozen where it was left
+      for (const s of [-1, 1]) { const x = s * 3700, y = -s * 250; for (const e of [-1, 1]) deco(x + e * 60, y, 0, 14, 330, 16, 0x3a2c20); solid(x, y, 16, 150, 290, 14, 0x5a4630, false); crate(x, y - 70, 30, 100, 0x6a4e30, 0x2a2420, false); crate(x, y + 60, 30, 90, 0x5a4630, 0x2a2420, false); hit(x, y, 0, 150, 300, 130, true); Ball(V(x, y - 70, 132), V(120, 120, 50), snow); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ MIRE CELLAR
+    // Broad and low: a wine cellar gone to swamp. Brick piers in a grid hold the vault up, great tuns lie in racks
+    // between them and make lanes, and a well stands in the middle. Close quarters and short lines of sight.
     case 3: {
-      const oak = 0x5a3e26, oakD = 0x3a2818, hoop = 0x2a2420, moss = 0x3f6a2c, mossL = 0x5a8a34, slime = 0x7aff5a, water = 0x163e2a, cap = 0x8a3a2a, stem = 0xd8cfa8, plank = 0x6a4a2e;
-      // a cellar floor of old brick, drowned at the edges: green water, moss creeping in, duckboards laid from door to door
-      slabs(340, 0x2a3226, 0x323c2c, 0x1c241a, (x, y) => Math.abs(x) < 190);
-      for (let i = 0; i < 20; i++) { const x = rr(-hx + 400, hx - 400), y = rr(-hy + 500, hy - 500); if (Math.abs(x) < 500) continue; const d = rr(360, 900); Cyl(V(x, y, 1.6), d, 3.2, water, false, false); Cyl(V(x + rr(-60, 60), y + rr(-60, 60), 2), d * 0.6, 4, 0x1e5a34, false, false); Glow(V(x + rr(-90, 90), y + rr(-90, 90), 4.4), V(d * 0.14, d * 0.1, 2), slime, 1); for (let k = 0; k < 3; k++) { const a = rnd() * 6.283; Cyl(V(x + Math.cos(a) * d * 0.3, y + Math.sin(a) * d * 0.3, 4.6), rr(50, 90), 2, mossL, false, false); } }
-      for (let i = 0; i < 44; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 300, hy - 300), w = rr(120, 340); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 2.4, i % 3 ? moss : 0x345a26); }
-      for (let y = -hy + 60; y < hy - 60; y += 96) { const o = rr(-18, 18); Box(V(o, y, 7), V(360 + rr(-20, 20), 84, 14), (y / 96 | 0) % 3 ? plank : 0x5a3c24, false, false); } for (const e of [-1, 1]) Box(V(e * 150, 0, 3), V(30, hy * 2 - 100, 6), oakD, false, false);
-      // racks of tuns: where the waist-high walls stood there are now barrels lying on trestles, three to a rack, one tapped and leaking
-      const rack = (x, y) => {
-        Box(V(x, y, 90), V(1200, 110, 180), oakD, true, true);
-        for (const e of [-1, 0, 1]) { const bx = x + e * 400;
-          Cyl(V(bx, y, 150), 250, 360, oak, false, false, AX); for (const o of [-140, -50, 50, 140]) Cyl(V(bx + o, y, 150), 258 - Math.abs(o) * 0.12, 16, hoop, false, false, AX);
-          for (const f of [-1, 1]) { Cyl(V(bx, y + f * 0, 150), 10, 10, hoop, false, false); deco(bx + f * 186, y, 150, 6, 150, 150, 0x7a5636); deco(bx + f * 190, y, 150, 4, 30, 30, hoop); }
-          for (const o of [-150, 150]) { deco(bx + o, y, 20, 40, 300, 40, oakD); BoxRot(V(bx + o, y - 96, 34), V(34, 30, 76), oakD, R(0, 0, 24), false); BoxRot(V(bx + o, y + 96, 34), V(34, 30, 76), oakD, R(0, 0, -24), false); } }
-        const lx = x + 400 + 196; Cyl(V(lx + 14, y, 70), 16, 30, 0xb8923a, false, false, AX); Glow(V(lx + 26, y, 34), V(8, 8, 60), slime, 1); Cyl(V(lx + 30, y, 2.5), 230, 5, 0x1e5a34, false, false); Glow(V(lx + 30, y, 5.5), V(120, 120, 2), slime, 1);
+      const brick = 0x4a3a2c, oak = 0x5a3e26, hoop = 0x2a2420, moss = 0x3f6a2c, slime = 0x7aff5a;
+      slabs(450, T.floor, T.floor2, 0x10160f);
+      const px = [-3600, -1200, 1200, 3600], py = [-1950, 0, 1950];
+      for (const x of px) for (const y of py) {
+        solid(x, y, 0, 300, 300, H, brick); deco(x, y, 0, 360, 360, 70, T.trim); deco(x, y, H - 110, 380, 380, 110, T.trim); deco(x, y, 70, 320, 320, 26, moss);
+        Glow(V(x, y, 330), V(312, 312, 10), T.glow, 0); tall(x, y, 330);
+      }
+      // the ribs of the vault, pier to pier
+      for (const y of py) Box(V(0, y, H - 45), V(hx * 2 - 40, 150, 90), 0x2c241c, false, false);
+      for (const x of px) Box(V(x, 0, H - 40), V(150, hy * 2 - 40, 80), 0x2c241c, false, false);
+      // a rack of two tuns: each as tall as a man is, lying on a cradle
+      const tuns = (x, y) => {
+        for (const e of [-1, 1]) {
+          const tx = x + e * 215;
+          Cyl(V(tx, y, 225), 380, 560, oak, false, false, AY); Cyl(V(tx, y, 225), 400, 200, oak, false, false, AY); for (const g of [-200, -100, 100, 200]) Cyl(V(tx, y + g, 225), 404 - Math.abs(g) * 0.08, 12, hoop, false, false, AY);
+          for (const g of [-1, 1]) { Cyl(V(tx, y + g * 282, 225), 340, 6, 0x6a4e30, false, false, AY); deco(tx, y + g * 180, 0, 300, 50, 60, 0x3a2c20); }
+          Cyl(V(tx, y - 292, 120), 16, 30, 0xb8923a, false, false, AY);
+        }
+        hit(x, y, 0, 820, 580, 420, true); out.tall.push([x, y, 520]);
       };
-      for (let r = 0; r < 5; r++) { const y = -1800 + r * 900; for (const x of (r % 2 ? [-1100, 1100] : [-2200, 2200])) rack(x, y); }
-      // down the middle, between the duckboards' ends: three great vats on stone rings, their staves burst and something growing out
-      for (const y of [-1800, 0, 1800]) { Oct(V(0, y, 14), V(700, 700, 28), 0x4a5240, false, false); solid(0, y, 90, 1200, 180, oakD);
-        for (let k = -4; k <= 4; k++) Box(V(0, y + k * 130, 96), V(104, 118, 172), k % 2 ? oak : 0x6a4a2e, false, false); Box(V(0, y, 60), V(112, 1210, 14), hoop, false, false); Box(V(0, y, 140), V(112, 1210, 14), hoop, false, false);
-        for (let k = 0; k < 7; k++) { const py = y + rr(-520, 520), h = rr(40, 150), w = h * rr(1.0, 1.7); Cyl(V(rr(-20, 20), py, 180 + h / 2), w * 0.2, h, stem, false, false); ConeShape(V(0, py, 180 + h + w * 0.2), V(w, w, w * 0.5), k % 2 ? cap : 0x6a7a2a); Glow(V(0, py, 180 + h - 2), V(w * 0.5, w * 0.5, 5), slime, 1); }
-        L(0, y, 420, T.lamp, 1100, 2); }
-      // two giants at the side walls: mushrooms as thick as columns, gills glowing, caps up under the roof
-      for (const s of [-1, 1]) { const x = s * 3000; Cyl(V(x, 0, 340), 240, 680, stem, true, true); Cyl(V(x, 0, 20), 340, 40, 0xc0b690, false, false); Cyl(V(x, 0, 560), 300, 20, 0xe8dfc0, false, false);
-        ConeShape(V(x, 0, 760), V(1100, 1100, 300), cap); Glow(V(x, 0, 618), V(880, 880, 10), slime, 1); Cyl(V(x, 0, 606), 1040, 14, 0x5a2218, false, false); for (let k = 0; k < 9; k++) { const a = k * 0.7; Ball(V(x + Math.cos(a) * rr(150, 420), Math.sin(a) * rr(150, 420), 830 - rr(0, 60)), V(110, 110, 50), 0xe8dfc0); }
-        L(x - s * 300, 0, 380, T.lamp, 1400, 2.4);
-        for (let k = 0; k < 8; k++) { const a = rnd() * 6.283, r = rr(300, 620), h = rr(60, 220), w = h * rr(0.9, 1.5); Cyl(V(x + Math.cos(a) * r * 0.5 - s * 60, Math.sin(a) * r, h / 2), w * 0.2, h, stem, false, false); ConeShape(V(x + Math.cos(a) * r * 0.5 - s * 60, Math.sin(a) * r, h + w * 0.2), V(w, w, w * 0.5), k % 2 ? cap : 0x6a7a2a); } }
-      // roots through the roof: thick ones down the side walls, a mat of thin ones overhead, lanterns hung among them
-      for (let i = 0; i < 64; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300), Lg = rr(120, 560); Cyl(V(x, y, H - Lg / 2), rr(8, 24), Lg, 0x3a2a1c, false, false); if (i % 3 === 0) Glow(V(x, y, H - Lg - 12), V(24, 24, 24), slime, 2); }
-      for (const sx of [-1, 1]) for (let y = -hy + 250; y < hy - 200; y += 300) { if (Math.abs(Math.abs(y) - 500) < 280) continue; const w = rr(40, 110); BoxRot(V(sx * (hx - w * 0.4), y + rr(-60, 60), H / 2), V(w, w * 1.2, H), 0x3a2a1c, R(0, rr(0, 30), rr(-4, 4)), false); if (rnd() < 0.6) BoxRot(V(sx * (hx - 60), y + 70, rr(200, 600)), V(40, 300, 40), 0x3a2a1c, R(rr(20, 50), 0, 0), false); }
-      for (const y of [-2250, -1350, -450, 450, 1350, 2250]) { Box(V(0, y, H - 200), V(hx * 2 - 800, 8, 8), 0x2a2420, false, false); for (let x = -2400; x <= 2400; x += 800) { deco(x, y, H - 250, 6, 6, 100, 0x2a2420); deco(x, y, H - 320, 50, 50, 60, 0x2a2420); Glow(V(x, y, H - 320), V(34, 34, 44), 0xffc86a, 0); } }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { tuns(sx * 2400, sy * 975); tuns(sx * 2400, sy * 2925); }
+      for (const sy of [-1, 1]) tuns(0, sy * 1000);
+      out.avoid = (x, y) => px.some((p) => Math.abs(x - p) < 140) || py.some((p) => Math.abs(y - p) < 140);
+      // the well
+      Cyl(V(0, 0, 50), 420, 100, 0x55584f, true, true); Cyl(V(0, 0, 104), 440, 12, T.trim, false, false); Glow(V(0, 0, 96), V(330, 330, 6), slime, 1); L(0, 0, 300, T.lamp, 1500, 2.4);
+      for (const e of [-1, 1]) deco(e * 236, 0, 0, 30, 30, 300, 0x3a2c20); deco(0, 0, 300, 520, 34, 30, 0x3a2c20); Cyl(V(0, 0, 268), 46, 300, oak, false, false, AX); chain(0, 0, 130, 250); Cyl(V(0, 0, 118), 60, 50, oak, false, false); tall(0, 0, 420);
+      // tasting tables (waist high) with a bench each side, bottles left where they stood
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const x = sx * 2400, y = sy * 1950;
+        solid(x, y, 68, 90, 300, 10, oak, false); for (const e of [-1, 1]) { deco(x, y + e * 120, 0, 70, 12, 68, 0x3a2c20); solid(x + e * 100, y, 38, 34, 280, 8, oak, false); deco(x + e * 100, y - 110, 0, 30, 12, 38, 0x3a2c20); deco(x + e * 100, y + 110, 0, 30, 12, 38, 0x3a2c20); }
+        hit(x, y, 0, 240, 300, 78, true);
+        for (let q = 0; q < 4; q++) { const by = y - 105 + q * 70; Cyl(V(x + (q % 2 ? 18 : -14), by, 88), 9, 20, q % 2 ? 0x2a5a3a : 0x4a2a1a, false, false); Cyl(V(x + (q % 2 ? 18 : -14), by, 102), 4, 10, 0x1a1a1a, false, false); } candle(x, y, 78, 16);
+      }
+      // what came down and was never taken up again
+      for (const sx of [-1, 1]) {
+        barrel(sx * 4350, sx * 2900); barrel(sx * 4250, sx * 3010); barrel(sx * 4380, sx * 3030); crate(sx * 4300, -sx * 2900, 0, 110); crate(sx * 4300, -sx * 2900, 110, 90, 0x5a4630, hoop, false); crate(sx * 4180, -sx * 2990, 0, 100);
+        for (const sy of [-1, 1]) { barrel(sx * 620, sy * 2600); barrel(sx * 4300, sy * 1050); }
+      }
+      // the floor is half under water: dark pools with a glint, laid between the lanes
+      for (const [x, y, w, d] of [[-1200, 975, 700, 500], [1200, -975, 700, 500], [-3600, -975, 600, 700], [3600, 975, 600, 700], [-1200, -2925, 800, 500], [1200, 2925, 800, 500], [0, 2500, 500, 400], [0, -2500, 500, 400]]) { tile(x - w / 2, y - d / 2, x + w / 2, y + d / 2, 2.2, 0x15301a); Glow(V(x, y, 3.6), V(w * 0.5, d * 0.4, 2), slime, 0); }
       break;
     }
-    // ------------------------------------------------------------------------------------------------ THE GILDED RING
+    default: return craftRoomB(kind, K, Q);
+  }
+  return out;
+}
+
+function craftRoomB(kind, K, Q) {
+  const { M, T, hx, hy, H, rnd, rr } = K;
+  const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Floor, Lamp } = M;
+  const { out, AX, AY, L, hit, solid, deco, tile, tall, slabs, plat, platOct, lowWall, crate, barrel, candle, chain, skull, ring } = Q;
+  switch (kind) {
+    // ------------------------------------------------------------------------------------------------ DEEP STATION
+    // A station on the line that runs under everything. You come in along the track bed, out of the tunnel mouth, and
+    // the fight is up and down between the bed and four raised platforms: posts, benches, a ticket office, freight.
     case 4: {
-      const gold = 0xc8a03a, red = 0xa8201c, wine = 0x5a1420, black = 0x16121a, cream = 0xf0e6c8, felt = 0x1f6a3c, bulb = 0xfff0b0;
-      // a carpet of diamonds, and in the middle the wheel: twenty-four pockets inlaid in the floor round a gold boss
-      for (let x = -hx; x < hx; x += 400) for (let y = -hy; y < hy; y += 400) { if (Math.hypot(x + 200, y + 200) < 1500) continue; Floor(V2(x + 4, y + 4), V2(x + 396, y + 396), 1.4, (Math.round(x / 400) + Math.round(y / 400)) % 2 ? 0x4a1620 : 0x3a1018); BoxRot(V(x + 200, y + 200, 2), V(150, 150, 2), gold, R(0, 45, 0), false); BoxRot(V(x + 200, y + 200, 2.6), V(110, 110, 2), (Math.round(x / 400) + Math.round(y / 400)) % 2 ? 0x3a1018 : 0x4a1620, R(0, 45, 0), false); }
-      Cyl(V(0, 0, 1.5), 2960, 3, black, false, false); Glow(V(0, 0, 3), V(2900, 2900, 3), gold, 8);
-      for (let i = 0; i < 24; i++) { const a = (i + 0.5) / 24 * 6.283, r = 1090; BoxRot(V(Math.cos(a) * r, Math.sin(a) * r, 3.4), V(600, 262, 3), i === 0 ? 0x1f6a3c : i % 2 ? red : 0x1e1a22, R(0, a * 57.3, 0), false); BoxRot(V(Math.cos(a) * 1300, Math.sin(a) * 1300, 5), V(90, 50, 3), cream, R(0, a * 57.3, 0), false); }
-      Glow(V(0, 0, 4), V(1580, 1580, 3), gold, 8); Cyl(V(0, 0, 3), 1500, 6, 0x2a1016, false, false);
-      Cyl(V(0, 0, 40), 420, 80, gold, true, true); Cyl(V(0, 0, 100), 260, 60, 0xe8c460, false, false); for (let k = 0; k < 4; k++) { BoxRot(V(0, 0, 150), V(760, 40, 30), gold, R(0, k * 45, 0), false); Ball(V(Math.cos(k * 0.785) * 380, Math.sin(k * 0.785) * 380, 150), V(70, 70, 70), gold); Ball(V(-Math.cos(k * 0.785) * 380, -Math.sin(k * 0.785) * 380, 150), V(70, 70, 70), gold); }
-      Ball(V(0, 0, 210), V(150, 150, 150), 0xe8c460); L(0, 0, 500, T.lamp, 2000, 2.8);
-      // the two drums are the house's great tables turned on end: striped panels, a cornice of bulbs, a marquee on every face
-      for (const s of [-1, 1]) { const x = s * 1550;
-        Oct(V(x, 0, H / 2), V(1500, 1500, H), wine, true, true); Oct(V(x, 0, 40), V(1600, 1600, 80), gold, false, false); Oct(V(x, 0, 96), V(1540, 1540, 30), black, false, false); Oct(V(x, 0, H - 150), V(1600, 1600, 60), gold, false, false); Oct(V(x, 0, H - 60), V(1560, 1560, 120), black, false, false);
-        for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, cx = x + Math.cos(a) * 752, cy = Math.sin(a) * 752, yaw = a * 57.3;
-          for (let j = -2; j <= 2; j++) BoxRot(V(cx - Math.sin(a) * j * 116, cy + Math.cos(a) * j * 116, 440), V(6, 100, 640), j % 2 ? cream : red, R(0, yaw, 0), false);
-          BoxRot(V(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 800), V(10, 520, 110), black, R(0, yaw, 0), false); BoxRot(V(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12, 800), V(6, 470, 20), gold, R(0, yaw, 0), false);
-          for (let j = -3; j <= 3; j++) Glow(V(cx + Math.cos(a) * 16 - Math.sin(a) * j * 78, cy + Math.sin(a) * 16 + Math.cos(a) * j * 78, 840 + ((j + k) % 2 ? 0 : -76)), V(22, 22, 22), bulb, 2);
-          // a suit on every other face
-          const sc = k % 2 ? red : black, px = cx + Math.cos(a) * 8, py = cy + Math.sin(a) * 8; BoxRot(V(px, py, 450), V(8, 150, 150), cream, R(0, yaw, 45), false); BoxRot(V(px + Math.cos(a) * 4, py + Math.sin(a) * 4, 450), V(8, 96, 96), sc, R(0, yaw, 45), false); }
-        for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; Glow(V(x + Math.cos(a) * 810, Math.sin(a) * 810, H - 190), V(30, 30, 30), bulb, 2); }
-        L(x, s * 1150, 500, T.lamp, 1200, 2); L(x, -s * 1150, 500, T.lamp, 1200, 2); }
-      // gaming tables where the low walls stood: felt, a gold rail, chips in stacks, a hand left face up
-      const table = (x, y) => { Box(V(x, y, 90), V(1000, 110, 180), black, true, true); Box(V(x, y, 50), V(900, 60, 100), wine, false, false);
-        Box(V(x, y, 170), V(1060, 300, 26), 0x3a2414, false, false); Box(V(x, y, 185), V(1000, 240, 6), felt, false, false); for (const e of [-1, 1]) { Box(V(x, y + e * 140, 190), V(1060, 22, 16), gold, false, false); Box(V(x + e * 520, y, 190), V(22, 300, 16), gold, false, false); }
-        for (let k = 0; k < 6; k++) { const cx = x + rr(-430, 430), cy = y + rr(-80, 80), n = 2 + (rnd() * 5 | 0); for (let j = 0; j < n; j++) Cyl(V(cx, cy, 190 + j * 7), 34, 6, [red, cream, 0x2a6a8a, black, gold][(k + j) % 5], false, false); }
-        for (let k = 0; k < 4; k++) { BoxRot(V(x - 120 + k * 66, y + 20, 189.5), V(56, 80, 1.5), cream, R(0, -12 + k * 8, 0), false); BoxRot(V(x - 120 + k * 66, y + 20, 190.6), V(18, 18, 1), k % 2 ? red : black, R(0, 45, 0), false); }
-        deco(x + 380, y - 60, 215, 14, 14, 50, gold); Glow(V(x + 380, y - 60, 256), V(60, 60, 34), 0x7ad0a0, 3); };
-      for (const s of [-1, 1]) { table(s * 1550, s * 2200); table(s * 1550, -s * 2200); }
-      // a prize wheel on a post at each end of the eight
-      for (const s of [-1, 1]) { const y = s * 1700; Cyl(V(0, y, H / 2), 200, H, black, true, true); Cyl(V(0, y, 40), 320, 80, gold, false, false); Cyl(V(0, y, 110), 240, 60, wine, false, false);
-        for (const f of [-1, 1]) { const wy = y + f * 112; Cyl(V(0, wy, 560), 640, 16, gold, false, false, AY); Cyl(V(0, wy + f * 6, 560), 590, 16, cream, false, false, AY);
-          for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; BoxRot(V(Math.cos(a) * 190, wy + f * 16, 560 + Math.sin(a) * 190), V(170, 4, 96), [red, black, 0x2a6a8a, gold][k % 4], R(-a * 57.3, 0, 0), false); Glow(V(Math.cos(a) * 304, wy + f * 18, 560 + Math.sin(a) * 304), V(20, 20, 20), bulb, 2); }
-          Cyl(V(0, wy + f * 22, 560), 110, 14, gold, false, false, AY); Pyramid(V(0, wy + f * 18, 890), V(60, 16, 90), red, R(180, 0, 0)); } }
-      // the big top: a canopy of swags from the middle of the roof out to the walls, and the chandelier under it
-      Cyl(V(0, 0, H - 100), 30, 200, gold, false, false); for (const [r, n, z] of [[560, 16, H - 300], [340, 10, H - 220]]) { Cyl(V(0, 0, z), r * 2, 14, gold, false, false); Cyl(V(0, 0, z + 1), r * 2 - 60, 16, T.roof, false, false); for (let i = 0; i < n; i++) { const a = i / n * 6.283; Glow(V(Math.cos(a) * r, Math.sin(a) * r, z + 30), V(34, 34, 46), bulb, 2); deco(Math.cos(a) * r, Math.sin(a) * r, z - 30, 8, 8, 50, 0xcfe8ff); } }
-      // roped walks down both side walls, with a line of one-armed bandits behind the rope
-      for (const sx of [-1, 1]) { for (let y = -2600; y <= 2600; y += 400) { const gap = y + 200 > -900 && y + 200 < 900 && Math.abs(Math.abs(y + 200) - 500) < 350; hit(sx * (hx - 430), y, 40, 40, 140, false); Cyl(V(sx * (hx - 430), y, 60), 26, 120, gold, false, false); Ball(V(sx * (hx - 430), y, 128), V(44, 44, 44), gold); Cyl(V(sx * (hx - 430), y, 6), 80, 12, gold, false, false); if (y < 2600 && !gap) { Box(V(sx * (hx - 430), y + 200, 98), V(10, 400, 12), red, false, false); hit(sx * (hx - 430), y + 200, 14, 400, 110, true); } }
-        for (let y = -2400; y <= 2400; y += 300) { if (Math.abs(Math.abs(y) - 500) < 300) continue; const x = sx * (hx - 90); deco(x, y, 150, 150, 170, 300, (y / 300 | 0) % 2 ? red : 0x2a6a8a); deco(x, y, 310, 160, 180, 26, gold); deco(x - sx * 78, y, 210, 6, 130, 80, cream); for (const k of [-1, 0, 1]) deco(x - sx * 82, y + k * 40, 210, 4, 30, 50, [red, gold, black][(k + 1 + (y / 300 | 0) + 30) % 3]); Glow(V(x - sx * 78, y, 290), V(6, 130, 20), bulb, 0); deco(x - sx * 40, y + 96, 220, 10, 10, 120, 0x8a8f99); Ball(V(x - sx * 40, y + 96, 290), V(34, 34, 34), red); deco(x - sx * 82, y, 110, 6, 110, 26, black); } }
+      const timber = 0x4a3626, tdark = 0x2e2218, iron = 0x3a3e46, gravel = 0x2a2622, flag = 0x6e6454, lampc = [1, 0.85, 0.55];
+      slabs(520, T.floor, T.floor2, 0x15120f, (x) => Math.abs(x) < 510);
+      tile(-510, -hy, 510, hy, 1.4, gravel);
+      for (let y = -hy + 90; y < hy; y += 180) tile(-230, y - 28, 230, y + 28, 2.4, tdark);
+      for (const e of [-1, 1]) { deco(e * 120, 0, 3, 14, hy * 2, 11, 0x8a8e96); deco(e * 120, 0, 2, 30, hy * 2, 3, iron); }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const cx = sx * 1775, cy = sy * 2500, z = 120;
+        plat(cx, cy, 2250, 3900, z, flag, 0x3a332c, [[0, 1100], [0, -1100], [500, 550], [-500, -550]]);
+        tile(sx * 650, cy - 1950, sx * 700, cy + 1950, z + 1.4, 0xd8c060);   // the painted line at the platform's edge
+        // posts and the beams they carry
+        for (const py of [-1500, 0, 1500]) {
+          const y = cy + py;
+          for (const px of [900, 2650]) { const x = sx * px; solid(x, y, z, 90, 90, H - z, timber, false); deco(x, y, z, 130, 130, 30, tdark); for (const e of [-1, 1]) BoxRot(V(x + e * 110, y, H - 250), V(300, 50, 50), tdark, R(0, 0, e * -45), false); }
+          Box(V(cx, y, H - 150), V(2000, 70, 70), timber, false, false);
+          chain(cx, y, 470, H - 185); deco(cx, y, 420, 44, 44, 56, iron); Glow(V(cx, y, 448), V(30, 30, 40), 0xffe6a0, 0); L(cx, y, 400, lampc, 1700, 2.4);
+        }
+        for (const px of [900, 2650]) Box(V(sx * px, cy, H - 80), V(70, 3200, 70), timber, false, false);
+        // benches, their backs to the wall side
+        for (const by of [-750, 750]) { const x = sx * 2380, y = cy + by; solid(x, y, z + 38, 50, 220, 8, timber, false); for (const e of [-1, 1]) deco(x, y + e * 90, z, 44, 10, 38, iron); deco(x + sx * 24, y, z + 46, 8, 220, 46, timber); hit(x, y, z, 60, 220, 92, false); }
+        // a signal at the track side
+        { const x = sx * 720, y = cy - sy * 1700; solid(x, y, z, 26, 26, 300, iron, false); deco(x, y, z + 300, 56, 34, 96, tdark); Glow(V(x, y - sy * 19, z + 372), V(26, 6, 26), 0xff3a2a, 0); Glow(V(x, y - sy * 19, z + 328), V(26, 6, 26), 0x3aff7a, 0); }
+        if (sx * sy > 0) {   // the ticket office
+          solid(cx, cy, z, 420, 360, 280, timber, false); deco(cx, cy, z, 440, 380, 40, tdark); deco(cx, cy, z + 280, 520, 460, 24, tdark); deco(cx, cy, z + 304, 380, 320, 20, tdark);
+          Glow(V(cx - sx * 212, cy, z + 170), V(6, 220, 90), 0xffe6a0, 0); deco(cx - sx * 214, cy, z + 110, 30, 260, 12, tdark); for (const e of [-1, 0, 1]) deco(cx - sx * 214, cy + e * 74, z + 122, 6, 6, 138, iron);
+          deco(cx - sx * 216, cy, z + 236, 8, 200, 34, 0xd8c8a0);
+        } else {   // freight left on the platform
+          crate(cx - 70, cy - 60, z, 110, 0x6a4e30, 0x2a2420, false); crate(cx + 60, cy + 50, z, 100, 0x5a4630, 0x2a2420, false); crate(cx - 20, cy - 10, z + 110, 90, 0x6a4e30, 0x2a2420, false);
+          barrel(cx + 190, cy - 120, z); barrel(cx - 200, cy + 130, z); barrel(cx - 110, cy + 190, z);
+          // a hand truck stood on end
+          deco(cx + 330, cy + 180, z, 60, 12, 130, iron); deco(cx + 330, cy + 196, z, 60, 44, 8, iron); for (const e of [-1, 1]) Cyl(V(cx + 330 + e * 36, cy + 200, z + 16), 32, 10, tdark, false, false, AX);
+        }
+      }
+      // two short trains of ore carts stand on the line
+      const cart = (y) => {
+        hit(0, y, 0, 250, 210, 150, true);
+        for (const ex of [-1, 1]) for (const ey of [-1, 1]) Cyl(V(ex * 120, y + ey * 70, 26), 50, 16, iron, false, false, AX);
+        for (const ey of [-1, 1]) Cyl(V(0, y + ey * 70, 26), 16, 240, iron, false, false, AX);
+        deco(0, y, 34, 210, 190, 14, iron); deco(0, y, 48, 236, 200, 86, 0x4a3a2c); deco(0, y, 126, 250, 214, 10, iron); for (const e of [-1, 1]) deco(e * 121, y, 48, 6, 204, 78, iron);
+        Ball(V(0, y, 136), V(210, 176, 60), 0x241e1c); Glow(V(20, y - 30, 160), V(10, 10, 8), T.glow, 2); Glow(V(-24, y + 44, 156), V(8, 8, 8), T.glow, 2);
+      };
+      for (const s of [-1, 1]) for (const q of [-1, 0, 1]) { cart(s * 1900 + q * 250); if (q < 1) deco(0, s * 1900 + q * 250 + 125, 40, 10, 44, 10, iron); }
+      // the tunnel mouth at each end: a timber set round the door
+      for (const s of [-1, 1]) { for (const e of [-1, 1]) { deco(e * 560, s * (hy - 40), 0, 90, 80, 820, timber); BoxRot(V(e * 440, s * (hy - 40), 730), V(330, 60, 60), tdark, R(0, 0, e * -45), false); } deco(0, s * (hy - 40), 820, 1300, 80, 100, timber); deco(0, s * (hy - 44), 838, 300, 8, 64, 0xd8c8a0); }
+      // the station clock over the crossing
+      chain(0, 0, 800, H); Cyl(V(0, 0, 700), 200, 56, iron, false, false, AY); for (const e of [-1, 1]) { Glow(V(0, e * 30, 700), V(164, 164, 4), 0xfff0c8, 1, AY); deco(0, e * 33, 696, 8, 2, 60, 0x101010); deco(18, e * 33, 696, 44, 2, 8, 0x101010); } L(0, 0, 560, lampc, 1800, 2);
+      out.avoid = () => true;
       break;
     }
     // ------------------------------------------------------------------------------------------------ DROWNED HALL
+    // A ship on the sea bed, lying across the room and broken in two. The way from door to door runs through the break;
+    // each half is a hold you can fight in and out of (the open end, and a hole stove in its side), with reef and
+    // rock outside.
     case 5: {
-      const hull = 0x3a2c20, hullD = 0x241a12, brass = 0xb8923a, verd = 0x3a8a7a, weed = 0x2a6a4a, sand = 0x5a6a5a, coral = [0xd86a7a, 0xe8a04a, 0x9a6ad8], sea = 0x163e5a, gold = 0xe8c040;
-      // the sea bed: silt and broken marble, standing water in the hollows, ripples of light across all of it
-      slabs(450, 0x1c343c, 0x234048, 0x142a32, (x, y) => rnd() < 0.18);
-      for (let i = 0; i < 26; i++) { const x = rr(-hx + 400, hx - 400), y = rr(-hy + 500, hy - 500), d = rr(400, 1100); Cyl(V(x, y, 1.6), d, 3.2, sea, false, false); Cyl(V(x + rr(-80, 80), y + rr(-80, 80), 2.2), d * 0.55, 4, 0x1c5274, false, false); }
-      for (let i = 0; i < 70; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 300, hy - 300); Glow(V(x, y, 5), V(rr(160, 420), 9, 2), 0x6ac8ff, 0, R(0, rr(-30, 30) + (i % 2 ? 90 : 0), 0)); }
-      for (let i = 0; i < 30; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 300, hy - 300), w = rr(140, 360); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 2.6, sand); }
-      // a ship went down here: her hull lies in four pieces, ribs standing, deck planks sprung, cargo spilled between
-      const piece = (x, y, sx, sy) => { const w = 800, d = 1500, h = 440;
-        solid(x, y, w, d, h, hull); Box(V(x, y, h + 8), V(w + 40, d + 40, 16), hullD, false, false);
-        for (let z = 60; z < h; z += 80) for (const e of [-1, 1]) { deco(x + e * (w / 2 + 2), y, z, 4, d, 10, hullD); deco(x, y + e * (d / 2 + 2), z, w, 4, 10, hullD); }
-        for (let k = -3; k <= 3; k++) { const ry = y + k * 220; for (const e of [-1, 1]) { BoxRot(V(x + e * (w / 2 + 110), ry, h + 240), V(50, 60, 560), hullD, R(0, 0, e * 22), false); BoxRot(V(x + e * (w / 2 + 40), ry, h + 20), V(50, 60, 120), hullD, R(0, 0, e * 8), false); } if (k % 2 === 0) Box(V(x, ry, h + 40), V(w + 200, 40, 34), hull, false, false); }
-        for (let k = 0; k < 9; k++) BoxRot(V(x + rr(-w / 2 + 60, w / 2 - 60), y + rr(-d / 2 + 100, d / 2 - 100), h + 24 + rr(0, 20)), V(rr(200, 420), 60, 12), k % 2 ? 0x5a4630 : 0x4a3a28, R(rr(-8, 8), rr(-30, 30), rr(-6, 6)), false);
-        for (const [fx, fy] of [[-sx, 0], [0, -sy]]) { const ax = fx !== 0, px = x + fx * (w / 2 + 3), py = y + fy * (d / 2 + 3); for (const o of [-1, 1]) { const qx = px + (ax ? 0 : o * 220), qy = py + (ax ? o * 400 : 0); Cyl(V(qx, qy, 250), 150, 8, brass, false, false, ax ? AX : AY); Glow(V(qx + fx * 5, qy + fy * 5, 250), V(ax ? 4 : 100, ax ? 100 : 4, 100), 0x3aa8ff, 1, ax ? AX : AY); }
-          for (let k = 0; k < 8; k++) Ball(V(px + (ax ? 0 : rr(-w / 2, w / 2)), py + (ax ? rr(-d / 2, d / 2) : 0), rr(20, h)), V(rr(30, 60), rr(30, 60), rr(22, 40)), 0xc8cfc0); }
-        for (let k = 0; k < 6; k++) { const h2 = rr(260, 620); BoxRot(V(x + sx * (w / 2 + rr(20, 120)), y + rr(-d / 2, d / 2), h2 / 2), V(rr(18, 34), 8, h2), k % 2 ? weed : 0x3a8a5a, R(rr(-12, 12), rr(0, 180), rr(-12, 12)), false); }
-        // cargo spilled toward the middle: crates, an amphora or two, and what they were carrying
-        for (let k = 0; k < 4; k++) { const cx = x - sx * (w / 2 + rr(120, 300)), cy = y + rr(-d / 2 + 100, d / 2 - 100), s = rr(110, 170); hit(cx, cy, s, s, s - 10, true); BoxRot(V(cx, cy, s / 2 - 10), V(s, s, s), 0x5a4630, R(rr(-10, 10), rr(0, 90), rr(-10, 10)), false); BoxRot(V(cx, cy, s / 2 - 10), V(s + 6, 16, s + 6), hullD, R(rr(-10, 10), rr(0, 90), 0), false); }
-        for (let k = 0; k < 14; k++) Glow(V(x - sx * (w / 2 + rr(60, 420)), y + rr(-d / 2, d / 2), 6), V(24, 24, 5), gold, 1);
-        L(x - sx * 600, y, 260, T.lamp, 1100, 2); };
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) piece(sx * 1700, sy * 1350, sx, sy);
-      // her mast came down across two of the pieces and up into the roof, the yard and a rag of sail still on it
-      solid(0, 1650, 2300, 120, 120, hullD); for (const x of [-900, -300, 300, 900]) Box(V(x, 1650, 60), V(40, 136, 136), 0x4a4e56, false, false); solid(-600, 1650, 70, 900, 70, hullD); Box(V(-600, 1650, 78), V(60, 860, 6), 0x8a8468, false, false);   // her mast lies where it fell, the yard still lashed across it
-      // amidships: the anchor, standing on its crown on a slab of fallen marble, chain run up into the dark
-      solid(0, 0, 900, 900, 300, 0x5a6e74); Box(V(0, 0, 306), V(960, 960, 14), 0x8fa6a8, false, false); for (let k = 0; k < 4; k++) deco((k < 2 ? -1 : 1) * 452, 0, 150, 4, 600, 14, 0x3a4a50, 0); Glow(V(0, 0, 314), V(620, 620, 4), T.glow, 8);
-      Cyl(V(0, 0, 300 + 330), 70, 660, 0x4a4e56, false, false); Box(V(0, 0, 300 + 620), V(420, 60, 60), 0x4a4e56, false, false); Ring(V(0, 0, 300 + 730), V(190, 190, 190), brass, AY);
-      Box(V(0, 0, 300 + 50), V(640, 80, 80), 0x4a4e56, false, false); for (const e of [-1, 1]) { Box(V(e * 290, 0, 300 + 150), V(80, 80, 160), 0x4a4e56, false, false); Pyramid(V(e * 290, 0, 300 + 290), V(170, 90, 120), 0x4a4e56); }
-      chain(0, 0, 300 + 830, H, 0x4a4e56); for (let k = 0; k < 10; k++) Ball(V(rr(-60, 60), rr(-50, 50), 300 + rr(60, 560)), V(rr(40, 70), rr(40, 70), rr(26, 44)), 0xc8cfc0); L(0, 0, 720, T.lamp, 1800, 2.8);
-      // marble from the hall that was here before the sea: drums of fallen column, a headless statue at each end wall
-      for (let k = 1; k < 10; k += 2) { const a = k / 10 * 6.283 + 0.2, r = 2500, x = Math.cos(a) * r * 1.1, y = Math.sin(a) * r * (k % 2 ? 1.0 : 3.2); if (Math.abs(x) < 400 && Math.abs(y) > 2400) continue; hit(x, y, 280, 280, 200, true); Cyl(V(x, y, 90), 240, 300, 0x9fb4b4, false, false, R(0, rr(0, 180), 90)); for (let j = -1; j <= 1; j++) Cyl(V(x, y, 90), 250, 14, 0x7f9698, false, false, R(0, 0, 90)); Ball(V(x, y + 80, 40), V(260, 200, 90), verd); }
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 3000, y = sy * 2500; Box(V(x, y, 80), V(300, 300, 160), 0x9fb4b4, true, true); deco(x, y, 330, 150, 110, 340, 0x9fb4b4); deco(x, y, 510, 210, 120, 80, 0x9fb4b4); BoxRot(V(x - sx * 120, y, 420), V(60, 60, 260), 0x9fb4b4, R(0, 0, sx * 40), false); Ball(V(x, y, 170), V(330, 330, 60), verd);
-        for (let k = 0; k < 5; k++) { const h = rr(80, 260); Pyramid(V(x + rr(-260, 260), y + rr(-260, 260), h / 2), V(h * 0.7, h * 0.7, h), coral[k % 3], R(rr(-14, 14), rr(0, 90), rr(-14, 14))); } }
-      // weed along the walls and chains with hooks from the roof beams
-      for (const sx of [-1, 1]) for (let y = -hy + 240; y < hy - 200; y += 260) { if (Math.abs(Math.abs(y) - 500) < 280) continue; for (let c = 0; c < 3; c++) { const h = rr(260, 700); BoxRot(V(sx * (hx - rr(30, 200)), y + rr(-100, 100), h / 2), V(rr(16, 34), 8, h), c % 2 ? weed : 0x3a8a5a, R(rr(-12, 12), rr(0, 180), rr(-12, 12)), false); } }
-      for (let i = 0; i < 14; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 500, hy - 500), Lg = rr(240, 520); chain(x, y, H - Lg, H, 0x3a3e46); deco(x, y, H - Lg - 30, 50, 12, 60, brass); deco(x + 20, y, H - Lg - 64, 12, 12, 40, brass); }
+      const plank = 0x5a4630, pdark = 0x3a2c20, brass = 0xb8923a, sand = 0x5e5a44, weed = 0x2a6a4a, coral = [0xd86a7a, 0xe8a04a, 0x9a6ad8], rock = 0x34424a;
+      const wh = 420, th = 90;
+      slabs(520, T.floor, T.floor2, 0x0c181c, (x, y) => Math.abs(y) < 655 && Math.abs(x) > 700 && Math.abs(x) < 3400);
+      for (let i = 0; i < 22; i++) { const x = rr(-hx + 400, hx - 400), y = rr(-hy + 500, hy - 500), w = rr(260, 620); if (Math.abs(y) < 900 && Math.abs(x) < 3700) continue; tile(x - w, y - w * 0.6, x + w, y + w * 0.6, 2.2, sand); }
+      const side = (x, y, len, h = wh) => {
+        solid(x, y, 0, len, th, h, plank); for (const z of [90, 210, 330]) if (z < h - 40) deco(x, y, z, len + 2, th + 10, 16, pdark); deco(x, y, h, len + 12, th + 34, 20, pdark);
+        for (let rx = x - len / 2 + 100; rx < x + len / 2; rx += 400) deco(rx, y - Math.sign(y) * (th / 2 + 18), 0, 44, 36, h - 10, pdark);
+      };
+      for (const sx of [-1, 1]) {
+        for (let px = 760; px < 3400; px += 150) tile(sx * px, -655, sx * (px + 136), 655, 2, (px / 150 | 0) % 2 ? plank : 0x4e3c2a);
+        side(sx * 1700, -sx * 700, 2000);                                   // the whole side
+        side(sx * 1100, sx * 700, 800); side(sx * 2400, sx * 700, 600);     // the side with a hole stove in it
+        for (const e of [-1, 1]) deco(sx * (1500 + (e > 0 ? 600 : 0)) - e * 14, sx * 700, 0, 30, th + 16, wh - 60, 0x2a2018);   // splintered ends at the hole
+        L(sx * 1700, 0, 520, [0.5, 0.8, 1], 1900, 2.2);
+      }
+      // the bow (east): the sides run in to the stem, and the forecastle deck fills it
+      for (const e of [-1, 1]) { Box(V(3100, e * 400, wh / 2), V(1010, th, wh), plank, true, true, e * -36.87); Box(V(3100, e * 400, wh + 10), V(1020, th + 34, 20), pdark, false, false, e * -36.87); }
+      solid(3530, 0, 0, 130, 230, wh + 140, pdark); Pyramid(V(3530, 0, wh + 200), V(130, 230, 120), pdark);
+      solid(2830, 0, 0, 260, 900, 200, plank); solid(3090, 0, 0, 260, 500, 200, plank); solid(3330, 0, 0, 220, 170, 200, plank); deco(2830, 0, 200, 250, 880, 8, 0x4e3c2a);
+      Cyl(V(2830, 0, 250), 110, 100, pdark, true, false); Cyl(V(2830, 0, 304), 150, 12, brass, false, false); for (let q = 0; q < 3; q++) Cyl(V(2830, 0, 270), 14, 250, pdark, false, false, R(90, q * 60, 0));
+      // the stern (west): higher sides, the transom, and a quarterdeck up three steps
+      for (const e of [-1, 1]) side(-3100, e * 700, 800, 520);
+      solid(-3455, 0, 0, 90, 1490, 520, plank); deco(-3455, 0, 520, 124, 1500, 20, pdark); for (const e of [-1, 0, 1]) { deco(-3404, e * 380, 250, 12, 200, 150, 0x101820); Glow(V(-3398, e * 380, 325), V(6, 150, 100), 0x3aa8ff, 0); }
+      for (let i = 0; i < 3; i++) Box(V(-3410 + (650 - i * 70) / 2, 0, 20 + i * 40), V(650 - i * 70, 1310, 40), i === 2 ? 0x4e3c2a : plank, true, false);
+      out.raised.push([-3500, -700, -2700, 700]);
+      solid(-3230, 0, 120, 30, 30, 96, pdark, false); Cyl(V(-3206, 0, 232), 150, 12, pdark, false, false, AX); Cyl(V(-3206, 0, 232), 40, 20, brass, false, false, AX); for (let q = 0; q < 4; q++) Cyl(V(-3206, 0, 232), 10, 190, pdark, false, false, R(0, 0, q * 45));
+      // the mast still standing in the after half, its yard and a rag of sail; the stump and the fallen top in the fore half
+      Cyl(V(-1800, 0, 650), 120, 1300, pdark, true, false); Cyl(V(-1800, 0, 30), 190, 60, plank, false, false); Cyl(V(-1800, 0, 900), 50, 1000, pdark, false, false, AY); Box(V(-1788, 0, 650), V(8, 860, 470), 0xa8a088, false, false); Cyl(V(-1800, 0, 1130), 200, 14, pdark, false, false); tall(-1800, 0, 700);
+      Cyl(V(1700, 0, 130), 130, 260, pdark, true, false); Pyramid(V(1700, 0, 300), V(110, 110, 90), 0x2a2018); Cyl(V(2150, -330, 58), 110, 720, pdark, false, false, AX); hit(2150, -330, 0, 720, 110, 112, true);
+      // what she was carrying
+      crate(-1150, -360, 0, 110); crate(-1040, -470, 0, 100); crate(-1110, -400, 110, 90, 0x5a4630, 0x2a2420, false); barrel(-2400, 420); barrel(-2290, 470); barrel(-2360, 320);
+      for (const [x, y] of [[1250, 420], [2300, 380]]) { solid(x, y, 0, 120, 76, 58, pdark, false); deco(x, y, 58, 124, 80, 22, plank); deco(x, y, 0, 128, 12, 80, brass); Glow(V(x, y - 40, 50), V(22, 6, 16), 0xffcd5a, 0); }
+      crate(1150, -420, 0, 110); barrel(1010, -480);
+      // outside her: rock, and reef grown over what fell off
+      const boulder = (x, y, d) => { Oct(V(x, y, d * 0.24), V(d, d, d * 0.48), rock, true, true); Ball(V(x, y, d * 0.44), V(d * 0.86, d * 0.86, d * 0.34), 0x3e4e58); for (let q = 0; q < 3; q++) { const a = q * 2.1 + x; BoxRot(V(x + Math.cos(a) * d * 0.5, y + Math.sin(a) * d * 0.5, 90), V(18, 8, 180), q % 2 ? weed : 0x3a8a5a, R(rr(-10, 10), rr(0, 180), rr(-10, 10)), false); } };
+      const reef = (x, y) => { hit(x, y, 0, 340, 340, 170, true); Ball(V(x, y, 0), V(460, 460, 240), rock); for (let q = 0; q < 6; q++) { const a = q * 1.05, r = 60 + (q % 3) * 45, h = 150 + (q % 4) * 45; Pyramid(V(x + Math.cos(a) * r, y + Math.sin(a) * r, 80 + h / 2), V(h * 0.5, h * 0.5, h), coral[q % 3], R(0, q * 40, 0)); } for (let q = 0; q < 4; q++) Ball(V(x + Math.cos(q * 1.6 + 0.5) * 150, y + Math.sin(q * 1.6 + 0.5) * 150, 70), V(80, 80, 70), coral[(q + 1) % 3]); };
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { boulder(sx * 950, sy * 2450, 520); reef(sx * 2700, sy * 2300); reef(sx * 4150, sy * 1500); }
+      for (const s of [-1, 1]) { boulder(s * 4100, -s * 3000, 420); lowWall(s * 250, s * 1500, 620, true, rock, 0x3e4e58, 110, 120); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ THE HIVE
+    // No corners: great columns of comb round the room off. A brood mound in the middle with the royal cell on top,
+    // six pillars of comb in a ring round it, ridges of wax to duck behind and clutches of eggs in the gaps.
     case 6: {
-      const wax = 0xd8a030, waxL = 0xf0c860, dark = 0x5a3a10, honey = 0xffb020, brood = 0xe8dcb8, chitin = 0x2a1c0c;
-      // the floor is comb: six-sided cells laid edge to edge, some capped, some dark and open, honey standing in a few
-      { const s = 330, hh = s * 0.87; let row = 0; for (let y = -hy + 100; y < hy - 60; y += hh, row++) for (let x = -hx + 120 + (row % 2 ? s / 2 : 0); x < hx - 100; x += s) { const r = rnd(); Oct(V(x, y, 1.4), V(s - 26, s - 26, 2.8), r < 0.14 ? 0x2a1c0c : r < 0.5 ? 0x6a4a16 : 0x7a5618, false, false, R(0, 22.5, 0)); if (r > 0.9) Glow(V(x, y, 3.4), V(s - 120, s - 120, 2), honey, 7); else if (r < 0.14) Oct(V(x, y, 3), V(s - 110, s - 110, 2), 0x120a04, false, false, R(0, 22.5, 0)); } }
-      // the columns are comb too: stacked drums of cells with wax run down them, a ring of lit cells at eye height
-      const col = (x, y) => { Oct(V(x, y, H / 2), V(230, 230, H), dark, true, true, R(0, 22.5, 0)); for (let z = 70, k = 0; z < H; z += 150, k++) { Oct(V(x, y, z), V(300 - (k % 2) * 30, 300 - (k % 2) * 30, 110), k % 2 ? wax : 0xb88420, false, false, R(0, 22.5 + k * 11, 0)); }
-        for (let k = 0; k < 8; k++) { const a = k * 0.785 + 0.39; Glow(V(x + Math.cos(a) * 146, y + Math.sin(a) * 146, 220), V(46, 46, 60), k % 3 ? honey : waxL, 7, R(0, a * 57.3, 0)); }
-        for (let k = 0; k < 3; k++) { const a = rnd() * 6.283, Lg = rr(200, 520); Cyl(V(x + Math.cos(a) * 150, y + Math.sin(a) * 150, H - Lg / 2), 40, Lg, waxL, false, false); Ball(V(x + Math.cos(a) * 150, y + Math.sin(a) * 150, H - Lg), V(60, 60, 80), waxL); } Cyl(V(x, y, 2.4), 520, 5, 0x9a6410, false, false); };
-      const spots = []; for (let x = -2400; x <= 2400; x += 1200) for (let y = -2100; y <= 2100; y += 1400) { if (x === 0 && Math.abs(y) > 1500) continue; if (x === 0 && y === 0) continue; const px = x + ((y / 1400) % 2 ? 300 : 0); col(px, y); spots.push([px, y]); }
-      // bridges of wax between neighbours, high up
-      for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) { const [ax, ay] = spots[i], [bx, by] = spots[j], d = Math.hypot(bx - ax, by - ay); if (d > 1450 || (i + j) % 3 === 0) continue; const yaw = Math.atan2(by - ay, bx - ax) * 57.3; BoxRot(V((ax + bx) / 2, (ay + by) / 2, 800), V(d, 70, 50), wax, R(0, yaw, 0), false); for (let k = 1; k < 4; k++) { const t = k / 4, Lg = rr(60, 220); ConeShape(V(ax + (bx - ax) * t, ay + (by - ay) * t, 776 - Lg / 2), V(50, 50, Lg), waxL, false, R(180, 0, 0)); } }
-      // the royal cell: a six-sided dais in the middle, a pool of honey on it, fed by a slow fall from the brood sac in the roof
-      Oct(V(0, 0, 20), V(1500, 1500, 40), 0x7a5618, true, false, R(0, 22.5, 0)); Oct(V(0, 0, 60), V(1150, 1150, 40), wax, true, false, R(0, 22.5, 0)); Oct(V(0, 0, 84), V(820, 820, 10), dark, false, false, R(0, 22.5, 0)); Glow(V(0, 0, 90), V(700, 700, 6), honey, 7, R(0, 22.5, 0)); Glow(V(0, 0, 94), V(360, 360, 6), waxL, 7, R(0, 22.5, 0));
-      Glow(V(0, 0, 90 + (H - 520) / 2), V(40, 40, H - 520), honey, 1); Glow(V(0, 0, 130), V(130, 130, 60), waxL, 2); L(0, 0, 400, T.lamp, 2000, 3);
-      Ball(V(0, 0, H - 250), V(900, 900, 620), brood); Ball(V(0, 0, H - 300), V(760, 760, 560), 0xf4ecd0); for (let k = 0; k < 14; k++) { const a = k * 0.9, r = rr(260, 520); Ball(V(Math.cos(a) * r, Math.sin(a) * r, H - rr(120, 420)), V(rr(200, 340), rr(200, 340), rr(240, 400)), k % 3 ? brood : 0xd8c890); if (k % 2) Glow(V(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9, H - rr(300, 520)), V(46, 46, 60), honey, 2); }
-      for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; BoxRot(V(Math.cos(a) * 520, Math.sin(a) * 520, H - 120), V(700, 46, 46), chitin, R(0, a * 57.3, -28), false); }
-      for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.52, x = Math.cos(a) * 470, y = Math.sin(a) * 470; hit(x, y, 120, 120, 200, false, 80); Ball(V(x, y, 80 + 70), V(150, 150, 210), brood); Glow(V(x, y, 80 + 60), V(60, 60, 80), honey, 2); }
-      // brood chambers against the side walls: clutches of eggs in broken cells, something moving in the lit ones
-      for (const sx of [-1, 1]) for (const y of [-2350, -1400, 1400, 2350]) { const x = sx * (hx - 520); hit(x, y, 420, 500, 170, true); for (let k = 0; k < 7; k++) { const s = rr(130, 250), ox = rr(-190, 190), oy = rr(-230, 230); Ball(V(x + ox, y + oy, s * 0.42), V(s, s, s * 1.3), k % 3 ? brood : 0xd8c890); if (k % 3 === 0) { Glow(V(x + ox, y + oy, s * 0.5), V(s * 0.4, s * 0.4, s * 0.6), honey, 2); } } Cyl(V(x, y, 2.6), 760, 5, 0x9a6410, false, false); L(x - sx * 200, y, 240, T.lamp, 900, 1.8); }
-      // wax hanging from the whole roof
-      for (let i = 0; i < 46; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300); if (Math.hypot(x, y) < 800) continue; const Lg = rr(100, 460), w = rr(50, 130); ConeShape(V(x, y, H - Lg / 2), V(w, w, Lg), i % 3 ? wax : waxL, false, R(180, 0, 0)); if (i % 4 === 0) Glow(V(x, y, H - Lg - 14), V(28, 28, 38), honey, 2); }
+      const wax = 0xd8a030, dark = 0x5a3a10, honey = 0xffb020, comb = 0x8a5a14, pale = 0xe8dcb8;
+      for (let r = 0, y = -hy + 250; y < hy; y += 450, r++) for (let x = -hx + 260 + (r % 2 ? 260 : 0); x < hx; x += 520) Oct(V(x, y, 1.2), V(500, 500, 2.4), (r + Math.round(x / 520)) % 3 ? T.floor : T.floor2, false, false);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const [a, b, d] of [[400, 400, 1040], [1260, 340, 760], [340, 1260, 760]]) {
+        const x = sx * (hx - a), y = sy * (hy - b);
+        Oct(V(x, y, H / 2), V(d, d, H), d > 900 ? comb : dark, true, true); Oct(V(x, y, 40), V(d + 120, d + 120, 80), dark, false, false);
+        for (const z of [300, 620, 940]) { const n = Math.hypot(x, y), ux = -x / n, uy = -y / n; Ball(V(x + ux * d * 0.44, y + uy * d * 0.44, z), V(150, 150, 170), 0x3a2408); Glow(V(x + ux * (d * 0.44 + 30), y + uy * (d * 0.44 + 30), z), V(90, 90, 110), honey, 2); }
+        tall(x, y, d * 0.6 + 100);
+      }
+      out.noCorners = true;
+      platOct(0, 0, 1300, 160, wax, comb);
+      Ball(V(0, 0, 160 + 210), V(340, 340, 460), 0xe8b040); Glow(V(0, 0, 160 + 220), V(190, 190, 280), honey, 2); hit(0, 0, 160, 250, 250, 400, false); Oct(V(0, 0, 176), V(460, 460, 32), dark, false, false); L(0, 0, 760, [1, 0.75, 0.2], 2600, 3); tall(0, 0, 500);
+      for (let q = 0; q < 6; q++) { const a = q / 6 * 6.283 + 0.52, x = Math.cos(a) * 420, y = Math.sin(a) * 420; Ball(V(x, y, 160 + 62), V(120, 120, 150), pale); Glow(V(x, y, 160 + 60), V(50, 50, 70), honey, 2); hit(x, y, 160, 100, 100, 130, false); }
+      for (let q = 0; q < 6; q++) {
+        const a = q / 6 * 6.283, x = Math.cos(a) * 2400, y = Math.sin(a) * 2400;
+        Oct(V(x, y, H / 2), V(480, 480, H), comb, true, true); Oct(V(x, y, 50), V(660, 660, 100), dark, false, false); Oct(V(x, y, H - 50), V(660, 660, 100), dark, false, false);
+        for (const z of [330, 640, 950]) Glow(V(x, y, z), V(500, 500, 16), honey, 7);
+        tall(x, y, 560);
+      }
+      for (const s of [-1, 1]) { lowWall(0, s * 3350, 760, true, comb, wax, 110, 120); lowWall(s * 3400, 0, 760, false, comb, wax, 110, 120); for (const e of [-1, 1]) lowWall(s * 2500, e * 2550, 600, s * e > 0, comb, wax, 110, 120); }
+      const clutch = (x, y) => { hit(x, y, 0, 260, 240, 130, true); for (const [dx, dy, sz] of [[-60, -30, 150], [70, -20, 130], [0, 70, 140]]) { Ball(V(x + dx, y + dy, sz * 0.45), V(sz, sz, sz * 1.2), pale); Glow(V(x + dx, y + dy, sz * 0.5), V(sz * 0.4, sz * 0.4, sz * 0.5), honey, 2); } Cyl(V(x, y, 2), 380, 4, 0x9a6410, false, false); };
+      for (const s of [-1, 1]) { clutch(s * 1650, s * 350); clutch(s * 700, -s * 1500); clutch(-s * 1250, s * 1150); clutch(s * 3650, s * 1500); clutch(s * 1500, -s * 3500); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ NULL CHAMBER
+    // The room is coming apart. A hole of stars in the middle with something hanging over it, four plates of the floor
+    // heaved up to different heights, and black monoliths standing where the lines cross.
     default: {
-      const voidc = 0x0c0a14, slab = 0x1a1626, pur = T.glow, white = 0xf0e8ff, lilac = 0x8a7ab8;
-      // a floor of black glass ruled like an instrument: rings, spokes, and a script that runs round each ring
-      slabs(600, 0x1c1828, 0x211c30, 0x14101e, (x, y) => Math.hypot(x, y) < 2750);
-      Cyl(V(0, 0, 1.2), 5500, 2.4, 0x100c1a, false, false); for (const d of [900, 1500, 2100, 2700]) { Glow(V(0, 0, 3), V(d * 2, d * 2, 2), pur, 8); const n = Math.round(d / 26); for (let k = 0; k < n; k++) { if (rnd() < 0.35) continue; const a = k / n * 6.283; Glow(V(Math.cos(a) * (d + 70), Math.sin(a) * (d + 70), 3), V(rr(20, 70), 12, 2), k % 5 ? lilac : white, 0, R(0, a * 57.3 + 90, 0)); } }
-      for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; Glow(V(Math.cos(a) * 1800, Math.sin(a) * 1800, 3), V(1800, 8, 2), pur, 0, R(0, a * 57.3, 0)); Glow(V(Math.cos(a) * 2700, Math.sin(a) * 2700, 3.4), V(70, 70, 2), white, 7, R(0, a * 57.3, 0)); }
-      // the ring of standing slabs
-      for (let k = 0; k < 8; k++) { const a = (k + 0.5) / 8 * Math.PI * 2, x = Math.cos(a) * 1900, y = Math.sin(a) * 1700, yaw = 90 + a * 180 / Math.PI;
-        Box(V(x, y, 210), V(1000, 110, 420), slab, true, true, yaw); Box(V(x, y, 12), V(1060, 170, 24), voidc, false, false, yaw);
-        const c = Math.cos(yaw * Math.PI / 180), s = Math.sin(yaw * Math.PI / 180);
-        for (const f of [-1, 1]) { for (let j = -3; j <= 3; j++) { const h = rr(60, 300); Glow(V(x + c * j * 130 - s * f * 57, y + s * j * 130 + c * f * 57, rr(120, 300)), V(10, 4, h), j % 3 ? pur : white, 0, R(0, yaw, 0)); if (rnd() < 0.6) Glow(V(x + c * (j * 130 + 30) - s * f * 57, y + s * (j * 130 + 30) + c * f * 57, rr(100, 340)), V(46, 4, 10), pur, 0, R(0, yaw, 0)); } }
-        L(x * 0.8, y * 0.8, 300, T.lamp, 900, 1.8); }
-      // the middle: two steps up to nothing, and over it the stone that is doing this, turning in its rings, a line of light through it from floor to roof
-      for (let k = 0; k < 2; k++) Box(V(0, 0, 20 + k * 40), V(1500 - k * 360, 1500 - k * 360, 40), k ? 0x2a2440 : slab, true, false); Glow(V(0, 0, 82), V(1000, 1000, 3), pur, 8); Glow(V(0, 0, 82), V(560, 560, 3), white, 8);
-      Cyl(V(0, 0, 80 + 90), 180, 180, voidc, true, true); Cyl(V(0, 0, 80 + 186), 240, 12, lilac, false, false);
-      Pyramid(V(0, 0, 640), V(330, 330, 420), voidc); Pyramid(V(0, 0, 250 + 80), V(330, 330, 260), voidc, R(180, 0, 0)); Glow(V(0, 0, 432), V(336, 336, 10), pur, 0, R(0, 0, 0)); Glow(V(0, 0, 432), V(120, 120, 120), white, 2);
-      Glow(V(0, 0, H / 2), V(16, 16, H), white, 1); Glow(V(0, 0, H / 2), V(60, 60, H), pur, 1);
-      Ring(V(0, 0, 440), V(820, 820, 820), lilac, R(22, 0, 12)); Ring(V(0, 0, 440), V(660, 660, 660), pur, R(-58, 30, 0)); Ring(V(0, 0, 440), V(1000, 1000, 1000), 0x4a3e6a, R(80, 60, 0));
-      L(0, 0, 500, T.lamp, 2200, 3);
-      // the side walls have opened: a great eye of rings in each, looking in
-      for (const sx of [-1, 1]) { const x = sx * (hx - 6); Cyl(V(x, 0, 520), 1500, 6, voidc, false, false, AX); [[1440, pur], [1300, voidc], [1120, lilac], [980, voidc], [760, pur], [640, voidc], [420, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 520), d, 3, c, false, false, AX) : Glow(V(x - sx * (4 + n * 5), 0, 520), V(d, d, 3), c, 1, AX)));  Glow(V(x - sx * 40, 0, 520), V(4, 70, 240), white, 0);
-        for (let k = 0; k < 24; k++) { const a = k / 24 * 6.283; BoxRot(V(x - sx * 5, Math.cos(a) * 880, 520 + Math.sin(a) * 880), V(4, 120, 12), k % 2 ? pur : lilac, R(0, 0, a * 57.3 * 0), false); } }
-      // stars in the roof and pieces of the room going up to join them
-      for (let i = 0; i < 90; i++) Glow(V(rr(-hx + 100, hx - 100), rr(-hy + 100, hy - 100), H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? pur : white, 2);
+      const voidc = 0x0c0a14, pur = T.glow, white = 0xf0e8ff, slab = 0x2a2238;
+      slabs(550, T.floor, T.floor2, 0x0a0812, (x, y) => Math.hypot(x, y) < 1420);
+      ring(0, 0, 1.6, 2780, 40, pur, 0x05040a); ring(0, 0, 4.6, 1500, 16, white, 0x05040a);
+      for (let i = 0; i < 46; i++) { const a = rnd() * 6.283, r = rr(80, 1200); Glow(V(Math.cos(a) * r, Math.sin(a) * r, 7.6), V(rr(8, 20), rr(8, 20), 2), i % 3 ? white : pur, 2); }
+      Pyramid(V(0, 0, 1000), V(400, 400, 560), voidc); Pyramid(V(0, 0, 560), V(400, 400, 320), voidc, R(180, 0, 0)); Glow(V(0, 0, 720), V(470, 470, 12), pur, 7); Glow(V(0, 0, 200), V(12, 12, 400), white, 1); L(0, 0, 620, T.lamp, 2800, 3); tall(0, 0, 700);
+      for (let q = 0; q < 6; q++) { const a = q / 6 * 6.283, z = 640 + (q % 3) * 90; Oct(V(Math.cos(a) * 560, Math.sin(a) * 560, z), V(70, 70, 110), slab, false, false); Glow(V(Math.cos(a) * 560, Math.sin(a) * 560, z - 70), V(30, 30, 8), pur, 2); }
+      for (const [x, y, h] of [[2300, 1800, 160], [-2300, -1800, 160], [-2300, 1800, 80], [2300, -1800, 80]]) {
+        plat(x, y, 1300, 1100, h, slab, 0x1a1626, [[0, 0]]);
+        for (const e of [-1, 1]) { Glow(V(x, y + e * 540, h + 1.6), V(1280, 12, 2), pur, 0); Glow(V(x + e * 640, y, h + 1.6), V(12, 1080, 2), pur, 0); }
+        const mx = x + Math.sign(x) * 440, my = y + Math.sign(y) * 340, mh = h > 100 ? 760 : 1000;
+        solid(mx, my, h, 180, 180, mh, voidc, false); deco(mx, my, h, 230, 230, 30, slab); Glow(V(mx - Math.sign(x) * 92, my, h + mh * 0.5), V(6, 30, mh * 0.7), pur, 0); Glow(V(mx, my - Math.sign(y) * 92, h + mh * 0.5), V(30, 6, mh * 0.7), pur, 0); tall(mx, my, 320);
+        L(x, y, h + 420, T.lamp, 1500, 1.6);
+      }
+      for (const [x, y] of [[3900, 0], [-3900, 0], [760, 3000], [-760, 3000], [760, -3000], [-760, -3000]]) {
+        solid(x, y, 0, 220, 220, 900, voidc); deco(x, y, 0, 290, 290, 40, slab); const ux = x > 1000 ? -1 : x < -1000 ? 1 : 0, uy = ux ? 0 : -Math.sign(y);
+        Glow(V(x + ux * 112, y + uy * 112, 470), ux ? V(6, 34, 640) : V(34, 6, 640), pur, 0); for (let g = 0; g < 4; g++) Glow(V(x + ux * 113, y + uy * 113, 160 + g * 180), ux ? V(6, 90, 14) : V(90, 6, 14), white, 0); tall(x, y, 340);
+      }
+      // paving thrown up out of the floor: cover, each piece knee to waist high
+      for (const [x, y, s, yaw] of [[1450, 520, 210, 18], [-1450, -520, 210, 18], [1500, -700, 180, -24], [-1500, 700, 180, -24], [0, 1900, 220, 40], [0, -1900, 220, 40], [3450, 1500, 200, 12], [-3450, -1500, 200, 12], [3400, -2600, 190, -30], [-3400, 2600, 190, -30]]) {
+        Box(V(x, y, s * 0.3), V(s, s, s * 0.6), slab, true, true, yaw); Box(V(x, y, s * 0.6 + 3), V(s - 30, s - 30, 6), 0x1a1626, false, false, yaw); Glow(V(x, y, 2.4), V(s + 50, s + 50, 2), pur, 0, R(0, yaw, 0));
+      }
+      // pieces that have already let go, hanging high in the air over nothing, each lit from below
+      for (let i = 0; i < 16; i++) { const a = i / 16 * 6.283 + 0.2, r = 1700 + (i % 4) * 620, x = Math.cos(a) * r * 1.05, y = Math.sin(a) * r * 0.9, z = 950 + (i % 5) * 120, s = 90 + (i % 3) * 50; if (out.tall.some((t) => Math.hypot(x - t[0], y - t[1]) < t[2] + 200)) continue; Box(V(x, y, z), V(s, s, s), slab, false, false, i * 23); Glow(V(x, y, z - s * 0.7), V(s * 0.6, s * 0.6, 6), pur, 2); tall(x, y, 260); }
+      out.avoid = (x, y) => Math.hypot(x, y) < 900;
       break;
     }
   }
+  return out;
 }
 
-// The two boss rooms: The Seal (a lid chained down over something) and The Bottom (where the floor gives out).
+// ---------------------------------------------------------------------------------------------------- THE BOSS FLOORS
+// Open ground on purpose: a boss needs room, and so do you. Four pillars to put between you and it, four raised slabs,
+// and a floor that says what the place is.
 export function craftBoss(which, K) {
   const { M, T, hx, hy, H, rnd, rr } = K;
-  const { Box, BoxRot, Glow, Cyl, Oct, Ball, Pyramid, Ring, Floor, Lamp } = M;
-  const L = (x, y, z, c, r = 1300, k = 2.2) => Lamp(V(x, y, z), { r: c[0], g: c[1], b: c[2] }, k, r, false);
-  for (let x = -hx; x < hx - 1; x += 500) for (let y = -hy; y < hy - 1; y += 500) { if (Math.hypot(x + 250, y + 250) < 2300) continue; Floor(V2(x + 6, y + 6), V2(x + 494, y + 494), 1.4, rnd() < 0.12 ? 0x10141a : (Math.round(x / 500) + Math.round(y / 500)) % 2 ? T.floor : T.floor2); }
+  const { Box, Glow, Cyl, Oct, Ball, Floor, Lamp } = M;
+  const Q = kit(K), { out, L, ring } = Q, s = hx / 4000;
+  for (let x = -hx; x < hx - 1; x += 600) for (let y = -hy; y < hy - 1; y += 600) { if (Math.hypot(x + 300, y + 300) < 2300 * s) continue; Floor(V2(x + 6, y + 6), V2(x + 594, y + 594), 1.4, rnd() < 0.12 ? 0x10141a : (Math.round(x / 600) + Math.round(y / 600)) % 2 ? T.floor : T.floor2); }
   if (which === 0) {
     const iron = 0x2a2e30, bone = 0xd8cfb8;
-    // the seal itself: a lid of dark stone the width of the room's middle, ringed and lettered, bolted at eight points
-    Cyl(V(0, 0, 1.6), 4500, 3.2, 0x161c20, false, false);
-    for (const d of [3600, 2200]) Glow(V(0, 0, 3.6), V(d, d, 2), T.glow, 8);
-    for (let k = 0; k < 48; k++) { if (k % 6 === 0) continue; const a = k / 48 * 6.283; Glow(V(Math.cos(a) * 2000, Math.sin(a) * 2000, 4), V(rr(120, 220), 26, 2), k % 4 ? T.glow : 0xffffff, 0, R(0, a * 57.3 + 90, 0)); if (k % 2) Glow(V(Math.cos(a) * 1880, Math.sin(a) * 1880, 4), V(26, 90, 2), T.glow, 0, R(0, a * 57.3 + 90, 0)); }
-    for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.39, x = Math.cos(a) * 2000, y = Math.sin(a) * 2000; Oct(V(x, y, 14), V(300, 300, 28), iron, false, false); Cyl(V(x, y, 40), 120, 30, 0x55585f, false, false); Glow(V(x, y, 58), V(60, 60, 8), T.glow, 1); L(x, y, 200, T.lamp, 800, 1.6);
-}
-    Glow(V(0, 0, 4.4), V(700, 700, 2), 0xffffff, 8); L(0, 0, 600, T.lamp, 2600, 3);
+    // the seal: a lid of dark stone the width of the room's middle, ringed and lettered, bolted at eight points
+    Cyl(V(0, 0, 1.6), 4500 * s, 2, 0x161c20, false, false);
+    ring(0, 0, 2.8, 3600 * s, 30, T.glow, 0x161c20); ring(0, 0, 5.8, 2200 * s, 24, T.glow, 0x161c20);
+    for (let q = 0; q < 64; q++) { if (q % 8 === 0) continue; const a = q / 64 * 6.283, r = 2000 * s; Glow(V(Math.cos(a) * r, Math.sin(a) * r, 9), V(rr(120, 220), 26, 2), q % 4 ? T.glow : 0xffffff, 0, R(0, a * 57.3 + 90, 0)); }
+    for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + 0.39, x = Math.cos(a) * 2000 * s, y = Math.sin(a) * 2000 * s; Oct(V(x, y, 14), V(300, 300, 28), iron, false, false); Cyl(V(x, y, 40), 120, 30, 0x55585f, false, false); Glow(V(x, y, 58), V(60, 60, 8), T.glow, 1); if (q % 2) L(x, y, 220, T.lamp, 1000, 1.6); }
+    ring(0, 0, 8.8, 900, 16, 0xffffff, 0x161c20); L(0, 0, 700, T.lamp, 3200, 3);
     // the dead of the upper rooms were stacked against these walls when the seal was set
-    for (const sx of [-1, 1]) for (let y = -hy + 400; y < hy - 300; y += 520) { if (Math.abs(Math.abs(y) - 500) < 300) continue; const x = sx * (hx - 60); Box(V(x, y, 500), V(90, 420, 1000), 0x12181a, false, false); for (let r = 0; r < 6; r++) for (let c = -1; c <= 1; c++) { Ball(V(x - sx * 46, y + c * 130, 130 + r * 150), V(84, 78, 90), bone); Glow(V(x - sx * 84, y + c * 130 - 16, 140 + r * 150), V(8, 12, 12), T.glow, 2); Glow(V(x - sx * 84, y + c * 130 + 16, 140 + r * 150), V(8, 12, 12), T.glow, 2); } }
+    for (const sx of [-1, 1]) for (let y = -hy + 420; y < hy - 300; y += 560) {
+      if (Math.abs(Math.abs(y) - 500) < 330) continue;
+      const x = sx * (hx - 5);
+      Box(V(x, y, 520), V(10, 440, 960), 0x12181a, false, false);
+      for (let r = 0; r < 6; r++) for (let c = -1; c <= 1; c++) { Ball(V(x - sx * 22, y + c * 136, 130 + r * 150), V(80, 110, 120), bone); Glow(V(x - sx * 54, y + c * 136, 136 + r * 150), V(6, 44, 14), T.glow, 0); }
+    }
   } else {
     const voidc = 0x0c0a14, pur = T.glow, white = 0xf0e8ff;
-    // the bottom: the floor ends in a ring of broken paving round a well of light, and the room above is falling into it very slowly
-    Cyl(V(0, 0, 1.6), 4500, 3.2, 0x0a0812, false, false); for (const d of [3300, 1300]) Glow(V(0, 0, 3.6), V(d, d, 2), pur, 8);
-    Glow(V(0, 0, 4), V(900, 900, 2), white, 1); Glow(V(0, 0, H / 2), V(120, 120, H), pur, 1); Glow(V(0, 0, H / 2), V(30, 30, H), white, 1); L(0, 0, 700, T.lamp, 2800, 3);
-    for (let k = 0; k < 32; k++) { const a = k / 32 * 6.283; Glow(V(Math.cos(a) * 2200, Math.sin(a) * 2200, 4), V(2200, 8, 2), pur, 0, R(0, a * 57.3, 0)); }
-    for (const sx of [-1, 1]) { const x = sx * (hx - 6); [[2400, pur], [2200, voidc], [1800, 0x8a7ab8], [1600, voidc], [1100, pur], [900, voidc], [560, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 1000), d, 3, c, false, false, R(90, 0, 0)) : Glow(V(x - sx * (4 + n * 5), 0, 1000), V(d, d, 3), c, 1, R(90, 0, 0)))); Glow(V(x - sx * 40, 0, 1000), V(4, 110, 420), white, 0); }
+    // the bottom: a ring of broken paving round a well of light, and the room above falling into it very slowly
+    Cyl(V(0, 0, 1.6), 4500 * s, 2, 0x0a0812, false, false); ring(0, 0, 2.8, 3300 * s, 30, pur, 0x0a0812); ring(0, 0, 5.8, 1300 * s, 20, pur, 0x0a0812);
+    Glow(V(0, 0, 8.6), V(1100, 1100, 2), white, 1); Glow(V(0, 0, H / 2), V(120, 120, H), pur, 1); Glow(V(0, 0, H / 2), V(30, 30, H), white, 1); L(0, 0, 700, T.lamp, 3400, 3);
+    for (let q = 0; q < 32; q++) { const a = q / 32 * 6.283; Glow(V(Math.cos(a) * 2200 * s, Math.sin(a) * 2200 * s, 9), V(2200 * s, 8, 2), pur, 0, R(0, a * 57.3, 0)); }
+    for (const sx of [-1, 1]) { const x = sx * (hx - 6); [[2400, pur], [2200, voidc], [1800, 0x8a7ab8], [1600, voidc], [1100, pur], [900, voidc], [560, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 1000), d, 3, c, false, false, R(90, 0, 0)) : Glow(V(x - sx * (4 + n * 5), 0, 1000), V(d, d, 3), c, 1, R(90, 0, 0)))); }
   }
+  return out;
 }

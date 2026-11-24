@@ -752,6 +752,8 @@ export class Game {
   // Enemies get shoved by each other, by knockback and by closing doors. Anything that ends up inside a blocked
   // nav cell is walked back out to the nearest open one; anything that makes no progress for 5s is respawned.
   // Move an enemy that cannot reach the fight to open, reachable ground near the player (out of arm's reach), clawing up again.
+  // the underside of the roof over a place, where the map has one (the Descent's rooms do)
+  ceilAt(p) { return this.descent ? this.descent.ceilAt(p) : Infinity; }
   relocate(E) {
     const P = this.net.targetOf(E), ahead = P.pos.clone(); if (P.vel) ahead.addScaledVector(V3(P.vel.x, 0, P.vel.z), 1.2);   // come up ahead of a running player, never on top of them
     const f = this.findFreeLocationNear(ahead, 1200, 1900) || this.findFreeLocationNear(P.pos, 1200, 2400) || this.findFreeLocationNear(P.pos, 700, 2800);

@@ -12,10 +12,10 @@ const flat = (v) => new THREE.Vector3(v.x, 0, v.z);
 const safeN2 = (v) => { const f = flat(v); const l = f.length(); return l > 1e-4 ? f.divideScalar(l) : f.set(0, 0, 0); };
 const EyeYellow = [1, 0.93, 0.48];
 import { traitTick, traitMove, traitHit, traitDamage, traitDeath, traitSpit } from './traits.js';
-import { X_ATTACKS, mechX, hitX, deathX, attackX, thinkTotem } from './bossx.js';
+import { X_ATTACKS, mechX, hitX, deathX, attackX, thinkTotem, phaseX, phaseName } from './bossx.js';
 const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);
 // what the boss bar calls each move while it is winding up, so a fight reads as a set of things to answer
-export const ATTACK_LABEL = { Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM - jump the ring', Volley: 'VOLLEY', Summon: 'CALLING THE HANDS', Leap: 'LEAP - move', Teleport: 'VANISHED', Ring: 'SHOCKWAVES - jump them', Barrage: 'BARRAGE - keep moving',
+export const ATTACK_LABEL = { Nova: 'SHOCKWAVES - JUMP EACH ONE', Chase: 'MARKED - KEEP MOVING, LEAD IT AWAY', Cross: 'LINES OF FIRE - STAND BETWEEN THEM', Rain: 'IT RAINS ON YOU - DO NOT STOP', Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM - jump the ring', Volley: 'VOLLEY', Summon: 'CALLING THE HANDS', Leap: 'LEAP - move', Teleport: 'VANISHED', Ring: 'SHOCKWAVES - jump them', Barrage: 'BARRAGE - keep moving',
   Sweep: 'SWEEP - get behind it', Hook: 'CHAIN HOOK - out of the line', Pools: 'BILE - off the green', NailWall: 'NAIL WALL - find the gap', Ambush: 'AMBUSH - it is behind you', Dive: 'DIVE - out of the line' };
 let HZ_GROUP = 1;
 
@@ -235,7 +235,7 @@ export class Enemy {
         const up = G.phys.raycastDown(new THREE.Vector3(this.pos.x, this.pos.y + this.half - 4, this.pos.z), this.half * 2 + 3000, true);
         if (up && up.point.y > this.pos.y - this.half + 50) { this.pos.y = up.point.y + this.half + 1; this.vel.y = 0; this.grounded = true; }
         else if (!up) {
-          const top = G.phys.raycastDown(new THREE.Vector3(this.pos.x, this.pos.y + 3000, this.pos.z), 6000, true);
+          const top = G.phys.raycastDown(new THREE.Vector3(this.pos.x, Math.min(this.pos.y + 3000, G.ceilAt(this.pos) - 40), this.pos.z), 6000, true);   // from under the roof, where there is one: never on top of it
           if (top) { this.pos.y = top.point.y + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
         }
         // Inside the ground itself. The ground is a slab with an underside, so a low body shoved into it (at a crowded
@@ -249,7 +249,7 @@ export class Enemy {
           else {
             this.inT = (this.inT || 0) + 1; G.rescues = (G.rescues || 0) + 1;
             if (G.rescueLog && G.rescueLog.length < 60) G.rescueLog.push(`${this.def.name} life ${this.life.toFixed(1)} @${Math.round(this.pos.x)},${Math.round(this.pos.z)} y ${Math.round(this.pos.y)} half ${Math.round(this.half)} above ${Math.round(above)} inT ${this.inT}`);
-            if (this.inT <= 2) { this.pos.y = above + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
+            if (this.inT <= 2 && above + this.half * 2 < G.ceilAt(this.pos) - 20) { this.pos.y = above + this.half + 1; this.vel.set(0, 0, 0); this.grounded = true; }
             else { this.inT = 0; G.relocate(this); }
           }
         }
@@ -765,6 +765,7 @@ export class Enemy {
         G.fx.dust(this.feet(), lin(0.5, 0.15, 0.15), 240); G.audio.playAt('S_Gib', Me, 1.2, 0.7); G.banner(this.boss.shedText || 'IT IS COMING APART', lin(0.9, 0.3, 0.3), 2);
       }
     }
+    if (this.boss.tier && phaseX(this, dt, { Pl, To, idx: (n) => ATTACKS.indexOf(n) })) return;
     if (this.exposedT > 0) {   // staggered: stands there and takes half again as much
       this.exposedT -= dt; this.stop(); this.windup = 0;
       if (this.exposedT <= 0 && !(this.ward > 0)) this.puppet.setTint(this.enraged ? [1, 0.72, 0.66] : [1, 1, 1]);
@@ -786,10 +787,12 @@ export class Enemy {
         // never the same move twice running, and nothing that needs you close when you are far
         let pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
         for (let k = 0; k < 6 && (pick === this.lastAttack || ((ATTACKS[pick] === 'Sweep' || ATTACKS[pick] === 'Slam') && dist > 900) || (ATTACKS[pick] === 'Hook' && (dist < 450 || dist > 1900))); k++) pick = this.attackMask[randInt(0, this.attackMask.length - 1)];
+        if (this.queue && this.queue.length) pick = this.queue.shift();
         this.lastAttack = pick;
         if (this.boss.mech === 'heat' && (this.heat = (this.heat || 0) + 1) >= 4) { this.heat = 0; pick = ATTACKS.indexOf('Vent'); }   // the Furnace: every fourth thing it does is let the heat out
         this.startBossAttack(pick);
-        this.bossTimer = frandRange(2.0, 3.2);
+        // later acts: less rest between moves, and more and more often one straight after another
+        { const ph = this.phase || 1; this.bossTimer = frandRange(2.0, 3.2) * [1, 0.75, 0.55][ph - 1]; if (ph > 1 && !this.comboed && Math.random() < [0, 0.4, 0.65][ph - 1]) { this.bossTimer = 0.35; this.comboed = true; } else this.comboed = false; }
       }
       return;
     }
@@ -1090,6 +1093,7 @@ export class Enemy {
   }
   startBossAttack(a) { this.bossAttack = a; this.bossT = 0; this.bossStep = 0; this.leapHit = false; }
   attackName() { return ATTACKS[this.bossAttack]; }
+  phaseName() { return this.isBoss && this.boss.tier ? phaseName(this) : ''; }
 
   draw(batches) {
     this.puppet.draw(batches[this.ckind] || batches.creature, batches.fx, batches.add, !this.dead);

@@ -42,6 +42,7 @@ export class Descent {
     const g = this.g;
     this.tickFx(dt);
     if (!this.host) return;
+    this.contain(dt);
     if (this.cleared && this.rdy.size) { const N = this.need(); this.rdyN = [N.filter((k) => this.rdy.has(k)).length, N.length]; if (N.length && this.rdyN[0] >= N.length) { this.next(); return; } } else this.rdyN = [0, this.need().length];
     if (g.phase === 'PreGame') { g.phaseTimer -= dt; if (g.phaseTimer <= 0) this.enter(1); return; }
     if (g.phase === 'Round') {
@@ -50,6 +51,23 @@ export class Descent {
       if (this.isBossRoom() && g.bossSpawned && (!g.boss || g.boss.dead)) {
         if (!this.twinAlive() && (this.deadT = (this.deadT || 0) + dt) > 0.4) { this.deadT = 0; for (const E of g.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); } g.spawned = g.toSpawn; this.clear(); }
       }
+    }
+  }
+  ceilAt(p) { const A = this.A(); return A && Math.abs(p.x - A.c[0]) < A.hx + 300 && Math.abs(p.z - A.c[1]) < A.hy + 300 ? A.H : Infinity; }
+  // Nothing leaves the room. Whatever ends up over the roof, through a wall or under the floor is put back on open
+  // ground inside; a flyer is simply held under the roof.
+  contain(dt) {
+    this.conT = (this.conT || 0) - dt; if (this.conT > 0) return; this.conT = 0.4;
+    const g = this.g, A = this.A(); if (!A) return;
+    for (const E of g.enemies) {
+      if (E.dead || E.remove) continue;
+      const top = A.H - E.half - 12;
+      if (E.ai === 'Flyer' && E.pos.y > top && E.pos.y < A.H + 40) { E.pos.y = top; if (E.vel.y > 0) E.vel.y = 0; }
+      const out = Math.abs(E.pos.x - A.c[0]) > A.hx - 20 || Math.abs(E.pos.z - A.c[1]) > A.hy - 20 || E.pos.y - E.half > A.H - 30 || (E.pos.y < -220 && !E.burrowed);
+      E.outT = out ? (E.outT || 0) + 1 : 0;
+      if (E.outT < 2) continue;
+      E.outT = 0; g.rescues = (g.rescues || 0) + 1;
+      if (E.isBoss || !g.relocate(E)) { const at = g.findFreeLocationNear(V3(A.c[0], 0, A.c[1]), 0, Math.min(A.hx, A.hy) * 0.6); E.pos.set(at ? at.x : A.c[0], (at ? at.y : 0) + E.half + 4, at ? at.z : A.c[1]); E.vel.set(0, 0, 0); E.burrowed = false; E.collides = true; }
     }
   }
   twinAlive() { const L = this.g.enemies.filter((E) => E.isBoss && !E.dead && !E.decoy); if (L.length && (!this.g.boss || this.g.boss.dead)) this.g.boss = L[0]; return L.length > 0; }
@@ -61,7 +79,7 @@ export class Descent {
     g.hazards.clear(); g.boss = null; g.bossSpawned = false; g.bossRound = false; this.zones = [];
     g.round = room; g.phase = 'Round';
     const boss = this.isBossRoom(), n = g.net.role === 'host' ? g.net.ghosts.size : 0;
-    g.toSpawn = Math.round((boss ? 10 + room * 0.8 : 24 + room * 4.5) * (1 + 0.6 * n));   // a room is a few minutes' work, the first ones included
+    g.toSpawn = boss ? 0 : Math.round((24 + room * 4.5) * (1 + 0.6 * n));   // a boss's room holds the boss and nothing else, unless it calls something up itself   // a room is a few minutes' work, the first ones included
     g.spawned = 0; g.killed = 0; g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0; g.spawnTimer = boss ? 5 : 1.6; g.roundT = 0; g.midChest = true;
     this.bossT = boss ? 2.2 : -1;
     this.roster = this.rollRoster(room);
@@ -94,7 +112,7 @@ export class Descent {
     const g = this.g, A = this.A(), bi = this.bossPick[this.room / 5 - 1], B = DATA.bosses[bi];
     const at = V3(A.c[0], 260, A.c[1] + this.flip * A.hy * 0.3);
     g.bossSpawned = true;
-    g.boss = g.spawnEnemy(B.minion, at, false, bi, 1, 1 + 0.5 * (g.net.role === 'host' ? g.net.ghosts.size : 0), 0, false);
+    g.boss = g.spawnEnemy(B.minion, at, false, bi, 1, 1.4 + 0.5 * (g.net.role === 'host' ? g.net.ghosts.size : 0), 0, false);   // it fights alone now, so there is more of it
     if (B.mech === 'twin') { const T = g.spawnEnemy(B.minion, at.clone().add(V3(500, 0, 0)), false, bi, 1, 1, 0, false); T.twin = g.boss; g.boss.twin = T; }
     g.banner(`${B.name.toUpperCase()}`, lin(1, 0.25, 0.15), 4); g.hud.toast(B.desc || B.title, '#ff9a8a');
     g.audio.play('S_BossRoar', 1, 0.8);

@@ -2,7 +2,7 @@
 // room you are in, take what it pays, and pick the next door by what is behind it. Every fifth room is a boss's.
 // All twenty are built once, far apart on one grid, and the run moves the players between them.
 import { V, V2, R } from './mapkit.js';
-import { craftRoom, craftBoss } from './descent_rooms.js';
+import { craftRoom, craftBoss, ROOM_DIMS, BOSS_DIMS } from './descent_rooms.js';
 
 // each theme: floor, inlay, wall, trim, glow, lamp colour, fog, shadow tint
 export const THEMES = [
@@ -10,16 +10,16 @@ export const THEMES = [
   { name: 'Cinder Works', floor: 0x241a16, floor2: 0x33221a, wall: 0x3c2a22, trim: 0x6a6e76, glow: 0xff7a2a, lamp: [1.0, 0.55, 0.2], fog: 0x3a1c10, sh: [0.66, 0.48, 0.42] },
   { name: 'Rime Vault', floor: 0x1c2630, floor2: 0x2a3a48, wall: 0x3a4c5c, trim: 0xc9d6e0, glow: 0x7ad0ff, lamp: [0.5, 0.8, 1.0], fog: 0x18303e, sh: [0.46, 0.6, 0.8] },
   { name: 'Mire Cellar', floor: 0x18201a, floor2: 0x243024, wall: 0x2c3a2c, trim: 0x6a5a3a, glow: 0x8aff5a, lamp: [0.6, 1.0, 0.4], fog: 0x1a2c16, sh: [0.48, 0.62, 0.44] },
-  { name: 'Gilded Ring', floor: 0x24141a, floor2: 0x3a1c24, wall: 0x4a2028, trim: 0xc8a03a, glow: 0xffcd5a, lamp: [1.0, 0.8, 0.4], fog: 0x321420, sh: [0.66, 0.46, 0.5] },
+  { name: 'Deep Station', floor: 0x2c2823, floor2: 0x3a342c, wall: 0x443a30, trim: 0x5a5e66, glow: 0xffe6a0, lamp: [1.0, 0.86, 0.6], fog: 0x241e16, sh: [0.62, 0.56, 0.48] },
   { name: 'Drowned Hall', floor: 0x122024, floor2: 0x1a3038, wall: 0x22404a, trim: 0xb8923a, glow: 0x3aa8ff, lamp: [0.3, 0.7, 1.0], fog: 0x0c2434, sh: [0.38, 0.54, 0.74] },
   { name: 'The Hive', floor: 0x221c10, floor2: 0x332a14, wall: 0x40341a, trim: 0x8a6a2a, glow: 0xffb020, lamp: [1.0, 0.75, 0.2], fog: 0x30260c, sh: [0.64, 0.56, 0.36] },
   { name: 'Null Chamber', floor: 0x18141f, floor2: 0x261e33, wall: 0x30263f, trim: 0x8a7ab8, glow: 0xc58cff, lamp: [0.75, 0.5, 1.0], fog: 0x1e1430, sh: [0.54, 0.46, 0.76] },
 ];
-const NAMES = ['The Ossuary', 'Cinder Works', 'Rime Vault', 'Mire Cellar', 'The Gilded Ring', 'Drowned Hall', 'The Hive', 'Null Chamber'];
+const NAMES = ['The Ossuary', 'Cinder Works', 'Rime Vault', 'Mire Cellar', 'Deep Station', 'Drowned Hall', 'The Hive', 'Null Chamber'];
 const BOSS_NAMES = ['The Seal', 'The Bottom'];
 const up = (h, k) => { const r = Math.min(255, Math.round(((h >> 16) & 255) * k)), g = Math.min(255, Math.round(((h >> 8) & 255) * k)), b = Math.min(255, Math.round((h & 255) * k)); return (r << 16) | (g << 8) | b; };
 for (const T of THEMES) { T.floor = up(T.floor, 1.35); T.floor2 = up(T.floor2, 1.5); T.wall = up(T.wall, 1.3); T.roof = up(T.wall, 0.45); }
-const SP = 9600;
+const SP = 13200;
 // filled in as the arenas are built: { c: [x, y], hx, hy, H, zone, theme, boss, plinths }
 export const ARENAS = [];
 // Where things stand in a room, given which end you came in by (s = 1: in at the south, out at the north; -1 the other way).
@@ -32,20 +32,20 @@ export function spots(A, s) {
 
 export function buildDescent(M) {
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Ring, Floor, Lamp, SpawnAt, AddZone, GM } = M;
-  GM.navInit(-24200, -9800, 24200, 9800, 100);
+  GM.navInit(-32800, -13000, 33000, 13000, 100);
   const brazier = (x, y, T, h = 150) => { Cyl(V(x, y, h / 2), 70, h, T.trim, true, true); Cyl(V(x, y, h + 8), 110, 16, T.wall, false, false); Glow(V(x, y, h + 34), V(60, 60, 44), T.glow, 2); Lamp(V(x, y, h + 90), { r: T.lamp[0], g: T.lamp[1], b: T.lamp[2] }, 2.2, 1500, false); };
   // ---- what makes each room its own place. Almost none of it collides: it is on the walls, hung from the roof, laid on
   // the floor or heaped in the corners, clear of the doors, the wall guns and the bench end of the room.
   let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, rr = (a, b) => a + rnd() * (b - a);
-  const WALL_Y = [-2500, -2050, -1600, -1150, 0, 1150, 1600, 2050, 2500];
-  const dress = (th, hx, hy, H, T, boss) => {
-    const k = hx / 3400, ys = WALL_Y.map((y) => y * (hy / 3000)), flat = R(90, 0, 0);
-    const corners = (fn) => { for (const sx of [-1, 1]) for (const sy of [-1, 1]) fn(sx * (hx - 520), sy * (hy - 620), sx, sy); };
-    const hang = (x, y, len, col, d = 10) => Cyl(V(x, y, H - len / 2), d, len, col, false, false);
-    const roofSpots = (n, fn) => { for (let i = 0; i < n; i++) fn(rr(-hx + 500, hx - 500), rr(-hy + 700, hy - 700)); };
+    const dress = (th, hx, hy, H, T, boss, C) => {
+    const k = hx / 3400, flat = R(90, 0, 0), ys = [0];
+    for (let y = 1150; y < hy - 420; y += 560) ys.push(y, -y);   // bays along the side walls, clear of the two wall guns
+    const clear = (x, y, pad = 160) => !(C.avoid && C.avoid(x, y)) && !C.tall.some((t) => Math.hypot(x - t[0], y - t[1]) < t[2] + pad);
+    const corners = (fn) => { if (C.noCorners) return; for (const sx of [-1, 1]) for (const sy of [-1, 1]) fn(sx * (hx - 520), sy * (hy - 620), sx, sy); };
+    const hang = (x, y, len, col, d = 10) => Cyl(V(x, y, H - len / 2), d, len, col, false, false), drop = (a, b) => Math.min(rr(a, b), H * 0.42);
+    const roofSpots = (n, fn) => { n = Math.round(n * (hx * hy) / (3400 * 3000)); for (let i = 0; i < n; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 700, hy - 700); if (clear(x, y)) fn(x, y); } };
     if ([1, 2, 6, 7].includes(th)) corners((x, y) => M.Solid(V(x, y, [140, 260, 110, 300][[1, 2, 6, 7].indexOf(th)]), V(th === 7 ? 300 : 460, th === 7 ? 300 : 460, [280, 520, 220, 600][[1, 2, 6, 7].indexOf(th)]), true));
-    if (th === 4) corners((x, y, sx) => M.Solid(V(x - sx * 190, y, 60), V(440, 40, 120), false));
-    switch (th) {
+        switch (th) {
       case 0: {   // OSSUARY: walls of skulls, bone heaps, coffins, cages on chains, candles
         const bone = 0xd8cfb8, dark = 0x0e1214;
         for (const sx of [-1, 1]) for (const y of ys) { Box(V(sx * (hx - 3), y, 400), V(6, 330, 520), dark, false, false); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) { Ball(V(sx * (hx - 24), y + c * 100, 230 + r * 160), V(64, 60, 70), bone); Glow(V(sx * (hx - 50), y + c * 100 - 12, 236 + r * 160), V(6, 10, 10), T.glow, 2); Glow(V(sx * (hx - 50), y + c * 100 + 12, 236 + r * 160), V(6, 10, 10), T.glow, 2); } Box(V(sx * (hx - 10), y, 132), V(20, 360, 16), T.trim, false, false); Box(V(sx * (hx - 10), y, 668), V(20, 360, 16), T.trim, false, false); }
@@ -53,7 +53,7 @@ export function buildDescent(M) {
         for (const sx of [-1, 1]) for (const y of [ys[1], ys[7]]) { Box(V(sx * (hx - 190), y, 60), V(230, 520, 120), T.wall, true, true); Box(V(sx * (hx - 190), y, 130), V(260, 550, 24), T.trim, false, false); Box(V(sx * (hx - 190), y, 146), V(60, 340, 10), bone, false, false); Box(V(sx * (hx - 190), y + 80, 146), V(180, 50, 10), bone, false, false); }
         roofSpots(boss ? 14 : 8, (x, y) => { const L = rr(180, 420); hang(x, y, L, 0x2a2e30); Box(V(x, y, H - L - 70), V(110, 110, 140), 0x1a1e20, false, false); Ball(V(x, y, H - L - 80), V(56, 52, 60), bone); });
         for (const sx of [-1, 1]) for (const y of ys) for (const d of [-200, 200]) { Cyl(V(sx * (hx - 60), y + d, 20), 16, 40, bone, false, false); Glow(V(sx * (hx - 60), y + d, 50), V(12, 12, 22), 0xffc86a, 3); }
-        Glow(V(0, 0, 4), V(1500 * k, 1500 * k, 2), T.glow, 8); Glow(V(0, 0, 4), V(900 * k, 900 * k, 2), T.glow, 8);
+        
         break; }
       case 1: {   // CINDER WORKS: pipes, furnace mouths, slag channels, chimneys, coal
         const iron = 0x3a3e46, hot = 0xff6a1a;
@@ -71,18 +71,23 @@ export function buildDescent(M) {
         break; }
       case 3: {   // MIRE CELLAR: hanging roots, glowing fungus, pools, barrels, moss
         const root = 0x3a2a1c, moss = 0x3f6a2c, cap = 0x8a3a2a, slime = 0x7aff5a;
-        roofSpots(60, (x, y) => { const L = rr(140, 620); hang(x, y, L, root, rr(8, 22)); if (rnd() < 0.45) Glow(V(x, y, H - L - 12), V(26, 26, 26), slime, 2); });
+        roofSpots(60, (x, y) => { const L = drop(140, 620); hang(x, y, L, root, rr(8, 22)); if (rnd() < 0.45) Glow(V(x, y, H - L - 12), V(26, 26, 26), slime, 2); });
         for (let i = 0; i < 16; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 800, hy - 800), d = rr(260, 620); Cyl(V(x, y, 1.5), d, 3, 0x1e4a1e, false, false); Glow(V(x, y, 3.5), V(d * 0.18, d * 0.14, 2), slime, 1); }
         for (let i = 0; i < 34; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 500, hy - 500), w = rr(140, 380); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 2.2, moss); }
         for (const sx of [-1, 1]) for (const y of ys) { for (let c = 0; c < 5; c++) { const px = sx * (hx - rr(50, 240)), py = y + rr(-190, 190), h = rr(60, 240), w = h * rr(0.9, 1.6); Cyl(V(px, py, h / 2), w * 0.22, h, 0xd8cfa8, false, false); ConeShape(V(px, py, h + w * 0.22), V(w, w, w * 0.5), c % 2 ? cap : 0x6a7a2a); Glow(V(px, py, h - 4), V(w * 0.8, w * 0.8, 4), slime, 1); } Box(V(sx * (hx - 3), y, 380), V(6, 260, 560), moss, false, false); for (let v = 0; v < 4; v++) Box(V(sx * (hx - 8), y + rr(-200, 200), H - rr(200, 500)), V(10, 14, rr(300, 800)), root, false, false); }
         corners((x, y) => { for (let i = 0; i < 4; i++) { const bx = x + rr(-220, 220), by = y + rr(-220, 220); Cyl(V(bx, by, 80), 120, 160, 0x5a3e26, true, true); Cyl(V(bx, by, 40), 126, 12, 0x2a2420, false, false); Cyl(V(bx, by, 120), 126, 12, 0x2a2420, false, false); } });
         break; }
-      case 4: {   // THE GILDED RING: bunting, card panels, slot machines, a chandelier, a wheel laid in the floor
-        const gold = 0xc8a03a, red = 0xa8201c, black = 0x16121a, cream = 0xf0e6c8;
-        for (const sx of [-1, 1]) { for (let y = -hy + 120, i = 0; y < hy; y += 150, i++) Pyramid(V(sx * (hx - 16), y, 800), V(26, 110, 130), [red, gold, cream, 0x2a6a8a][i % 4], R(180, 0, 0)); Box(V(sx * (hx - 10), 0, 872), V(8, hy * 2, 8), gold, false, false); for (const y of ys) { const c = Math.round(y) % 2 ? red : black; Box(V(sx * (hx - 5), y, 400), V(10, 300, 430), gold, false, false); Box(V(sx * (hx - 9), y, 400), V(10, 260, 390), c, false, false); Box(V(sx * (hx - 13), y, 400), V(8, 90, 90), cream, false, false, 45); Glow(V(sx * (hx - 12), y, 640), V(6, 240, 10), 0xffcd5a, 0); } for (const y of [ys[1], ys[2], ys[6], ys[7]]) { Box(V(sx * (hx - 110), y, 150), V(150, 170, 300), red, false, false); Box(V(sx * (hx - 110), y, 310), V(170, 190, 26), gold, false, false); Glow(V(sx * (hx - 190), y, 200), V(6, 120, 100), 0x7af0ff, 0); Ball(V(sx * (hx - 110), y - 110, 220), V(34, 34, 34), gold); Glow(V(sx * (hx - 110), y, 340), V(100, 120, 20), 0xffcd5a, 0); } }
-        Cyl(V(0, 0, H - 150), 16, 300, gold, false, false); for (const [r, n, z] of [[520, 14, H - 330], [320, 9, H - 250]]) { Glow(V(0, 0, z), V(r * 2, r * 2, 10), gold, 8); for (let i = 0; i < n; i++) { const a = i / n * 6.283; Glow(V(Math.cos(a) * r, Math.sin(a) * r, z + 26), V(36, 36, 46), 0xfff0b0, 2); } }
-        for (let i = 0; i < 24; i++) { const a = (i + 0.5) / 24 * 6.283, r = 1050; BoxRot(V(Math.cos(a) * r, Math.sin(a) * r, 2.6), V(520, 250, 3), i % 2 ? red : black, R(0, a * 57.3, 0), false); } Glow(V(0, 0, 4), V(2700, 2700, 3), gold, 8); Glow(V(0, 0, 4), V(1560, 1560, 3), gold, 8);
-        corners((x, y, sx) => { for (let i = 0; i < 3; i++) { Cyl(V(x + i * 190 * -sx, y, 60), 22, 120, gold, false, false); Ball(V(x + i * 190 * -sx, y, 128), V(40, 40, 40), gold); if (i) Box(V(x + (i - 0.5) * 190 * -sx, y, 100), V(190, 12, 12), red, false, false); } });
+      case 4: {   // DEEP STATION: timber cribbing up the walls, gas lamps on brackets, the line's boards
+        const timber = 0x4a3626, tdark = 0x2e2218, iron = 0x3a3e46;
+        for (const sx of [-1, 1]) {
+          for (const z of [300, 760]) Box(V(sx * (hx - 8), 0, z), V(16, hy * 2 - 200, 50), timber, false, false);
+          for (let y = -hy + 280; y < hy - 200; y += 560) Box(V(sx * (hx - 10), y, (H - 180) / 2), V(20, 60, H - 180), tdark, false, false);
+          for (const y of ys) {
+            Box(V(sx * (hx - 40), y, 520), V(80, 16, 16), iron, false, false); Box(V(sx * (hx - 76), y, 500), V(34, 34, 50), iron, false, false); Glow(V(sx * (hx - 76), y, 500), V(22, 22, 34), 0xffe6a0, 0);
+            if (Math.abs(y) > 1000 && Math.round(y / 560) % 2) { Box(V(sx * (hx - 6), y + 280, 400), V(12, 300, 180), 0xd8c8a0, false, false); Box(V(sx * (hx - 5), y + 280, 400), V(12, 330, 210), tdark, false, false); for (let q = 0; q < 4; q++) Box(V(sx * (hx - 13), y + 280, 340 + q * 38), V(4, 240 - q * 30, 10), tdark, false, false); }
+          }
+        }
+        corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 6), V(sz + 6, sz + 6, 12), tdark, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), tdark, false, false); } });
         break; }
       case 5: {   // DROWNED HALL: weed, coral, barnacles, chains and hooks, portholes, standing water
         const weed = 0x2a6a4a, coral = [0xd86a7a, 0xe8a04a, 0x9a6ad8], brass = 0xb8923a;
@@ -103,16 +108,16 @@ export function buildDescent(M) {
       default: {   // NULL CHAMBER: monoliths, drifting blocks, rings of script in the floor, stars in the roof
         const voidc = 0x0c0a14, pur = T.glow;
         for (const sx of [-1, 1]) for (const y of ys) { const h = rr(520, H - 120); Box(V(sx * (hx - 90), y, h / 2), V(120, 200, h), voidc, false, false); Glow(V(sx * (hx - 156), y, h * 0.55), V(6, 26, h * 0.7), pur, 0); for (let g = 0; g < 5; g++) Glow(V(sx * (hx - 156), y + rr(-70, 70), rr(80, h - 80)), V(6, rr(30, 70), 14), 0xffffff, 0); }
-        for (const d of [700, 1300, 1900, 2500]) Glow(V(0, 0, 3), V(d * k, d * k, 2), pur, 8);
+        
         for (let i = 0; i < 40; i++) { const a = rnd() * 6.283, r = rr(500, 2500) * k; Glow(V(Math.cos(a) * r, Math.sin(a) * r, 3), V(rr(40, 120), 14, 2), i % 4 ? pur : 0xffffff, 0, R(0, rr(0, 180), 0)); }
         roofSpots(boss ? 120 : 70, (x, y) => Glow(V(x, y, H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? pur : 0xffffff, 2));
-        corners((x, y) => { const h = rr(500, 800); Pyramid(V(x, y, h / 2), V(300, 300, h), voidc); Glow(V(x, y, h + 30), V(50, 50, 50), pur, 2); Glow(V(x, y, 3), V(520, 520, 2), pur, 8); });
+        corners((x, y) => { const h = rr(500, 800); Pyramid(V(x, y, h / 2), V(300, 300, h), voidc); Glow(V(x, y, h + 30), V(50, 50, 50), pur, 2); Glow(V(x, y, 2.6), V(420, 420, 2), pur, 0); });
         break; }
     }
   };
   const one = (i, cx, cy, boss) => {
     const T = THEMES[boss ? [0, 7][i - 8] : i], kind = boss ? -1 : i;
-    const hx = boss ? 4000 : 3400, hy = boss ? 4000 : 3000, H = boss ? 2000 : 1000;
+    const [hx, hy, H] = boss ? BOSS_DIMS : ROOM_DIMS[i], bs = hx / 4000;
     const zone = AddZone(boss ? BOSS_NAMES[i - 8] : NAMES[i], V2(cx - hx, cy - hy), V2(cx + hx, cy + hy));
     GM.zones[zone].group = zone;
     const A = { c: [cx, cy], hx, hy, H, zone, theme: THEMES.indexOf(T), boss, plinths: [] };
@@ -139,9 +144,8 @@ export function buildDescent(M) {
       }
       // the roof: beams across it and lamps hung from them
       for (let y = -hy + 600; y < hy; y += 1200) Box(V(0, y, H - 40), V(hx * 2, 90, 80), T.floor2, false, false);
-      const lx = boss ? [-2400, 0, 2400] : [-2000, 0, 2000], ly = boss ? [-2400, 0, 2400] : [-1800, 0, 1800];
-      for (const x of lx) for (const y of ly) { Box(V(x, y, H - 130), V(14, 14, 180), T.roof, false, false); Glow(V(x, y, H - 240), V(120, 120, 40), T.glow, 0); Lamp(V(x, y, H - 320), L, 2.6, 2600, false); }
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 260), sy * (hy - 260), T);
+      const lx = [-hx * 0.6, 0, hx * 0.6], ly = [-hy * 0.6, 0, hy * 0.6];
+      for (const x of lx) for (const y of ly) { Box(V(x, y, H - 130), V(14, 14, 180), T.roof, false, false); Glow(V(x, y, H - 240), V(120, 120, 40), T.glow, 0); Lamp(V(x, y, H - Math.min(320, H * 0.3)), L, 2.8, 3600, false); }
       // a doorway at each end: you come in by one and leave by the other
       for (const s of [-1, 1]) {
         for (const e of [-1, 1]) Box(V(e * 230, s * (hy - 30), 250), V(90, 60, 500), T.trim, false, false);
@@ -153,16 +157,25 @@ export function buildDescent(M) {
       const lowWall = (x, y, len, alongX, h = 180) => { Box(V(x, y, h / 2), alongX ? V(len, 90, h) : V(90, len, h), T.wall, true, true); Box(V(x, y, h + 5), alongX ? V(len + 20, 110, 10) : V(110, len + 20, 10), T.trim, false, false); };
       // broad steps anything can walk up: three risers of forty
       const terrace = (x, y, w, d, n = 3) => { for (let k = 0; k < n; k++) Box(V(x, y, 20 + k * 40), V(w - k * 360, d - k * 360, 40), k % 2 ? T.trim : T.floor2, true, false); };
+      let C;
       if (boss) {
-        for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 2700, sy * 2700, 440); Box(V(sx * 1500, sy * 1500, 45), V(640, 640, 90), T.trim, true, false); Glow(V(sx * 1500, sy * 1500, 92), V(560, 560, 3), T.glow, 0); A.plinths.push([cx + sx * 1500, cy + sy * 1500]); }
-        for (const s of [-1, 1]) { brazier(s * 3300, 0, T, 240); brazier(s * 1300, s * 3300, T, 240); brazier(-s * 1300, s * 3300, T, 240); }
-        craftBoss(i - 8, { M, T, hx, hy, H, rnd, rr });
-      } else craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
-      dress(T.name === 'Ossuary' ? 0 : THEMES.indexOf(T), hx, hy, H, T, boss);
-      // where they come up: all over the room, never on top of a doorway
-      const n = boss ? 14 : 16;
-      if (kind === 1 || kind === 5) { for (const [px, py] of [[600, 2400], [2650, 350], [750, 700], [2000, 2400]]) for (const ex of [-1, 1]) for (const ey of [-1, 1]) SpawnAt(V(ex * px, ey * py, 0), zone); }   // the streets between the blocks, never inside one
-      else for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * Math.PI * 2, r = k % 2 ? 0.86 : 0.55, x = Math.cos(a) * (hx - 300) * r, y = Math.sin(a) * (hy - 700) * r; SpawnAt(V(x, y, 0), zone); }
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 2700 * bs, sy * 2700 * bs, 520); Box(V(sx * 1500 * bs, sy * 1500 * bs, 45), V(800, 800, 90), T.trim, true, false); Glow(V(sx * 1500 * bs, sy * 1500 * bs, 92), V(700, 700, 3), T.glow, 0); A.plinths.push([cx + sx * 1500 * bs, cy + sy * 1500 * bs]); }
+        for (const s of [-1, 1]) { brazier(s * 3300 * bs, 0, T, 240); brazier(s * 1300 * bs, s * 3300 * bs, T, 240); brazier(-s * 1300 * bs, s * 3300 * bs, T, 240); }
+        C = craftBoss(i - 8, { M, T, hx, hy, H, rnd, rr });
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) C.tall.push([sx * 2700 * bs, sy * 2700 * bs, 500]);
+      } else C = craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
+      if (!C.noCorners) for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 260), sy * (hy - 260), T);
+      dress(T.name === 'Ossuary' ? 0 : THEMES.indexOf(T), hx, hy, H, T, boss, C);
+      // where they come up: on open ground all over the room, never inside anything, on a platform, or by a doorway
+      const free = (x, y) => { const [ix, iy] = GM.cellOf(cx + x, cy + y); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (!GM.navFree(ix + a, iy + b)) return false; return !C.raised.some((r) => x > r[0] - 60 && x < r[2] + 60 && y > r[1] - 60 && y < r[3] + 60); };
+      let made = 0;
+      const st = boss ? 2000 : 1250;
+      for (let x = -hx + 550; x <= hx - 550; x += st) for (let y = -hy + 650; y <= hy - 650; y += st) {
+        if (Math.abs(x) < 1300 && Math.abs(y) > hy - 1500) continue;
+        if (free(x, y)) { SpawnAt(V(x, y, 0), zone); made++; }
+      }
+      for (const t of C.tops || []) { SpawnAt(V(t[0], t[1], t[2]), zone); made++; }   // and on top of what is raised
+      A.spawns = made;
     });
     ARENAS[i] = A;
   };

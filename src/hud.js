@@ -580,7 +580,9 @@ export class Hud {
     this.text(B.displayName().toUpperCase(), W / 2, y - 10 * S, 30 * S, B.enraged ? '#ff5a3a' : BONE, 'center', F_BIG, 400, 0.14);
     this.bar(x, y, w, 18 * S, B.health / B.maxHealth, B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b', 'rgba(40,8,12,0.8)', 10);
     // what it is doing, in words: a fight you can read is a fight you can answer
-    const say = B.ward > 0 ? 'WARDED - KILL THE WISPS' : B.exposedT > 0 ? 'STAGGERED - HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
+    // a fight in three acts: the bar is notched where it changes, and the act it is in is named beside it
+    if (B.boss && B.boss.tier) { for (const f of [1 / 3, 2 / 3]) { this.g.fillStyle = "rgba(255,236,200,0.85)"; this.g.fillRect(x + w * f - 1.5 * S, y - 3 * S, 3 * S, 24 * S); } const pn = B.phaseName ? B.phaseName() : ''; if (pn) this.text(pn, x + w, y - 10 * S, 17 * S, '#ffcd5a', 'right', F_TXT, 700, 0.14); }
+    const say = B.phaseT > 0 ? 'IT IS CHANGING - IT CANNOT BE HURT' : B.ward > 0 ? 'WARDED - KILL THE WISPS' : B.exposedT > 0 ? 'STAGGERED - HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
     if (say) this.text(say, W / 2, y + 44 * S, 20 * S, B.ward > 0 ? '#9fd0ff' : B.exposedT > 0 ? '#ffd24d' : '#ffb39a', 'center', F_TXT, 700, 0.14);
   }
   drawPowerups(game, W, H, S) {

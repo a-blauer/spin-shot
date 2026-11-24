@@ -6,14 +6,77 @@ import { DATA, lin, frandRange, randInt } from './data.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const flat = (v) => { const d = Math.hypot(v.x, v.z) || 1; return V3(v.x / d, 0, v.z / d); };
-export const X_ATTACKS = ['Spin', 'Erupt', 'Storm', 'Vent', 'Vortex', 'Tide', 'Strafe', 'Devour', 'Eclipse'];
+export const X_ATTACKS = ['Spin', 'Erupt', 'Storm', 'Vent', 'Vortex', 'Tide', 'Strafe', 'Devour', 'Eclipse', 'Nova', 'Chase', 'Cross', 'Rain'];
 const defOf = (art) => DATA.enemies.findIndex((e) => e.art === art);
 const say = (E, text, col = [1, 0.9, 0.3]) => E.game.hud.floater(E.pos.clone().add(V3(0, E.half * 0.7, 0)), text, col, 1.6);
 const players = (G) => [G.player, ...G.net.ghosts.values()].filter((T) => !T.dead);
 // the room the fight is in: its middle, half its width, and the four raised slabs
-function room(E) { const D = E.game.descent, A = D && D.A(); return A ? { c: V3(A.c[0], 0, A.c[1]), r: Math.min(A.hx, A.hy) - 260, pl: A.plinths } : { c: E.home || (E.home = E.pos.clone().setY(0)), r: 1300, pl: [] }; }
+function room(E) { const D = E.game.descent, A = D && D.A(); return A ? { c: V3(A.c[0], 0, A.c[1]), r: Math.min(A.hx, A.hy) - 260, hx: A.hx - 160, hz: A.hy - 160, pl: A.plinths } : { c: E.home || (E.home = E.pos.clone().setY(0)), r: 1300, hx: 1300, hz: 1300, pl: [] }; }
 const ground = (E, at) => { const h = E.game.phys.raycastDown(V3(at.x, at.y + 400, at.z), 2000); return h ? h.point : V3(at.x, 0, at.z); };
 const kids = (E, art, n, r0 = 200, r1 = 600, hp = 0.6) => { const G = E.game, d = defOf(art), out = []; if (d < 0) return out; const fly = DATA.enemies[d].ai === 'Flyer'; for (let i = 0; i < n; i++) { const at = G.findFreeLocationNear(E.pos, r0, r1); if (at) { const K = G.spawnEnemy(d, at.add(V3(0, fly ? 300 : 90, 0)), false, -1, 1, hp, 0, false); if (K) out.push(K); } } return out; };
+
+
+// ------------------------------------------------------------------ a fight in three acts
+// Every boss of the Descent changes twice, at two thirds and at one third of its health. Each change stops the fight
+// for a breath (it cannot be hurt, and a ring goes out from it that you jump), then it comes back with two moves it
+// did not have, shown off at once; it rests less between moves and starts stringing them together. In the last act
+// the room itself turns on you, in a way that belongs to that boss.
+//   col: the colour of what it lays down    n: what the two changes are called    p2/p3: the moves each brings
+//   mod: the last act's pressure: 'rings' from the middle of the room, 'hail' on your head, 'pools' where you stood
+const PH = {
+  BroodMother: { col: [0.7, 1, 0.4], n: ['THE NEST WAKES', 'THE WHOLE BROOD'], p2: ['Pools', 'Chase'], p3: ['Nova', 'Rain'], mod: 'pools' },
+  Ironhide: { col: [1, 0.6, 0.3], n: ['IT SEES RED', 'NOTHING STOPS IT'], p2: ['Hook', 'Nova'], p3: ['Cross', 'Leap'], mod: 'rings' },
+  HiveQueen: { col: [1, 0.8, 0.2], n: ['THE HIVE ANSWERS', 'ROYAL FURY'], p2: ['Ring', 'Chase'], p3: ['Rain', 'Cross'], mod: 'hail' },
+  KingOoze: { col: [0.5, 1, 0.3], n: ['IT SPREADS', 'IT IS EVERYWHERE'], p2: ['Barrage', 'Nova'], p3: ['Chase', 'Rain'], mod: 'pools' },
+  Lamplighter: { col: [1, 0.9, 0.5], n: ['THE LIGHTS GO OUT', 'ONLY ITS LAMP'], p2: ['Barrage', 'Cross'], p3: ['Chase', 'Nova'], mod: 'hail' },
+  Carapace: { col: [0.6, 0.85, 1], n: ['THE SHELL CRACKS', 'BARE AND FURIOUS'], p2: ['Nova', 'Leap'], p3: ['Cross', 'Rain'], mod: 'rings' },
+  Wyrm: { col: [0.9, 0.5, 0.2], n: ['THE FLOOR IS ITS OWN', 'NOWHERE TO STAND'], p2: ['Ring', 'Chase'], p3: ['Cross', 'Rain'], mod: 'pools' },
+  Thunderhead: { col: [1, 0.9, 0.4], n: ['THE SKY COMES DOWN', 'THE EYE OF IT'], p2: ['Cross', 'Chase'], p3: ['Nova', 'Barrage'], mod: 'hail' },
+  TwinHound: { col: [1, 0.45, 0.15], n: ['IT TASTES BLOOD', 'THE LAST OF THE PACK'], p2: ['Nova', 'Pools'], p3: ['Cross', 'Chase'], mod: 'pools' },
+  Furnace: { col: [1, 0.4, 0.1], n: ['THE DOORS BLOW OPEN', 'WHITE HEAT'], p2: ['Cross', 'Ring'], p3: ['Rain', 'Chase'], mod: 'rings' },
+  Hydra: { col: [0.4, 0.95, 0.3], n: ['ANOTHER HEAD WAKES', 'EVERY HEAD AT ONCE'], p2: ['Cross', 'Chase'], p3: ['Rain', 'Nova'], mod: 'pools' },
+  MirrorQueen: { col: [0.8, 0.9, 1], n: ['THE GLASS BREAKS', 'A THOUSAND EDGES'], p2: ['Cross', 'Barrage'], p3: ['Chase', 'Rain'], mod: 'hail' },
+  Unblinking: { col: [0.8, 0.5, 1], n: ['IT OPENS WIDER', 'IT SEES ALL OF YOU'], p2: ['Cross', 'Ring'], p3: ['Rain', 'Chase'], mod: 'rings' },
+  Mantis: { col: [0.6, 1, 0.5], n: ['THE BLADES COME OUT', 'THE HARVEST'], p2: ['Cross', 'Nova'], p3: ['Chase', 'Rain'], mod: 'hail' },
+  Toad: { col: [0.4, 0.8, 0.6], n: ['THE WATER RISES', 'THE OLD MIRE'], p2: ['Nova', 'Barrage'], p3: ['Chase', 'Cross'], mod: 'rings' },
+  BoneDragon: { col: [1, 0.5, 0.15], n: ['IT TAKES THE AIR', 'ALL OF ITS FIRE'], p2: ['Cross', 'Rain'], p3: ['Chase', 'Nova'], mod: 'hail' },
+  Titan: { col: [1, 0.8, 0.3], n: ['THE SPRING WINDS TIGHTER', 'IT WILL NOT RUN DOWN'], p2: ['Nova', 'Cross'], p3: ['Rain', 'Chase'], mod: 'rings' },
+  Leviathan: { col: [0.3, 0.7, 1], n: ['THE DEEP STIRS', 'THE WHOLE SEA'], p2: ['Cross', 'Barrage'], p3: ['Rain', 'Chase'], mod: 'pools' },
+  Devourer: { col: [1, 0.3, 0.3], n: ['IT IS STILL HUNGRY', 'IT WILL EAT THE ROOM'], p2: ['Nova', 'Leap'], p3: ['Cross', 'Rain'], mod: 'rings' },
+  Nameless: { col: [0.8, 0.55, 1], n: ['IT TAKES A SHAPE', 'IT TAKES YOURS'], p2: ['Cross', 'Chase'], p3: ['Rain', 'Nova'], mod: 'hail' },
+};
+const colOf = (E) => (PH[E.boss.art] || {}).col || [1, 0.5, 0.2];
+const lead = (T, t = 0.5) => { const p = T.pos.clone(); if (T.vel) p.addScaledVector(V3(T.vel.x, 0, T.vel.z), t); return p; };
+export function phaseName(E) { const D = PH[E.boss.art]; return D && E.phase > 1 ? D.n[E.phase - 2] : ''; }
+// true while it is changing: it does nothing else then
+export function phaseX(E, dt, C) {
+  const G = E.game, D = PH[E.boss.art]; if (!D || E.decoy) return false;
+  const hpf = E.health / E.maxHealth, want = hpf < 0.34 ? 3 : hpf < 0.67 ? 2 : 1, dmg = E.attackDamage, Rm = room(E);
+  if (E.phase === undefined) { E.phase = 1; E.baseMask = E.attackMask.slice(); }
+  if (want > E.phase && !(E.ward > 0) && !E.burrowed) {
+    const add = (want >= 2 ? D.p2 : []).concat(want >= 3 ? D.p3 : []).map(C.idx).filter((i) => i >= 0);
+    E.queue = (want >= 3 ? D.p3 : D.p2).map(C.idx).filter((i) => i >= 0);   // the new moves first, so you meet them
+    E.phase = want; E.phaseT = 2.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0; E.shellT = 0;
+    E.attackMask = E.baseMask.concat(add.filter((i) => !E.baseMask.includes(i)));
+    G.banner(D.n[want - 2], lin(D.col[0], D.col[1], D.col[2]), 3); G.audio.playAt('S_BossRoar', E.pos, 1.2, want === 3 ? 0.7 : 0.85); G.shakeAt(E.pos, 900);
+    G.hazards.ring(ground(E, E.pos), dmg * 0.5, 1000, Rm.r * 1.6, D.col); G.fx.flash(E.pos, D.col, 500, 0.5, true);
+    E.puppet.setTint([1.5, 1.5, 1.5]);
+  }
+  if (E.phaseT > 0) {
+    E.phaseT -= dt; E.stop(); E.windup = Math.min(1, E.phaseT);
+    if (E.phaseT <= 0) { E.bossTimer = 0.4; E.puppet.setTint(E.enraged ? [1, 0.72, 0.66] : [1, 1, 1]); }
+    return true;
+  }
+  // what was marked a moment ago catches fire and stays
+  if (E.pq && E.pq.length) { for (const Q of E.pq) { Q.t -= dt; if (Q.t <= 0) { const H = G.hazards.fire(Q.at, dmg * 0.3, 230, 7, D.col); if (H) H.label = E.boss.name; } } E.pq = E.pq.filter((Q) => Q.t > 0); }
+  if (E.phase === 3) {
+    const M = E.pm || (E.pm = { t: 0 }); M.t += dt;
+    if (D.mod === 'rings' && M.t > 6.5) { M.t = 0; G.hazards.ring(ground(E, Rm.c), dmg * 0.45, 750, Rm.r * 1.6, D.col); }
+    else if (D.mod === 'hail' && M.t > 2.8) { M.t = 0; for (const T of players(G)) G.hazards.marker(ground(E, lead(T, 0.45)), dmg * 0.7, 230, 1.15, D.col); }
+    else if (D.mod === 'pools' && M.t > 4.5) { M.t = 0; for (const T of players(G)) { const at = ground(E, T.pos); G.hazards.marker(at, dmg * 0.5, 240, 1.2, D.col); (E.pq = E.pq || []).push({ at, t: 1.2 }); } }
+  }
+  return false;
+}
 
 // ------------------------------------------------------------------ every frame, before it chooses what to do
 export function mechX(E, dt, C) {
@@ -67,6 +130,7 @@ export function mechX(E, dt, C) {
 
 // ------------------------------------------------------------------ what a hit does to it
 export function hitX(E, dmg, fromDir, headshot) {
+  if (E.phaseT > 0) return 0;   // nothing gets through while it is changing
   const B = E.boss, G = E.game, M = E.mx || {};
   switch (B.mech) {
     case 'front':   // Old Ironhide: plate in front, hide behind
@@ -103,6 +167,33 @@ export function deathX(E) {
 export function attackX(E, name, dt, C) {
   const G = E.game, { Pl, To, dist, feet, done } = C, dmg = E.attackDamage, Rm = room(E), M = E.mx || (E.mx = { t: 0, n: 0 });
   switch (name) {
+    case 'Nova': {   // plants itself and throws out rings one after another, fast and slow by turns: jump each
+      E.stop(); const n = 2 + (E.phase || 1), col = colOf(E);
+      if (E.bossStep === 0) { E.windup = Math.min(1, E.bossT / 0.8); if (E.bossT > 0.8) { E.bossStep = 1; E.bossT = 0; E.novaN = 0; } return true; }
+      E.windup = 0.5;
+      if (E.novaN < n && E.bossT > E.novaN * 0.9) { E.novaN++; G.hazards.ring(ground(E, E.pos), dmg * 0.55, E.novaN % 2 ? 900 : 1350, Rm.r * 1.6, col); G.shakeAt(E.pos, 500); G.audio.playAt('S_Stomp', E.pos, 1, 0.8 + E.novaN * 0.08); E.lungeT = 0.2; }
+      if (E.novaN >= n && E.bossT > n * 0.9 + 0.4) done();
+      return true; }
+    case 'Chase': {   // a mark that dogs your steps and then goes off where you stand: take it somewhere you do not need
+      E.stop(); E.windup = 0.6; const col = colOf(E), steps = 5 + (E.phase || 1);
+      if (E.bossStep === 0) { E.bossStep = 1; E.chaseEnd = 0; say(E, 'MARKED', col); G.audio.playAt('S_Screech', E.pos, 0.8, 1.2); }
+      if (E.bossStep <= steps && E.bossT > E.bossStep * 0.45) { E.bossStep++; for (const T of players(G)) G.hazards.marker(ground(E, T.pos), dmg * 0.6, 200, 0.75, col); }
+      if (E.bossStep > steps && !E.chaseEnd) { E.chaseEnd = 1; for (const T of players(G)) { const at = ground(E, lead(T, 0.4)); G.hazards.marker(at, dmg * 1.3, 480, 1.1, col); (E.pq = E.pq || []).push({ at, t: 1.1 }); } }
+      if (E.bossT > 0.45 * (steps + 1) + 1.3) done();
+      return true; }
+    case 'Cross': {   // lines of fire through it, the long way and the wide way; then the diagonals. Stand in a quarter between
+      E.stop(); E.windup = 1; const col = colOf(E), last = (E.phase || 1) >= 3;
+      const line = (ang) => { for (let r = 280; r < Rm.r * 1.6; r += 420) for (const sg of [-1, 1]) { const p = V3(E.pos.x + Math.cos(ang) * r * sg, 0, E.pos.z + Math.sin(ang) * r * sg); if (Math.abs(p.x - Rm.c.x) < Rm.hx && Math.abs(p.z - Rm.c.z) < Rm.hz) G.hazards.marker(ground(E, p), dmg * 0.9, 215, 1.2, col); } };
+      if (E.bossStep === 0 && E.bossT > 0.5) { E.bossStep = 1; E.crossA = Math.atan2(To.z, To.x); line(E.crossA); line(E.crossA + Math.PI / 2); G.audio.playAt('S_Screech', E.pos, 0.9, 0.7); }
+      if (E.bossStep === 1 && E.bossT > 1.9) { E.bossStep = 2; line(E.crossA + Math.PI / 4); line(E.crossA - Math.PI / 4); }
+      if (E.bossStep === 2 && last && E.bossT > 3.3) { E.bossStep = 3; line(E.crossA + Math.PI / 8); line(E.crossA + Math.PI * 5 / 8); }
+      if (E.bossT > (last ? 4.7 : 3.3)) done();
+      return true; }
+    case 'Rain': {   // it comes down on where you are going, and round it, again and again, while the thing walks at you
+      E.windup = 0.4; E.moveToward(flat(To), 0.55); const col = colOf(E), n = 4 + (E.phase || 1) * 2;
+      if (E.bossStep < n && E.bossT > E.bossStep * 0.55) { E.bossStep++; for (const T of players(G)) { const c = lead(T, 0.5); G.hazards.marker(ground(E, c), dmg * 0.8, 240, 1.0, col); const a0 = Math.random() * 6.283; for (let i = 0; i < 3; i++) { const a = a0 + i * 2.094; G.hazards.marker(ground(E, V3(c.x + Math.cos(a) * 520, 0, c.z + Math.sin(a) * 520)), dmg * 0.8, 200, 1.25, col); } } }
+      if (E.bossStep >= n && E.bossT > n * 0.55 + 1) done();
+      return true; }
     case 'Spin': {   // Carapace: pulls everything in and goes across the room like a thrown stone, three times
       if (E.bossStep === 0) { E.windup = 1; E.stop(); if (E.bossT > 0.9) { E.bossStep = 1; E.bossT = 0; E.shellT = 99; E.spinN = 0; E.chargeDir = flat(To); E.puppet.setTint([0.6, 0.8, 0.9]); say(E, 'SHELL', [0.6, 0.85, 1]); G.audio.playAt('S_Stomp', E.pos, 1, 1.3); } return true; }
       E.moveToward(E.chargeDir, 1); E.bossMoveOverride = 1700; E.windup = 0.6;
