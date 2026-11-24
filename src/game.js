@@ -642,7 +642,8 @@ export class Game {
       const bomber = P.cls.id === 'bomber';
       if (!E.isBoss && this.grenadesThisRound < (bomber ? 4 : 2) && Math.random() < sup(bomber ? 1.8 : 0.9, 0.03)) { this.grenadesThisRound++; this.pickups.spawn('Grenade', loc.clone().add(V3(-40, 0, 0)), GRENADE_ROLL()); }
       // magazines: two or three a round, a little more as the hordes grow, capped
-      if (!E.isBoss && this.ammoThisRound < 4 + Math.floor(this.round / 8) && Math.random() < Math.min(0.035, (2.2 + this.round * 0.08) / nKills)) { this.ammoThisRound++; this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0))); }
+      const am = this.descent ? 1.5 : 1;   // the Descent has no max-ammo drops, so its ammo comes half again as often
+      if (!E.isBoss && this.ammoThisRound < (4 + Math.floor(this.round / 8)) * am && Math.random() < Math.min(0.035, (2.2 + this.round * 0.08) / nKills) * am) { this.ammoThisRound++; this.pickups.spawn('Ammo', loc.clone().add(V3(40, 0, 0))); }
       // power-ups: about one a round, two at most
       if (!E.isBoss && !this.descent && this.powerupsThisRound < 2 && Math.random() < Math.min(0.022, 1.1 / nKills)) {
         this.powerupsThisRound++;

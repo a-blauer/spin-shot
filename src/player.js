@@ -2164,6 +2164,7 @@ export class Player {
     const cost = this.benchCost(S);
     if (!this.spend(cost)) return;
     this.benchJob = { S, def: S.def, u, t: 10, cost }; this.benchUses++;
+    if (this.game.descent) { this.benchJob.t = 0; return this.benchUpgrade(); }   // in the Descent there is no time to wait: the bench is done as you pay
     this.play('S_Switch', 0.9, 0.7);
     this.toast(`Working on ${W.name}  -  come back in 10s to claim it`, '#ff8cff');
   }

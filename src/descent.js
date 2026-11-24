@@ -21,7 +21,7 @@ function chestTier(room) {
 
 export class Descent {
   constructor(game) {
-    this.g = game; this.room = 0; this.arena = 0; this.flip = 1; this.cleared = false; this.guns = [1, 2]; this.tier = 0; this.gates = []; this.things = []; this.late = []; this.seq = 0; this.bossT = -1; this.seen = -1; this.zones = []; this.zkey = '';
+    this.g = game; this.room = 0; this.arena = 0; this.flip = 1; this.cleared = false; this.guns = [1, 2]; this.tier = 0; this.gates = []; this.things = []; this.late = []; this.seq = 0; this.bossT = -1; this.seen = -1; this.zones = []; this.zkey = ''; this.rdy = new Set(); this.rdyN = [0, 1];
     // eight rooms, each met twice in a run: the second time from the other end. Never the same room twice running.
     const sh = () => { const o = [...Array(8).keys()]; for (let i = 7; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; } return o; };
     const a = sh(); let b = sh(); while (b[0] === a[7]) b = sh();
@@ -42,6 +42,7 @@ export class Descent {
     const g = this.g;
     this.tickFx(dt);
     if (!this.host) return;
+    if (this.cleared && this.rdy.size) { const N = this.need(); this.rdyN = [N.filter((k) => this.rdy.has(k)).length, N.length]; if (N.length && this.rdyN[0] >= N.length) { this.next(); return; } } else this.rdyN = [0, this.need().length];
     if (g.phase === 'PreGame') { g.phaseTimer -= dt; if (g.phaseTimer <= 0) this.enter(1); return; }
     if (g.phase === 'Round') {
       if (this.bossT >= 0) { this.bossT -= dt; if (this.bossT < 0) this.spawnBoss(); }
@@ -55,12 +56,12 @@ export class Descent {
   enter(room) {
     const g = this.g;
     this.wipe();
-    this.room = room; this.arena = this.arenaFor(room); this.flip = this.flipFor(room); this.cleared = false; this.seq++;
+    this.room = room; this.arena = this.arenaFor(room); this.flip = this.flipFor(room); this.cleared = false; this.seq++; this.rdy.clear();
     for (const E of g.enemies) if (!E.dead) E.remove = true;
     g.hazards.clear(); g.boss = null; g.bossSpawned = false; g.bossRound = false; this.zones = [];
     g.round = room; g.phase = 'Round';
     const boss = this.isBossRoom(), n = g.net.role === 'host' ? g.net.ghosts.size : 0;
-    g.toSpawn = Math.round((boss ? 8 + room * 0.6 : Math.min(zombieCount(room) * 0.6, 14 + room * 3.4)) * (1 + 0.6 * n));
+    g.toSpawn = Math.round((boss ? 10 + room * 0.8 : 24 + room * 4.5) * (1 + 0.6 * n));   // a room is a few minutes' work, the first ones included
     g.spawned = 0; g.killed = 0; g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0; g.spawnTimer = boss ? 5 : 1.6; g.roundT = 0; g.midChest = true;
     this.bossT = boss ? 2.2 : -1;
     this.roster = this.rollRoster(room);
@@ -109,6 +110,14 @@ export class Descent {
     g.banner(`ROOM ${this.room} CLEAR`, this.isBossRoom() ? lin(1, 0.75, 0.2) : [0.95, 0.95, 0.92], 3);
   }
   next() { if (this.host && this.cleared && this.room < ROOMS) this.enter(this.room + 1); }
+  // the way on opens when everyone still standing has put a hand to it
+  need() { const g = this.g; return (g.player.dead ? [] : ['host']).concat([...g.net.ghosts.entries()].filter(([, G]) => !G.dead).map(([k]) => k)); }
+  ready(id) {
+    if (!this.host || !this.cleared || this.room >= ROOMS) return;
+    this.rdy.add(id); const N = this.need(), n = N.filter((k) => this.rdy.has(k)).length;
+    if (n >= N.length) { this.next(); return; }
+    this.g.hud.toast(`${n} of ${N.length} at the door  -  everyone has to press it`, '#ffcd5a'); this.g.audio.play('S_Door', 0.5, 1.4);
+  }
 
   // ------------------------------------------------------------------ what stands in a room (built by everyone)
   station(type, x, y, yaw, cost, weapon, label, z = 0) { const W = this.g.world; W.rt = true; let I; try { I = W.Station(type, V(x, y, z), yaw, cost, weapon, label); } finally { W.rt = false; } I.descent = true; this.things.push(I); return I; }
@@ -116,14 +125,15 @@ export class Descent {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 2500, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
     const Ch = this.station('Chest', S.chest[0], S.chest[1], S.chestYaw, 0, this.tier, 'Chest'); Ch.keep = true;
+    g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 950, -1, 'Mystery Box');
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));
     I.useRadius = 260; const f = this.flip;
     I.pane = I.part(null, 0, V(0, f * 104, 245), V(370, 8, 490), C(col), null, 1.1); I.pane.material = I.pane.material.clone(); I.pane.material.transparent = true; I.pane.material.opacity = 0.55;
     I.part(null, 0, V(0, f * 40, 4), V(370, 260, 4), C(col), null, 1.6);
     I.text(null, V(0, f * 60, 680), S.textYaw, 96, boss ? 'THE SEAL' : 'THE WAY DOWN', hex); I.text(null, V(0, f * 60, 624), S.textYaw, 40, boss ? 'something is waiting' : `room ${this.room + 1} of ${ROOMS}`, '#e8e0d0');
-    I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nSpend what you mean to spend first: the bench and the chest stay here.${g.net.active ? '\nEveryone goes together' : ''}`,
-      use: () => { if (this.host) this.next(); else g.net.emit('door', { g: 0 }); } };
+    I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nSpend what you mean to spend first: the bench and the chest stay here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
+      use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
     g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); g.fx.ring(V3(S.bench[0], 6, S.bench[1] - f * 120), 260, lin(0.4, 0.9, 1), 0.5); g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
     g.audio.play('S_LevelUp', 0.6, 1.2);
@@ -131,6 +141,7 @@ export class Descent {
   wipe() {
     const g = this.g;
     for (const I of this.gates.concat(this.things)) { I.remove = true; I.enabled = false; if (I.solid) I.solid.enabled = false; }
+    if (g.box && g.box.descent) g.box = null;
     this.gates = []; this.things = [];
   }
   // ---- flat pools of light or water that a boss lays over the floor (the Toad's mire, the Nameless's one lit patch)
@@ -178,10 +189,11 @@ export class Descent {
   }
 
   // ------------------------------------------------------------------ co-op
-  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones]; }
+  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones, this.rdyN]; }
   sync(d) {
     const g = this.g, room = d[0] | 0, seq = d[4] | 0;
     if (Array.isArray(d[7])) this.zones = d[7].slice(0, 6).map((Z) => Z.slice(0, 7).map(Number));
+    if (Array.isArray(d[8])) this.rdyN = [d[8][0] | 0, Math.max(1, d[8][1] | 0)];
     if (seq === this.seen || room < 1 || room > ROOMS) return;
     this.seen = seq;
     if (room !== this.room) {

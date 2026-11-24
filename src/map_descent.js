@@ -25,7 +25,7 @@ export const ARENAS = [];
 export function spots(A, s) {
   const [cx, cy] = A.c, hy = A.hy, hx = A.hx;
   return { spawn: [cx, cy - s * (hy - 320)], yaw: s > 0 ? Math.PI : 0, exit: [cx, cy + s * (hy - 110)], textYaw: s > 0 ? -90 : 90,
-    bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + 900, cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
+    box: [cx + 1900, cy + s * (hy - 170)], bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + 900, cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
     ammo: [cx + 700, cy - s * (hy - 110)], ammoYaw: s > 0 ? 90 : -90, guns: [[cx - hx + 8, cy - s * 500, 0], [cx + hx - 8, cy + s * 500, 180]] };
 }
 
