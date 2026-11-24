@@ -715,7 +715,7 @@ export class ViewModel {
     this.scoped = this.cls === 'Sniper' && this.aimA > 0.92;
 
     // sway (UE: Y right, Z up) -> view x, y. A heavy gun lags further behind the hand and takes longer to settle.
-    const sm = 1 - this.aimA * 0.75;
+    const sm = 1 - this.aimA * 0.94, still = 1 - this.aimA * 0.92;   // down the sights the gun is locked to the eye: it barely lags the hand, and nothing you do with your feet moves it off the target
     const lx = Math.max(-6, Math.min(6, In.look.x)), ly = Math.max(-6, Math.min(6, In.look.y));
     this.swayVel.add(new THREE.Vector3(-lx * 0.9 * sm, -ly * 0.7 * sm, 0).multiplyScalar(40));
     spring(this.swayPos, this.swayVel, 160 / w, 18 / Math.sqrt(w), dt);
@@ -728,8 +728,8 @@ export class ViewModel {
     const bobT = In.grounded && !In.sliding ? Math.min(1.6, hs / 640) : 0;
     this.bobAmp = interp(this.bobAmp, bobT, dt, 8);
     this.bobPhase += dt * (6 + hs * 0.0105);
-    const bm = this.bobAmp * (1 - this.aimA * 0.85) * (1 + this.sprintA * 0.6) * (0.7 + 0.32 * w);
-    const bob = new THREE.Vector3(Math.sin(this.bobPhase) * 1.6 * bm, -Math.abs(Math.cos(this.bobPhase)) * 1.4 * bm + Math.sin(this.time * 1.6) * 0.25, 0);
+    const bm = this.bobAmp * (1 - this.aimA * 0.96) * (1 + this.sprintA * 0.6) * (0.7 + 0.32 * w);
+    const bob = new THREE.Vector3(Math.sin(this.bobPhase) * 1.6 * bm, -Math.abs(Math.cos(this.bobPhase)) * 1.4 * bm + Math.sin(this.time * 1.6) * 0.25 * still, 0);
     const bobRot = new THREE.Vector3(Math.abs(Math.cos(this.bobPhase)) * 1.2 * bm, Math.sin(this.bobPhase) * 0.8 * bm, Math.sin(this.bobPhase) * 1.6 * bm);
 
     spring(this.recoilPos, this.recoilPosVel, f.k, f.d, dt);
@@ -753,9 +753,9 @@ export class ViewModel {
     const addR = (p, y, r, k) => { rot.P += p * k; rot.Y += y * k; rot.R += r * k; if (relOn) { rel.P += p * k; rel.Y += y * k; rel.R += r * k; } };
     add(hip[0], hip[1], hip[2], hipK); addR(hip[3], hip[4], hip[5], hipK);
     add(-6, -2, -6, this.sprintA); addR(-16, -32, -24, this.sprintA);
-    add(-2, -2, -3, this.slideA); addR(4, 0, -16, this.slideA);
-    rot.R += -this.wallA * 10;
-    pos.Z += this.airA * 1.2; rot.P += this.airA * 3;
+    add(-2, -2, -3, this.slideA * still); addR(4, 0, -16, this.slideA * still);
+    rot.R += -this.wallA * 10 * still;
+    pos.Z += this.airA * 1.2 * still; rot.P += this.airA * 3 * still;
     pos.Z += Math.sin(this.time * 1.4) * 0.3 * (1 - this.aimA);
 
     // ---- moving parts: everything starts the frame at rest, then the action, the reload and the draw move it ----
@@ -1050,14 +1050,14 @@ export class ViewModel {
       supPos.lerp(arm, In.reloading ? sstep(0.7, 0.78, RT) : 1);
     }
 
-    const p3 = P3(pos).add(this.swayPos).add(bob).add(this.recoilPos).add(new THREE.Vector3(0, this.landZ, 0));
+    const p3 = P3(pos).addScaledVector(this.swayPos, still).add(bob).add(this.recoilPos).add(new THREE.Vector3(0, this.landZ * (1 - this.aimA * 0.8), 0));
     this.gun.position.copy(p3);
     if (this.mDip > 0.001) { this.gun.position.y -= this.mDip * 4; this.gun.position.x += this.mDip * 3; }   // gun hand eases aside to make room
     if (this.support) this.support.visible = !(this.mDip > 0.15);   // the left hand is busy swinging
     // UE pitch (nose up) -> rotation about view x; yaw (right) -> about -y; roll -> about -z
-    const P = rot.P + this.swayRot.x + bobRot.x + this.recoilRot.x;
-    const Y = rot.Y + this.swayRot.y + bobRot.y + this.recoilRot.y;
-    const Rr = rot.R + this.swayRot.z + bobRot.z + this.recoilRot.z;
+    const P = rot.P + this.swayRot.x * still + bobRot.x + this.recoilRot.x;
+    const Y = rot.Y + this.swayRot.y * still + bobRot.y + this.recoilRot.y;
+    const Rr = rot.R + this.swayRot.z * still + bobRot.z + this.recoilRot.z;
     this.gun.quaternion.copy(quatVM(R(P, Y, Rr)));
     if (this.inspect) { this.gun.position.copy(P3({ X: this.inspect[0], Y: this.inspect[1], Z: this.inspect[2] })); this.gun.quaternion.copy(quatVM(R(this.inspect[3], this.inspect[4], this.inspect[5]))); if (this.hand) this.hand.visible = false; if (this.support) this.support.visible = false; }
     if (gunSpin) {   // a spin around the trigger finger: the gun turns, the hand holding it does not

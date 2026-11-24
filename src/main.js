@@ -627,7 +627,7 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
     if (mAudio.paused && !mWant) { mGain = 0; return; }
     mGain = mWant ? Math.min(1, mGain + dt / 1.6) : Math.max(0, mGain - dt / 1.1);
     const e = mGain * mGain * (3 - 2 * mGain);
-    mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.9 * e));
+    mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.4 * e));
     if (!mWant && mGain <= 0 && !mAudio.paused) mAudio.pause();
   }, 40);
   setInterval(mSync, 200); window.addEventListener('pointerdown', mSync); R.ready.then(mSync);

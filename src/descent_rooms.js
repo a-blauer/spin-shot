@@ -10,6 +10,7 @@ export function craftRoom(kind, K) {
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Ring, Floor, Lamp, Wedge } = M;
   const L = (x, y, z, c, r = 1300, k = 2.2) => Lamp(V(x, y, z), { r: c[0], g: c[1], b: c[2] }, k, r, false);
   const AX = R(90, 0, 0), AY = R(0, 0, 90);   // a cylinder laid along X, along Y
+  const hit = (x, y, w, d, h, nav = true, z = 0) => M.Solid(V(x, y, z + h / 2), V(w, d, h), nav);   // the unseen body of something drawn from loose parts
   const solid = (x, y, w, d, h, col, yaw = 0) => Box(V(x, y, h / 2), V(w, d, h), col, true, true, yaw);
   const deco = (x, y, z, w, d, h, col, yaw = 0) => Box(V(x, y, z), V(w, d, h), col, false, false, yaw);
   // a floor of laid slabs: two tones, a few picked out darker, on a grid of `s`
@@ -48,13 +49,13 @@ export function craftRoom(kind, K) {
         // across the nave to its twin (one side builds both halves)
         if (sx > 0) for (const e of [-1, 1]) BoxRot(V(e * 640, y, 860), V(1340, 70, 60), 0x3c4a50, R(0, 0, e * -13), false);
       }
-      for (const sx of [-1, 1]) for (let k = 0; k < cols.length - 1; k++) { const y0 = cols[k], y1 = cols[k + 1], m = (y0 + y1) / 2; for (const e of [-1, 1]) BoxRot(V(sx * 1250, m + e * 350, 850), V(70, 760, 60), 0x3c4a50, R(e * 16, 0, 0), false); Glow(V(sx * 1250, m, 930), V(40, 40, 60), T.glow, 2); chain(sx * 1250, m, 700, 900); deco(sx * 1250, m, 640, 150, 150, 120, 0x1a1e20); skull(sx * 1250, m, 590, 80, sx > 0 ? 90 : -90); }
+      for (const sx of [-1, 1]) for (let k = 0; k < cols.length - 1; k++) { const y0 = cols[k], y1 = cols[k + 1], m = (y0 + y1) / 2; for (const e of [-1, 1]) BoxRot(V(sx * 1250, m + e * 350, 850), V(70, 760, 60), 0x3c4a50, R(0, 0, 0), false); Glow(V(sx * 1250, m, 930), V(40, 40, 60), T.glow, 2); chain(sx * 1250, m, 700, 1000); deco(sx * 1250, m, 640, 150, 150, 120, 0x1a1e20); skull(sx * 1250, m, 590, 80, sx > 0 ? 90 : -90); }
       // the dais: three shallow steps, a sarcophagus with its lid pushed aside, four candle stands, and something in it that is not dead enough
       for (let k = 0; k < 2; k++) Box(V(0, 0, 20 + k * 40), V(1500 - k * 300, 1100 - k * 300, 40), k ? T.trim : T.floor2, true, false);
       solid(0, 0, 300, 620, 190, 0x39464c); Box(V(0, 0, 80 + 95), V(340, 660, 30), T.trim, false, false); Box(V(0, 0, 80 + 20), V(340, 660, 40), T.trim, false, false);
       BoxRot(V(150, 40, 80 + 215), V(320, 640, 36), 0x4a5a60, R(0, 14, -16), false); Glow(V(-30, 0, 80 + 196), V(200, 500, 6), T.glow, 0); L(0, 0, 420, T.lamp, 1500, 2.6);
       for (const k of [-1, 0, 1]) Box(V(-152, k * 190, 80 + 110), V(8, 120, 110), bone, false, false);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 480, y = sy * 400; Cyl(V(x, y, 80 + 90), 26, 180, 0x2a2e30, false, false); Cyl(V(x, y, 80 + 186), 90, 12, 0x2a2e30, false, false); for (let k = 0; k < 3; k++) candle(x + Math.cos(k * 2.1) * 28, y + Math.sin(k * 2.1) * 28, 80 + 192, 30 + k * 12); }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 480, y = sy * 400; hit(x, y, 70, 70, 210, false, 80); Cyl(V(x, y, 80 + 90), 26, 180, 0x2a2e30, false, false); Cyl(V(x, y, 80 + 186), 90, 12, 0x2a2e30, false, false); for (let k = 0; k < 3; k++) candle(x + Math.cos(k * 2.1) * 28, y + Math.sin(k * 2.1) * 28, 80 + 192, 30 + k * 12); }
       // the galleries along each side wall: steps up to a row of standing coffins, some of them open
       for (const sx of [-1, 1]) {
         for (let k = 0; k < 3; k++) Box(V(sx * (hx - 300 + k * 90), 0, 20 + k * 40), V(600 - k * 180, hy * 2 - 1600, 40), k % 2 ? T.trim : T.floor2, true, false);
@@ -107,8 +108,6 @@ export function craftRoom(kind, K) {
           const gx = mx + (ax ? fx * 4 : 330), gy = my + (ax ? 330 : fy * 4); Cyl(V(gx, gy, 430), 110, 10, 0xd8d2c0, false, false, ax ? AX : AY); Cyl(V(gx + fx * 4, gy + fy * 4, 430), 126, 6, 0x8a6a2a, false, false, ax ? AX : AY); deco(gx + fx * 8, gy + fy * 8, 448, ax ? 4 : 8, ax ? 8 : 4, 44, 0xc8211b);
         }
         Cyl(V(x + sx * 300, y, H - 150), 300, 300, iron, false, false);
-        // pipework along the back of each stack and up
-        for (const z of [220, 480]) Cyl(V(x + sx * (w / 2 + 40), y, z), 60, d + 300, rust, false, false, AY);
       }
       // rails along both side walls with ore tubs standing on them
       for (const sx of [-1, 1]) { const x = sx * 2900; for (const e of [-1, 1]) Box(V(x + e * 70, 0, 6), V(16, hy * 2 - 500, 12), 0x8a8f99, false, false); for (let y = -hy + 300; y < hy - 250; y += 140) Box(V(x, y, 3), V(220, 46, 6), 0x3a2a1c, false, false);
@@ -133,13 +132,13 @@ export function craftRoom(kind, K) {
       for (const e of [-1, 1]) { deco(0, e * 222, 120 + 330, 150, 6, 330, navy); Ball(V(0, e * 222, 120 + 540), V(110, 10, 120), navy); deco(0, e * 222, 120 + 400, 300, 6, 60, navy); Glow(V(-26, e * 228, 120 + 548), V(14, 4, 10), T.glow, 0); Glow(V(26, e * 228, 120 + 548), V(14, 4, 10), T.glow, 0); }
       Glow(V(0, 0, 124), V(1300, 1300, 3), T.glow, 8); L(0, 0, 700, T.lamp, 2200, 3); for (const e of [-1, 1]) L(e * 700, e * 700, 300, T.lamp, 1000, 2);
       // four broken columns on the dais corners, sheathed in ice, their tops fallen
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 800, y = sy * 800, h = sx * sy > 0 ? 520 : 360; Cyl(V(x, y, 120 + h / 2), 200, h, 0x6a7e90, true, true); Oct(V(x, y, 120 + 30), V(290, 290, 60), 0x8fa6b8, false, false); BoxRot(V(x, y, 120 + h), V(230, 230, 60), ice, R(sx * 9, 30, sy * 9), false); for (let k = 0; k < 5; k++) { const a = k * 1.3; ConeShape(V(x + Math.cos(a) * 96, y + Math.sin(a) * 96, 120 + h - 70 - k * 12), V(40, 40, 150), pale, false, R(180, 0, 0)); }
-        BoxRot(V(x + sx * 420, y + sy * 260, 120 + 60), V(190, 190, 330), 0x6a7e90, R(sy * 70, 40 * sx, 0), false); Ball(V(x + sx * 420, y + sy * 260, 110), V(420, 380, 110), snow); }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 800, y = sy * 800, h = sx * sy > 0 ? 520 : 360; Cyl(V(x, y, 120 + h / 2), 200, h, 0x6a7e90, true, true); Oct(V(x, y, 120 + 30), V(290, 290, 60), 0x8fa6b8, false, false); Box(V(x, y, 120 + h + 20), V(240, 240, 40), ice, false, false); for (let k = 0; k < 5; k++) { const a = k * 1.3; ConeShape(V(x + Math.cos(a) * 96, y + Math.sin(a) * 96, 120 + h - 70 - k * 12), V(40, 40, 150), pale, false, R(180, 0, 0)); }
+        hit(x + sx * 420, y + sy * 260, 300, 300, 150, true, 100); BoxRot(V(x + sx * 420, y + sy * 260, 120 + 60), V(190, 190, 330), 0x6a7e90, R(sy * 70, 40 * sx, 0), false); Ball(V(x + sx * 420, y + sy * 260, 110), V(420, 380, 110), snow); }
       // barricades: blocks of sawn ice stacked like a wall, capped with snow, where the low walls stood
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 2400, y = sy * 1900, alongX = sx * sy > 0, len = 900;
         Box(V(x, y, 90), alongX ? V(len, 110, 180) : V(110, len, 180), deep, true, true);
         for (let k = 0; k < 6; k++) { const o = (k - 2.5) * (len / 6); for (let r = 0; r < 2; r++) Box(V(x + (alongX ? o + r * 40 : 0), y + (alongX ? 0 : o + r * 40), 45 + r * 90), alongX ? V(len / 6 - 10, 122, 84) : V(122, len / 6 - 10, 84), (k + r) % 2 ? ice : pale, false, false); }
-        Ball(V(x, y, 180), alongX ? V(len + 60, 190, 70) : V(190, len + 60, 70), snow); for (let k = 0; k < 7; k++) { const o = rr(-len / 2, len / 2); ConeShape(V(x + (alongX ? o : 62), y + (alongX ? 62 : o), 120), V(26, 26, 110), pale, false, R(180, 0, 0)); } }
+        Box(V(x, y, 188), alongX ? V(len + 20, 136, 16) : V(136, len + 20, 16), snow, false, false); for (let k = 0; k < 7; k++) { const o = rr(-len / 2, len / 2); ConeShape(V(x + (alongX ? o : 62), y + (alongX ? 62 : o), 120), V(26, 26, 110), pale, false, R(180, 0, 0)); } }
       // the frozen: a rank of the vault's guards along each side wall, each in a block of ice, weapons still raised
       for (const sx of [-1, 1]) for (const y of [-2300, -1500, 1500, 2300]) { const x = sx * (hx - 330);
         solid(x, y, 250, 250, 460, 0x7fb4d8); Box(V(x, y, 468), V(280, 280, 18), snow, false, false); Ball(V(x, y, 10), V(520, 520, 90), snow);
@@ -148,7 +147,7 @@ export function craftRoom(kind, K) {
       for (let i = 0; i < 70; i++) { const a = rnd() * 6.283, r = Math.pow(rnd(), 0.7) * 3200, Lg = rr(140, 520) * (r < 1200 ? 1.5 : 1); ConeShape(V(Math.cos(a) * r, Math.sin(a) * r * 0.85, H - Lg / 2), V(rr(40, 100), rr(40, 100), Lg), rnd() < 0.3 ? deep : ice, false, R(180, 0, 0)); }
       // drifts against the side walls, and lanterns frozen where they were dropped
       for (const sx of [-1, 1]) for (let y = -hy + 300; y < hy - 200; y += 420) { if (Math.abs(Math.abs(y) - 500) < 300) continue; Ball(V(sx * (hx - 40), y + rr(-80, 80), 10), V(rr(300, 560), rr(420, 640), rr(120, 300)), snow); }
-      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + 0.4, x = Math.cos(a) * 2300, y = Math.sin(a) * 2000; deco(x, y, 26, 44, 44, 52, steel); Glow(V(x, y, 28), V(30, 30, 34), 0xffc86a, 0); Pyramid(V(x, y, 66), V(54, 54, 28), steel); L(x, y, 120, [1, 0.75, 0.4], 600, 1.6); }
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + 0.4, x = Math.cos(a) * 2300, y = Math.sin(a) * 2000; hit(x, y, 50, 50, 80, false); deco(x, y, 26, 44, 44, 52, steel); Glow(V(x, y, 28), V(30, 30, 34), 0xffc86a, 0); Pyramid(V(x, y, 66), V(54, 54, 28), steel); L(x, y, 120, [1, 0.75, 0.4], 600, 1.6); }
       break;
     }
     // ------------------------------------------------------------------------------------------------ MIRE CELLAR
@@ -203,7 +202,7 @@ export function craftRoom(kind, K) {
           BoxRot(V(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 800), V(10, 520, 110), black, R(0, yaw, 0), false); BoxRot(V(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12, 800), V(6, 470, 20), gold, R(0, yaw, 0), false);
           for (let j = -3; j <= 3; j++) Glow(V(cx + Math.cos(a) * 16 - Math.sin(a) * j * 78, cy + Math.sin(a) * 16 + Math.cos(a) * j * 78, 840 + ((j + k) % 2 ? 0 : -76)), V(22, 22, 22), bulb, 2);
           // a suit on every other face
-          const sc = k % 2 ? red : black, px = cx + Math.cos(a) * 8, py = cy + Math.sin(a) * 8; BoxRot(V(px, py, 450), V(8, 150, 150), cream, R(45, yaw, 0), false); BoxRot(V(px + Math.cos(a) * 4, py + Math.sin(a) * 4, 450), V(8, 96, 96), sc, R(45, yaw, 0), false); }
+          const sc = k % 2 ? red : black, px = cx + Math.cos(a) * 8, py = cy + Math.sin(a) * 8; BoxRot(V(px, py, 450), V(8, 150, 150), cream, R(0, yaw, 45), false); BoxRot(V(px + Math.cos(a) * 4, py + Math.sin(a) * 4, 450), V(8, 96, 96), sc, R(0, yaw, 45), false); }
         for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; Glow(V(x + Math.cos(a) * 810, Math.sin(a) * 810, H - 190), V(30, 30, 30), bulb, 2); }
         L(x, s * 1150, 500, T.lamp, 1200, 2); L(x, -s * 1150, 500, T.lamp, 1200, 2); }
       // gaming tables where the low walls stood: felt, a gold rail, chips in stacks, a hand left face up
@@ -219,10 +218,9 @@ export function craftRoom(kind, K) {
           for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; BoxRot(V(Math.cos(a) * 190, wy + f * 16, 560 + Math.sin(a) * 190), V(170, 4, 96), [red, black, 0x2a6a8a, gold][k % 4], R(-a * 57.3, 0, 0), false); Glow(V(Math.cos(a) * 304, wy + f * 18, 560 + Math.sin(a) * 304), V(20, 20, 20), bulb, 2); }
           Cyl(V(0, wy + f * 22, 560), 110, 14, gold, false, false, AY); Pyramid(V(0, wy + f * 18, 890), V(60, 16, 90), red, R(180, 0, 0)); } }
       // the big top: a canopy of swags from the middle of the roof out to the walls, and the chandelier under it
-      for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, r = 1500; BoxRot(V(Math.cos(a) * r, Math.sin(a) * r * 0.9, H - 150), V(3000, 300, 14), k % 2 ? red : cream, R(0, a * 57.3 * (1), 5), false); }
       Cyl(V(0, 0, H - 100), 30, 200, gold, false, false); for (const [r, n, z] of [[560, 16, H - 300], [340, 10, H - 220]]) { Cyl(V(0, 0, z), r * 2, 14, gold, false, false); Cyl(V(0, 0, z + 1), r * 2 - 60, 16, T.roof, false, false); for (let i = 0; i < n; i++) { const a = i / n * 6.283; Glow(V(Math.cos(a) * r, Math.sin(a) * r, z + 30), V(34, 34, 46), bulb, 2); deco(Math.cos(a) * r, Math.sin(a) * r, z - 30, 8, 8, 50, 0xcfe8ff); } }
       // roped walks down both side walls, with a line of one-armed bandits behind the rope
-      for (const sx of [-1, 1]) { for (let y = -2600; y <= 2600; y += 400) { Cyl(V(sx * (hx - 430), y, 60), 26, 120, gold, false, false); Ball(V(sx * (hx - 430), y, 128), V(44, 44, 44), gold); Cyl(V(sx * (hx - 430), y, 6), 80, 12, gold, false, false); if (y < 2600) Box(V(sx * (hx - 430), y + 200, 98), V(10, 400, 12), red, false, false); }
+      for (const sx of [-1, 1]) { for (let y = -2600; y <= 2600; y += 400) { const gap = y + 200 > -900 && y + 200 < 900 && Math.abs(Math.abs(y + 200) - 500) < 350; hit(sx * (hx - 430), y, 40, 40, 140, false); Cyl(V(sx * (hx - 430), y, 60), 26, 120, gold, false, false); Ball(V(sx * (hx - 430), y, 128), V(44, 44, 44), gold); Cyl(V(sx * (hx - 430), y, 6), 80, 12, gold, false, false); if (y < 2600 && !gap) { Box(V(sx * (hx - 430), y + 200, 98), V(10, 400, 12), red, false, false); hit(sx * (hx - 430), y + 200, 14, 400, 110, true); } }
         for (let y = -2400; y <= 2400; y += 300) { if (Math.abs(Math.abs(y) - 500) < 300) continue; const x = sx * (hx - 90); deco(x, y, 150, 150, 170, 300, (y / 300 | 0) % 2 ? red : 0x2a6a8a); deco(x, y, 310, 160, 180, 26, gold); deco(x - sx * 78, y, 210, 6, 130, 80, cream); for (const k of [-1, 0, 1]) deco(x - sx * 82, y + k * 40, 210, 4, 30, 50, [red, gold, black][(k + 1 + (y / 300 | 0) + 30) % 3]); Glow(V(x - sx * 78, y, 290), V(6, 130, 20), bulb, 0); deco(x - sx * 40, y + 96, 220, 10, 10, 120, 0x8a8f99); Ball(V(x - sx * 40, y + 96, 290), V(34, 34, 34), red); deco(x - sx * 82, y, 110, 6, 110, 26, black); } }
       break;
     }
@@ -244,19 +242,19 @@ export function craftRoom(kind, K) {
           for (let k = 0; k < 8; k++) Ball(V(px + (ax ? 0 : rr(-w / 2, w / 2)), py + (ax ? rr(-d / 2, d / 2) : 0), rr(20, h)), V(rr(30, 60), rr(30, 60), rr(22, 40)), 0xc8cfc0); }
         for (let k = 0; k < 6; k++) { const h2 = rr(260, 620); BoxRot(V(x + sx * (w / 2 + rr(20, 120)), y + rr(-d / 2, d / 2), h2 / 2), V(rr(18, 34), 8, h2), k % 2 ? weed : 0x3a8a5a, R(rr(-12, 12), rr(0, 180), rr(-12, 12)), false); }
         // cargo spilled toward the middle: crates, an amphora or two, and what they were carrying
-        for (let k = 0; k < 4; k++) { const cx = x - sx * (w / 2 + rr(120, 300)), cy = y + rr(-d / 2 + 100, d / 2 - 100), s = rr(110, 170); BoxRot(V(cx, cy, s / 2 - 10), V(s, s, s), 0x5a4630, R(rr(-10, 10), rr(0, 90), rr(-10, 10)), false); BoxRot(V(cx, cy, s / 2 - 10), V(s + 6, 16, s + 6), hullD, R(rr(-10, 10), rr(0, 90), 0), false); }
+        for (let k = 0; k < 4; k++) { const cx = x - sx * (w / 2 + rr(120, 300)), cy = y + rr(-d / 2 + 100, d / 2 - 100), s = rr(110, 170); hit(cx, cy, s, s, s - 10, true); BoxRot(V(cx, cy, s / 2 - 10), V(s, s, s), 0x5a4630, R(rr(-10, 10), rr(0, 90), rr(-10, 10)), false); BoxRot(V(cx, cy, s / 2 - 10), V(s + 6, 16, s + 6), hullD, R(rr(-10, 10), rr(0, 90), 0), false); }
         for (let k = 0; k < 14; k++) Glow(V(x - sx * (w / 2 + rr(60, 420)), y + rr(-d / 2, d / 2), 6), V(24, 24, 5), gold, 1);
         L(x - sx * 600, y, 260, T.lamp, 1100, 2); };
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) piece(sx * 1700, sy * 1350, sx, sy);
       // her mast came down across two of the pieces and up into the roof, the yard and a rag of sail still on it
-      BoxRot(V(-1500, 300, 700), V(110, 110, 2700), hullD, R(22, 0, 58), false); BoxRot(V(-900, 520, 760), V(60, 1500, 60), hullD, R(10, 20, 0), false); BoxRot(V(-900, 520, 600), V(8, 1300, 380), 0x8a8468, R(10, 20, 4), false);
+      solid(0, 1650, 2300, 120, 120, hullD); for (const x of [-900, -300, 300, 900]) Box(V(x, 1650, 60), V(40, 136, 136), 0x4a4e56, false, false); solid(-600, 1650, 70, 900, 70, hullD); Box(V(-600, 1650, 78), V(60, 860, 6), 0x8a8468, false, false);   // her mast lies where it fell, the yard still lashed across it
       // amidships: the anchor, standing on its crown on a slab of fallen marble, chain run up into the dark
       solid(0, 0, 900, 900, 300, 0x5a6e74); Box(V(0, 0, 306), V(960, 960, 14), 0x8fa6a8, false, false); for (let k = 0; k < 4; k++) deco((k < 2 ? -1 : 1) * 452, 0, 150, 4, 600, 14, 0x3a4a50, 0); Glow(V(0, 0, 314), V(620, 620, 4), T.glow, 8);
       Cyl(V(0, 0, 300 + 330), 70, 660, 0x4a4e56, false, false); Box(V(0, 0, 300 + 620), V(420, 60, 60), 0x4a4e56, false, false); Ring(V(0, 0, 300 + 730), V(190, 190, 190), brass, AY);
-      for (const e of [-1, 1]) { BoxRot(V(e * 190, 0, 300 + 130), V(440, 70, 80), 0x4a4e56, R(0, 0, e * 34), false); Pyramid(V(e * 400, 0, 300 + 290), V(170, 60, 190), 0x4a4e56, R(0, 0, e * -20)); }
+      Box(V(0, 0, 300 + 50), V(640, 80, 80), 0x4a4e56, false, false); for (const e of [-1, 1]) { Box(V(e * 290, 0, 300 + 150), V(80, 80, 160), 0x4a4e56, false, false); Pyramid(V(e * 290, 0, 300 + 290), V(170, 90, 120), 0x4a4e56); }
       chain(0, 0, 300 + 830, H, 0x4a4e56); for (let k = 0; k < 10; k++) Ball(V(rr(-60, 60), rr(-50, 50), 300 + rr(60, 560)), V(rr(40, 70), rr(40, 70), rr(26, 44)), 0xc8cfc0); L(0, 0, 720, T.lamp, 1800, 2.8);
       // marble from the hall that was here before the sea: drums of fallen column, a headless statue at each end wall
-      for (let k = 1; k < 10; k += 2) { const a = k / 10 * 6.283 + 0.2, r = 2500, x = Math.cos(a) * r * 1.1, y = Math.sin(a) * r * (k % 2 ? 1.0 : 3.2); if (Math.abs(x) < 400 && Math.abs(y) > 2400) continue; Cyl(V(x, y, 90), 240, 300, 0x9fb4b4, false, false, R(0, rr(0, 180), 90)); for (let j = -1; j <= 1; j++) Cyl(V(x, y, 90), 250, 14, 0x7f9698, false, false, R(0, 0, 90)); Ball(V(x, y + 80, 40), V(260, 200, 90), verd); }
+      for (let k = 1; k < 10; k += 2) { const a = k / 10 * 6.283 + 0.2, r = 2500, x = Math.cos(a) * r * 1.1, y = Math.sin(a) * r * (k % 2 ? 1.0 : 3.2); if (Math.abs(x) < 400 && Math.abs(y) > 2400) continue; hit(x, y, 280, 280, 200, true); Cyl(V(x, y, 90), 240, 300, 0x9fb4b4, false, false, R(0, rr(0, 180), 90)); for (let j = -1; j <= 1; j++) Cyl(V(x, y, 90), 250, 14, 0x7f9698, false, false, R(0, 0, 90)); Ball(V(x, y + 80, 40), V(260, 200, 90), verd); }
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 3000, y = sy * 2500; Box(V(x, y, 80), V(300, 300, 160), 0x9fb4b4, true, true); deco(x, y, 330, 150, 110, 340, 0x9fb4b4); deco(x, y, 510, 210, 120, 80, 0x9fb4b4); BoxRot(V(x - sx * 120, y, 420), V(60, 60, 260), 0x9fb4b4, R(0, 0, sx * 40), false); Ball(V(x, y, 170), V(330, 330, 60), verd);
         for (let k = 0; k < 5; k++) { const h = rr(80, 260); Pyramid(V(x + rr(-260, 260), y + rr(-260, 260), h / 2), V(h * 0.7, h * 0.7, h), coral[k % 3], R(rr(-14, 14), rr(0, 90), rr(-14, 14))); } }
       // weed along the walls and chains with hooks from the roof beams
@@ -281,9 +279,9 @@ export function craftRoom(kind, K) {
       Glow(V(0, 0, 90 + (H - 520) / 2), V(40, 40, H - 520), honey, 1); Glow(V(0, 0, 130), V(130, 130, 60), waxL, 2); L(0, 0, 400, T.lamp, 2000, 3);
       Ball(V(0, 0, H - 250), V(900, 900, 620), brood); Ball(V(0, 0, H - 300), V(760, 760, 560), 0xf4ecd0); for (let k = 0; k < 14; k++) { const a = k * 0.9, r = rr(260, 520); Ball(V(Math.cos(a) * r, Math.sin(a) * r, H - rr(120, 420)), V(rr(200, 340), rr(200, 340), rr(240, 400)), k % 3 ? brood : 0xd8c890); if (k % 2) Glow(V(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9, H - rr(300, 520)), V(46, 46, 60), honey, 2); }
       for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; BoxRot(V(Math.cos(a) * 520, Math.sin(a) * 520, H - 120), V(700, 46, 46), chitin, R(0, a * 57.3, -28), false); }
-      for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.52, x = Math.cos(a) * 470, y = Math.sin(a) * 470; Ball(V(x, y, 80 + 70), V(150, 150, 210), brood); Glow(V(x, y, 80 + 60), V(60, 60, 80), honey, 2); }
+      for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.52, x = Math.cos(a) * 470, y = Math.sin(a) * 470; hit(x, y, 120, 120, 200, false, 80); Ball(V(x, y, 80 + 70), V(150, 150, 210), brood); Glow(V(x, y, 80 + 60), V(60, 60, 80), honey, 2); }
       // brood chambers against the side walls: clutches of eggs in broken cells, something moving in the lit ones
-      for (const sx of [-1, 1]) for (const y of [-2350, -1400, 1400, 2350]) { const x = sx * (hx - 240); for (let k = 0; k < 7; k++) { const s = rr(130, 250), ox = rr(-190, 190), oy = rr(-230, 230); Ball(V(x + ox, y + oy, s * 0.42), V(s, s, s * 1.3), k % 3 ? brood : 0xd8c890); if (k % 3 === 0) { Glow(V(x + ox, y + oy, s * 0.5), V(s * 0.4, s * 0.4, s * 0.6), honey, 2); } } Cyl(V(x, y, 2.6), 760, 5, 0x9a6410, false, false); L(x - sx * 200, y, 240, T.lamp, 900, 1.8); }
+      for (const sx of [-1, 1]) for (const y of [-2350, -1400, 1400, 2350]) { const x = sx * (hx - 520); hit(x, y, 420, 500, 170, true); for (let k = 0; k < 7; k++) { const s = rr(130, 250), ox = rr(-190, 190), oy = rr(-230, 230); Ball(V(x + ox, y + oy, s * 0.42), V(s, s, s * 1.3), k % 3 ? brood : 0xd8c890); if (k % 3 === 0) { Glow(V(x + ox, y + oy, s * 0.5), V(s * 0.4, s * 0.4, s * 0.6), honey, 2); } } Cyl(V(x, y, 2.6), 760, 5, 0x9a6410, false, false); L(x - sx * 200, y, 240, T.lamp, 900, 1.8); }
       // wax hanging from the whole roof
       for (let i = 0; i < 46; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300); if (Math.hypot(x, y) < 800) continue; const Lg = rr(100, 460), w = rr(50, 130); ConeShape(V(x, y, H - Lg / 2), V(w, w, Lg), i % 3 ? wax : waxL, false, R(180, 0, 0)); if (i % 4 === 0) Glow(V(x, y, H - Lg - 14), V(28, 28, 38), honey, 2); }
       break;
@@ -295,12 +293,11 @@ export function craftRoom(kind, K) {
       slabs(600, 0x1c1828, 0x211c30, 0x14101e, (x, y) => Math.hypot(x, y) < 2750);
       Cyl(V(0, 0, 1.2), 5500, 2.4, 0x100c1a, false, false); for (const d of [900, 1500, 2100, 2700]) { Glow(V(0, 0, 3), V(d * 2, d * 2, 2), pur, 8); const n = Math.round(d / 26); for (let k = 0; k < n; k++) { if (rnd() < 0.35) continue; const a = k / n * 6.283; Glow(V(Math.cos(a) * (d + 70), Math.sin(a) * (d + 70), 3), V(rr(20, 70), 12, 2), k % 5 ? lilac : white, 0, R(0, a * 57.3 + 90, 0)); } }
       for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; Glow(V(Math.cos(a) * 1800, Math.sin(a) * 1800, 3), V(1800, 8, 2), pur, 0, R(0, a * 57.3, 0)); Glow(V(Math.cos(a) * 2700, Math.sin(a) * 2700, 3.4), V(70, 70, 2), white, 7, R(0, a * 57.3, 0)); }
-      // the ring of standing slabs, and above each one the pieces of it that have already let go
+      // the ring of standing slabs
       for (let k = 0; k < 8; k++) { const a = (k + 0.5) / 8 * Math.PI * 2, x = Math.cos(a) * 1900, y = Math.sin(a) * 1700, yaw = 90 + a * 180 / Math.PI;
         Box(V(x, y, 210), V(1000, 110, 420), slab, true, true, yaw); Box(V(x, y, 12), V(1060, 170, 24), voidc, false, false, yaw);
         const c = Math.cos(yaw * Math.PI / 180), s = Math.sin(yaw * Math.PI / 180);
         for (const f of [-1, 1]) { for (let j = -3; j <= 3; j++) { const h = rr(60, 300); Glow(V(x + c * j * 130 - s * f * 57, y + s * j * 130 + c * f * 57, rr(120, 300)), V(10, 4, h), j % 3 ? pur : white, 0, R(0, yaw, 0)); if (rnd() < 0.6) Glow(V(x + c * (j * 130 + 30) - s * f * 57, y + s * (j * 130 + 30) + c * f * 57, rr(100, 340)), V(46, 4, 10), pur, 0, R(0, yaw, 0)); } }
-        for (let j = 0; j < 6; j++) { const z = 520 + j * 78 + rr(-10, 10), w = 900 - j * 150; if (w < 80) break; BoxRot(V(x + c * rr(-60, 60) * j, y + s * rr(-60, 60) * j, z), V(Math.max(90, w * rr(0.3, 0.6)), 100 - j * 8, 60), slab, R(rr(-6, 6) * j, yaw + rr(-8, 8) * j, rr(-6, 6) * j), false); if (j % 2) Glow(V(x, y, z - 34), V(40, 40, 6), pur, 2); }
         L(x * 0.8, y * 0.8, 300, T.lamp, 900, 1.8); }
       // the middle: two steps up to nothing, and over it the stone that is doing this, turning in its rings, a line of light through it from floor to roof
       for (let k = 0; k < 2; k++) Box(V(0, 0, 20 + k * 40), V(1500 - k * 360, 1500 - k * 360, 40), k ? 0x2a2440 : slab, true, false); Glow(V(0, 0, 82), V(1000, 1000, 3), pur, 8); Glow(V(0, 0, 82), V(560, 560, 3), white, 8);
@@ -308,14 +305,12 @@ export function craftRoom(kind, K) {
       Pyramid(V(0, 0, 640), V(330, 330, 420), voidc); Pyramid(V(0, 0, 250 + 80), V(330, 330, 260), voidc, R(180, 0, 0)); Glow(V(0, 0, 432), V(336, 336, 10), pur, 0, R(0, 0, 0)); Glow(V(0, 0, 432), V(120, 120, 120), white, 2);
       Glow(V(0, 0, H / 2), V(16, 16, H), white, 1); Glow(V(0, 0, H / 2), V(60, 60, H), pur, 1);
       Ring(V(0, 0, 440), V(820, 820, 820), lilac, R(22, 0, 12)); Ring(V(0, 0, 440), V(660, 660, 660), pur, R(-58, 30, 0)); Ring(V(0, 0, 440), V(1000, 1000, 1000), 0x4a3e6a, R(80, 60, 0));
-      for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283, r = 520 + (k % 3) * 90, z = 300 + (k * 97) % 420, sz = 40 + (k % 4) * 22; BoxRot(V(Math.cos(a) * r, Math.sin(a) * r, z), V(sz, sz, sz), voidc, R(k * 31, k * 47, k * 13), false); Glow(V(Math.cos(a) * r, Math.sin(a) * r, z), V(sz * 0.4, sz * 0.4, sz * 0.4), pur, 2); }
       L(0, 0, 500, T.lamp, 2200, 3);
       // the side walls have opened: a great eye of rings in each, looking in
-      for (const sx of [-1, 1]) { const x = sx * (hx - 6); Cyl(V(x, 0, 520), 1500, 6, voidc, false, false, AX); [[1440, pur], [1300, voidc], [1120, lilac], [980, voidc], [760, pur], [640, voidc], [420, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n), 0, 520), d, 3, c, false, false, AX) : Glow(V(x - sx * (4 + n), 0, 520), V(d, d, 3), c, 1, AX))); Cyl(V(x - sx * 6, 0, 520), 300, 6, voidc, false, false, AX); Glow(V(x - sx * 10, 0, 520), V(4, 70, 240), white, 0);
+      for (const sx of [-1, 1]) { const x = sx * (hx - 6); Cyl(V(x, 0, 520), 1500, 6, voidc, false, false, AX); [[1440, pur], [1300, voidc], [1120, lilac], [980, voidc], [760, pur], [640, voidc], [420, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 520), d, 3, c, false, false, AX) : Glow(V(x - sx * (4 + n * 5), 0, 520), V(d, d, 3), c, 1, AX)));  Glow(V(x - sx * 40, 0, 520), V(4, 70, 240), white, 0);
         for (let k = 0; k < 24; k++) { const a = k / 24 * 6.283; BoxRot(V(x - sx * 5, Math.cos(a) * 880, 520 + Math.sin(a) * 880), V(4, 120, 12), k % 2 ? pur : lilac, R(0, 0, a * 57.3 * 0), false); } }
       // stars in the roof and pieces of the room going up to join them
       for (let i = 0; i < 90; i++) Glow(V(rr(-hx + 100, hx - 100), rr(-hy + 100, hy - 100), H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? pur : white, 2);
-      for (let i = 0; i < 30; i++) { const a = rnd() * 6.283, r = rr(2300, 3300), x = Math.cos(a) * r * 0.95, y = Math.sin(a) * r * 0.82, z = rr(H * 0.4, H - 140), sz = rr(70, 220); BoxRot(V(x, y, z), V(sz, sz, sz * rr(0.3, 1)), i % 3 ? slab : voidc, R(rr(0, 90), rr(0, 90), rr(0, 90)), false); Glow(V(x, y, z - sz * 0.6), V(sz * 0.3, sz * 0.3, 6), pur, 2); Floor(V2(x - sz, y - sz), V2(x + sz, y + sz), 2.2, 0x0a0812); }
       break;
     }
   }
@@ -331,22 +326,19 @@ export function craftBoss(which, K) {
     const iron = 0x2a2e30, bone = 0xd8cfb8;
     // the seal itself: a lid of dark stone the width of the room's middle, ringed and lettered, bolted at eight points
     Cyl(V(0, 0, 1.6), 4500, 3.2, 0x161c20, false, false);
-    for (const d of [4400, 3600, 2200]) Glow(V(0, 0, 3.6), V(d, d, 2), T.glow, 8);
+    for (const d of [3600, 2200]) Glow(V(0, 0, 3.6), V(d, d, 2), T.glow, 8);
     for (let k = 0; k < 48; k++) { if (k % 6 === 0) continue; const a = k / 48 * 6.283; Glow(V(Math.cos(a) * 2000, Math.sin(a) * 2000, 4), V(rr(120, 220), 26, 2), k % 4 ? T.glow : 0xffffff, 0, R(0, a * 57.3 + 90, 0)); if (k % 2) Glow(V(Math.cos(a) * 1880, Math.sin(a) * 1880, 4), V(26, 90, 2), T.glow, 0, R(0, a * 57.3 + 90, 0)); }
     for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.39, x = Math.cos(a) * 2000, y = Math.sin(a) * 2000; Oct(V(x, y, 14), V(300, 300, 28), iron, false, false); Cyl(V(x, y, 40), 120, 30, 0x55585f, false, false); Glow(V(x, y, 58), V(60, 60, 8), T.glow, 1); L(x, y, 200, T.lamp, 800, 1.6);
-      // and chained to the roof from every bolt
-      const tx = Math.cos(a) * 3300, ty = Math.sin(a) * 3300, n = 26; for (let j = 1; j < n; j++) { const t = j / n; BoxRot(V(x + (tx - x) * t, y + (ty - y) * t, 60 + (H - 60) * t * t), V(70, 26, 26), j % 2 ? iron : 0x3c4246, R(0, a * 57.3, -Math.atan2(2 * t * (H - 60), 1300) * 57.3), false); } }
-    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; Glow(V(Math.cos(a) * 700, Math.sin(a) * 700, 4), V(1400, 30, 2), T.glow, 0, R(0, a * 57.3, 0)); }
+}
     Glow(V(0, 0, 4.4), V(700, 700, 2), 0xffffff, 8); L(0, 0, 600, T.lamp, 2600, 3);
     // the dead of the upper rooms were stacked against these walls when the seal was set
     for (const sx of [-1, 1]) for (let y = -hy + 400; y < hy - 300; y += 520) { if (Math.abs(Math.abs(y) - 500) < 300) continue; const x = sx * (hx - 60); Box(V(x, y, 500), V(90, 420, 1000), 0x12181a, false, false); for (let r = 0; r < 6; r++) for (let c = -1; c <= 1; c++) { Ball(V(x - sx * 46, y + c * 130, 130 + r * 150), V(84, 78, 90), bone); Glow(V(x - sx * 84, y + c * 130 - 16, 140 + r * 150), V(8, 12, 12), T.glow, 2); Glow(V(x - sx * 84, y + c * 130 + 16, 140 + r * 150), V(8, 12, 12), T.glow, 2); } }
   } else {
     const voidc = 0x0c0a14, pur = T.glow, white = 0xf0e8ff;
     // the bottom: the floor ends in a ring of broken paving round a well of light, and the room above is falling into it very slowly
-    Cyl(V(0, 0, 1.6), 4500, 3.2, 0x0a0812, false, false); for (const d of [4400, 3300, 2300, 1300]) Glow(V(0, 0, 3.6), V(d, d, 2), pur, 8);
+    Cyl(V(0, 0, 1.6), 4500, 3.2, 0x0a0812, false, false); for (const d of [3300, 1300]) Glow(V(0, 0, 3.6), V(d, d, 2), pur, 8);
     Glow(V(0, 0, 4), V(900, 900, 2), white, 1); Glow(V(0, 0, H / 2), V(120, 120, H), pur, 1); Glow(V(0, 0, H / 2), V(30, 30, H), white, 1); L(0, 0, 700, T.lamp, 2800, 3);
     for (let k = 0; k < 32; k++) { const a = k / 32 * 6.283; Glow(V(Math.cos(a) * 2200, Math.sin(a) * 2200, 4), V(2200, 8, 2), pur, 0, R(0, a * 57.3, 0)); }
-    for (let i = 0; i < 70; i++) { const a = rnd() * 6.283, r = rr(600, 3600), z = rr(500, H - 120), sz = rr(60, 260); BoxRot(V(Math.cos(a) * r, Math.sin(a) * r, z), V(sz, sz, sz * rr(0.25, 1)), i % 3 ? 0x1a1626 : voidc, R(rr(0, 90), rr(0, 90), rr(0, 90)), false); if (i % 2) Glow(V(Math.cos(a) * r, Math.sin(a) * r, z - sz * 0.6), V(sz * 0.3, sz * 0.3, 6), pur, 2); }
-    for (const sx of [-1, 1]) { const x = sx * (hx - 6); [[2400, pur], [2200, voidc], [1800, 0x8a7ab8], [1600, voidc], [1100, pur], [900, voidc], [560, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n), 0, 1000), d, 3, c, false, false, R(90, 0, 0)) : Glow(V(x - sx * (4 + n), 0, 1000), V(d, d, 3), c, 1, R(90, 0, 0)))); Glow(V(x - sx * 14, 0, 1000), V(4, 110, 420), white, 0); }
+    for (const sx of [-1, 1]) { const x = sx * (hx - 6); [[2400, pur], [2200, voidc], [1800, 0x8a7ab8], [1600, voidc], [1100, pur], [900, voidc], [560, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 1000), d, 3, c, false, false, R(90, 0, 0)) : Glow(V(x - sx * (4 + n * 5), 0, 1000), V(d, d, 3), c, 1, R(90, 0, 0)))); Glow(V(x - sx * 40, 0, 1000), V(4, 110, 420), white, 0); }
   }
 }

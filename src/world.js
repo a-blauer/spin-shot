@@ -143,6 +143,11 @@ export class World {
   Ring(center, size, color, rot = null) { this.AddInstance(8, center, size, rot || R(0, 0, 0), color, false, false, false); }
   // local-frame helper: position from an object's base, yaw and a local offset
   L(base, yaw, x, y, z) { return base.add(R(0, yaw, 0).RotateVector(V(x, y, z))); }
+  // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
+  Solid(center, size, nav = true, yaw = 0) {
+    const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null)); this.colSolid.push(g);
+    if (nav) this.game.navBlockBox3(new THREE.Box3().setFromBufferAttribute(g.attributes.position), 1);
+  }
   Blocker(center, size) {
     const m = this._matrix(center, size, null);
     this.colBlock.push(COLGEOS[0].clone().applyMatrix4(m));
@@ -734,7 +739,7 @@ export class World {
   buildMap(MAP) {
     const GM = this.game, M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
-      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
+      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
     M.RotFromXY = RotFromXY; M.world = this; M.at = this.at.bind(this);
     // the map sees the game through a window that puts its nav boxes through the same transform as its geometry
     M.GM = new Proxy(GM, { get: (g, k) => (k === 'NavBlockBox' ? (b, d) => g.NavBlockBox(this.Tbox(b), d) : typeof g[k] === 'function' ? g[k].bind(g) : g[k]), set: (g, k, v) => { g[k] = v; return true; } });

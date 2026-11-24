@@ -43,12 +43,14 @@ export function buildDescent(M) {
     const corners = (fn) => { for (const sx of [-1, 1]) for (const sy of [-1, 1]) fn(sx * (hx - 520), sy * (hy - 620), sx, sy); };
     const hang = (x, y, len, col, d = 10) => Cyl(V(x, y, H - len / 2), d, len, col, false, false);
     const roofSpots = (n, fn) => { for (let i = 0; i < n; i++) fn(rr(-hx + 500, hx - 500), rr(-hy + 700, hy - 700)); };
+    if ([1, 2, 6, 7].includes(th)) corners((x, y) => M.Solid(V(x, y, [140, 260, 110, 300][[1, 2, 6, 7].indexOf(th)]), V(th === 7 ? 300 : 460, th === 7 ? 300 : 460, [280, 520, 220, 600][[1, 2, 6, 7].indexOf(th)]), true));
+    if (th === 4) corners((x, y, sx) => M.Solid(V(x - sx * 190, y, 60), V(440, 40, 120), false));
     switch (th) {
       case 0: {   // OSSUARY: walls of skulls, bone heaps, coffins, cages on chains, candles
         const bone = 0xd8cfb8, dark = 0x0e1214;
         for (const sx of [-1, 1]) for (const y of ys) { Box(V(sx * (hx - 3), y, 400), V(6, 330, 520), dark, false, false); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) { Ball(V(sx * (hx - 24), y + c * 100, 230 + r * 160), V(64, 60, 70), bone); Glow(V(sx * (hx - 50), y + c * 100 - 12, 236 + r * 160), V(6, 10, 10), T.glow, 2); Glow(V(sx * (hx - 50), y + c * 100 + 12, 236 + r * 160), V(6, 10, 10), T.glow, 2); } Box(V(sx * (hx - 10), y, 132), V(20, 360, 16), T.trim, false, false); Box(V(sx * (hx - 10), y, 668), V(20, 360, 16), T.trim, false, false); }
         corners((x, y) => { for (let i = 0; i < 16; i++) { const a = rnd() * 6.28, r = rnd() * 260; if (rnd() < 0.4) Ball(V(x + Math.cos(a) * r, y + Math.sin(a) * r, 26 + rnd() * 60), V(60, 56, 64), bone); else BoxRot(V(x + Math.cos(a) * r, y + Math.sin(a) * r, 14 + rnd() * 50), V(rr(90, 170), 16, 16), bone, R(rr(-20, 20), rr(0, 180), 0), false); } });
-        for (const sx of [-1, 1]) for (const y of [ys[1], ys[7]]) { Box(V(sx * (hx - 190), y, 60), V(230, 520, 120), T.wall, false, false); Box(V(sx * (hx - 190), y, 130), V(260, 550, 24), T.trim, false, false); Box(V(sx * (hx - 190), y, 146), V(60, 340, 10), bone, false, false); Box(V(sx * (hx - 190), y + 80, 146), V(180, 50, 10), bone, false, false); }
+        for (const sx of [-1, 1]) for (const y of [ys[1], ys[7]]) { Box(V(sx * (hx - 190), y, 60), V(230, 520, 120), T.wall, true, true); Box(V(sx * (hx - 190), y, 130), V(260, 550, 24), T.trim, false, false); Box(V(sx * (hx - 190), y, 146), V(60, 340, 10), bone, false, false); Box(V(sx * (hx - 190), y + 80, 146), V(180, 50, 10), bone, false, false); }
         roofSpots(boss ? 14 : 8, (x, y) => { const L = rr(180, 420); hang(x, y, L, 0x2a2e30); Box(V(x, y, H - L - 70), V(110, 110, 140), 0x1a1e20, false, false); Ball(V(x, y, H - L - 80), V(56, 52, 60), bone); });
         for (const sx of [-1, 1]) for (const y of ys) for (const d of [-200, 200]) { Cyl(V(sx * (hx - 60), y + d, 20), 16, 40, bone, false, false); Glow(V(sx * (hx - 60), y + d, 50), V(12, 12, 22), 0xffc86a, 3); }
         Glow(V(0, 0, 4), V(1500 * k, 1500 * k, 2), T.glow, 8); Glow(V(0, 0, 4), V(900 * k, 900 * k, 2), T.glow, 8);
@@ -101,7 +103,6 @@ export function buildDescent(M) {
       default: {   // NULL CHAMBER: monoliths, drifting blocks, rings of script in the floor, stars in the roof
         const voidc = 0x0c0a14, pur = T.glow;
         for (const sx of [-1, 1]) for (const y of ys) { const h = rr(520, H - 120); Box(V(sx * (hx - 90), y, h / 2), V(120, 200, h), voidc, false, false); Glow(V(sx * (hx - 156), y, h * 0.55), V(6, 26, h * 0.7), pur, 0); for (let g = 0; g < 5; g++) Glow(V(sx * (hx - 156), y + rr(-70, 70), rr(80, h - 80)), V(6, rr(30, 70), 14), 0xffffff, 0); }
-        const nB = boss ? 40 : 26; for (let i = 0; i < nB; i++) { const x = rr(-hx + 400, hx - 400), y = rr(-hy + 600, hy - 600), z = rr(H * 0.45, H - 140), sz = rr(60, 200); BoxRot(V(x, y, z), V(sz, sz, sz), voidc, R(rr(0, 90), rr(0, 90), rr(0, 90)), false); Glow(V(x, y, z), V(sz * 0.36, sz * 0.36, sz * 0.36), pur, 2); }
         for (const d of [700, 1300, 1900, 2500]) Glow(V(0, 0, 3), V(d * k, d * k, 2), pur, 8);
         for (let i = 0; i < 40; i++) { const a = rnd() * 6.283, r = rr(500, 2500) * k; Glow(V(Math.cos(a) * r, Math.sin(a) * r, 3), V(rr(40, 120), 14, 2), i % 4 ? pur : 0xffffff, 0, R(0, rr(0, 180), 0)); }
         roofSpots(boss ? 120 : 70, (x, y) => Glow(V(x, y, H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? pur : 0xffffff, 2));
