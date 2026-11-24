@@ -807,7 +807,7 @@
 {
 "name": "Quick Hands",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "ReloadSpeed",
@@ -829,7 +829,7 @@
 {
 "name": "Hair Trigger",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [
 [
 "RampFire",
@@ -847,7 +847,7 @@
 {
 "name": "Extended Mag",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "MagSize",
@@ -865,7 +865,7 @@
 {
 "name": "Bandolier",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "ReserveAmmo",
@@ -883,7 +883,7 @@
 {
 "name": "Running Shoes",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "MoveSpeed",
@@ -923,7 +923,7 @@
 {
 "name": "Tough Hide",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 6,
 "mods": [
 [
 "MaxHealth",
@@ -941,7 +941,7 @@
 {
 "name": "Bandage Roll",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "HealthRegen",
@@ -959,7 +959,7 @@
 {
 "name": "Loose Change",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "MoneyGain",
@@ -999,15 +999,11 @@
 {
 "name": "Steady Grip",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "Spread",
 0.2
-],
-[
-"HeadshotDamage",
-0.1
 ]
 ],
 "trigger": null,
@@ -1015,7 +1011,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "20% tighter spread, +10% headshot damage.",
+"desc": "20% tighter spread.",
 "insp": "CoD Steady Aim"
 },
 {
@@ -1043,7 +1039,7 @@
 {
 "name": "Bloodletter",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [],
 "trigger": "OnHit",
 "fx": "Bleed",
@@ -1056,7 +1052,7 @@
 {
 "name": "Matchbook",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [],
 "trigger": "OnHit",
 "fx": "Ignite",
@@ -1069,7 +1065,7 @@
 {
 "name": "Cold Rounds",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [],
 "trigger": "OnHit",
 "fx": "Freeze",
@@ -1104,7 +1100,7 @@
 {
 "name": "Coffee Thermos",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [],
 "trigger": "OnDash",
 "fx": "Haste",
@@ -1183,7 +1179,7 @@
 {
 "name": "Skeleton Key",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "CasinoDiscount",
@@ -1201,7 +1197,7 @@
 {
 "name": "Piggy Bank",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "Interest",
@@ -1219,7 +1215,7 @@
 {
 "name": "Dash Boots",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "DashCooldown",
@@ -1237,7 +1233,7 @@
 {
 "name": "Grapple Oil",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "GrappleCooldown",
@@ -1277,7 +1273,7 @@
 {
 "name": "Hot Lead",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [],
 "trigger": "OnCrit",
 "fx": "Ignite",
@@ -1290,7 +1286,7 @@
 {
 "name": "Medkit",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [],
 "trigger": "OnHurt",
 "fx": "Heal",
@@ -1303,7 +1299,7 @@
 {
 "name": "Monster Tooth",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [],
 "trigger": "OnKill",
 "fx": "Heal",
@@ -1351,7 +1347,7 @@
 {
 "name": "Momentum Rounds",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "SpeedDamage",
@@ -1391,15 +1387,11 @@
 {
 "name": "Horseshoe Magnet",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [
 [
 "PickupRange",
 0.6
-],
-[
-"MoneyGain",
-0.08
 ]
 ],
 "trigger": null,
@@ -1407,7 +1399,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "+60% pickup range, +8% money.",
+"desc": "+60% pickup range.",
 "insp": "Vampire Survivors Attractorb"
 },
 {
@@ -1501,7 +1493,7 @@
 {
 "name": "Leech Seed",
 "rarity": "Uncommon",
-"stacks": 5,
+"stacks": 3,
 "mods": [
 [
 "Lifesteal",
@@ -1760,7 +1752,7 @@
 {
 "name": "Buckshot Extender",
 "rarity": "Uncommon",
-"stacks": 5,
+"stacks": 3,
 "mods": [
 [
 "Multishot",
@@ -1985,9 +1977,9 @@
 "trigger": "OnHit",
 "fx": "Explode",
 "chance": 1.0,
-"mag": 0.3,
+"mag": 0.2,
 "cd": 0,
-"desc": "Every hit explodes for 30% of the hit.",
+"desc": "Every hit explodes for 20% of the hit.",
 "insp": "RoR2 Brilliant Behemoth"
 },
 {
@@ -2063,11 +2055,11 @@
 {
 "name": "Heavy Barrel",
 "rarity": "Rare",
-"stacks": 3,
+"stacks": 2,
 "mods": [
 [
 "Damage",
-0.3
+0.2
 ],
 [
 "FireRate",
@@ -2079,7 +2071,7 @@
 "chance": 0.25,
 "mag": 0.8,
 "cd": 0,
-"desc": "+30% damage, -10% fire rate. Hits have a 25% chance to knock ordinary enemies off their feet for 0.8 seconds.",
+"desc": "+20% damage, -10% fire rate. Hits have a 25% chance to knock ordinary enemies off their feet for 0.8 seconds.",
 "insp": "Brotato trade-offs"
 },
 {
@@ -2159,14 +2151,14 @@
 {
 "name": "Ammo Printer",
 "rarity": "Rare",
-"stacks": 3,
+"stacks": 2,
 "mods": [],
 "trigger": "Periodic",
 "fx": "RefundAmmo",
 "chance": 1.0,
-"mag": 0.1,
+"mag": 0.05,
 "cd": 2.0,
-"desc": "Every 2s, refill 10% of your magazine.",
+"desc": "Every 2s, refill 5% of your magazine.",
 "insp": "Gungeon Ammo Synthesizer"
 },
 {
@@ -2300,18 +2292,13 @@
 "name": "Phantom Step",
 "rarity": "Rare",
 "stacks": 3,
-"mods": [
-[
-"DashDamage",
-150
-]
-],
+"mods": [],
 "trigger": "OnDash",
 "fx": "Shield",
 "chance": 1.0,
 "mag": 15,
 "cd": 0,
-"desc": "Dash damage +150 (scales each round); dashes grant 15 overshield.",
+"desc": "Dashes grant 15 overshield.",
 "insp": "Hades"
 },
 {
@@ -2458,9 +2445,9 @@
 "trigger": "OnDash",
 "fx": "Rage",
 "chance": 1.0,
-"mag": 0.4,
+"mag": 0.3,
 "cd": 0,
-"desc": "Dashing grants +40% damage for 4s.",
+"desc": "Dashing grants +30% damage for 4s.",
 "insp": "Hades dash boons"
 },
 {
@@ -2541,7 +2528,7 @@
 "mods": [
 [
 "AmmoSave",
-0.5
+0.35
 ]
 ],
 "trigger": null,
@@ -2549,7 +2536,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "50% chance shots cost no ammo.",
+"desc": "35% chance shots cost no ammo.",
 "insp": "Gungeon Bottomless clip"
 },
 {
@@ -2558,15 +2545,7 @@
 "stacks": 1,
 "mods": [
 [
-"Damage",
-0.15
-],
-[
 "FireRate",
-0.15
-],
-[
-"MoveSpeed",
 0.15
 ],
 [
@@ -2579,7 +2558,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "The last round of every magazine is a cannon shot: four times the damage, and it explodes. +15% damage, fire rate and speed.",
+"desc": "The last round of every magazine is a cannon shot: four times the damage, and it explodes. +15% fire rate.",
 "insp": "Balatro Flush"
 },
 {
@@ -2848,7 +2827,7 @@
 {
 "name": "Whetstone",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "MeleeDamage",
@@ -2866,7 +2845,7 @@
 {
 "name": "Quick Wrists",
 "rarity": "Common",
-"stacks": 8,
+"stacks": 5,
 "mods": [
 [
 "MeleeSpeed",
@@ -3031,10 +3010,6 @@
 [
 "MeleeBurn",
 30
-],
-[
-"MeleeDamage",
-0.1
 ]
 ],
 "trigger": null,
@@ -3042,7 +3017,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Melee hits set enemies on fire. +10% melee damage.",
+"desc": "Melee hits set enemies on fire.",
 "insp": "melee"
 },
 {
@@ -3089,10 +3064,6 @@
 [
 "MeleeDashReset",
 1
-],
-[
-"MeleeSpeed",
-0.08
 ]
 ],
 "trigger": null,
@@ -3100,7 +3071,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Melee kills refill a dash. +8% swing speed.",
+"desc": "Melee kills refill a dash.",
 "insp": "melee"
 },
 {
@@ -4010,7 +3981,7 @@
 {
 "name": "Spyglass",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "FarDamage",
@@ -4028,7 +3999,7 @@
 {
 "name": "Vulture's Eye",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "StatusDamage",
@@ -4100,14 +4071,10 @@
 {
 "name": "Pocket Watch",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "AbilityCooldown",
-0.08
-],
-[
-"GrappleCooldown",
 0.08
 ]
 ],
@@ -4122,7 +4089,7 @@
 {
 "name": "Canteen",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "HealBoost",
@@ -4153,7 +4120,7 @@
 {
 "name": "Pocket Sand",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 3,
 "mods": [],
 "trigger": "OnHurt",
 "fx": "Freeze",
@@ -4166,7 +4133,7 @@
 {
 "name": "Powder Horn",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [],
 "trigger": "OnMultiKill",
 "fx": "RefundAmmo",
@@ -4205,7 +4172,7 @@
 {
 "name": "Blood Sausage",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 4,
 "mods": [
 [
 "CritHeal",
@@ -4223,7 +4190,7 @@
 {
 "name": "Hobnail Boots",
 "rarity": "Common",
-"stacks": 10,
+"stacks": 5,
 "mods": [
 [
 "SlideDamage",
@@ -4489,10 +4456,6 @@
 [
 "DashGuard",
 0.3
-],
-[
-"DashCooldown",
-0.1
 ]
 ],
 "trigger": null,
@@ -4500,7 +4463,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Take 30% less damage for 1.5 seconds after a dash. Dash recharges 10% faster.",
+"desc": "Take 30% less damage for 1.5 seconds after a dash.",
 "insp": "Hades Divine Dash"
 },
 {
@@ -4762,10 +4725,6 @@
 [
 "Overheal",
 60
-],
-[
-"HealBoost",
-0.2
 ]
 ],
 "trigger": null,
@@ -4773,7 +4732,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Healing above full health becomes overshield (up to 60). +20% healing.",
+"desc": "Healing above full health becomes overshield (up to 60).",
 "insp": "RoR2 Aegis"
 },
 {
@@ -5014,10 +4973,6 @@
 0.2
 ],
 [
-"PlateArmor",
-5
-],
-[
 "BlockShock",
 2
 ]
@@ -5027,7 +4982,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "20% chance to shrug off a hit and throw it back as a shockwave for 200% Power. Every hit you take is reduced by 5.",
+"desc": "20% chance to shrug off a hit and throw it back as a shockwave for 200% Power.",
 "insp": "RoR2 Tougher Times"
 },
 {
@@ -5113,18 +5068,13 @@
 "name": "Feeding Frenzy",
 "rarity": "Epic",
 "stacks": 2,
-"mods": [
-[
-"Lifesteal",
-0.03
-]
-],
+"mods": [],
 "trigger": "OnMultiKill",
 "fx": "Heal",
 "chance": 1.0,
 "mag": 30,
 "cd": 0,
-"desc": "Killing 3 enemies in quick succession heals up to 30. Heal 3% of damage dealt.",
+"desc": "Killing 3 enemies in quick succession heals up to 30.",
 "insp": "Doom glory kills"
 },
 {
@@ -5135,10 +5085,6 @@
 [
 "KillHealth",
 2
-],
-[
-"HealBoost",
-0.3
 ]
 ],
 "trigger": null,
@@ -5146,7 +5092,7 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Every 8 kills adds +1 max health (up to +120). +30% to all healing.",
+"desc": "Every 8 kills adds +1 max health (up to +120).",
 "insp": "RoR2 Infusion"
 },
 {
@@ -5197,10 +5143,6 @@
 [
 "MeleeHeavy",
 0.8
-],
-[
-"MeleeStun",
-1.0
 ]
 ],
 "trigger": null,
@@ -5208,25 +5150,20 @@
 "chance": 0,
 "mag": 0,
 "cd": 0,
-"desc": "Heavy blows and finishers deal +80% damage and stun for a second.",
+"desc": "Heavy blows and finishers deal +80% damage.",
 "insp": "Hades Heavy Knuckle"
 },
 {
 "name": "Bladestorm",
 "rarity": "Epic",
 "stacks": 2,
-"mods": [
-[
-"MeleeSpeed",
-0.1
-]
-],
+"mods": [],
 "trigger": "OnMeleeKill",
 "fx": "Nova",
 "chance": 1.0,
 "mag": 2.0,
 "cd": 2,
-"desc": "Melee kills release a burst for 200% Power (2s cooldown). +10% swing speed.",
+"desc": "Melee kills release a burst for 200% Power (2s cooldown).",
 "insp": "Dead Cells"
 },
 {
@@ -5349,10 +5286,6 @@
 "stacks": 1,
 "mods": [
 [
-"ChestLuck",
-0.35
-],
-[
 "ChestRefund",
 0.25
 ]
@@ -5362,7 +5295,7 @@
 "chance": 1.0,
 "mag": 40,
 "cd": 0,
-"desc": "+35% chance a chest holds the better rarity, chests refund 25%, and opening one grants 40 overshield.",
+"desc": "Chests refund 25% of their price, and opening one grants 40 overshield.",
 "insp": "Slay the Spire"
 },
 {

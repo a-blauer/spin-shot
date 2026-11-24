@@ -167,10 +167,13 @@ export class Descent {
     return L[0][0];
   }
   // half a per cent of everything that dies leaves a buff; the deeper the room, the better it tends to be
+  // One in a hundred of everything that dies leaves a buff. What it can be depends on what died: the common run leave
+  // common and uncommon ones, the stranger kinds up to rare, and an elite up to epic.
   dropBuff(E, at) {
-    if (E.isBoss || E.splitChild || Math.random() >= 0.005) return;
-    const room = this.room, T = room <= 5 ? [50, 40, 10, 0, 0] : room <= 10 ? [20, 45, 28, 7, 0] : room <= 15 ? [0, 30, 42, 23, 5] : [0, 12, 40, 34, 14];
-    let r = Math.random() * 100, ri = 0; for (let q = 0; q < 5; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
+    if (E.isBoss || E.splitChild || E.noLoot || E.ai === 'Totem' || Math.random() >= 0.01) return;
+    const cap = E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2;
+    const T = [[55, 45], [45, 40, 15], [30, 35, 25, 10]][cap - 1];
+    let r = Math.random() * 100, ri = 0; for (let q = 0; q < T.length; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
     const P = this.g.player, u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) { this.g.pickups.spawn('Buff', at.clone().add(V3(0, 0, 60)), u); this.g.hud.toast('Something dropped a buff', '#c58cff'); }
   }
 

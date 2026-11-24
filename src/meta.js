@@ -48,7 +48,7 @@ export const RANKS = [
   { name: 'Warden', starter: 'Homesteader' },
   { name: 'Reaper', upgrades: ['Mirror Shard'] },
   { name: 'Gravewalker', upgrades: ['Bottomless Chamber'] },
-  { name: 'Dead Shot', upgrades: ['Predator'] },
+  { name: 'Dead Shot', upgrades: ["Bulwark"] },
   { name: 'Legend', skin: 'legend' },
 ];
 export const rankXp = (r) => (r <= 1 ? 0 : Math.round(250 * Math.pow(r - 1, 1.7) / 50) * 50);   // total XP needed to hold rank r
@@ -67,7 +67,7 @@ export const CLASS_LEVEL_NAMES = ['Adept', 'Veteran', 'Master'];
 export const CLASS_META = [
   { id: 'gunslinger', name: 'Gunslinger', rewards: [{ upgrades: ['High Noon'] }, { upgrades: ['Loaded for Bear'] }, { skin: 'm_gunslinger' }] },
   { id: 'brawler', name: 'Brawler', rewards: [{ upgrades: ['Unstoppable'] }, { upgrades: ['Juggernaut'] }, { skin: 'm_brawler' }] },
-  { id: 'engineer', name: 'Engineer', rewards: [{ upgrades: ['Remote Detonator'] }, { upgrades: ['Overwatch'] }, { skin: 'm_engineer' }] },
+  { id: 'engineer', name: 'Engineer', rewards: [{ upgrades: ['Remote Detonator'] }, { upgrades: ['Twin Mount'] }, { skin: 'm_engineer' }] },
   { id: 'sniper', name: 'Sniper', rewards: [{ upgrades: ['Second Opinion'] }, { upgrades: ['Killshot'] }, { skin: 'm_sniper' }] },
   { id: 'bomber', name: 'Bomber', rewards: [{ upgrades: ['Recycler'] }, { upgrades: ['Carpet Bomber'] }, { skin: 'm_bomber' }] },
 ];
@@ -96,11 +96,11 @@ export const SKINS = [
 export const GROUPS = ['Combat', 'Survival', 'Fortune', 'The Frontier'];
 export const ACHIEVEMENTS = [
   { id: 'kills25', group: 0, name: 'First Blood', desc: 'Kill 300 enemies', stat: 'kills', need: 300, skin: 'undertaker' },
-  { id: 'kills250', group: 0, name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, upgrades: ['Chain Reaction'] },
+  { id: 'kills250', group: 0, name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, upgrades: ["Spirit Daggers"] },
   { id: 'kills1000', group: 0, name: 'One-Man Army', desc: 'Kill 12,000 enemies', stat: 'kills', need: 12000, upgrades: ['Storm Crown'] },
-  { id: 'head100', group: 0, name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, upgrades: ['Death Warrant'] },
-  { id: 'air100', group: 0, name: 'Airborne', desc: 'Get 600 kills while in the air', stat: 'airKills', need: 600, upgrades: ["Hermes' Wings", 'Overdrive'] },
-  { id: 'elite25', group: 0, name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ['Split Rounds'] },
+  { id: 'head100', group: 0, name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, upgrades: ["Deadeye Glass"] },
+  { id: 'air100', group: 0, name: 'Airborne', desc: 'Get 600 kills while in the air', stat: 'airKills', need: 600, upgrades: ['Overdrive'] },
+  { id: 'elite25', group: 0, name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ["Executioner's Hood"] },
   { id: 'melee1', group: 0, name: 'Close Work', desc: 'Get 400 melee kills', stat: 'meleeKills', need: 400, blades: ['Gunslinger Katana'] },
   { id: 'melee2', group: 0, name: 'Gravedigger', desc: 'Get 2,000 melee kills', stat: 'meleeKills', need: 2000, blades: ["Gravedigger's Shovel"] },
   { id: 'round5', group: 1, name: 'Still Standing', desc: 'Reach round 3', stat: 'bestRound', need: 3, guns: ['Fireworks Finale'] },
@@ -113,20 +113,20 @@ export const ACHIEVEMENTS = [
   { id: 'slots25', group: 2, name: 'Treasure Seeker', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Gold Rush'], skin: 'dealer' },
   { id: 'money100k', group: 2, name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
   { id: 'tier3', group: 2, name: 'Gunsmith', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, skin: 'pinstripe' },
-  { id: 'bench40', group: 2, name: 'Tinkerer', desc: 'Fit 40 workbench modifiers', stat: 'mods', need: 40, upgrades: ['Hex Bullets'] },
+  { id: 'bench40', group: 2, name: 'Tinkerer', desc: 'Fit 40 workbench modifiers', stat: 'mods', need: 40, upgrades: ["Storm Caller"] },
   { id: 'tonic60', group: 2, name: 'Snake Oil', desc: 'Drink 60 tonics', stat: 'tonics', need: 60, upgrades: ["Lich's Bargain"] },
   { id: 'master1', group: 2, name: 'Mastery', desc: 'Get two guns to level 5', stat: 'mastered', need: 2, skin: 'bone' },
   { id: 'master6', group: 2, name: 'Arsenal', desc: 'Get six guns to level 5', stat: 'mastered', need: 6, upgrades: ['Seventh Son'] },
   { id: 'win', group: 3, name: 'Town Tamer', desc: 'Clear Deadwater Gulch', stat: 'clear_gulch', need: 1, guns: ['Thunderhead'] },
   { id: 'win_mine', group: 3, name: 'Struck Gold', desc: 'Clear Blackwater Mine', stat: 'clear_mine', need: 1, upgrades: ['Gold Fever'] },
-  { id: 'win_frost', group: 3, name: 'End of the Line', desc: 'Clear Frostbite Junction', stat: 'clear_frost', need: 1, upgrades: ['Avalanche'] },
-  { id: 'win_bayou', group: 3, name: 'Last Rites', desc: 'Clear Mourning Bayou', stat: 'clear_bayou', need: 1, upgrades: ['Apex Predator'] },
+  { id: 'win_frost', group: 3, name: 'End of the Line', desc: 'Clear Frostbite Junction', stat: 'clear_frost', need: 1, upgrades: ["Winter's Halo"] },
+  { id: 'win_bayou', group: 3, name: 'Last Rites', desc: 'Clear Mourning Bayou', stat: 'clear_bayou', need: 1, upgrades: ["Guardian Angel"] },
   { id: 'win_carnival', group: 3, name: 'Final Curtain', desc: 'Clear Carnival of Ash', stat: 'clear_carnival', need: 1, upgrades: ['Master of Ceremonies'] },
-  { id: 'win_wharf', group: 3, name: 'Cut Down', desc: 'Clear Gallows Wharf', stat: 'clear_wharf', need: 1, upgrades: ["Hangman's Mask"] },
+  { id: 'win_wharf', group: 3, name: 'Cut Down', desc: 'Clear Gallows Wharf', stat: 'clear_wharf', need: 1, upgrades: ['Colossus'] },
   { id: 'maps3', group: 3, name: 'Globetrotter', desc: 'Clear three different maps', stat: 'mapsCleared', need: 3, skin: 'trail' },
   { id: 'maps6', group: 3, name: 'Polyshot', desc: 'Clear all six maps', stat: 'mapsCleared', need: 6, skin: 'frontier' },
   { id: 'hard1', group: 3, name: 'Hardened', desc: 'Clear any map on Hard or above', stat: 'hardClears', need: 1, upgrades: ['Unbroken'] },
-  { id: 'nm1', group: 3, name: 'Nightmare Fuel', desc: 'Clear any map on Nightmare', stat: 'nmClears', need: 1, upgrades: ['Vanguard'] },
+  { id: 'nm1', group: 3, name: 'Nightmare Fuel', desc: 'Clear any map on Nightmare', stat: 'nmClears', need: 1, upgrades: ["Treasure Hunter"] },
   { id: 'nm6', group: 3, name: 'No Rest for the Wicked', desc: 'Clear all six maps on Nightmare', stat: 'nmClears', need: 6, skin: 'nightmare' },
 ];
 
