@@ -84,7 +84,7 @@ export class Descent {
     const boss = this.isBossRoom();
     g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
     g.hud.roundFlash = 1;
-    if (room === 1) g.hud.toast('Clear the room. A workbench, a chest and the way on open when it is empty.', '#ffd24d');
+    if (room === 1) g.hud.toast('Clear the room. Enemies drop parts; a workbench to fit them and the way on open when it is empty.', '#ffd24d');
     this.station('AmmoCrate', S.ammo[0], S.ammo[1], S.ammoYaw, Math.round((350 + room * 45) / 10) * 10, -1, 'Ammo');
     this.guns.forEach((wi, k) => { const w = DATA.weapons[wi]; if (!w) return; const [x, y, yaw] = S.guns[k]; this.station('WallBuy', x, y, yaw, Math.round((w.wallCost > 0 ? w.wallCost : { Rare: 2600, Epic: 4200, Legendary: 6500 }[w.rarity] || 2000) / 10) * 10, wi, w.name, 130); });
     if (started) { Meta.roundStarted(room, g.map.id); P.onRoundStarted(room); }

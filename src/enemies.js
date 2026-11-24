@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { DATA, AFFIX, ENEMY_CREATURES, BOSS_CREATURES, zombieHealth, effRound, payScale, hexRGB, lerp3, lin, frandRange, randInt } from './data.js';
 import { Puppet } from './puppet.js';
+import { Body3D } from './body3d.js';
 
 const GRAV = 980 * 1.6;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -100,7 +101,7 @@ export class Enemy {
     if (this.elite) { tint = lerp3([1, 1, 1], this.accent(), 0.22); auraSize = 230; }
     if (this.isBoss) { auraSize = 300; aura = lin(1, 0.25, 0.1); }
     if (splitChild) tint = lerp3(tint, [0.75, 1, 0.6], 0.25);
-    this.puppet = new Puppet(creature, this.bodyScale, tint, aura, auraSize);
+    this.puppet = game.flatEnemies ? new Puppet(creature, this.bodyScale, tint, aura, auraSize) : new Body3D(creature, this.bodyScale, tint, aura, auraSize);
     this.ckind = game.fx.kindFor(this.puppet.atlas);
     // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
     { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
@@ -342,7 +343,7 @@ export class Enemy {
     this.puppet.shieldOn = this.shield > 0;
     this.puppet.tick(dt, this.feet(), {
       vel: this.vel, grounded: this.grounded, stagger: this.staggerT > 0, flying: this.ai === 'Flyer', crawler: this.ai === 'Crawler' || this.ai === 'Burrower',
-      faceToward: G.player.pos, windup: this.windup > 0 ? 1 : 0, lunge: this.lungeT > 0 ? 1 : 0,
+      faceToward: (this.dead ? null : G.net.targetOf(this).pos), windup: this.windup > 0 ? 1 : 0, lunge: this.lungeT > 0 ? 1 : 0,
       sink: this.burrowed ? 1 : this.emerge > 0 ? Math.pow(Math.min(1, Math.max(0, this.emerge / (this.isBoss ? 2 : 1.5))), 1.6) : 0, digging: this.emerge > 0 && !this.burrowed ? 1 : 0,
       frenzy: this.frenzyT > 0 ? 1 : 0, speedRef: Math.max(180, this.baseSpeed * 0.8),
     });

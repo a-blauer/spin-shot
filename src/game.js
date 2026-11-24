@@ -10,6 +10,7 @@ import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment, base as envBase } from './env.js';
 import { Fx } from './fx.js';
+import { bodies3dInit, bodies3dBegin, bodies3dEnd, bodies3dStats } from './body3d.js';
 import { ViewModel, vmSun } from './viewmodel.js';
 import { Enemy } from './enemies.js';
 import { Player } from './player.js';
@@ -50,6 +51,8 @@ export class Game {
 
   async build() {
     this.fx = new Fx(this, this.scene);
+    this.flatEnemies = (() => { try { return localStorage.getItem('dmh_flat') === '1'; } catch (e) { return false; } })();   // the old paper cut-outs, for anyone who wants them back
+    bodies3dInit(this.scene);
     this.env = new Environment(this.scene, this.fx.batches.fx);
     if (this.map.palette) { this.env.palette = this.map.palette; this.env.noSky = !!this.map.noSky; this.env.zone = 0; this.env.cur = this.map.palette(envBase(), 0); }
     this.world = new World(this.scene, this);
@@ -858,7 +861,9 @@ export class Game {
     for (const b of Object.values(B)) b.begin();
     this.env.drawSky(B.fx, cam.position);
     this.fx.draw();
+    bodies3dBegin();
     for (const E of this.enemies) E.draw(B);
+    bodies3dEnd(); this.b3 = bodies3dStats;
     this.projectiles.draw(B.add);
     this.pickups.draw(B.sprite, B.add);
     this.drawCable(B.add);

@@ -7,6 +7,7 @@ import { sprite, Cam, Atlas } from './render.js';
 
 let PARTS = null;
 export function setParts(p) { PARTS = p; }
+export const getParts = () => PARTS;
 
 const LayerStep = 0.9;
 const UP = new THREE.Vector3(0, 1, 0);
