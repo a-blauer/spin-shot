@@ -611,11 +611,12 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   pauseEl.querySelector('#prclr').onclick = () => { R.clear(); };
   // the main-menu song: chosen once, kept in this browser, played whenever the title screen or the lobby is up
   const mAudio = document.createElement('audio'); mAudio.loop = true; let mUrl = '', mFor = null;
+  const BUILT_IN = { url: 'menu_song.mp3', title: 'Lucky You' };   // the game's own menu song; a file the player picks takes its place
   const mName = pauseEl.querySelector('#pmenun'), mFile = pauseEl.querySelector('#pmenufile');
   const mSync = () => {
-    const S = R.menuSong; mName.textContent = S ? S.title : 'none chosen  -  pick a file and it plays on the main menu';
+    const S = R.menuSong || BUILT_IN; mName.textContent = R.menuSong ? R.menuSong.title : 'Lucky You (built in)  -  pick a file to use your own';
     const want = !!S && (title.style.display !== 'none' || lobby.style.display === 'block') && !document.hidden;
-    if (S !== mFor) { mAudio.pause(); if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = mUrl; mFor = S || null; }
+    if (S !== mFor) { mAudio.pause(); if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S && S.data ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = S && S.url ? S.url : mUrl; mFor = S || null; }
     mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.9));
     if (want) { if (mAudio.paused) mAudio.play().catch(() => { /* waits for the first click */ }); } else if (!mAudio.paused) mAudio.pause();
   };

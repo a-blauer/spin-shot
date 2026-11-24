@@ -10,6 +10,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const flat = (v) => new THREE.Vector3(v.x, 0, v.z);
 const safeN2 = (v) => { const f = flat(v); const l = f.length(); return l > 1e-4 ? f.divideScalar(l) : f.set(0, 0, 0); };
 const EyeYellow = [1, 0.93, 0.48];
+import { traitTick, traitMove, traitHit, traitDamage, traitDeath, traitSpit } from './traits.js';
 import { X_ATTACKS, mechX, hitX, deathX, attackX, thinkTotem } from './bossx.js';
 const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);
 // what the boss bar calls each move while it is winding up, so a fight reads as a set of things to answer
@@ -391,6 +392,7 @@ export class Enemy {
     let desired = new THREE.Vector3(), speedScale = 1;
     const los = dist < 2200 ? this.canSee(Pl) : false;
     const flow = (flee = false) => G.flowDirection(Me, flee, this.wide);
+    traitTick(this, dt, { P, Pl, To, dist, los });
     switch (this.ai) {
       case 'Flyer': {
         const goal = Pl.clone().add(new THREE.Vector3(0, 60 + 50 * Math.sin(this.life * 3), 0));
@@ -400,7 +402,7 @@ export class Enemy {
         if (dist < this.def.range + 40 && this.attackCd <= 0) {
           this.attackCd = this.def.cd;
           this.lungeT = 0.2;
-          P.receiveDamage(this.attackDamage, this, true, this.has('Frozen') ? 0.5 : 0, 2);
+          P.receiveDamage(this.attackDamage, this, true, this.has('Frozen') ? 0.5 : 0, 2); traitHit(this, P);
         }
         return;
       }
@@ -413,7 +415,7 @@ export class Enemy {
           this.windT -= dt;
           if (this.windT <= 0) {
             const aim = this.windAim.clone().add(new THREE.Vector3((Math.random() - 0.5) * 90, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 90));
-            if (this.ai === 'Spitter') this.fireAt(aim, 1050, 1, this.attackDamage, 70, 'Acid', [0.4, 1, 0.2], 1, 0);
+            if (this.ai === 'Spitter') { if (!traitSpit(this, aim)) this.fireAt(aim, 1050, 1, this.attackDamage, 70, 'Acid', [0.4, 1, 0.2], 1, 0); }
             else this.fireAt(aim, 760, 0, this.attackDamage, 0, 'Orb', lin(0.7, 0.3, 1), 1, 0);
           }
         } else if (los && dist < this.def.range && this.attackCd <= 0) {
@@ -482,8 +484,9 @@ export class Enemy {
         desired = los && dist < 800 && Math.abs(To.y) < 200 ? safeN2(To) : flow();
         break;
     }
+    [desired, speedScale] = traitMove(this, dt, { P, To, dist, los }, desired, speedScale);
     const reach = this.def.range * Math.max(1, this.bodyScale * 0.8);
-    if (!['Spitter', 'Priest', 'Gilded'].includes(this.ai) && dist < reach + 40 && this.attackCd <= 0) {
+    if (!['Spitter', 'Priest', 'Gilded'].includes(this.ai) && dist < reach + 40 && this.attackCd <= 0 && !(this.chT > 0) && !(this.chW > 0)) {
       // take turns: only two attackers (three from round 12, four from round 22) may be mid-swing on one target at a time
       const busy = G.enemies.reduce((n, e) => n + (e !== this && !e.dead && e.windup > 0 && e.swingAt === P ? 1 : 0), 0);
       if (busy >= (this.round >= 10 ? 4 : this.round >= 5 ? 3 : 2) || G.time - (P.lastSwingStart || -9) < 0.28) { this.attackCd = 0.25 + Math.random() * 0.35; return; }
@@ -542,13 +545,13 @@ export class Enemy {
       G.audio.playAt('S_Stomp', this.pos, 1);
       G.fx.ring(this.feet().add(new THREE.Vector3(0, 5, 0)), 320, lin(0.6, 0.45, 0.3), 0.35);
       if (dist < 320 && P.pos.y < this.pos.y + 150 && this.canSee(P.pos)) {
-        P.receiveDamage(this.attackDamage, this, true);
+        P.receiveDamage(this.attackDamage, this, true); traitHit(this, P);
         P.applyKnockback(safeN2(P.pos.clone().sub(this.pos)).multiplyScalar(700).add(new THREE.Vector3(0, 400, 0)));
       }
       return;
     }
     if (dist < reach && this.canSee(P.pos)) {   // no hitting through walls
-      P.receiveDamage(this.attackDamage * (this.ai === 'Bloater' ? 0.4 : 1), this, true, this.has('Frozen') ? 0.5 : 0, 2);
+      P.receiveDamage(this.attackDamage * (this.ai === 'Bloater' ? 0.4 : 1), this, true, this.has('Frozen') ? 0.5 : 0, 2); traitHit(this, P);
       if (this.has('Vampiric')) this.health = Math.min(this.maxHealth, this.health + this.maxHealth * 0.05);
     }
   }
@@ -615,6 +618,7 @@ export class Enemy {
     if (this.remote) return this.game.net.sendHit(this, amount, fromDir, headshot);
     if (this.finalInv > 0) return 0;
     if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } return 0; }
+    if (!this.isBoss && !this.remote) amount = traitDamage(this, amount);
     if (this.isBoss && this.boss.tier && amount < 1e8) { amount = hitX(this, amount, fromDir, headshot); if (amount <= 0) return 0; }
     this.netKiller = this._netHit || null;
     let dmg = amount;
@@ -697,6 +701,7 @@ export class Enemy {
     }
     this.vel.set(0, 0, 0);
     if (this.remote) return;   // mirrors only play the death; the host owns the consequences
+    if (!this.isBoss) traitDeath(this);
     if (this.ai === 'Bloater') {
       this.explode(330, this.attackDamage, lin(0.85, 0.95, 0.2));
       const caught = G.enemies.filter((E) => E !== this && !E.dead && E.pos.distanceTo(loc) < 330);

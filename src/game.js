@@ -1,5 +1,6 @@
 // Game mode (port of ADMHGameMode): rounds, spawning, nav flow field, zones & doors, casino nights,
 // drops and power-ups. Also owns every subsystem and the frame update order.
+import { traitsPlayerTick } from './traits.js';
 import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
@@ -726,6 +727,7 @@ export class Game {
     this.enemies = this.enemies.filter((E) => !E.remove);
     this.projectiles.update(dt);
     this.hazards.update(dt);
+    traitsPlayerTick(this, dt);
     this.pickups.update(dt);
     for (const I of this.interactables) I.update(dt);
     if (this.audio.radio) this.audio.radio.tick(dt);
