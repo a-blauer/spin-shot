@@ -277,7 +277,12 @@ export class Enemy {
     const G = this.game;
     if (this.dead) {
       this.deathAge += dt;
-      if (!this.gibbed) this.puppet.tick(dt, this.feet(), { vel: new THREE.Vector3(), grounded: true });
+      if (!this.gibbed) {
+        // a body shot out of the air drops to the floor instead of hanging there
+        if (this.dropTo === undefined) { const f = this.feet(), g = G.fx && G.fx.groundY ? G.fx.groundY(f, 3000) : -1e9; this.dropTo = g > -1e8 && f.y - g > 12 ? g + this.feetOffset : null; this.dropV = 0; }
+        if (this.dropTo !== null && this.pos.y > this.dropTo) { this.dropV += 2400 * dt; this.pos.y = Math.max(this.dropTo, this.pos.y - this.dropV * dt); }
+        this.puppet.tick(dt, this.feet(), { vel: new THREE.Vector3(), grounded: true });
+      }
       if (this.deathAge > (this.gibbed ? 0.1 : 1.6)) this.remove = true;
       return;
     }

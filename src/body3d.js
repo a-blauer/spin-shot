@@ -187,10 +187,11 @@ export function bodies3dStats() { let calls = 0, tris = 0, kinds = 0; for (const
 const _root = new THREE.Matrix4(), _m = new THREE.Matrix4(), _a = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _p = new THREE.Vector3();
 const interpTo = (cur, tgt, dt, speed) => cur + (tgt - cur) * Math.min(1, dt * speed);
 
+const BEASTS = new Set('TimberWolf Lion CinderHound Rat Bullfrog Skitterling Webspinner Scarab Scorpion TwinHound BroodMother Ironhide Carapace Toad Hydra Snapvine Devourer'.split(' '));
 export class Body3D extends Puppet {
   constructor(creature, scale, tint, aura, auraSize) {
     super(creature, scale, tint, aura, auraSize);
-    this.is3D = true; this.creature = creature; this.facing = 1;
+    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
     this.kind = SCENE && PARTS ? kindFor(creature) : null;
     if (!this.kind || !this.kind.some(Boolean)) { this.is3D = false; this.kind = null; return; }   // no art to sculpt from: stay a cut-out
     const B = this.parts.find((p) => p.role === 'Body') || this.parts[0];
@@ -220,19 +221,27 @@ export class Body3D extends Puppet {
     switch (P.role) {
       case 'LegFront': case 'LegBack': {
         if (S.flying) { pitch = 14 + Math.sin(T * 2 + P.phase) * 8; break; }
-        pitch = side * sw * 36 * st * amp; oz = Math.max(0, side * cw) * 9 * st;
+        pitch = side * sw * 27 * Math.min(st, 1.1) * Math.min(amp, 1.15); oz = Math.max(0, side * cw) * 9 * st;
         roll = side * Math.sin(T * 0.8 + this.seed) * 2 * (this.idle || 0);
         if (!S.grounded) pitch = side * 22;
-        if (S.crawler) { pitch = 55 + side * sw * 20 * Math.max(st, 0.2); }
         break;
       }
       case 'ArmFront': case 'ArmBack': {
         const reach = this.reach || 0, idle = this.idle || 0;
         // hanging at rest and swaying; up and groping forward on the chase; right back on the wind-up, then down hard
         pitch = -(reach * (58 + side * sw * 16 * amp + Math.sin(T * 2.3 + P.phase) * 6)) + Math.sin(T * 1.7 + P.phase) * 5 * idle + this.twitch * side * 12 * idle;
-        pitch = pitch * (1 - this.windup) + -150 * this.windup; pitch += this.lunge * 105;
+        if (this.beast) {   // four-footed and many-legged things: the front limbs are legs, so they stride, rear a little, then swipe
+          const L = Math.min(1, this.lunge);
+          pitch = -side * sw * 24 * Math.min(st, 1.1) + Math.sin(T * 1.7 + P.phase) * 3 * idle;
+          pitch = pitch * (1 - this.windup) + -42 * this.windup; pitch = pitch * (1 - L) + -78 * L;
+          roll = side * (this.windup * -8 + L * 4); oz = Math.max(0, -side * cw) * 7 * st;
+          if (this.dig > 0.01) pitch = pitch * (1 - this.dig) - (60 + Math.sin(T * 14 + P.phase) * 20) * this.dig;
+          sc = 1 + L * 0.1; break;
+        }
+        // back and overhead on the wind-up, then chopped down in front of the body (never swung behind it)
+        { const L = Math.min(1, this.lunge); pitch = pitch * (1 - this.windup) + -150 * this.windup; pitch = pitch * (1 - L) + -46 * L; }
         roll = side * (Math.sin(T * 0.9 + P.phase * 2 + this.seed) * 6 * idle - this.windup * 22 + this.lunge * 8);
-        if (S.crawler) { pitch = -(95 + Math.max(0, -side * sw) * 55 * Math.max(st, 0.25)); oz = Math.max(0, -side * sw) * 6; }
+        if (S.crawler && !this.hasLegs) { pitch = -(95 + Math.max(0, -side * sw) * 55 * Math.max(st, 0.25)); oz = Math.max(0, -side * sw) * 6; }
         if (S.flying) pitch = -20 + Math.sin(T * 3 + P.phase) * 12 - this.windup * 60 + this.lunge * 40;
         if (this.dig > 0.01) { pitch = pitch * (1 - this.dig) - (165 + Math.sin(T * 14 + P.phase) * 18) * this.dig; }
         sc = 1 + this.lunge * 0.18;
@@ -250,7 +259,7 @@ export class Body3D extends Puppet {
   rootMatrix() {
     const f = this.feet, s = this.baseScale;
     let pitch = (this.leanF || 0) * 9 + this.lunge * 8 - this.windup * 8 - this.hurtT * 11, roll = this.bodyRot * 0.45, drop = 0;
-    if (this.S && this.S.crawler) pitch += 8;
+    if (this.S && this.S.crawler && !this.hasLegs) pitch += 8;
     if (this.dying) { const A = Math.min(1, this.deathT / 0.34), e = 1 - (1 - A) * (1 - A); pitch += (this.fall || 1) * -86 * e; roll *= 1 - e; drop = this.deathT > 0.9 ? (this.deathT - 0.9) * 120 : -Math.sin(A * Math.PI) * 14; }
     _e.set(pitch * D2R, this.yaw3, roll * D2R, 'YXZ'); _q.setFromEuler(_e);
     _p.set(f.x, f.y + (this.offZ || 0) * s - drop, f.z);
