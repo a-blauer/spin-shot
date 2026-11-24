@@ -821,7 +821,7 @@ export class Player {
     if (this.meleeBuffer > 0 && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing();
   }
   meleeSpeed() { return 1 + 0.08 * (this.flow || 0) + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + honeSpeed(this.meleeTier || 0) + (this.wield ? 0.1 : 0); }
-  meleeRange() { return MELEE[this.meleeDef].range * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
+  meleeRange() { return MELEE[this.meleeDef].range * 1.4 * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
   // everything that multiplies a swing before the per-hit rolls: buffs, frenzy, honing, and having the blade in hand
   meleePower() { return (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + (this.wield ? 0.15 : 0) + this.stat('HealthMelee') * Math.max(0, this.maxHealth - 150) / 25) * honeDamage(this.meleeTier || 0); }
   meleeCleave() { return MELEE[this.meleeDef].cleave + this.stat('MeleeCleave') + honeCleave(this.meleeTier || 0); }
@@ -904,8 +904,8 @@ export class Player {
     this.game.vm.meleeSwing(W, step, Math.max(0.16, cd * 0.8));
     this.play('S_Dash', 0.5, (this.meleeHeavy ? 0.8 : 1.25) * Math.max(0.6, Math.min(1.25, 1.45 - W.cd)), 0.06);   // heavier weapons cut the air lower
     // step in toward the nearest target in front so swings connect
-    const T = this.meleeTargets(this.meleeRange() * 2.1, 60)[0];
-    if (T) { const d = flat(T.pos.clone().sub(this.pos)); const gap = d.length() - T.radius - this.meleeRange() * 0.7; if (gap > 0) { d.normalize(); this.vel.x += d.x * Math.min(650, gap * 7); this.vel.z += d.z * Math.min(650, gap * 7); } }
+    const T = this.meleeTargets(this.meleeRange() * 2.4, 70)[0];
+    if (T) { const d = flat(T.pos.clone().sub(this.pos)); const gap = d.length() - T.radius - this.meleeRange() * 0.7; if (gap > 0) { d.normalize(); this.vel.x += d.x * Math.min(950, gap * 8); this.vel.z += d.z * Math.min(950, gap * 8); } }   // a swing carries you in: a long step toward whatever is in front
     this.fovKick += this.meleeHeavy ? 5 : 2.5;
   }
   meleeStrike() {

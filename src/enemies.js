@@ -334,7 +334,7 @@ export class Enemy {
     this.puppet.groundY = this.groundY;
     this.puppet.shieldOn = this.shield > 0;
     this.puppet.tick(dt, this.feet(), {
-      vel: this.vel, grounded: this.grounded, flying: this.ai === 'Flyer', crawler: this.ai === 'Crawler' || this.ai === 'Burrower',
+      vel: this.vel, grounded: this.grounded, stagger: this.staggerT > 0, flying: this.ai === 'Flyer', crawler: this.ai === 'Crawler' || this.ai === 'Burrower',
       faceToward: G.player.pos, windup: this.windup > 0 ? 1 : 0, lunge: this.lungeT > 0 ? 1 : 0,
       sink: this.burrowed ? 1 : this.emerge > 0 ? Math.pow(Math.min(1, Math.max(0, this.emerge / (this.isBoss ? 2 : 1.5))), 1.6) : 0, digging: this.emerge > 0 && !this.burrowed ? 1 : 0,
       frenzy: this.frenzyT > 0 ? 1 : 0, speedRef: Math.max(180, this.baseSpeed * 0.8),

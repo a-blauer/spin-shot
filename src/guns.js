@@ -39,7 +39,7 @@ const FEEL_GUN = {
   'Copperhead': { pos: 0.55, rise: 0.5, side: 2.2, k: 420, cycle: 0.05, weight: 0.7, cam: { up: 0.2, snap: 0.35, side: 0.36, pat: 'zig', taper: 0.04 }, flash: 0.7 },
   'Sidewinders': { twin: true, reload: 'twin', side: 1.5, rise: 1.1, cycle: 0.08, cam: { up: 0.4, snap: 0.7, side: 0.42, pat: 'zig' }, flash: 0.8 },
   // --- SMGs
-  'Back-Alley': { side: 2.1, pos: 0.8, magDir: [0, -30, -8], rp: [6, -6, -34], cam: { up: 0.3, snap: 0.45, side: 0.46, pat: 'rand', taper: 0.03 }, rattle: 1 },
+  'Back-Alley': { cant: [-58, 5, -9.5], side: 2.1, pos: 0.8, magDir: [0, -30, -8], rp: [6, -6, -34], cam: { up: 0.3, snap: 0.45, side: 0.46, pat: 'rand', taper: 0.03 }, rattle: 1 },
   "Hornet's Nest": { pos: 0.45, rise: 0.3, side: 2.4, k: 440, d: 28, cycle: 0.045, charge: 'slap', cam: { up: 0.13, snap: 0.2, side: 0.24, pat: 'rand', taper: 0.02 }, flash: 0.7, flashTint: [1, 0.9, 0.4] },
   'Rustler': { pos: 0.45, rise: 0.35, side: 0.7, cam: { up: 0.22, snap: 0.25, side: 0.09, pat: 'right', taper: 0.08 }, flash: 0.3 },
   // --- rifles
@@ -54,7 +54,7 @@ const FEEL_GUN = {
   "Dragon's Breath": { action: 'pump', cycle: 0.36, shellAt: 0.5, supOn: 'pump', charge: 'pump', pos: 2.1, shake: 0.35, cam: { up: 1.7, snap: 2.3, side: 0.4, fov: 3.4 }, flash: 2.2, flashTint: [1, 0.55, 0.15] },
   // --- LMGs
   'Iron Mule': { pos: 0.9, rise: 0.6, side: 1.7, shake: 0.08, cycle: 0.09, cam: { up: 0.6, snap: 0.75, side: 0.3, pat: 'S', taper: 0.3 }, flash: 1.3 },
-  'Thresher': { pos: 0.35, rise: 0.15, side: 2.6, k: 300, shake: 0.07, weight: 2, action: 'crank', reload: 'drumtop', rp: [2, -20, 30], shell: 'rifle', spool: true, cam: { up: 0.05, snap: 0.2, side: 0.3, pat: 'rand' }, flash: 1.1 },
+  'Thresher': { cant: [-62, 6, -11.5], pos: 0.35, rise: 0.15, side: 2.6, k: 300, shake: 0.07, weight: 2, action: 'crank', reload: 'drumtop', rp: [2, -20, 30], shell: 'rifle', spool: true, cam: { up: 0.05, snap: 0.2, side: 0.3, pat: 'rand' }, flash: 1.1 },
   // --- snipers
   Widowmaker: { action: 'bolt', cycle: 0.72, shellAt: 0.42, cam: { up: 2.3, snap: 3.2, side: 0.2, fov: 4 } },
   'Railroad Spike': { pos: 3.4, rise: 0.6, k: 85, d: 11, shake: 0.6, weight: 1.7, action: 'pulse', shell: null, reload: 'cell', rp: [10, -16, 36], chargeUp: 0.28, cam: { up: 0.8, snap: 4.6, side: 0.1, fov: 6 }, flash: 1.8, flashTint: [0.55, 0.85, 1] },
@@ -65,10 +65,10 @@ const FEEL_GUN = {
   // --- energy
   'Tesla Coil': { side: 2.2, pos: 0.4, cam: { up: 0.1, snap: 0.3, side: 0.5, pat: 'rand' }, flash: 0.9 },
   "Will-o'-Wisp": { pos: 0.6, rise: 0.5, k: 200, d: 15, cam: { up: 0.25, snap: 0.6, side: 0.1 }, flash: 1 },
-  'Frostbite Beam': { pos: 0.12, rise: 0.08, side: 0.5, cam: { up: 0.01, snap: 0.02, side: 0.04, pat: 'S' }, flash: 0.6 },
+  'Frostbite Beam': { cant: [-60, 6, -11.5], pos: 0.12, rise: 0.08, side: 0.5, cam: { up: 0.01, snap: 0.02, side: 0.04, pat: 'S' }, flash: 0.6 },
   'Hellfire Hose': { pos: 0.2, rise: 0.1, side: 1.4, weight: 1.4, cam: { up: 0.03, snap: 0.04, side: 0.06, pat: 'rand' }, flash: 0 },
   // --- wonder weapons
-  Buzzsaw: { action: 'saw', cycle: 0.3, pos: 4, rise: 2, side: 3, shake: 0.12, reload: 'mag', rp: [10, -12, 34], charge: 'rev', weight: 1.3, cam: { up: 0.4, snap: 0.9, side: 0.5, pat: 'zig' }, flash: 0 },
+  Buzzsaw: { cant: [-60, 6, -10], action: 'saw', cycle: 0.3, pos: 4, rise: 2, side: 3, shake: 0.12, reload: 'mag', rp: [10, -12, 34], charge: 'rev', weight: 1.3, cam: { up: 0.4, snap: 0.9, side: 0.5, pat: 'zig' }, flash: 0 },
   'Thunderhead': { pos: 4, rise: 3.4, shake: 0.25, reload: 'charge', rp: [6, -22, 30], action: 'reels', cam: { up: 0.9, snap: 1.3, side: 0.25, fov: 2 }, flash: 1.4, flashTint: [1, 0.9, 0.45] },
   "Fan of Knives": { pos: 3, rise: 3.2, side: 1.6, reload: 'deck', rp: [16, -12, 24], cam: { up: 0.8, snap: 1.1, side: 0.3, pat: 'zig' }, flash: 0 },
   'Black Cat': { action: 'bolt', cycle: 0.66, shellAt: 0.42, shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', weight: 1.3, pos: 9, rise: 5.5, k: 150, d: 15, shake: 0.3, cam: { up: 1.4, snap: 2, side: 0.12, fov: 3 }, flash: 0.25 },

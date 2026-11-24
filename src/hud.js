@@ -327,7 +327,8 @@ export class Hud {
     const spreadPx = Math.tan(P.spreadDeg() * Math.PI / 180) / Math.tan(P.fov * Math.PI / 360) * (W / 2);
     const gap = (6 + spreadPx + P.crossKick * 9) * S / Math.max(S, 0.0001) * (S > 0 ? 1 : 1);
     const O = game.vm.optic, oa = O && !P.wield ? clamp((ads - 0.7) / 0.25, 0, 1) : 0;   // looking through an optic: its own reticle takes over
-    const len = 10 * S, a = (1 - ads * 0.85) * (1 - oa);
+    const noSight = game.vm.feel && (game.vm.feel.cant || game.vm.feel.twin);   // nothing to sight down: the crosshair stays
+    const len = 10 * S, a = noSight ? 1 : (1 - ads * 0.85) * (1 - oa);
     g.globalAlpha = a;
     const tick = (x0, y0, x1, y1) => { g.strokeStyle = INK; g.lineWidth = 5 * S; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = BONE; g.lineWidth = 2.4 * S; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
     const G2 = Math.max(gap, 5 * S);

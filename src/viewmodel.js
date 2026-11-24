@@ -706,10 +706,15 @@ export class ViewModel {
 
     // positions in UE-local terms (x fwd, y right, z up) then mapped
     const hipK = 1 - this.aimA, hip = f.hip || [0, 0, 0, 0, 0, 0];
-    const ads = this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
+    // A gun with something big on top of it (a drum, a tank, a saw arm) is not sighted down: it is rolled onto its side and
+    // held low and to the right, so the middle of the view is clear and the barrel still points where you look.
+    const cant = f.cant || null;
+    const ads = cant ? { X: 25, Y: cant[1], Z: cant[2] } : this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
     const hb = HIP_BIG[this.cls] || [0, 0, 0], hp = { X: HipPos.X + hb[0], Y: HipPos.Y + hb[1], Z: HipPos.Z + hb[2] };
     const pos = { X: hp.X + (ads.X - hp.X) * this.aimA, Y: hp.Y + (ads.Y - hp.Y) * this.aimA, Z: hp.Z + (ads.Z - hp.Z) * this.aimA };
-    const rot = { P: this.adsPose ? this.adsPose.P * this.aimA : 0, Y: 0, R: 0 };
+    const rot = { P: this.adsPose && !cant ? this.adsPose.P * this.aimA : 0, Y: cant ? (cant[3] || 0) * this.aimA : 0, R: cant ? cant[0] * this.aimA : 0 };
+    // a pair of pistols is held as a pair: one each side of the middle, at the hip and when aimed
+    if (this.feel.twin && this.A.twin) { const mid = -this.A.twin.userData.rest.x / 2; pos.Y = mid; pos.Z -= 1.4 * this.aimA; }
     const add = (x, y, z, k) => { pos.X += x * k; pos.Y += y * k; pos.Z += z * k; };
     const rel = { P: 0, Y: 0, R: 0 }; let relOn = false;   // how far a reload has turned the gun: the off hand does not turn with it
     const addR = (p, y, r, k) => { rot.P += p * k; rot.Y += y * k; rot.R += r * k; if (relOn) { rel.P += p * k; rel.Y += y * k; rel.R += r * k; } };

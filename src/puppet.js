@@ -82,6 +82,13 @@ export class Puppet {
     _toCam.set(Cam.pos.x - feet.x, 0, Cam.pos.z - feet.z);
     if (_toCam.lengthSq() < 1) _toCam.set(0, 0, 1);
     _toCam.normalize();
+    // It turns to face you, it is not pinned to you: up close, stepping round an enemy shows it coming round after you
+    // (slower still while it is reeling from a hit), never more than about fifty degrees behind.
+    { const want = Math.atan2(_toCam.x, _toCam.z); if (this.faceA === undefined) this.faceA = want;
+      let d = want - this.faceA; d = Math.atan2(Math.sin(d), Math.cos(d));
+      const step = (S && S.stagger ? 0.5 : 2.6) * dt; this.faceA += Math.max(-step, Math.min(step, d));
+      d = want - this.faceA; d = Math.atan2(Math.sin(d), Math.cos(d)); if (Math.abs(d) > 0.85) this.faceA = want - Math.sign(d) * 0.85;
+      _toCam.set(Math.sin(this.faceA), 0, Math.cos(this.faceA)); }
     _right.crossVectors(UP, _toCam); // = f x up with f = -toCam
     this.right = this.right || new THREE.Vector3(); this.right.copy(_right);
     this.toCam = this.toCam || new THREE.Vector3(); this.toCam.copy(_toCam);
