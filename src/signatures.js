@@ -11,6 +11,7 @@
 //   C.g      the gun's own state, kept on its slot       C.gen    how many links down a chain reaction we are
 import * as THREE from 'three';
 import { DATA } from './data.js';
+import { SIG2, sig2Tick, sig2Amp, sig2After } from './signatures2.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -294,7 +295,7 @@ export const SIG = {
     text: 'Reload with rounds left and the rest of the deck goes at once: three knives for every round still in it, in a wide fan. A bigger deck is a bigger throw.',
     play: 'Throw a few fans, then reload on purpose with the pack on top of you. Reload speed is your fire rate.', fav: ['Quick Hands', 'Extended Mag', 'Piercing Tip'], aff: { ReloadSpeed: 2, MagSize: 1.5 },
     reload(p, S, W, g) {
-      const n = S.ammo; if (n <= 0) return;
+      const n = S.ammo; if (n <= 0 || S.reserve <= 0) return;
       const G = p.game, k = Math.min(45, n * 3), dmg = W.dmg * (1 + 0.2 * S.tier);
       const muzzle = G.vm.muzzleWorld(), dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
       const up = new THREE.Vector3().setFromMatrixColumn(G.camera.matrixWorld, 1), prev = p.shotCtx;
@@ -319,6 +320,8 @@ export const SIG = {
   },
 };
 
+Object.assign(SIG, SIG2);   // the oddities: weapons that are not guns at all
+export const sigAmp = sig2Amp, sigAfter = sig2After;
 export const sigOf = (W) => (W && !globalThis.__nosig && SIG[W.name]) || null;   // __nosig: the test harness measures a gun with and without its rule
 // a gun's own running state lives on its slot and is thrown away when the slot holds a different gun
 export function sigState(S) { if (!S.sg || S.sg.def !== S.def) S.sg = { def: S.def }; return S.sg; }
@@ -335,6 +338,7 @@ export function sigTick(p, dt) {
     p.sgFxT = 0.22;
     for (const E of G.enemies) if (!E.dead && E.sgFrozen > G.time) G.fx.add({ pos: E.pos.clone().add(V3((Math.random() - 0.5) * 50, 20 + Math.random() * 90, (Math.random() - 0.5) * 50)), life: 0.4, size0: 50, size1: 90, rot: Math.random() * 360, c0: [0.85, 0.96, 1, 0.9], c1: [0.5, 0.8, 1, 0], fadeOut: 0.6, tex: 'FX_Snow', kind: 'add', glow: 1.6 });
   }
+  sig2Tick(p, dt);
   if (p.wield || p.slot.def < 0) return;
   const W = DATA.weapons[p.slot.def], sig = sigOf(W);
   if (sig && sig.tick) sig.tick(p, p.slot, W, sigState(p.slot), dt);

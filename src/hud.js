@@ -497,11 +497,12 @@ export class Hud {
     if (P.wield) return this.drawBlade(P, x, y, S);
     const mag = P.magSize(Sl);
     const low = Sl.ammo <= Math.max(2, Math.floor(mag / 4));
-    const rs = `/ ${Sl.reserve}`, rw = this.measure(rs, 34 * S, F_BIG);
-    this.text(rs, x, y, 34 * S, '#bdb3a2', 'right', F_BIG, 400, 0.12);
-    this.text(`${Sl.ammo}`, x - rw - 10 * S, y, 88 * S, Sl.ammo === 0 ? BLOOD : low ? '#ffb347' : BONE, 'right', F_BIG, 400, 0.1);
+    const sgA = sigOf(Wd), am = sgA && sgA.ammo ? sgA.ammo(P, Sl, Wd, sigState(Sl)) : null;   // weapons that are not fed by a magazine say what they run on
+    const rs = am ? am[1] : `/ ${Sl.reserve}`, rw = this.measure(rs, (am ? 20 : 34) * S, am ? F_TXT : F_BIG, am ? 700 : 400);
+    this.text(rs, x, y, (am ? 20 : 34) * S, '#bdb3a2', 'right', am ? F_TXT : F_BIG, am ? 700 : 400, 0.12);
+    this.text(am ? am[0] : `${Sl.ammo}`, x - rw - 10 * S, y, (am ? 70 : 88) * S, Sl.ammo === 0 ? BLOOD : low ? '#ffb347' : BONE, 'right', F_BIG, 400, 0.1);
     // mag pips
-    const n = Math.min(mag, 40), pw = Math.min(11 * S, (300 * S) / n), filledN = Math.round((Sl.ammo / mag) * n);
+    const n = am ? 0 : Math.min(mag, 40), pw = Math.min(11 * S, (300 * S) / n), filledN = Math.round((Sl.ammo / mag) * n);
     for (let i = 0; i < n; i++) {
       g.fillStyle = INK; g.fillRect(x - (i + 1) * pw - 1, y + 14 * S, pw, 16 * S);
       g.fillStyle = i < filledN ? (low ? '#ffb347' : BONE) : 'rgba(255,255,255,0.12)'; g.fillRect(x - (i + 1) * pw + 1, y + 16 * S, pw - 3 * S, 12 * S);
@@ -526,7 +527,12 @@ export class Hud {
     for (let i = 2; i >= 0; i--) { this.star(sx - 9 * S, y - 82 * S, 9 * S, i < Sl.tier ? '#ff73d9' : null); sx -= 22 * S; }
     this.text(Wd.cls.toUpperCase(), sx - 2 * S, y - 75 * S, 18 * S, 'rgba(242,232,213,0.8)', 'right', F_TXT, 700, 0.12);
     // the gun's signature, when it has something to say: under the crosshair, where you are already looking
-    { const sg = sigOf(Wd); if (sg) { const st = sg.hud ? sg.hud(P, Sl, Wd, sigState(Sl)) : null; if (st && !P.reloading) this.text(st[0], this.W / 2, this.H / 2 + 66 * S, 18 * S, st[1], 'center', F_TXT, 700, 0.1); } }
+    { const sg = sigOf(Wd); if (sg) { const st = sg.hud ? sg.hud(P, Sl, Wd, sigState(Sl)) : null; if (st && !P.reloading) this.text(st[0], this.W / 2, this.H / 2 + 66 * S, 18 * S, st[1], 'center', F_TXT, 700, 0.1);
+      const br = sg.bar && !P.reloading ? sg.bar(P, Sl, Wd, sigState(Sl)) : null;   // a meter for the weapons that are about timing: where you are, and the part of it that pays
+      if (br) { const bw = 150 * S, bx = this.W / 2 - bw / 2, by = this.H / 2 + 84 * S, bh = 9 * S; g.fillStyle = 'rgba(12,8,10,0.7)'; g.fillRect(bx - 2 * S, by - 2 * S, bw + 4 * S, bh + 4 * S);
+        g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(bx, by, bw, bh); g.fillStyle = 'rgba(255,205,90,0.55)'; g.fillRect(bx + bw * br.a, by, bw * (br.b - br.a), bh);
+        const hot = br.v >= br.a && br.v <= br.b; g.fillStyle = br.fill ? (hot ? '#ffcd5a' : br.col || '#e8dcc0') : 'rgba(0,0,0,0)'; if (br.fill) g.fillRect(bx, by, bw * Math.min(1, br.v), bh);
+        g.fillStyle = hot ? '#fff6c8' : '#f2e8d5'; g.fillRect(bx + bw * Math.min(1, br.v) - 2 * S, by - 4 * S, 4 * S, bh + 8 * S); } } }
     let status = '', sc = GOLD;
     if (P.reloading) status = 'RELOADING';
     else if (Sl.ammo === 0 && Sl.reserve === 0) { status = 'NO AMMO - BUY MORE'; sc = BLOOD; }

@@ -31,6 +31,7 @@ const FEEL_CLASS = {
   Launcher: { pos: 2.5, rise: 1, side: 0.6, k: 110, d: 12, shake: 0.45, weight: 1.6, hip: [-2, 0, -2, 0, -2, -6], action: 'load', cycle: 0.55, shell: null, reload: 'muzzle', rp: [30, -16, 16], cam: { up: 1.5, snap: 1.8, side: 0.3, fov: 3.5 }, flash: 1.6, draw: 'heavy' },
   Energy: { pos: 0.3, rise: 0.22, side: 0.8, k: 300, d: 24, shake: 0, weight: 1, hip: [0, 0, 0, 0, -1.5, -6], action: 'pulse', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.35, snap: 0.5, side: 0.2 }, flash: 1 },
   Wonder: { pos: 1, rise: 1, side: 1, k: 220, d: 18, shake: 0.15, weight: 1.1, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.5, snap: 0.5, side: 0.2 }, flash: 1 },
+  Oddity: { pos: 1, rise: 0.8, side: 0.8, k: 220, d: 18, shake: 0.1, weight: 1.1, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.5, snap: 0.6, side: 0.2 }, flash: 0 },
 };
 const FEEL_GUN = {
   // --- pistols
@@ -72,6 +73,32 @@ const FEEL_GUN = {
   'Thunderhead': { pos: 4, rise: 3.4, shake: 0.25, reload: 'charge', rp: [6, -22, 30], action: 'reels', cam: { up: 0.9, snap: 1.3, side: 0.25, fov: 2 }, flash: 1.4, flashTint: [1, 0.9, 0.45] },
   "Fan of Knives": { pos: 3, rise: 3.2, side: 1.6, reload: 'deck', rp: [16, -12, 24], cam: { up: 0.8, snap: 1.1, side: 0.3, pat: 'zig' }, flash: 0 },
   'Black Cat': { action: 'bolt', cycle: 0.66, shellAt: 0.42, shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', weight: 1.3, pos: 9, rise: 5.5, k: 150, d: 15, shake: 0.3, cam: { up: 1.4, snap: 2, side: 0.12, fov: 3 }, flash: 0.25 },
+  // --- oddities
+  'Come-Back Kid': { odd: true, pos: 2.6, rise: 2, side: 1.4, k: 160, weight: 0.8, cam: { up: 0.6, snap: 1.4, side: 0.4 } },
+  Whaler: { odd: true, pos: 3, rise: 1, k: 110, d: 12, shake: 0.4, weight: 1.6, cam: { up: 1.6, snap: 2.4, side: 0.2, fov: 3.5 } },
+  'Bear Trap': { odd: true, pos: 2.2, rise: 1.2, k: 130, shake: 0.3, weight: 1.5, cam: { up: 1.4, snap: 1.8, side: 0.3, fov: 2.5 } },
+  'Jack-in-the-Box': { odd: true, pos: 2, rise: 1.4, k: 140, shake: 0.25, weight: 1.3, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
+  'William Tell': { odd: true, pos: 2.2, rise: 0.6, k: 150, d: 14, shake: 0.2, weight: 1.2, cam: { up: 1, snap: 2, side: 0.15, fov: 3 } },
+  'Wrecking Ball': { odd: true, pos: 0.3, rise: 0.15, side: 1.6, weight: 2, cam: { up: 0.03, snap: 0.08, side: 0.1 } },
+  'Hall of Mirrors': { odd: true, pos: 1.2, rise: 0.5, k: 200, cam: { up: 0.5, snap: 1.1, side: 0.1, fov: 2 }, flash: 1.2, flashTint: [1, 0.5, 0.9] },
+  Calliope: { odd: true, pos: 2.4, rise: 1, k: 150, shake: 0.3, weight: 1.6, cam: { up: 1, snap: 1.6, side: 0.3, fov: 3 }, flash: 0.8, flashTint: [1, 0.9, 0.5] },
+  Lariat: { odd: true, pos: 1.6, rise: 1.2, weight: 0.8, cam: { up: 0.5, snap: 0.9, side: 0.3 } },
+  'Loaded Dice': { odd: true, pos: 2, rise: 1.6, k: 150, shake: 0.2, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
+  'House Edge': { odd: true, action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], pos: 0.5, rise: 0.4, side: 1.4, cam: { up: 0.22, snap: 0.3, side: 0.2, pat: 'rand', taper: 0.04 }, flash: 0.5, flashTint: [0.5, 1, 0.6] },
+  Sawbones: { odd: true, action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], lock: false, pos: 1.2, rise: 1.2, cam: { up: 0.8, snap: 1.1, side: 0.2 }, flash: 0.3 },
+  Tilt: { odd: true, pos: 2.2, rise: 1, k: 170, shake: 0.2, cam: { up: 0.8, snap: 1.4, side: 0.3, fov: 2 } },
+  Poltergeist: { odd: true, pos: 1.4, rise: 0.6, k: 180, shake: 0.15, cam: { up: 0.4, snap: 1, side: 0.3, fov: 2 }, flash: 0.9, flashTint: [0.6, 1, 0.85] },
+  Bullwhip: { odd: true, pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
+  'Live Wire': { odd: true, pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
+  Tumbleweed: { odd: true, pos: 2.4, rise: 1.2, k: 130, shake: 0.3, weight: 1.6, cam: { up: 1.2, snap: 1.6, side: 0.3, fov: 2.5 } },
+  Gusher: { odd: true, pos: 0.2, rise: 0.1, side: 1.4, weight: 1.5, cam: { up: 0.03, snap: 0.04, side: 0.06 } },
+  'Hocus Pocus': { odd: true, pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
+  "Dead Man's Hand": { odd: true, pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
+  'Barn Door': { odd: true, action: 'none', reload: 'mag', rp: [10, -10, 32], shell: null, pos: 2.2, weight: 1.9, cam: { up: 2, snap: 2.6, side: 0.4, fov: 3.2 }, flash: 1.6 },
+  'Old Faithful': { odd: true, pos: 0.25, rise: 0.1, side: 1, weight: 1.6, cam: { up: 0.03, snap: 0.05, side: 0.06 } },
+  'Homing Pigeon': { odd: true, pos: 1.8, rise: 1.2, k: 150, weight: 1.4, cam: { up: 0.9, snap: 1.3, side: 0.3, fov: 2 } },
+  'High Striker': { odd: true, pos: 5, rise: 4, side: 1, k: 120, d: 12, shake: 0.5, weight: 1.8, cam: { up: 1.6, snap: 3.4, side: 0.4, fov: 4 } },
+  'One-Armed Bandit': { odd: true, action: 'reels', shell: null, pos: 0.8, rise: 0.6, cam: { up: 0.36, snap: 0.42, side: 0.18, pat: 'S', taper: 0.07 }, flashTint: [1, 0.85, 0.4] },
 };
 export const gunFeel = (W) => {
   const f = Object.assign({ action: 'none', weight: 1, flash: 1 }, FEEL_CLASS[W.cls] || FEEL_CLASS.Rifle, FEEL_GUN[W.name] || {});
@@ -725,6 +752,382 @@ function buildGunWith(vm, W, tier, PAL) {
       Muzzle = V(72.5, 0, 8.2); Support = V(22, 0, 2.6); Sight = 13.6;
       break;
     }
+    // ============================================================ ODDITIES: weapons that are not guns
+    case 'Come-Back Kid': {
+      const wd = C(0xB8743A), wl = C(0xE0B070), paint = C(0xC8302A);
+      E([[-8, 4], [-8, 8.6], [10, 8.6], [14, 7], [14, 4]], 4.4, PAL.woodD, { bevel: 0.9 });                                  // carved thrower
+      E(rect(-9, 8.2, 12, 9), 4.8, PAL.brass, { bevel: 0.2 });
+      E([[10, 5], [30, 6.6], [30, 7.8], [10, 8]], 2.6, PAL.wood, { bevel: 0.5 });                                           // throwing arm
+      E([[28, 5.4], [33, 6], [33, 8.8], [28, 8.8]], 3.6, PAL.steelD, { bevel: 0.4 }); screw(30.5, 7, 3.6, 1);                // cradle
+      hideAds(() => { T(-6, 9, 1.4, 10.6, PAL.steelL); for (let i = 0; i < 8; i++) Ring(-5 + i * 1.8, 10.6, 2.8, 0.5, PAL.steelL); });   // throwing spring
+      stock(-8, 8.4, PAL.woodD, 15, 3.5, 8.4, 4);
+      grip(-2, 4.2, C(0x5a3a22), 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
+      vm.MagRoot = group(22, 0, 9.4);
+      into(vm.MagRoot, () => { for (const s of [-1, 1]) { B(2, s * 5.6, 0, 17, 4.2, 1.1, wd, R(0, s * 32, 0)); B(8.4, s * 9.6, 0.05, 5, 4.4, 1.2, paint, R(0, s * 32, 0)); B(2, s * 5.6, 0.62, 12, 1, 0.2, wl, R(0, s * 32, 0)); } Tz(-4.6, -0.7, 0.9, 5.4, PAL.brass); Tz(-4.6, 0.9, 1.1, 2.4, paint); });
+      Muzzle = V(36, 0, 9.4); Support = V(16, 0, 4.6); Sight = 12.8;
+      break;
+    }
+    case 'Whaler': {
+      const rope = C(0xC9B58A);
+      E([[-8, 3.6], [-8, 10], [16, 10], [18, 8.4], [18, 3.6]], 4.6, PAL.steelD, { bevel: 0.8 });
+      stock(-8, 9.6, PAL.wood, 20, 4.5, 9.6, 4.4);
+      Hol(18, 40, 5.4, 7.6, PAL.steel); Ring(21, 7.6, 6.2, 0.9, PAL.brass); Ring(38.6, 7.6, 6.4, 1, PAL.brass);            // launch tube
+      E([[18, 3.2], [34, 4.4], [34, 5.2], [18, 5.4]], 4, PAL.wood, { bevel: 0.8 });
+      Ty(11, 0.6, 8.6, 3.4, rope); both((s) => Ty(11, 0.6, 10, 0.5, PAL.brass, s * 1.9)); Ty(11, 0.6, 2, 4.6, PAL.steelL);    // line drum
+      hose([[14, 0, 3], [26, 0, 4.8], [41, 0, 6.2]], 0.7, rope);
+      vm.MagRoot = group(40, 0, 7.6);
+      into(vm.MagRoot, () => { T(-20, 14, 1.6, 0, PAL.steelL); Cone(17, 0, 3.4, 7, PAL.steelL); both((s) => B(11.4, s * 1.7, 0, 6, 0.5, 1.5, PAL.steelL, R(0, s * 20, 0))); B(11.4, 0, 1.7, 6, 1.5, 0.5, PAL.steelL, R(-20, 0, 0)); Ring(1, 0, 2.8, 0.6, PAL.brass); });
+      grip(-2, 3.8, PAL.woodD, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      post(36, 10.4, 2); notch(-4, 10);
+      Muzzle = V(60, 0, 7.6); Support = V(26, 0, 3); Sight = 12.6;
+      break;
+    }
+    case 'Bear Trap': {
+      const rust = C(0x6A3A26), jaw = (s) => { const o = []; for (let i = 0; i <= 8; i++) o.push([30 + i * 2, 7.4 + s * (i % 2 ? 5.4 + i * 0.25 : 2.6 + i * 0.3)]); o.push([46, 7.4 + s * 1.2], [30, 7.4 + s * 0.4]); return o; };
+      E([[-8, 3.6], [-8, 10.4], [14, 10.4], [14, 3.6]], 5.4, PAL.steelD, { bevel: 0.8 });
+      stock(-8, 10, PAL.woodD, 18, 4.5, 9.6, 4.4);
+      T(14, 30, 9.6, 7.4, rust); Ring(16, 7.4, 10.2, 1, PAL.steelD); Ring(28.4, 7.4, 10.2, 1, PAL.steelD); rivets(18, 27, 7.4, 9.6, 3, 1, PAL.steelL);
+      E(jaw(1), 7.4, PAL.steelL, { bevel: 0.2 }); E(jaw(-1), 7.4, PAL.steelL, { bevel: 0.2 });                               // sprung jaws, open
+      Ty(30.4, 7.4, 3.4, 9, PAL.steelD); Ty(38, 7.4, 4.6, 3.6, Accent, 0, 0.8);                                             // hinge and pan
+      for (let i = 0; i < 4; i++) Ring(31.4, 7.4, 4.2, 0.5, C(0x9a9aa2), 0, -3.4 + i * 0.5);
+      grip(-2, 3.8, PAL.woodD, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelD, 6.6, 4.4);
+      vm.MagRoot = group(6, 0, 3.6); into(vm.MagRoot, () => { for (let i = 0; i < 3; i++) { Ty(0, -0.8 - i * 1.9, 8.6, 1.1, PAL.steelL); Ty(0, -0.8 - i * 1.9, 3, 1.3, rust); } });
+      hideAds(() => E([[4, 10.4], [12, 10.4], [18, 15.4], [8, 15.4]], 1.6, PAL.steelD, { bevel: 0.4, holes: [[[7, 11.4], [12, 11.4], [16, 14.4], [9.4, 14.4]]] }));   // carry loop
+      Muzzle = V(47, 0, 7.4); Support = V(20, 0, 2); Sight = 17;
+      break;
+    }
+    case 'Jack-in-the-Box': {
+      const blue = C(0x2F4FA0), gold = C(0xE8C24A), red2 = C(0xA02A3A), face = C(0xF4EEE4);
+      E(rect(-6, 3.6, 16, 14), 8, blue, { bevel: 0.8 });                                                                    // the painted tin box
+      E(rect(-6.6, 13.2, 16.6, 14.6), 8.6, gold, { bevel: 0.3 }); E(rect(-6.6, 3, 16.6, 4.4), 8.6, gold, { bevel: 0.3 });
+      both((s) => { E(star(5, 8.8, 3.3), 0.3, gold, { y: s * 4.08, bevel: 0.05 }); E(rect(-4.6, 5.6, 14.6, 12), 0.2, C(0xD8402A), { y: s * 4.02, bevel: 0.05, holes: [rect(-3.8, 6.4, 13.8, 11.2)] }); });
+      Ty(-1, 9, 1.6, 3.4, PAL.steelL, 5.2); B(-1, 6.9, 7.2, 1, 0.9, 4.4, PAL.steelL); Ball(-1, 7.6, 5.2, 2.6, PAL.red);       // the crank
+      Hol(16, 27, 9.4, 9, Accent); Ring(27, 9, 10.4, 1.1, gold); Ring(17, 9, 10, 0.8, gold);
+      for (let i = 0; i < 5; i++) Ring(18.5 + i * 2.2, 9, 5.2, 0.7, PAL.steelL);                                             // the spring
+      part('emit', 32, 0, 9, () => { Ball(32, 0, 9, 7.6, face); Ball(35.6, 0, 8.6, 2.4, PAL.red, 0.7); both((s) => { Ball(34.8, s * 1.9, 10.6, 1.2, PAL.black); Ball(30.6, s * 3.7, 10.6, 3.6, C(0xF07A2A)); }); E([[34.2, 6.4], [35.8, 5.6], [34.8, 7]], 3, PAL.red, { bevel: 0.2 }); });
+      hideAds(() => { Pt(3, 31.4, 0, 15.4, 6.4, 6.4, 7.4, Accent); Ball(31.4, 0, 19.4, 2, gold, 1.2); });
+      E([[-6, 12], [-6, 6], [-18, 5], [-20, 6], [-20, 11], [-18, 12]], 5, red2, { bevel: 1 });
+      grip(-2, 3.8, red2, 11.4, 14, 5.4, 4); guard(0.6, 3.6, gold, 6.6, 4.4);
+      vm.MagRoot = group(6, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.6, -6.6, 3.6, 0), 5.4, blue, { bevel: 0.5 }); E(rect(-3.9, -1.2, 3.9, 0), 5.8, gold, { bevel: 0.2 }); });
+      Muzzle = V(37, 0, 9); Support = V(20, 0, 3); Sight = 16.2;
+      break;
+    }
+    case 'William Tell': {
+      const str = C(0xE8E0C8);
+      E([[-8, 4], [-8, 8.6], [34, 8.6], [36, 7.4], [34, 5.4], [10, 4.2]], 3.6, PAL.wood, { bevel: 0.9 });                     // the tiller
+      stock(-8, 8.4, PAL.woodD, 20, 4.5, 9, 4.2);
+      E(rect(-6, 8.6, 30, 9.2), 1.6, PAL.steelD, { bevel: 0.1 });
+      both((s) => { B(33, s * 8, 7.6, 3, 16.4, 1.7, PAL.steelD, R(0, s * 14, 0)); B(30.2, s * 17.6, 7.6, 2.4, 6, 1.4, PAL.steelL, R(0, s * 30, 0)); hose([[28.8, s * 20.2, 7.6], [4, s * 0.6, 9.5]], 0.36, str); Ball(28.8, s * 20.2, 7.6, 1.4, PAL.brass); });   // the prod and the string, drawn
+      T(4, 35, 0.9, 10, C(0x8a5a32)); Cone(37, 10, 1.9, 4.4, PAL.steelL); both((s) => B(7, s * 0.6, 10.5, 5, 0.3, 1.5, PAL.red)); B(7, 0, 11, 5, 0.3, 1.2, PAL.red);   // the bolt
+      E(rect(36, 3.6, 41.4, 11.4), 0.9, PAL.steelD, { bevel: 0.2, holes: [rect(37.2, 4.8, 40.2, 10.2)] });                  // stirrup
+      Ty(4, 9.5, 2.6, 2.6, PAL.brass); E([[2, 4.2], [15, 3.2], [15, 2.6], [2, 3.4]], 1.2, PAL.steelL, { bevel: 0.2 });       // nut and tickler
+      hideAds(() => { Ball(-3, 0, 11.4, 3.6, PAL.red); Tz(-3, 13, 13.9, 0.4, PAL.woodD); E([[-3, 13.4], [-1.4, 14.4], [-2.4, 13]], 0.3, C(0x4a8a3a), { bevel: 0.05 }); });   // the apple
+      grip(-2, 4.2, PAL.woodD, 10.4, 14, 5, 3.8); guard(0.6, 4, PAL.steelD, 6.4, 4.2);
+      vm.MagRoot = group(18, 0, 4.6); into(vm.MagRoot, () => { E(rect(-3, -7, 3, 0), 3.4, C(0x5a3a22), { bevel: 0.6 }); for (let i = 0; i < 3; i++) { Tz(-1.7 + i * 1.7, 0, 2.2, 0.7, C(0x8a5a32)); B(-1.7 + i * 1.7, 0, 2.4, 0.3, 1.2, 1.2, PAL.red); } });
+      post(34.4, 8.6, 2.6); notch(-5, 8.8);
+      Muzzle = V(41, 0, 10); Support = V(20, 0, 4); Sight = 11.9;
+      break;
+    }
+    case 'Wrecking Ball': {
+      const site = C(0xD8A020), iron = C(0x3A3C44);
+      E([[-8, 3.6], [-8, 11], [14, 11], [14, 3.6]], 6, site, { bevel: 0.9 });                                               // winch housing
+      for (let i = 0; i < 5; i++) both((s) => B(-5 + i * 4, s * 3.02, 7.2, 1.6, 0.1, 7, PAL.black, R(24, 0, 0)));              // hazard stripes
+      hideAds(() => { Ty(3, 14.2, 8.4, 4.6, PAL.steelD); both((s) => Ty(3, 14.2, 10.4, 0.6, PAL.steelL, s * 2.6)); Ty(3, 14.2, 2.4, 7, PAL.red); for (let i = 0; i < 4; i++) Ty(3, 14.2, 8.9, 0.5, PAL.steelL, -1.5 + i); hose([[6, 0, 17.6], [24, 0, 15], [40, 0, 13.2]], 1, PAL.steelL); });   // chain drum
+      E([[14, 4.6], [14, 9.6], [40, 12], [40, 9.8]], 3, site, { bevel: 0.5, holes: [[[17, 6.4], [17, 8.8], [25, 9.4]], [[27, 8.2], [27, 10], [36, 10.6]]] });   // the boom
+      Ty(40, 11, 4.4, 3.6, PAL.steelD); Ty(40, 11, 1.4, 4.4, PAL.steelL);
+      hose([[40, 0, 13.2], [42.2, 0, 11], [42.2, 0, 6.4]], 1, PAL.steelL);
+      part('emit', 42.2, 0, 1, () => { Ball(42.2, 0, 0.4, 11, iron); Tz(42.2, 5.2, 6.8, 2.4, PAL.steelD); Ball(40.4, -2.4, 3, 2.6, C(0x6a6e7a)); });
+      E([[-8, 10.4], [-8, 4.4], [-22, 4], [-24, 4.6], [-24, 9.8], [-22, 10.4]], 5, PAL.black, { bevel: 1, holes: [[[-11, 8.6], [-11, 6], [-20, 5.6], [-20, 8.6]]] });
+      grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelD, 6.6, 4.4);
+      vm.MagRoot = group(5, 0, 3.6); into(vm.MagRoot, () => { E(rect(-4, -6, 4, 0), 5, PAL.steelD, { bevel: 0.5 }); E(rect(-4.3, -3.6, 4.3, -2.2), 5.3, site, { bevel: 0.1 }); });
+      Muzzle = V(44, 0, 6); Support = V(22, 0, 5); Sight = 15.5;
+      break;
+    }
+    case 'Hall of Mirrors': {
+      const lac = C(0x3A2A4A), mir = C(0xDDEBFF), prism = C(0xFFD0F4); mir.metal = 1;
+      E([[-8, 3.6], [-8, 10.6], [12, 10.6], [16, 8.4], [16, 3.6]], 5.2, lac, { bevel: 1 });
+      E(rect(-9, 10, 13, 11.2), 5.8, PAL.brass, { bevel: 0.3 }); E(rect(-9, 3, 17, 4.2), 5.8, PAL.brass, { bevel: 0.3 });
+      both((s) => { E(star(2, 7.2, 2.6, 4, 0.4), 0.3, mir, { y: s * 2.66, bevel: 0.04 }); for (let i = 0; i < 3; i++) B(-5 + i * 1.4, s * 2.66, 7.2, 0.5, 0.1, 4.6 - i, Accent, null, 0.8); });
+      T(16, 34, 4.6, 7.4, PAL.brass); for (let i = 0; i < 3; i++) Ring(20 + i * 6, 7.4, 6.4, 0.8, Accent, 1.2);              // lens tube
+      hideAds(() => { B(40, 0, 11.7, 10, 6.4, 0.5, mir, R(-10, 0, 0)); B(40, 0, 12, 10.6, 7, 0.3, PAL.brass, R(-10, 0, 0)); B(35.6, 0, 12.2, 1.4, 3, 2.6, PAL.brass); });   // three mirrors round the prism
+      Ring(35.4, 7.4, 11.6, 1.2, PAL.brass); T(34, 36, 6, 7.4, PAL.brass);                                                  // the yoke that holds them
+      both((s) => { B(40, s * 5.2, 5.6, 10, 0.5, 6.4, mir, R(0, s * 12, 0)); B(40, s * 5.5, 5.6, 10.6, 0.3, 7, PAL.brass, R(0, s * 12, 0)); });
+      part('emit', 39, 0, 7.4, () => { Cone(41, 7.4, 5, 5, prism, true, 0, 2.4); Cone(36.4, 7.4, 5, 4.4, prism, false, 0, 2.4); });
+      stock(-8, 10, C(0x5A2A4A), 18, 4.5, 9.4, 4.4);
+      grip(-2, 3.8, C(0x2A1A34), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      vm.MagRoot = group(6, 0, 3.6); into(vm.MagRoot, () => { Tz(0, -7, 0, 5, Accent, 0, 1.6); Tz(0, -7.8, -7, 5.4, PAL.brass); Tz(0, -0.6, 0.4, 5.4, PAL.brass); });
+      Muzzle = V(45, 0, 7.4); Support = V(20, 0, 2.6); Sight = 15;
+      break;
+    }
+    case 'Calliope': {
+      const lacq = C(0x7A1F2A), cop = C(0xB87333);
+      E([[-8, 3.6], [-8, 11], [14, 11], [14, 3.6]], 6.4, lacq, { bevel: 0.9 });
+      E(rect(-9, 10.4, 15, 11.6), 7, PAL.brass, { bevel: 0.3 }); E(rect(-9, 3, 15, 4.2), 7, PAL.brass, { bevel: 0.3 });
+      for (let i = 0; i < 5; i++) { const y = (i - 2) * 1.5, len = 22 + (2 - Math.abs(i - 2)) * 7; Hol(14, 14 + len, 2.3, 7, PAL.brass, y * 1.3); Ring(14 + len - 0.6, 7, 2.8, 0.5, PAL.steelL, 0, y * 1.3); B(17, y * 1.3, 8.3, 2, 1.2, 0.3, PAL.black); }   // the front rank
+      for (let i = 0; i < 4; i++) { const y = (i - 1.5) * 1.9, len = 15 + (1.5 - Math.abs(i - 1.5)) * 6; Hol(14, 14 + len, 1.9, 9.6, cop, y); Ring(14 + len - 0.5, 9.6, 2.4, 0.4, PAL.steelL, 0, y); }   // the back rank, shorter
+      for (let i = 0; i < 8; i++) B(-5.6 + i * 2.3, 0, 11.9, 1.9, 4.6, 0.5, i % 3 === 1 ? PAL.black : PAL.bone);              // the keys
+      E(rect(12.6, 0.2, 17.4, 5.6), 4.6, PAL.brass, { bevel: 0.3 }); Tz(26, 4.8, 6.2, 1.4, PAL.brass); Tz(20, 4.8, 6.2, 1.4, PAL.brass);   // the boiler hangs from the body and feeds the ranks
+      T(16, 30, 5.6, 2.2, cop); Ball(16, 0, 2.2, 5.6, cop); Ball(30, 0, 2.2, 5.6, cop); Ring(23, 2.2, 6, 0.8, PAL.brass); Ty(23, 2.2, 3, 0.5, PAL.bone, 2.9);   // the boiler
+      hideAds(() => { Tz(8, 11.6, 15.6, 1.6, PAL.brass); Ball(8, 0, 16.2, 2.6, PAL.brass); });                              // steam whistle
+      for (let i = 0; i < 4; i++) E(rect(-20 + i * 3, 4.6 + (i % 2) * 0.5, -17.6 + i * 3, 10.2 - (i % 2) * 0.5), 5.4 - (i % 2) * 0.9, C(0x5a3a22), { bevel: 0.3 });   // bellows
+      E(rect(-22.4, 4.2, -20, 10.6), 5.8, lacq, { bevel: 0.4 });
+      grip(-2, 3.8, C(0x3a1418), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      vm.MagRoot = group(7, 0, 3.6); into(vm.MagRoot, () => { Tz(0, -7.4, 0, 5.4, cop); Tz(0, -8.2, -7.4, 5.8, PAL.brass); });
+      Muzzle = V(50.5, 0, 7.6); Support = V(23, 0, 0); Sight = 13.6;
+      break;
+    }
+    case 'Lariat': {
+      const rope = C(0xC9A56A), lea = C(0x6A4A2A);
+      E([[-8, 4], [-8, 9.6], [12, 9.6], [14, 8], [14, 4]], 4.4, PAL.wood, { bevel: 0.9 });
+      E(rect(-9, 9, 13, 10), 4.8, PAL.steelD, { bevel: 0.2 });
+      T(14, 30, 2.6, 7.4, PAL.steelD); Ring(16, 7.4, 3.8, 0.7, PAL.brass); Ring(29.4, 7.4, 3.8, 0.7, PAL.brass);
+      hideAds(() => { T(-3, 8.6, 2.4, 13.2, PAL.woodD); for (let i = 0; i < 7; i++) Ring(-2.4 + i * 1.55, 13.2, 6.4 - (i % 2) * 0.5, 1.3, rope); both((s) => Ring(-3.2 + s * 0 + (s > 0 ? 11.6 : 0), 13.2, 7.4, 0.7, PAL.brass)); });   // the coil
+      Ring(36, 7.4, 13.5, 1.1, rope); Ball(36, 0, 0.7, 2.2, rope); hose([[9, 0, 11.4], [20, 0, 9.4], [30, 0, 7.6], [36, 0, 1.4]], 0.9, rope);   // the loop, ready
+      E([[-8, 9.2], [-8, 4.6], [-20, 3.4], [-22, 4], [-22, 8.6], [-20, 9.2]], 4.2, lea, { bevel: 1 }); for (let i = 0; i < 4; i++) both((s) => Ball(-11 - i * 2.6, s * 2.14, 6.6, 0.8, PAL.brass));
+      grip(-2, 4.2, lea, 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
+      vm.MagRoot = group(6, 0, 4); into(vm.MagRoot, () => { for (let i = 0; i < 4; i++) Ty(0, -1.6 - i * 1.5, 6 - i * 0.3, 1.2, rope); });
+      Muzzle = V(37, 0, 7.4); Support = V(18, 0, 3.4); Sight = 11.4;
+      break;
+    }
+    case 'Loaded Dice': {
+      const felt = C(0x1F5A3A), lea = C(0x6A3A22), ivory = C(0xF4F0E6);
+      E([[-8, 3.6], [-8, 10.4], [12, 10.4], [12, 3.6]], 5, felt, { bevel: 0.9 });
+      E(rect(-9, 9.8, 13, 11), 5.6, PAL.brass, { bevel: 0.3 }); E(rect(-9, 3, 13, 4.2), 5.6, PAL.brass, { bevel: 0.3 });
+      T(12, 30, 10.6, 7.6, lea); Ring(13.6, 7.6, 11.2, 1, PAL.brass); Ring(29, 7.6, 11.4, 1.1, PAL.brass); T(29.6, 30.3, 9.2, 7.6, PAL.black);   // the cup
+      for (let i = 0; i < 6; i++) { const a = d2r(i * 60 + 30); Ball(21, Math.cos(a) * 5.3, 7.6 + Math.sin(a) * 5.3, 1, PAL.brass); }
+      part('emit', 32, 0, 7.6, () => { B(32.4, -2.4, 8.8, 4.6, 4.6, 4.6, ivory, R(12, 22, 8)); B(33, 2.6, 6, 4.6, 4.6, 4.6, ivory, R(-10, -25, 14)); Ball(34.9, -2.2, 9, 1.1, PAL.red); Ball(35.4, 2.2, 7, 0.9, PAL.black); Ball(35.2, 3.4, 5, 0.9, PAL.black); Ball(32.2, -2.6, 11.3, 0.9, PAL.black); });
+      both((s) => { B(2, s * 2.56, 7.2, 4.4, 0.1, 4.4, ivory); for (const [dx, dz] of [[-1.2, 1.2], [1.2, -1.2], [0, 0], [-1.2, -1.2], [1.2, 1.2]]) Ball(2 + dx, s * 2.64, 7.2 + dz, 0.8, PAL.black); });   // a five on each side
+      E([[-8, 10], [-8, 4.4], [-20, 4], [-22, 4.6], [-22, 9.4], [-20, 10]], 4.6, felt, { bevel: 1 });
+      grip(-2, 3.8, C(0x2A1A14), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      vm.MagRoot = group(4, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.4, -6.4, 3.4, 0), 4.4, C(0x7A1F2A), { bevel: 0.5 }); both((s) => Ball(0, s * 2.24, -3.2, 1.2, PAL.brass)); });
+      Muzzle = V(35, 0, 7.6); Support = V(20, 0, 2); Sight = 15;
+      break;
+    }
+    case 'House Edge': {
+      const felt = C(0x14532D), chips = [C(0xC8302A), C(0xF2F2F2), C(0x1F7A4A), C(0x1A1A1E), C(0x2A5AC8)];
+      E([[-8, 3.6], [-8, 10], [20, 10], [22, 8.4], [22, 3.6]], 4.6, felt, { bevel: 0.8 });
+      E(rect(-9, 9.4, 21, 10.6), 5, PAL.brass, { bevel: 0.25 }); E(rect(-9, 3, 23, 4.2), 5, PAL.brass, { bevel: 0.25 });
+      T(22, 33, 2.8, 7.4, PAL.steelD); T(30, 35, 4, 7.4, PAL.brass); B(35.1, 0, 7.4, 0.4, 3.2, 0.9, PAL.black);              // the barrel ends in a coin slot
+      both((s) => { Ty(12, 6.8, 6.2, 0.3, C(0x2A1A14), s * 2.36); Ty(12, 6.8, 4.6, 0.34, PAL.red, s * 2.4); Ty(12, 6.8, 1.6, 0.5, PAL.brass, s * 2.46); for (let i = 0; i < 6; i++) { const a = d2r(i * 60); Ball(12 + Math.cos(a) * 2.65, s * 2.5, 6.8 + Math.sin(a) * 2.65, 0.7, i % 2 ? PAL.bone : PAL.black); } });   // a roulette wheel on each side
+      hideAds(() => { for (let k = 0; k < 4; k++) { const a = d2r(k * 90 + 45); Tz(4 + Math.cos(a) * 2.7, 10.6, 20, 0.5, PAL.brass, Math.sin(a) * 2.7); } for (let i = 0; i < 8; i++) Tz(4, 10.9 + i * 1.08, 11.84 + i * 1.08, 4.7, chips[i % 5]); Tz(4, 20, 20.8, 5.8, PAL.brass); });   // the chip tube
+      Tz(4, 10.2, 10.9, 5.8, PAL.brass);
+      vm.MagRoot = group(16.5, 0, 3.6); into(vm.MagRoot, () => { E([[2.5, 0], [-2.5, 0], [-2, -6.2], [1.5, -6.2]], 3.4, PAL.black, { bevel: 0.8 }); E(rect(-2.2, -7, 1.7, -6.2), 3.8, PAL.brass, { bevel: 0.2 }); });
+      wireStock(-8, 7, PAL.steelD, 16, 7);
+      grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      post(31, 9.4, 1.8); notch(-5, 10.2);
+      Muzzle = V(35.6, 0, 7.4); Support = V(16.6, 0, -1); Sight = 11.4;
+      break;
+    }
+    case 'Sawbones': {
+      const glass = C(0xD8EEF2), blood = C(0xC8302A);
+      E([[-6, 3.4], [-6, 6.6], [13, 6.6], [13, 3.4]], 3.6, PAL.steelL, { bevel: 0.6 });                                     // nickel frame
+      T(-4, 16, 5.8, 9.4, glass, 0, 0.25); T(-3, 9, 4.7, 9.4, blood, 0, 0.9); T(9, 9.6, 4.9, 9.4, PAL.black);                // the syringe, and what is in it
+      for (let i = 0; i < 6; i++) Ring(-1 + i * 2.8, 9.4, 6, 0.22, PAL.steelD);
+      T(16, 18.6, 3.2, 9.4, PAL.steelL); T(18.6, 31, 0.7, 9.4, PAL.steelL); Cone(32, 9.4, 0.7, 2, PAL.steelL); Ring(16.3, 9.4, 6.2, 0.7, PAL.steelL);
+      B(-4.6, 0, 9.4, 0.9, 9, 1.6, PAL.steelL); hideAds(() => { T(-11, -4, 1.4, 9.4, PAL.steelL); Ring(-12.2, 9.4, 4.2, 0.9, PAL.steelL); });   // finger flange, plunger and thumb ring
+      both((s) => { B(5, s * 1.84, 5, 3.2, 0.1, 1, blood); B(5, s * 1.84, 5, 1, 0.1, 3.2, blood); });                        // the red cross
+      grip(-2, 3.6, PAL.bone, 10.4, 14, 5, 3.8); guard(0.6, 3.4, PAL.steelL, 6.4, 4.2);
+      vm.MagRoot = group(-3.4, 0, -4); into(vm.MagRoot, () => { Tz(0, -2, 0, 2.6, blood, 0, 0.6); Tz(0, -2.8, -2, 3, PAL.steelL); });
+      Muzzle = V(34, 0, 9.4); Support = V(-1, -4.5, -4); Sight = 13.8;
+      break;
+    }
+    case 'Tilt': {
+      const cab = C(0x2A2A6A), hot = C(0xFF4A8A), lit = C(0xFFE040);
+      E([[-8, 3.6], [-8, 10.4], [22, 10.4], [26, 8], [26, 3.6]], 5.6, cab, { bevel: 0.9 });
+      E(rect(-9, 3, 27, 4.2), 6.2, C(0xE8C24A), { bevel: 0.3 });
+      both((s) => { E(star(2, 7.2, 2.4), 0.3, hot, { y: s * 2.86, bevel: 0.04, glow: 0.6 }); Ty(13, 7.2, 5.4, 0.6, PAL.red, s * 2.9); Ty(13, 7.2, 3.4, 0.8, PAL.bone, s * 3); Ball(13, s * 3.3, 7.2, 1.8, lit, 1.6); Ty(21, 6.6, 3.6, 0.6, C(0x2A9AD8), s * 2.9); Ball(21, s * 3.2, 6.6, 1.3, lit, 1.6); });   // bumpers
+      Hol(-4, 34, 4.8, 12.8, C(0xCFE6F2)); Ball(9, 0, 12.8, 3.7, PAL.steelL); Ring(34, 12.8, 5.6, 0.9, PAL.steelL); Ring(-4, 12.8, 5.6, 0.9, PAL.steelL);   // the launch lane and a ball in it
+      hideAds(() => { T(-12, -4, 1.4, 12.8, PAL.steelL); Ball(-13, 0, 12.8, 3.4, PAL.black); for (let i = 0; i < 4; i++) Ring(-10.4 + i * 1.5, 12.8, 3, 0.5, PAL.steelL); });   // the plunger
+      E([[15, 3.8], [29, 1.2], [29.8, 2.6], [16, 5.4]], 2.6, PAL.red, { bevel: 0.7 }); Ty(16.4, 4.4, 2.2, 3.2, PAL.steelL);   // a flipper for a fore-grip
+      stock(-8, 10, C(0x1A1A44), 14, 4, 9, 4.4);
+      grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelL, 6.6, 4.4);
+      vm.MagRoot = group(7, 0, 3.6); into(vm.MagRoot, () => { E(rect(-5, -4.6, 5, 0), 3.8, C(0x1A1A44), { bevel: 0.4 }); for (let i = 0; i < 3; i++) Ball(-3 + i * 3, 0, -5, 3, PAL.steelL); });
+      Muzzle = V(35, 0, 12.8); Support = V(22, 0, 2.6); Sight = 17.8;
+      break;
+    }
+    case 'Poltergeist': {
+      const dusk = C(0x2A2030), ecto = C(0xBFF7EA);
+      E([[-8, 3.6], [-8, 10.4], [12, 10.4], [12, 3.6]], 5.4, dusk, { bevel: 1 });
+      E(rect(-9, 3, 13, 4.2), 6, PAL.brass, { bevel: 0.3 });
+      E([[-6, 10.4], [9, 10.4], [14, 11.5], [9, 12.6], [-6, 12.6]], 6.8, PAL.woodL, { bevel: 0.4 }); Tz(3, 12.6, 13, 3.4, PAL.brass); Tz(3, 12.9, 13.2, 2.4, Accent, 0, 1.6);   // a planchette for a top plate
+      T(12, 25, 7.8, 7.4, ecto, 0, 0.3); T(11.4, 12.6, 8.6, 7.4, PAL.brass); T(24.4, 25.6, 8.6, 7.4, PAL.brass);            // the jar
+      part('emit', 18.5, 0, 7.4, () => { Ball(18.5, 0, 7.4, 5.2, Accent, 2.6); Ball(20.6, 0, 8.6, 2.2, C(0xEAFFF8), 3); both((s) => Ball(19.6, s * 1.2, 7.8, 0.9, PAL.black)); });   // and who is in it
+      both((s) => E([[25.6, 6.6], [40, 6.9], [42.4, 7.4], [40, 7.9], [25.6, 8.2]], 0.9, PAL.steelL, { y: s * 2.6, bevel: 0.2, glow: 0.5 }));   // tuning-fork prongs
+      for (let i = 0; i < 3; i++) Ring(27.4 + i * 2, 7.4, 7 - i * 0.6, 0.6, C(0xC06A30));
+      hideAds(() => { Tz(-4, 12.6, 15.6, 1.6, PAL.bone); Ball(-4, 0, 16.5, 1.5, C(0xFFD060), 3); });                        // a candle
+      stock(-8, 10, C(0x3A2A20), 18, 5, 9.4, 4.4);
+      grip(-2, 3.8, PAL.bone, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      vm.MagRoot = group(5, 0, 3.6); into(vm.MagRoot, () => { Tz(0, -7, 0, 5, ecto, 0, 0.3); Tz(0, -6, -1, 3, Accent, 0, 2.2); Tz(0, -7.8, -7, 5.4, PAL.brass); });
+      Muzzle = V(43, 0, 7.4); Support = V(19, 0, 2.6); Sight = 14.4;
+      break;
+    }
+    case 'Bullwhip': {
+      const hide = C(0x6A4226), dark = C(0x3A2214), fall = C(0x9A7A4A), stockC = C(0x5A3520);
+      // the stock of the whip is what the fist is round: it runs up out of the hand, and the thong hangs coiled from the top of it
+      grip(-2, 4.2, stockC, 11.4, 14, 4.6, 3.8);
+      E([[-4.3, 4.2], [0.3, 4.2], [3.2, 13.4], [0, 14.4]], 3.4, stockC, { bevel: 1.1 });
+      for (let i = 0; i < 6; i++) { const t = i / 5; B(-1.9 + 3.4 * t, 0, 5.2 + 7.6 * t, 4.9 - 1.2 * t, 3.7 - 0.5 * t, 0.5, dark, R(-17, 0, 0)); }   // plaiting bands
+      Ball(-5.4, 0, -8.6, 4.2, PAL.brass); B(1.7, 0, 13.9, 3.6, 3.3, 1.2, PAL.brass, R(-17, 0, 0));                           // pommel and ferrule
+      const loop = [[1.9, 0, 14.4], [6, 0, 17.4], [13, 0, 17.6]]; for (let a = 80; a >= -470; a -= 30) { const k = (80 - a) / 550, r = 7.6 - k * 2; loop.push([19 + Math.cos(d2r(a)) * r, -1.4 + k * 2.8, 10 + Math.sin(d2r(a)) * r]); }
+      hose(loop, 1.5, hide); const L = loop[loop.length - 1]; hose([L, [L[0] + 3, L[1] + 0.3, L[2] - 4.6], [L[0] + 7, L[1] + 0.5, L[2] - 3]], 0.7, fall); Ball(L[0] + 7.4, L[1] + 0.5, L[2] - 2.8, 1.2, PAL.bone);   // the thong in coils, the fall and the cracker
+      hose([[-5.4, 0, -10.2], [-8.4, 0, -13.6], [-4.4, 0, -15.4], [-3, 0, -10.6]], 0.6, fall);                                // wrist loop
+      vm.MagRoot = group(0, 0, 0);
+      Muzzle = V(22, 0, 14); Support = V(-1, -4.5, -4); Sight = 19.4;
+      break;
+    }
+    case 'Live Wire': {
+      const cop = C(0xC8823A), jar = C(0x8FD0E8);
+      E([[-8, 3.6], [-8, 10], [14, 10], [14, 3.6]], 5.2, PAL.woodD, { bevel: 0.8 });
+      E(rect(-9, 9.4, 15, 10.6), 5.8, PAL.brass, { bevel: 0.3 }); E(rect(-9, 3, 15, 4.2), 5.8, PAL.brass, { bevel: 0.3 });
+      stock(-8, 9.6, PAL.wood, 18, 4.5, 9.4, 4.2);
+      Hol(14, 34, 4.8, 7.4, cop); for (let i = 0; i < 4; i++) Ring(17 + i * 5, 7.4, 6.2, 1.1, PAL.bone);                     // launch tube and its insulators
+      vm.MagRoot = group(34, 0, 7.4); into(vm.MagRoot, () => { T(-16, 12, 1.4, 0, cop); Cone(14.6, 0, 2.6, 6, Accent, true, 0, 2); Ball(-16, 0, 0, 3.4, Accent, 2.2); for (const x of [2, 6, 10]) Ring(x, 0, 2.6, 0.5, PAL.bone); });   // the rod
+      hideAds(() => { for (let i = 0; i < 2; i++) { Tz(-2 + i * 7, 10.6, 14.6, 4.4, jar, 0, 0.25); Tz(-2 + i * 7, 14.6, 15.4, 4.8, PAL.black); Tz(-2 + i * 7, 15.4, 16.4, 1, PAL.brass); Tz(-2 + i * 7, 11, 13.8, 1.2, cop, 0, 0.4); } hose([[-2, 0, 16.2], [1.5, 0, 17.6], [5, 0, 16.2]], 0.5, PAL.black); });   // battery jars
+      hose([[5, 2.2, 14], [10, 2.8, 11], [15, 2.6, 8]], 0.5, PAL.black);
+      grip(-2, 3.8, PAL.woodD, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      Muzzle = V(55, 0, 7.4); Support = V(22, 0, 2.6); Sight = 12.4;
+      break;
+    }
+    case 'Tumbleweed': {
+      const tan = C(0x8A6A3A), weed = C(0x6A5230);
+      E([[-8, 3.6], [-8, 10], [12, 10], [12, 3.6]], 5.4, tan, { bevel: 0.9 });
+      Ty(3, 7, 13, 6.6, PAL.steelD); Ty(3, 7, 5, 7.4, PAL.brass); both((s) => { for (let i = 0; i < 6; i++) { const a = d2r(i * 60); B(3 + Math.cos(a) * 4.4, s * 3.34, 7 + Math.sin(a) * 4.4, 2.4, 0.1, 0.8, PAL.black, R(i * 60, 0, 0)); } });   // the fan
+      Hol(12, 26, 8.2, 7.4, PAL.steelD); Cone(31, 7.4, 13.4, 9.6, tan, false); Ring(35.4, 7.4, 13.6, 1.1, PAL.brass); Ring(14, 7.4, 9, 0.9, PAL.brass);   // bell mouth
+      hideAds(() => { Tz(15, 11.2, 13, 5, PAL.steelD); part('emit', 15, 0, 17, () => { Ball(15, 0, 17, 7.6, weed); for (let i = 0; i < 6; i++) Pt(8, 15, 0, 17, 4.5, 8.8, 8.8, i % 2 ? Accent : C(0x7A6238), R(i * 31, i * 53, i * 17)); }); });   // one in the hopper
+      E([[-8, 9.6], [-8, 4.4], [-20, 4], [-22, 4.6], [-22, 9], [-20, 9.6]], 4.6, C(0x5A3A22), { bevel: 1 });
+      both((s) => B(-2, s * 2.74, 7, 1.4, 0.1, 6.6, C(0x5A3A22)));
+      grip(-2, 3.8, C(0x5A3A22), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      vm.MagRoot = group(8, 0, 3.4); into(vm.MagRoot, () => { Ball(0, 0, -4.4, 7.4, C(0xB89A5A)); Ring(0, -1, 3, 0.8, C(0x5A3A22)); });
+      Muzzle = V(36.5, 0, 7.4); Support = V(20, 0, 2.4); Sight = 15.6;
+      break;
+    }
+    case 'Gusher': {
+      const tank = C(0x1C1C20), body = C(0x3A3A40);
+      E([[-8, 3.6], [-8, 10], [16, 10], [16, 3.6]], 5.2, body, { bevel: 0.8 });
+      both((s) => { T(-6, 12, 6.6, 0.5, tank, s * 3.5); Ball(-6, s * 3.5, 0.5, 6.6, tank); Ball(12, s * 3.5, 0.5, 6.6, tank); Ring(0, 0.5, 7, 0.7, Accent, 0, s * 3.5); Ring(7, 0.5, 7, 0.7, Accent, 0, s * 3.5); }); E(rect(8, 1, 14, 4), 9, PAL.steelD, { bevel: 0.3 });   // crude tanks, strapped under
+      T(16, 40, 3.4, 7.4, PAL.steelD); T(16, 25, 5.2, 7.4, PAL.steel); Cone(42.2, 7.4, 5.6, 5, tank, false); Ball(44.8, 0, 5.4, 1.5, tank); Ball(44.6, 0, 3.4, 1, tank);   // the nozzle drips
+      hideAds(() => { Tz(8, 10, 13.4, 1.6, PAL.steelD);
+      part('lever', 8, 0, 13.4, () => { E([[-2, 13], [18, 14.4], [18, 15.6], [-2, 14.4]], 1.3, Accent, { bevel: 0.25 }); E([[18, 12.4], [20.4, 12.8], [21, 15.4], [18, 16]], 1.6, Accent, { bevel: 0.4 }); E(rect(-5, 12, -2, 15.6), 2.4, PAL.steelD, { bevel: 0.3 }); }); });   // the nodding donkey
+      hideAds(() => { for (const sx of [-1, 1]) for (const sy of [-1, 1]) hose([[-2 + sx * 4.4, sy * 2.3, 10], [-2 + sx * 0.8, sy * 0.5, 21]], 0.6, PAL.steelL); for (const z of [13, 16.6]) { const k = 1 - (z - 10) / 13; hose([[-2 - 4.4 * k, -2.3 * k, z], [-2 + 4.4 * k, -2.3 * k, z], [-2 + 4.4 * k, 2.3 * k, z], [-2 - 4.4 * k, 2.3 * k, z], [-2 - 4.4 * k, -2.3 * k, z]], 0.4, PAL.steelL); } B(-2, 0, 21.4, 2.6, 2, 0.8, PAL.steelD); });   // the derrick
+      E([[-8, 9.4], [-8, 4.6], [-20, 5], [-20, 9]], 4, PAL.steelD, { bevel: 0.8 });
+      grip(-2, 4.2, PAL.black, 11, 14, 5.4, 4); guard(0.6, 4, PAL.steelD, 6.6, 4.4);
+      vm.MagRoot = group(2, 0, -4.2); into(vm.MagRoot, () => Ty(0, 0, 3, 9.4, PAL.brass));
+      Muzzle = V(45, 0, 7.4); Support = V(26, 0, 4); Sight = 12.6;
+      break;
+    }
+    case 'Hocus Pocus': {
+      const silk = C(0x7A1F5A), white = C(0xF8F8F8), fur = C(0xF4F0F0), lac = C(0x2A1A34), gold = C(0xE8C24A);
+      E([[-8, 3.6], [-8, 8.6], [12, 8.6], [14, 7], [14, 3.6]], 4.6, lac, { bevel: 0.9 });                                    // a conjurer's box
+      E(rect(-9, 8, 13, 9.2), 5.2, gold, { bevel: 0.3 }); E(rect(-9, 3, 15, 4.2), 5.2, gold, { bevel: 0.3 });
+      both((s) => { E(star(3, 6.2, 1.9), 0.3, gold, { y: s * 2.36, bevel: 0.04, glow: 0.5 }); E(star(-3, 6.8, 1), 0.3, gold, { y: s * 2.36, bevel: 0.04 }); E(star(8.6, 5.6, 1), 0.3, gold, { y: s * 2.36, bevel: 0.04 }); });
+      T(14, 41, 1.9, 6.6, PAL.black); T(14, 17, 2.1, 6.6, white); T(36.6, 41.2, 2.1, 6.6, white, 0, 1.4);                    // the wand
+      part('emit', 43.4, 0, 6.6, () => { E(star(43.4, 6.6, 3.6), 0.7, C(0xFFE060), { bevel: 0.1, glow: 2.4 }); });
+      hideAds(() => {   // a top hat on the lid, and who lives in it
+        Tz(1, 9.2, 9.9, 13.4, PAL.black); Tz(1, 9.9, 16, 8.8, PAL.black); Tz(1, 10, 11.6, 9.1, Accent, 0, 0.8); Tz(1, 15.8, 16.1, 7.6, silk);
+        Ball(1, 0, 17.2, 5.4, fur); both((s) => { E([[-0.4, 19.4], [0.8, 26], [2.2, 19.4]], 1.1, fur, { y: s * 1.5, bevel: 0.3 }); E([[0.2, 20.2], [0.8, 24.6], [1.5, 20.2]], 0.3, C(0xF2A0B8), { y: s * 1.5 - 0.6, bevel: 0.05 }); Ball(-1, s * 1.6, 18, 0.9, PAL.black); }); Ball(-1.6, 0, 16.8, 1, C(0xF2A0B8));
+      });
+      E([[-8, 8.4], [-8, 4.4], [-18, 4], [-20, 4.6], [-20, 7.8], [-18, 8.4]], 4, lac, { bevel: 1 });
+      grip(-2, 3.8, lac, 11, 14, 5.2, 4); guard(0.6, 3.6, gold, 6.4, 4.2);
+      vm.MagRoot = group(5, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3, -5, 3, 0), 3, C(0xD03A6A), { bevel: 0.6 }); E(rect(-2, -7, 2, -5), 2.4, gold, { bevel: 0.5 }); });
+      Muzzle = V(45, 0, 6.6); Support = V(-1, -4.5, -4); Sight = 11.6;
+      break;
+    }
+    case "Dead Man's Hand": {
+      const ox = C(0x4A1F1F), card = C(0xF8F8F4);
+      E([[-8, 3.6], [-8, 9], [16, 9], [20, 6.6], [20, 3.6]], 5, PAL.black, { bevel: 0.8 });
+      E(rect(-9, 3, 21, 4.2), 5.6, PAL.brass, { bevel: 0.3 }); B(20.6, 0, 7.6, 0.7, 4.8, 1.2, PAL.brass);
+      E([[-6, 9], [-6, 13], [4, 13], [18, 10.4], [18, 9]], 5.6, ox, { bevel: 0.5 }); E([[-6.4, 12.4], [4.2, 12.4], [4.2, 13.4], [-6.4, 13.4]], 6, PAL.brass, { bevel: 0.2 });   // the dealing shoe
+      hideAds(() => { B(-1, 0, 13.6, 9, 4.6, 0.5, card); B(-1, 0, 13.9, 7.6, 3.6, 0.1, PAL.red); });
+      part('emit', 20, 0, 9.9, () => { B(21.4, 0, 9.9, 6.4, 4.4, 0.25, card, null, 0.5); B(21.4, 0, 10.05, 5, 3.4, 0.06, PAL.red); });   // the next card, half dealt
+      both((s) => { for (let i = 0; i < 5; i++) { B(3 + i * 1.7, s * 2.58, 6.3, 2.5, 0.06, 3.8, card, R((i - 2) * 9, 0, 0)); Ball(3 + i * 1.7, s * 2.66, 6.5, 0.8, i === 2 ? PAL.red : PAL.black); } });   // five up, on each side
+      grip(-2, 3.8, PAL.bone, 11, 16, 5.2, 4); both((s) => E(star(-4.4, -2, 1.3, 4, 0.5), 0.2, PAL.black, { y: s * 2.06, bevel: 0.03 })); guard(0.6, 3.6, PAL.brass, 6.4, 4.2);
+      vm.MagRoot = group(9, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3, -5.4, 3, 0), 4, card, { bevel: 0.3 }); E(rect(-3.2, -3.4, 3.2, -2.2), 4.2, PAL.red, { bevel: 0.1 }); });
+      Muzzle = V(25, 0, 9.9); Support = V(-1, -4.5, -4); Sight = 15.4;
+      break;
+    }
+    case 'Barn Door': {
+      const red2 = C(0xA0362A), wh = C(0xEDE6D6);
+      E([[-8, 4], [-8, 10], [14, 10], [14, 4]], 4.6, PAL.steelD, { bevel: 0.8 });
+      stock(-8, 9.6, PAL.wood, 20, 4.5, 9.6, 4.4);
+      T(14, 46, 3.6, 8.4, PAL.steelD); T(14, 40, 3, 5.2, PAL.steel); Ring(40, 6.8, 7.6, 0.8, PAL.steelL); crown(46.4, 8.4, 3.6);
+      E([[18, 3.4], [32, 3.4], [32, 6.6], [18, 6.6]], 4.6, PAL.wood, { bevel: 0.9 }); for (let i = 0; i < 5; i++) both((s) => B(20 + i * 2.6, s * 2.3, 5, 0.5, 0.14, 2.6, PAL.woodD));
+      E(rect(4, -7, 38, 21), 1, red2, { y: -6, bevel: 0.15 });                                                              // the door, on the off side
+      E(rect(4, -7, 38, 21), 1.4, wh, { y: -6, bevel: 0.1, holes: [rect(6, -5, 36, 19)] });
+      B(21, -6.75, 7, 42, 0.3, 2, wh, R(39, 0, 0)); B(21, -6.75, 7, 42, 0.3, 2, wh, R(-39, 0, 0)); B(21, -6.76, 7, 30, 0.3, 2, wh);
+      for (let i = 1; i < 6; i++) B(4 + i * 5.66, -6.56, 7, 0.3, 0.1, 27.6, C(0x7A2A20));
+      for (const z of [-2, 16]) { B(7, -6.8, z, 7, 0.3, 1.6, PAL.black); Ball(5, -7, z, 1.2, PAL.steelL); Ball(9, -7, z, 1.2, PAL.steelL); }   // strap hinges
+      Ty(16, 8.4, 1.3, 4.4, PAL.steelD, -3.6); Ty(30, 8.4, 1.3, 4.4, PAL.steelD, -3.6); Ty(16, 5.2, 1.3, 4.4, PAL.steelD, -3.6);
+      grip(-2, 4, PAL.woodD, 11.2, 14, 5.4, 4); guard(0.6, 4, PAL.steelD, 6.6, 4.4);
+      vm.MagRoot = group(8, 0, 4); into(vm.MagRoot, () => E([[3, 0.4], [-3, 0.4], [-3, -5], [3, -5]], 3.6, PAL.steelD, { bevel: 0.4 }));
+      post(44, 10.2, 1.6); notch(-4, 10);
+      Muzzle = V(46.8, 0, 8.4); Support = V(25, 0, 3); Sight = 11.9;
+      break;
+    }
+    case 'Old Faithful': {
+      const cop = C(0xB87333), steam = C(0xEAF6FF); cop.metal = 0.9;
+      T(-8, 14, 9.4, 7.6, cop); Ball(-8, 0, 7.6, 9.4, cop); Ball(14, 0, 7.6, 9.4, cop);                                         // the boiler
+      for (const x of [-5, 3, 11]) { Ring(x, 7.6, 9.9, 1, PAL.brass); for (let i = 0; i < 8; i++) { const a = d2r(i * 45 + 22); Ball(x, Math.cos(a) * 5.1, 7.6 + Math.sin(a) * 5.1, 0.8, PAL.steelL); } }
+      E(rect(-5, 0.6, 9, 3), 6, PAL.black, { bevel: 0.3 }); B(2, 0, 1.8, 10, 6.3, 0.9, C(0xFF7A2A), null, 1.8); for (let i = 0; i < 5; i++) B(-2 + i * 2, 0, 1.8, 0.5, 6.5, 1.3, PAL.black);   // the firebox
+      Ty(2, 8, 5, 0.7, PAL.brass, 4.7); Ty(2, 8, 4, 0.8, PAL.bone, 4.76); B(2.6, 5.2, 8.6, 0.3, 0.1, 2, PAL.red, R(30, 0, 0)); Ball(2, 5.2, 8, 0.7, PAL.black);   // the gauge, where you can see it
+      hideAds(() => { Tz(-3, 12, 17.4, 2.8, PAL.black); Tz(-3, 17.4, 18.4, 3.8, PAL.black); Tz(8, 12, 14.6, 1.4, PAL.brass); Ball(8, 0, 15.2, 2.4, PAL.brass); B(9.4, 0, 14.4, 3, 0.5, 0.5, PAL.brass); });   // stack and safety valve
+      T(14, 40, 2.8, 7.6, cop); Ring(22, 7.6, 4, 0.8, PAL.brass); Ring(32, 7.6, 4, 0.8, PAL.brass); Ty(27, 9.6, 3, 0.8, PAL.red); Tz(27, 7.6, 9.6, 0.8, PAL.brass);   // the pipe and its valve wheel
+      Cone(42, 7.6, 6.2, 5, PAL.brass, false); part('emit', 44.8, 0, 7.6, () => Ball(44.8, 0, 7.6, 2.6, steam, 1.6));
+      grip(-2, 3, PAL.woodD, 10.6, 14, 5.4, 4); guard(0.6, 2.8, PAL.brass, 6.6, 4.2);
+      E([[18, 6.6], [24, 6.6], [23.4, -0.6], [19.4, -0.6]], 3.4, PAL.woodD, { bevel: 0.9 });
+      vm.MagRoot = group(-12.6, 0, 6.6); into(vm.MagRoot, () => { T(-6, 0, 5, 0, C(0x8FD0E8), 0, 0.25); T(-7, -6, 5.4, 0, PAL.brass); T(0, 1, 2, 0, PAL.brass); });
+      Muzzle = V(45.2, 0, 7.6); Support = V(21.4, 0, 0.4); Sight = 13.6;
+      break;
+    }
+    case 'Homing Pigeon': {
+      const bird = C(0xB8BCC8), dark = C(0x8A90A4);
+      E([[-8, 3.6], [-8, 10], [13, 10], [13, 3.6]], 5, PAL.wood, { bevel: 0.9 });
+      E(rect(-9, 9.4, 14, 10.6), 5.6, PAL.brass, { bevel: 0.3 }); E(rect(-9, 3, 14, 4.2), 5.6, PAL.brass, { bevel: 0.3 });
+      stock(-8, 9.6, PAL.woodD, 18, 4.5, 9.4, 4.2);
+      Ring(13.6, 9, 13, 1.1, PAL.brass); Ring(23.4, 9, 12.7, 0.4, PAL.brass); Ring(33, 9, 13, 1, PAL.brass);                   // the cage
+      for (let k = 0; k < 8; k++) { const a = d2r(k * 45 + 22.5); T(13.6, 33, 0.36, 9 + Math.sin(a) * 6.2, PAL.brass, Math.cos(a) * 6.2); }
+      T(11, 13.6, 3, 7.6, PAL.brass);
+      T(15, 32, 0.8, 5.4, PAL.woodD);
+      vm.MagRoot = group(23, 0, 8.2); into(vm.MagRoot, () => { Pt(2, 0, 0, 0.4, 9.4, 6, 6.2, bird); Ball(5, 0, 3.4, 3.8, dark); Cone(7.6, 3.2, 1.1, 1.8, C(0xF0B030)); both((s) => { Ball(6.2, s * 1.3, 4, 0.7, C(0xE8502A)); B(-0.6, s * 3, 0.8, 6.4, 0.5, 3.6, C(0xE0E2EA)); }); B(-5.6, 0, 0.8, 4.4, 3, 0.6, dark); T(-3, 3, 1.7, -3, PAL.red); Ball(3.4, 0, -3, 0.9, C(0xFFE080), 3); });   // the bird, and its parcel
+      hideAds(() => { E([[20, 15], [26, 15], [25, 17.6], [21, 17.6]], 1.2, PAL.brass, { bevel: 0.3, holes: [[[21.4, 15.6], [24.6, 15.6], [24.2, 17], [21.8, 17]]] }); });
+      grip(-2, 3.8, PAL.woodD, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      Muzzle = V(34, 0, 9); Support = V(18, 0, 1.6); Sight = 17.2;
+      break;
+    }
+    case 'High Striker': {
+      const head = C(0x7A4528), paint = C(0xC8302A), white = C(0xF2ECE0);
+      E([[-8, 3.6], [-8, 9.6], [8, 9.6], [8, 3.6]], 5, paint, { bevel: 0.8 }); E(rect(-9, 3, 9, 4.2), 5.6, PAL.brass, { bevel: 0.3 });   // the base, with the strike pad on top of it
+      E(rect(-6, 9.6, 2, 10.6), 4, PAL.steelD, { bevel: 0.3 }); E(rect(-5, 10.6, 1, 11.2), 3.2, PAL.rubber, { bevel: 0.2 });
+      E([[8, 4.6], [8, 9.6], [44, 9.6], [44, 5.6]], 3.6, white, { bevel: 0.4 });                                              // the tower, laid along the barrel
+      for (let i = 0; i < 9; i++) both((s) => B(10 + i * 3.9, s * 1.84, 7.4, 1.9, 0.1, 4, i % 2 ? paint : white));
+      for (let i = 0; i < 8; i++) B(11 + i * 4.2, 0, 9.75, 0.5, 2.2, 0.2, i < 6 ? PAL.black : C(0xFFE040));                    // the scale
+      E(rect(8, 9.6, 44, 10), 1, PAL.steelD, { bevel: 0.05 }); part('bolt', 12, 0, 10.6, () => B(12, 0, 10.6, 2.4, 2.8, 1.2, PAL.steelL));   // the wire, and the puck that runs up it
+      E([[42, 9.6], [46, 9.6], [46, 10.6], [43.4, 10.6]], 1.4, PAL.steelD, { bevel: 0.3 }); Ball(44.8, 0, 13, 5, PAL.brass, 0.5); Tz(44.8, 10.4, 11.2, 2.2, PAL.steelD); Ball(44.8, 0, 10.6, 1.3, PAL.steelD);   // the bell, on its bracket
+      E([[-8, 9.6], [-6, 9.6], [-5, 12.4], [-7, 12.8]], 2.4, PAL.steelD, { bevel: 0.3 });                                     // hammer post
+      hideAds(() => part('hammer', -6, 0, 12.2, () => { E([[-7, 11.6], [-5, 11.6], [-2.4, 19.4], [-4.6, 20]], 1.8, PAL.wood, { bevel: 0.6 }); Ty(-3.2, 20.4, 5.2, 7, head); both((s) => Ty(-3.2, 20.4, 5.6, 0.9, PAL.steelD, s * 3.1)); Ty(-6, 12.2, 1.6, 3.4, PAL.steelL); }));   // the mallet, cocked
+      stock(-8, 9.2, PAL.woodD, 16, 4.5, 9.2, 4.2);
+      grip(-2, 3.8, C(0x3A2214), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
+      E([[20, 4.8], [28, 5], [27.4, -1.6], [21.4, -1.6]], 3.4, PAL.woodD, { bevel: 0.9 });                                     // a fore-grip under the tower
+      vm.MagRoot = group(3, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.4, -6, 3.4, 0), 4, paint, { bevel: 0.5 }); E(rect(-3.7, -1.4, 3.7, 0), 4.3, PAL.brass, { bevel: 0.2 }); });
+      Muzzle = V(47, 0, 7.4); Support = V(24.4, 0, -0.4); Sight = 18.6;
+      break;
+    }
+    case 'One-Armed Bandit': {
+      const gold = C(0xD8A83A), redc = C(0xB0262C); gold.metal = 1;
+      E([[-8, 3.6], [-8, 12], [-5, 13.4], [13, 13.4], [16, 12], [16, 3.6]], 6, redc, { bevel: 1.1 });                           // the cabinet
+      E(rect(-9, 3, 17, 4.6), 6.6, gold, { bevel: 0.4 }); E([[-5, 13.4], [13, 13.4], [11, 14.8], [-3, 14.8]], 5, gold, { bevel: 0.5, glow: 0.3 });
+      both((s) => E(rect(-4, 6.8, 12, 11.6), 0.4, C(0x10161F), { y: s * 3.1, bevel: 0.05 }));
+      const fruit = [C(0xE8302A), C(0xFFE040), C(0x4AC86A)];
+      for (let i = 0; i < 3; i++) part('reel' + i, -1 + i * 5, 0, 9.2, () => { both((s) => { Ty(-1 + i * 5, 9.2, 4.2, 0.3, PAL.bone, s * 3.32); Ball(-1 + i * 5, s * 3.4, 10.2, 1.7, fruit[i], 1.2); Ball(-1 + i * 5, s * 3.4, 8.2, 1.3, fruit[(i + 1) % 3], 1); }); });
+      hideAds(() => part('lever', -6, -4.2, 6.4, () => { Tz(-6, 6, 12.2, 1.1, PAL.steelL, -4.2); Ball(-6, -4.2, 13, 2.8, redc); })); Ty(-6, 6.4, 2.2, 1.4, gold, -3.8);
+      T(16, 44, 3, 8.6, PAL.steelD); E([[16, 5.4], [34, 6], [34, 11], [16, 11.4]], 4.2, PAL.black, { bevel: 0.8 }); slotsS(19, 33, 8.6, 4.2, 5, 1.6, 1.4, gold); T(44, 48.4, 4.2, 8.6, gold);
+      E([[4, 3.6], [12, 3.6], [13, 1.6], [3, 1.6]], 5.4, gold, { bevel: 0.3 });                                             // the payout tray
+      stock(-8, 11.4, PAL.woodD, 18, 6, 9.6, 4.6);
+      grip(-2, 3.8, C(0x55301C), 11.4, 14, 5.4, 4); guard(0.6, 3.6, gold, 6.6, 4.4);
+      vm.MagRoot = group(8, 0, 1.6); into(vm.MagRoot, () => { E([[3.6, 0.4], [-3.6, 0.4], [-4.4, -8], [2.8, -8]], 3.6, PAL.steelD, { bevel: 0.4 }); Ty(-0.8, -8.4, 3, 3.8, gold); });
+      post(42, 10, 4.4); notch(-4, 14.8);
+      Muzzle = V(48.6, 0, 8.6); Support = V(25, 0, 5); Sight = 16;
+      break;
+    }
     default: {
       autoPistol({ len: 15, slide: PAL.steel, frame: PAL.steelD, gripCol: PAL.wood }); pistolMag(4);
       Support = V(-1, -4.5, -4);
@@ -1219,7 +1622,7 @@ function buildGunWith(vm, W, tier, PAL) {
     }
     void M; void g;
   }
-  return { Sight, Muzzle, Eject, Support, twoHandPistol, Optic };
+  return { Sight, Muzzle, Eject, Support, twoHandPistol, Optic, SightExact: !!FEEL_GUN[N] && FEEL_GUN[N].odd === true };
 }
 
 // ---------------------------------------------------------------------------------------------- fitted parts

@@ -21,7 +21,7 @@ import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
 import { isCore, coreKind } from './cores.js';
-import { sigOf, sigState, sigProc, sigTick, sigDeath } from './signatures.js';
+import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -174,6 +174,7 @@ export class Player {
   startReload() {
     if (this.reloading) return;
     const S = this.slot;
+    if (S.def >= 0) { const W0 = DATA.weapons[S.def], sg = sigOf(W0); if (sg && sg.rkey && sg.rkey(this, S, W0, sigState(S)) === true) return; }
     if (S.def < 0 || S.ammo >= this.magSize(S) || S.reserve <= 0) return;
     { const W0 = DATA.weapons[S.def], sg = sigOf(W0); if (sg && sg.reload) sg.reload(this, S, W0, sigState(S)); }   // some guns do something with what is left in the magazine
     this.reloading = true;
@@ -1056,6 +1057,7 @@ export class Player {
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
     if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
+    { const sg = this.slot.def >= 0 && !this.wield ? sigOf(this.W) : null; if (sg && sg.hurt) { amount = sg.hurt(this, this.slot, this.W, sigState(this.slot), amount, source); if (!(amount > 0)) return; } }
     if (this.S.Bulwark && this.game.time > (this.bwT || 0)) {   // Scrap Plating: one blow in ten seconds rings off the plate, and the ring knocks them back
       this.bwT = this.game.time + Math.max(5, 11 - this.S.Bulwark); this.shockAround(400, this.power() * 0.8, [0.75, 0.82, 0.9]); this.play('S_Ricochet', 0.8, 0.7, 0.05);
       this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'DEFLECTED', [0.75, 0.85, 1], 1); return;
@@ -1218,6 +1220,8 @@ export class Player {
       else if (this.railT <= 0) { this.railT = 0; this.fireWeapon(); this.fireCd -= FL.chargeUp; }   // the charge is part of the cycle: the rate of fire is unchanged
       return;
     }
+    { const sgc = this.slot.def >= 0 && !this.wield ? sigOf(this.W) : null;   // drawn weapons: hold to draw, let go to loose
+      if (sgc && sgc.charge) { if (sgc.charge(this, this.slot, this.W, sigState(this.slot), dt, trig && this.fireCd <= 0 && this.slot.ammo > 0 && this.game.vm.switchT <= 0.05)) this.fireWeapon(); return; } }
     if (!this.fireHeld || this.inMenu() || this.dead) return;
     // a gun that fires once per pull keeps firing while the trigger is held, at half its rate: tap for full speed, hold to rest the finger
     if (!this.W.auto && !(this.stat('FullAuto') > 0) && this.fireConsumed) {
@@ -1234,7 +1238,10 @@ export class Player {
     const S = this.slot;
     if (S.def < 0 || this.reloading) return;
     const G = this.game, W = DATA.weapons[S.def];
-    if (!echo && S.ammo <= 0) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
+    const sig0 = sigOf(W), free = !!(sig0 && sig0.free);   // some weapons are not fed by a magazine at all
+    if (echo && sig0 && sig0.fire) return;
+    if (!echo && sig0 && sig0.can && sig0.can(this, S, W, sigState(S)) === false) { this.fireCd = Math.max(this.fireCd, 0.12); return; }
+    if (!echo && S.ammo <= 0 && !free) { this.startReload(); this.fireCd = 0.2; if (S.reserve <= 0) this.play('S_Dry', 0.6); return; }
     if (!echo && this.aiming && S.altCd <= 0 && this.altKind() && this.fireAlt(S, W)) return;   // aiming down the sights fires the gun's alt mode when it is ready
     // how long the trigger has been worked without a real pause: Hair Trigger speeds up on it, Overclock heats up on it
     if (!echo) { const gap = G.time - (this.lastShotAt || -9); this.sustain = gap < Math.max(0.35, 2 / W.rate) ? (this.sustain || 0) + gap : 0; this.lastShotAt = G.time; }
@@ -1248,7 +1255,7 @@ export class Player {
     if (sig && sig.shot && !echo) sig.shot(this, S, W, sg, C);
     const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
-    if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
+    if (!echo) { this.fireCd = 1 / rate; if (!free && this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(this.game.descent ? 6 : 2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
     let pellets = W.pellets + Math.floor(multi);
     if (Math.random() < multi - Math.floor(multi)) pellets++;
@@ -1275,7 +1282,7 @@ export class Player {
     let projDir = aim.clone().sub(muzzle).normalize();
     if (projDir.dot(baseDir) < 0.5) projDir = baseDir.clone();
     const spread = this.deadeyeT > 0 ? 0 : this.spreadDeg() * D2R;
-    const continuous = W.mode === 'Beam' || W.mode === 'Flame';
+    const continuous = W.mode === 'Beam' || W.mode === 'Flame' || !!W.cont;
     const procCoef = continuous ? 0.25 : 1 / Math.max(1, pellets);
     let tracer = lerp3(hexRGB(W.color), [1, 0.96, 0.8], 0.5);
     if (S.tier > 0) tracer = lerp3(tracer, [1, 0.6, 0.95], 0.5);
@@ -1288,7 +1295,9 @@ export class Player {
     }
     if (!echo && this.S.LightBolt) { this.boltN = (this.boltN || 0) + 1; if (this.boltN % 4 === 0 && this.health >= this.maxHealth * 0.9) this.lightBolt(eye, baseDir, muzzle); }
     if (C.tracer) tracer = C.tracer;
-    for (let p = 0; p < pellets; p++) {
+    // a weapon that is not a gun does its own thing here
+    if (sig && sig.fire) sig.fire(this, S, W, sg, C, { muzzle, eye, dir: baseDir, pdir: projDir, aim, damage, pierce, procCoef, tracer, spread, pellets });
+    else for (let p = 0; p < pellets; p++) {
       const dmgP = p < own || (sig && sig.fullMulti) ? damage : damage * 0.5;
       const dir = spread > 0 ? vrandCone(baseDir, spread) : baseDir.clone();
       let pdir = spread > 0 ? vrandCone(projDir, spread) : projDir.clone();
@@ -1349,7 +1358,9 @@ export class Player {
     this.game.vm.fire(kick, continuous);
     // every gun has its own synthesized voice (gunsound.js); held beams and hoses tick quietly instead of blasting
     this.shotSeq = ((this.shotSeq || 0) + 1) % 100000;   // teammates see and hear this shot
-    if (!continuous || Math.random() < 0.3) gunSound(this.game.audio, W.name, 1, continuous);
+    const sgS = sigOf(W);
+    if (sgS && sgS.snd) { if (!continuous || Math.random() < 0.3) this.play(sgS.snd[0], sgS.snd[1], sgS.snd[2], 0.06); }
+    else if (!continuous || Math.random() < 0.3) gunSound(this.game.audio, W.name, 1, continuous);
     const S = this.slot;
     if (S.ammo > 0 && S.ammo <= Math.max(2, Math.floor(this.magSize(S) / 6))) this.play('S_Dry', 0.35, 1.4);
   }
@@ -1455,11 +1466,12 @@ export class Player {
   fireProjectile(start, dir, damage, procCoef, W) {
     let kind = 'Orb', radius = 13;
     if (W.mode === 'Rocket') { kind = 'Rocket'; radius = 12; } else if (W.mode === 'Grenade') { kind = 'Grenade'; radius = 12; } else if (W.mode === 'Saw') { kind = 'Saw'; radius = 18; } else if (W.cls === 'Wonder') kind = 'Card';
+    if (W.pk) kind = W.pk;
     const o = { pos: start.clone(), vel: dir.clone().multiplyScalar(W.projSpeed), damage, splash: W.splash > 0 ? W.splash * (1 + this.stat('ExplosionRadius')) * ((this.shotCtx && this.shotCtx.splashMul) || 1) : 0, sx: this.shotCtx || null,
       pierce: W.pierce + Math.round(this.stat('Pierce')) + (this.shotCtx ? this.shotCtx.pierce || 0 : 0), burn: W.burn, slow: W.slow, chains: W.chains, moneyPerHit: W.moneyPerHit, critBonus: W.critBonus, procCoef, life: 5, kind, radius, color: hexRGB(W.color) };
     if (kind === 'Grenade') Object.assign(o, { gravity: 1, bounces: 3, bounceDamp: 0.5, fuse: 1.4 }), o.vel.y += 260;
     else if (kind === 'Saw') { const sg = sigOf(W); Object.assign(o, { bounces: 5 + (sg && sg.sawBounces ? sg.sawBounces(this) : 0), bounceDamp: 1, life: 3 }); if (o.bounces > 5) o.life = 3 + 0.4 * (o.bounces - 5); }
-    this.game.projectiles.spawn(o);
+    return this.game.projectiles.spawn(o);
   }
   damageMult(E) {
     let m = 1 + this.stat('Damage') + this.rage;
@@ -1513,7 +1525,8 @@ export class Player {
     const fresh = E.health >= E.maxHealth * 0.9;
     let dmg = base * mult;
     if (SG && SG.pre) dmg *= SG.pre(this, E, C, sgG);
-    if (E.sgFrozen > G.time && !(SG && SG.frost)) dmg *= 1 + (E.sgFrozenAmt || 1);   // frozen solid: everything but the beam that froze it hits double
+    if (E.sgFrozen > G.time && !(SG && SG.frost)) dmg *= 1 + (E.sgFrozenAmt || 1);
+    dmg *= sigAmp(this, E, SG);   // frozen solid: everything but the beam that froze it hits double
     if (crit) dmg *= 2 + this.stat('CritDamage');
     const head = headshot && !fromProc;
     if (head) dmg *= 1.75 + this.stat('HeadshotDamage');
@@ -1527,6 +1540,7 @@ export class Player {
     if (dealt <= 0) return 0;
     if (!fromProc && this.procDepth < 1) buildHit(this, E, at, dealt, crit, head);
     const killed = E.dead;
+    sigAfter(this, E, dealt, killed, dir);
     if (C) { C.hits++; if (SG) { const h = { dealt, crit, head, killed, at, dir }; if (SG.post) SG.post(this, E, C, sgG, h); if (killed && SG.kill) { E.sgKilled = true; SG.kill(this, E, C, sgG, h); } else if (!killed) E.sgLast = { C, t: G.time }; } }
     // bullets shove what they hit: a stumble back in proportion to the damage, and a short freeze on a kill
     if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {

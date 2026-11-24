@@ -330,12 +330,15 @@ export class ViewModel {
     // long tools are swung with both hands: the second closes on the haft further up (only with the blade drawn; a quick swing is one-handed)
     const TWO = { bat: 2.3, katana: 2.2, sledge: 3.6, shovel: 3.8 }[W.model] || 0;
     if (TWO) {
-      this.mhand2 = fistOn(tool, TWO / 0.62, 0.96 / 0.62);
+      // A right-hander's strong hand goes on top: with both hands on, the weapon slides down through the right fist and the
+      // left closes on the butt end below it. (Hafts only: a sword's grip is too short to give up that much.)
+      this.mTwoDrop = ['bat', 'sledge', 'shovel'].includes(W.model) ? TWO / 0.62 : 0;
+      this.mhand2 = fistOn(tool, this.mTwoDrop ? -this.mTwoDrop : TWO / 0.62, 0.96 / 0.62);
       // its arm is not part of the tool: it is strung each frame from the left shoulder to wherever that fist is, so it
       // reads as an arm in every pose
       const a2 = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.5, 1, 10), M(sk.sleeve)); g.add(a2); this.marm2 = a2;
       const c2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.3, 10), M(sk.cuff)); g.add(c2); this.mcuff2 = c2;
-    } else { this.mhand2 = null; this.marm2 = null; this.mcuff2 = null; }
+    } else { this.mhand2 = null; this.marm2 = null; this.mcuff2 = null; this.mTwoDrop = 0; }
     this.mModel = W.model || 'shovel';
     const fore = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.5, ARM * 0.5, 10), M(sk.sleeve)); fore.rotation.x = Math.PI / 2; fore.position.set(0, 0, -ARM * 0.72); pivot.add(fore);
     const upper = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, ARM * 0.6, 10), M(sk.sleeve)); upper.rotation.x = Math.PI / 2; upper.position.set(0, 0, -ARM * 0.25); pivot.add(upper);
@@ -348,7 +351,9 @@ export class ViewModel {
   // string the second arm from the off-side shoulder to the second fist (view space)
   meleeArm2() {
     const F = this.mhand2, A = this.marm2, C = this.mcuff2; if (!A) return;
-    const on = !!this.wield && this.mg.visible; A.visible = C.visible = F.visible = on; if (!on) return;
+    const on = !!this.wield && this.mg.visible; A.visible = C.visible = F.visible = on;
+    if (this.mshaft) this.mshaft.position.y = -0.75 - (on ? this.mTwoDrop || 0 : 0);   // a quick one-handed swing holds it by the end, as before
+    if (!on) return;
     this.mg.updateMatrixWorld(true);
     const to = F.localToWorld(new THREE.Vector3(0.1, -0.05, 1.3)), from = new THREE.Vector3(-8.5, -19, 4), d = to.clone().sub(from), len = d.length(); d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
@@ -523,13 +528,13 @@ export class ViewModel {
     // finished model, so no sight, rail or hammer ever sits on top of the aim point.
     this.gun.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(this.gun.matrixWorld).invert(), v = new THREE.Vector3(); let top = -1e9;
-    const skip = new Set(this.flash); if (this.support) this.support.traverse((o) => skip.add(o));
+    const skip = new Set(this.flash); if (this.support) this.support.traverse((o) => skip.add(o)); if (this.adsHide && spec.SightExact) this.adsHide.traverse((o) => skip.add(o));
     this.gun.traverse((o) => {
       if (!o.isMesh || skip.has(o) || !o.geometry || !o.geometry.attributes.position) return;
       const a = o.geometry.attributes.position, m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
       for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(m); if (Math.abs(v.x) < 1.6 && v.z < 6 && v.y > top) top = v.y; }
     });
-    this.sightTop = top > -1e8 ? top : this.sightZ;
+    this.sightTop = spec.SightExact ? this.sightZ : top > -1e8 ? top : this.sightZ;   // the oddities say where the eye goes: their tops are wide and flat, and nothing on the centre line marks them
     if (!this.noMerge) this.mergeStatic();
   }
   // A detailed gun is a couple of hundred small meshes. Everything that shares a parent and a material is welded into

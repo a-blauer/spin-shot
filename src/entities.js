@@ -61,6 +61,35 @@ export class Projectiles {
         P.body = part(g, 0, V3(0, 0, 0), V3(D * 2.2, 2, D * 0.5), [0.8, 0.82, 0.86], 0.5);                 // a spinning blade: long, thin, steel
         part(g, 0, V3(0, 0, 0), V3(D * 0.5, 2.4, D * 0.9), [0.16, 0.14, 0.16], 0.1);
         break;
+      // ---- the oddities: each one is the thing itself, pointing down -z
+      case 'Boomerang': { const w = [0.72, 0.45, 0.2]; for (const s of [-1, 1]) { const a = part(g, 0, V3(s * D * 0.75, 0, D * 0.3), V3(D * 1.9, 3.4, D * 0.52), w, 0.25); a.rotation.y = s * 0.62; part(g, 0, V3(s * D * 1.45, 0, D * 0.82), V3(D * 0.5, 3.6, D * 0.54), [0.86, 0.2, 0.15], 0.4).rotation.y = s * 0.62; } P.body = part(g, 2, V3(0, 0, 0), V3(D * 0.5, 4, D * 0.5), [0.95, 0.85, 0.55], 0.5); break; }
+      case 'Harpoon': case 'Arrow': case 'Rod': {
+        const A = P.kind === 'Arrow', Rd = P.kind === 'Rod', L = A ? 46 : Rd ? 54 : 70, th = A ? 2.2 : Rd ? 4 : 3.6;
+        P.body = part(g, 1, V3(0, 0, 0), V3(th, L, th), A ? [0.62, 0.42, 0.22] : Rd ? [0.75, 0.55, 0.25] : [0.5, 0.54, 0.6], Rd ? 0.5 : 0.2); P.body.rotation.x = Math.PI / 2;
+        const tip = part(g, 3, V3(0, 0, -L / 2 - 5), V3(th * 2.6, 12, th * 2.6), Rd ? P.color : [0.85, 0.88, 0.92], Rd ? 2 : 0.6); tip.rotation.x = -Math.PI / 2;
+        if (A) for (const r of [0, 1.05, 2.1]) { const fl = part(g, 0, V3(0, 0, L / 2 - 5), V3(0.6, 7, 9), [0.85, 0.2, 0.18], 0.4); fl.rotation.z = r; }
+        else if (Rd) { part(g, 2, V3(0, 0, L / 2), V3(11, 11, 11), P.color, 2.6); for (const k of [-0.2, 0.05, 0.3]) part(g, 1, V3(0, 0, L * k), V3(7, 2, 7), [0.9, 0.9, 0.85], 0.3).rotation.x = Math.PI / 2; }
+        else { for (const s of [-1, 1]) { const b = part(g, 0, V3(s * 4, 0, -L / 2 + 6), V3(1.6, 1.6, 12), [0.85, 0.88, 0.92], 0.5); b.rotation.y = -s * 0.5; } part(g, 1, V3(0, 0, L / 2), V3(6, 3, 6), [0.75, 0.6, 0.3], 0.3).rotation.x = Math.PI / 2; }
+        break; }
+      case 'Trap': {   // sprung-steel jaws on a plate
+        P.body = part(g, 1, V3(0, 2, 0), V3(D * 2.6, 3, D * 2.6), [0.32, 0.33, 0.38], 0.2); part(g, 1, V3(0, 5, 0), V3(D * 0.9, 4, D * 0.9), P.color, 1.2);
+        for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283, t = part(g, 3, V3(Math.cos(a) * D * 1.15, 9, Math.sin(a) * D * 1.15), V3(4.5, 12, 4.5), [0.8, 0.82, 0.86], 0.35); t.rotation.z = Math.cos(a) * 0.35; t.rotation.x = -Math.sin(a) * 0.35; }
+        break; }
+      case 'Box': {    // a painted tin box; the lid and what is under it come out when it lands
+        P.body = part(g, 0, V3(0, 14, 0), V3(30, 28, 30), [0.2, 0.32, 0.62], 0.25); for (const s of [-1, 1]) { part(g, 0, V3(s * 15.2, 14, 0), V3(1, 20, 20), [0.95, 0.8, 0.25], 0.5); part(g, 0, V3(0, 14, s * 15.2), V3(20, 20, 1), P.color, 0.6); }
+        const cr = part(g, 1, V3(17, 16, 0), V3(3, 12, 3), [0.8, 0.8, 0.85], 0.3); cr.rotation.z = Math.PI / 2; part(g, 2, V3(24, 16, 0), V3(6, 6, 6), [0.85, 0.2, 0.2], 0.5);
+        P.head = new THREE.Group(); g.add(P.head); P.head.visible = false;
+        part(P.head, 1, V3(0, 12, 0), V3(9, 24, 9), [0.75, 0.76, 0.8], 0.3); part(P.head, 2, V3(0, 34, 0), V3(22, 22, 22), [0.96, 0.93, 0.88], 0.4); part(P.head, 2, V3(0, 33, -10.5), V3(7, 7, 7), [0.9, 0.15, 0.15], 0.9);
+        part(P.head, 3, V3(0, 52, 0), V3(17, 20, 17), P.color, 0.8); part(P.head, 2, V3(0, 63, 0), V3(6, 6, 6), [0.98, 0.85, 0.3], 1.4); for (const s of [-1, 1]) { part(P.head, 2, V3(s * 5.5, 38, -9), V3(3.4, 3.4, 3.4), [0.08, 0.08, 0.1], 0.1); part(P.head, 2, V3(s * 12, 36, 0), V3(9, 9, 9), [0.95, 0.45, 0.15], 0.5); }
+        break; }
+      case 'Ball': P.body = part(g, 2, V3(0, 0, 0), V3(D, D, D), [0.78, 0.8, 0.86], 0.55); part(g, 2, V3(-D * 0.2, D * 0.22, -D * 0.2), V3(D * 0.34, D * 0.34, D * 0.34), [1, 1, 1], 1.4); break;
+      case 'Die': { P.body = part(g, 0, V3(0, 0, 0), V3(D * 1.5, D * 1.5, D * 1.5), [0.96, 0.94, 0.88], 0.5); const pip = [0.12, 0.1, 0.12]; for (const s of [-1, 1]) { part(g, 2, V3(0, s * D * 0.76, 0), V3(D * 0.34, 1.2, D * 0.34), [0.85, 0.15, 0.15], 0.6); for (const q of [-1, 1]) { part(g, 2, V3(s * D * 0.76, q * D * 0.3, q * D * 0.3), V3(1.2, D * 0.26, D * 0.26), pip, 0.1); part(g, 2, V3(q * D * 0.3, -q * D * 0.3, s * D * 0.76), V3(D * 0.26, D * 0.26, 1.2), pip, 0.1); } } break; }
+      case 'Weed': { P.body = part(g, 2, V3(0, 0, 0), V3(D * 0.9, D * 0.9, D * 0.9), [0.42, 0.33, 0.18], 0.15); for (let i = 0; i < 9; i++) { const r = part(g, 8, V3(0, 0, 0), V3(D * 0.12, D * 1.05, D * 1.05), i % 2 ? P.color : [0.56, 0.44, 0.24], 0.3); r.rotation.set(i * 0.7, i * 1.3, i * 0.37); } break; }
+      case 'Pigeon': {
+        P.body = part(g, 2, V3(0, 0, 0), V3(D * 1.3, D * 1.2, D * 2.2), [0.72, 0.74, 0.8], 0.35); part(g, 2, V3(0, D * 0.55, -D * 1.1), V3(D * 0.9, D * 0.9, D * 0.9), [0.5, 0.55, 0.66], 0.35); part(g, 3, V3(0, D * 0.5, -D * 1.75), V3(D * 0.3, D * 0.5, D * 0.3), [0.95, 0.7, 0.2], 0.6).rotation.x = -Math.PI / 2;
+        P.wings = []; for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * D * 0.5, D * 0.2, 0); g.add(w); part(w, 0, V3(s * D * 0.9, 0, 0), V3(D * 1.8, 1.6, D * 1.3), [0.86, 0.87, 0.92], 0.45); P.wings.push([w, s]); }
+        part(g, 0, V3(0, 0, D * 1.3), V3(D * 0.8, 1.6, D * 0.9), [0.5, 0.52, 0.6], 0.3); part(g, 1, V3(0, -D * 0.75, 0), V3(D * 0.5, D * 1.6, D * 0.5), [0.8, 0.18, 0.14], 0.5).rotation.x = Math.PI / 2; part(g, 2, V3(0, -D * 0.75, D * 0.85), V3(3, 3, 3), [1, 0.9, 0.5], 3);   // the stick of dynamite it carries
+        break; }
       default:
         P.body = part(g, 2, V3(0, 0, 0), V3(D, D, D), P.color, 1.3);
         break;
@@ -68,15 +97,17 @@ export class Projectiles {
     g.position.copy(P.pos);
     this.scene.add(g);
     P.group = g;
-    P.glowSize = Math.max(60, P.radius * 9);
+    P.glowSize = ['Boomerang', 'Harpoon', 'Arrow', 'Trap', 'Box', 'Ball', 'Die', 'Weed', 'Pigeon'].includes(P.kind) ? P.radius * 2.5 : Math.max(60, P.radius * 9);
     this.list.push(P);
     if (P.hostile) this.game.net.sentProjectile(P); else if (!P.ghost && this.game.net.sentShot) this.game.net.sentShot(P);
     return P;
   }
+  kill(P) { if (P.done) return; P.done = true; this.scene.remove(P.group); const s = P.sx && P.sx.sig; if (s && s.pGone) s.pGone(this.game.player, P); }   // gone without a bang
   detonate(P, at) {
     if (P.done) return;
     P.done = true;
     const G = this.game;
+    { const s = !P.ghost && P.sx && P.sx.sig; if (s && s.pEnd) s.pEnd(G.player, P, at); if (s && s.pGone) s.pGone(G.player, P); if (P.quiet) { this.scene.remove(P.group); return; } }
     if (P.ghost) { if (P.splash > 0) { G.fx.explosion(at, P.splash, P.color); G.audio.playAt('S_Explosion', at, 0.6); } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false); this.scene.remove(P.group); return; }
     if (P.splash > 0) {
       if (P.hostile) {
@@ -94,6 +125,8 @@ export class Projectiles {
       if (P.done) continue;
       P.age += dt;
       if (P.age >= P.life || (P.fuse > 0 && P.age >= P.fuse)) { this.detonate(P, P.pos); continue; }
+      const PS = !P.ghost && P.sx && P.sx.sig ? P.sx.sig : null;
+      if (P.stuck || (PS && PS.pTick)) { const own = PS && PS.pTick ? PS.pTick(player, P, dt) : false; if (P.done) continue; if (P.stuck || own === true) { P.group.position.copy(P.pos); if (P.spin) P.group.rotation.y += P.spin * dt; continue; } }
       if (P.homing > 0) {
         if ((!P.target || P.target.dead) && !P.hostile) P.target = player.findNearestEnemy(P.pos, 2500, null);
         if (P.target && !P.target.dead) {
@@ -127,8 +160,11 @@ export class Projectiles {
           if (P.ghost) { if (P.pierce > 0 || P.kind === 'Saw') { P.hit.add(best); G.fx.sparks(at, dir.clone().negate(), P.color, 3); P.pos.copy(end); moved = true; } else { this.detonate(P, at); continue; } } else {
           player.handleProjectileHit(P, best, at);
           P.hit.add(best);
-          if (P.kind === 'Grenade' && P.fuse > 0) { this.detonate(P, at); continue; }
-          if (P.pierce > 0) { P.pierce--; P.pos.copy(end); moved = true; } else { this.detonate(P, at); continue; }
+          const hr = PS && PS.pHit ? PS.pHit(player, P, best, at) : undefined;
+          if (P.done) continue;
+          if (hr === true) { P.pos.copy(at); moved = true; }
+          else if (P.kind === 'Grenade' && P.fuse > 0) { this.detonate(P, at); continue; }
+          else if (P.pierce > 0) { P.pierce--; P.pos.copy(end); moved = true; } else { this.detonate(P, at); continue; }
           }
         }
       }
@@ -143,17 +179,20 @@ export class Projectiles {
             P.pos.copy(wall.point).addScaledVector(n, P.radius + 2);
             if (P.kind === 'Saw') { G.fx.sparks(wall.point, n, [1, 0.9, 0.66], 5); P.hit.clear(); if (P.sx && P.sx.sig && P.sx.sig.bounceGain) P.damage *= 1 + P.sx.sig.bounceGain; G.audio.playAt('S_Ricochet', wall.point, 0.6); }
             else G.audio.playAt('S_HitWall', wall.point, 0.4, 1.4);
-          } else { this.detonate(P, wall.point.clone().addScaledVector(wall.normal, 5)); continue; }
+          } else if (PS && PS.pWall && PS.pWall(player, P, wall) === true) { if (P.done) continue; }
+          else { this.detonate(P, wall.point.clone().addScaledVector(wall.normal, 5)); continue; }
         } else P.pos.copy(end);
       }
       P.group.position.copy(P.pos);
       if (P.kind === 'Rocket' || P.kind === 'Missile' || P.kind === 'Dagger') { if (P.vel.lengthSq() > 1) P.group.lookAt(P.pos.x + P.vel.x, P.pos.y + P.vel.y, P.pos.z + P.vel.z); if (P.kind === 'Dagger') { P.trail -= dt; if (P.trail <= 0) { P.trail = 0.03; G.fx.puff(P.pos, [0.6, 0.9, 1], 14, 0.25); } } }
       if (P.vel.lengthSq() > 1) {
-        if (P.kind === 'Saw') P.body.rotation.y += 25 * dt;
+        if (P.spin) P.group.rotation.y += P.spin * dt;
+        else if (P.kind === 'Saw') P.body.rotation.y += 25 * dt;
         else if (P.kind === 'Card') P.group.rotation.y += 15.7 * dt;
         else if (P.kind === 'Grenade') P.group.rotation.x += 12 * dt;
         else P.group.quaternion.setFromUnitVectors(V3(0, 0, -1), P.vel.clone().normalize());
       }
+      if (P.wings) for (const [w, s] of P.wings) w.rotation.z = s * Math.sin(P.age * 26) * 0.75;
       P.trail -= dt;
       if (P.trail <= 0 && (P.kind === 'Rocket' || P.kind === 'Missile')) {
         P.trail = 0.035;

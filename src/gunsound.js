@@ -45,6 +45,19 @@ const P = {
   'Thunderhead': { crack: [2600, 1.0, 0.6, 0.05], body: [180, 55, 0.12, 0.7, 'sine'], tail: [1400, 0.35, 0.25], tone: ['sine', 1320, 1980, 0.22, 0.16, 0] },
   "Fan of Knives": { crack: [2300, 0.9, 0.75, 0.07], body: [150, 44, 0.15, 0.8, 'sine'], tail: [1100, 0.45, 0.3], tone: ['triangle', 330, 165, 0.35, 0.12, 0] },
   'Black Cat':       { crack: [1500, 0.5, 1.0, 0.1], body: [90, 22, 0.5, 1.1, 'sine'], tail: [600, 1.6, 0.55], tone: ['sawtooth', 1900, 240, 0.45, 0.14, 11] },
+  // oddities: none of these is a powder shot, so each is a voice of its own
+  'Whaler':          { crack: [900, 0.6, 0.6, 0.1], tail: [600, 0.3, 0.3], tone: ['triangle', 160, 70, 0.22, 0.3, 0] },
+  'Bear Trap':       { crack: [700, 0.6, 0.5, 0.09], tail: [500, 0.25, 0.25], tone: ['triangle', 300, 120, 0.14, 0.18, 0] },
+  'Jack-in-the-Box': { crack: [1400, 1.2, 0.4, 0.07], tail: [900, 0.2, 0.2], tone: ['sine', 300, 900, 0.18, 0.22, 0] },
+  'Hall of Mirrors': { crack: [7000, 4.0, 0.3, 0.04], tail: [5000, 0.25, 0.14], tone: ['sine', 2400, 1200, 0.28, 0.2, 14] },
+  'Calliope':        { crack: [1200, 0.6, 0.45, 0.1], tail: [2600, 0.3, 0.22], tone: ['square', 392, 392, 0.3, 0.16, 6] },
+  'Loaded Dice':     { crack: [2600, 2.0, 0.3, 0.04], tail: [1200, 0.1, 0.1] },
+  'Tilt':            { crack: [3200, 2.6, 0.4, 0.05], tail: [2000, 0.14, 0.14], tone: ['triangle', 180, 520, 0.12, 0.22, 0] },
+  'Poltergeist':     { crack: [1600, 1.6, 0.25, 0.08], tail: [1000, 0.4, 0.16], tone: ['sine', 620, 240, 0.4, 0.24, 7] },
+  'Live Wire':       { crack: [5200, 3.0, 0.45, 0.05], tail: [3600, 0.16, 0.14], tone: ['sawtooth', 900, 200, 0.14, 0.16, 40] },
+  'Hocus Pocus':     { crack: [6000, 3.0, 0.2, 0.04], tail: [3000, 0.3, 0.12], tone: ['sine', 880, 1760, 0.3, 0.24, 11] },
+  'Homing Pigeon':   { crack: [1000, 0.8, 0.3, 0.08], tail: [800, 0.2, 0.16] },
+  'Sawbones':        { crack: [3800, 2.2, 0.42, 0.03], tail: [1800, 0.08, 0.1], tone: ['triangle', 700, 300, 0.05, 0.1, 0] },
 };
 const FALLBACK = { crack: [2800, 1, 0.55, 0.045], body: [200, 70, 0.08, 0.5, 'triangle'], tail: [1600, 0.18, 0.16] };
 let noise = null;
@@ -56,7 +69,7 @@ let noise = null;
 // The table above still drives it: crack[0] sets how bright the bang starts, body the thump, tail the room.
 // The pitched "tone" layer is now only used by the energy and wonder weapons; on ballistic guns it sounded synthetic.
 let shaper = null, bus = null;
-const TONAL = new Set(['Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'Thunderhead', "Fan of Knives", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
+const TONAL = new Set(['Whaler', 'Bear Trap', 'Jack-in-the-Box', 'Hall of Mirrors', 'Calliope', 'Tilt', 'Poltergeist', 'Live Wire', 'Hocus Pocus', 'Sawbones', 'Tesla Coil', "Will-o'-Wisp", 'Frostbite Beam', 'Hellfire Hose', 'Buzzsaw', 'Thunderhead', "Fan of Knives", 'Black Cat', "Dragon's Breath", 'Fireworks Finale']);
 // ---- Recorded shots -------------------------------------------------------------------------------------------
 // Powder guns play real recordings: single shots cut from the Free Firearm Sound Library (Ben Jaszczak et al., CC0),
 // close-mic'd, two or three takes per gun so repeated fire never sounds stamped. The synth below is only the voice
@@ -87,6 +100,9 @@ const REC = {
   'Railroad Spike':  ['M', 3, 0.78, 1.0, 0, 0, 0, 1],          // 7.62x54R, slowed
   'Dynamite Dan':    ['N', 2, 0.62, 0.9, 0, 1400, 0, 0.8],     // launchers: a slowed, muffled 12 gauge reads as a tube thump
   'Boomtown':        ['K', 2, 0.52, 1.0, 0, 1100, 0, 1],
+  'House Edge':      ['X', 3, 1.3, 0.5, 1, 4200, 0, 0.1],      // a suppressed 9mm, pitched up: chips, not bullets
+  'Barn Door':       ['O', 2, 0.9, 1.0, 0, 0, 0, 0.9],         // 12 gauge
+  'One-Armed Bandit':['D', 2, 0.96, 0.6, 1, 0, 0, 0.38],       // 5.56
 };
 const startOf = new WeakMap(), live = [];
 function lead(buf) {   // mp3 decoding leaves a few ms of silence in front: find where the shot really starts
