@@ -2,6 +2,7 @@
 // room you are in, take what it pays, and pick the next door by what is behind it. Every fifth room is a boss's.
 // All twenty are built once, far apart on one grid, and the run moves the players between them.
 import { V, V2, R } from './mapkit.js';
+import { craftRoom, craftBoss } from './descent_rooms.js';
 
 // each theme: floor, inlay, wall, trim, glow, lamp colour, fog, shadow tint
 export const THEMES = [
@@ -121,9 +122,11 @@ export function buildDescent(M) {
       Box(V(0, 0, H + 60), V(hx * 2 + 400, hy * 2 + 400, 120), T.roof, true, false);
       for (const s of [-1, 1]) { Box(V(0, s * (hy + 100), H / 2), V(hx * 2 + 400, 200, H), T.wall, true, true); Box(V(s * (hx + 100), 0, H / 2), V(200, hy * 2 + 400, H), T.wall, true, true); }
       // laid stone: a grid of joints, a border, a runner from door to door
+      if (false) {
       for (let x = -hx + 800; x < hx; x += 800) Floor(V2(x - 5, -hy), V2(x + 5, hy), 1.2, T.floor2);
       for (let y = -hy + 800; y < hy; y += 800) Floor(V2(-hx, y - 5), V2(hx, y + 5), 1.2, T.floor2);
       Floor(V2(-260, -hy), V2(260, hy), 1.6, T.floor2); Floor(V2(-230, -hy), V2(230, hy), 2, T.floor);
+      }
       for (const s of [-1, 1]) { Floor(V2(-hx, s * (hy - 90) - 90), V2(hx, s * (hy - 90) + 90), 1.8, T.floor2); Floor(V2(s * (hx - 90) - 90, -hy), V2(s * (hx - 90) + 90, hy), 1.8, T.floor2); }
       // the walls are dressed flush (nothing here collides, so nothing catches a wall-run): a skirting, a band of light, a dark frieze under the roof
       for (const s of [-1, 1]) {
@@ -152,41 +155,13 @@ export function buildDescent(M) {
       if (boss) {
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 2700, sy * 2700, 440); Box(V(sx * 1500, sy * 1500, 45), V(640, 640, 90), T.trim, true, false); Glow(V(sx * 1500, sy * 1500, 92), V(560, 560, 3), T.glow, 0); A.plinths.push([cx + sx * 1500, cy + sy * 1500]); }
         for (const s of [-1, 1]) { brazier(s * 3300, 0, T, 240); brazier(s * 1300, s * 3300, T, 240); brazier(-s * 1300, s * 3300, T, 240); }
-        Glow(V(0, 0, 3), V(1300, 1300, 2), T.glow, 8); Glow(V(0, 0, 3), V(700, 700, 2), T.glow, 8);
-      } else switch (kind) {
-        case 0:   // The Colonnade: three lanes between two rows of columns, a stepped gallery along each side wall
-          for (const sx of [-1, 1]) { for (let y = -1800; y <= 1800; y += 1200) pillar(sx * 1250, y, 320); for (let k = 0; k < 3; k++) Box(V(sx * (hx - 300 + k * 90), 0, 20 + k * 40), V(600 - k * 180, hy * 2 - 1600, 40), k % 2 ? T.trim : T.floor2, true, false); }
-          break;
-        case 1:   // Four Corners: four blocks, the streets between them and the road around
-          for (const sx of [-1, 1]) for (const sy of [-1, 1]) { block(sx * 1550, sy * 1300, 1300, 1100, H); brazier(sx * 520, sy * 420, T, 120); }
-          break;
-        case 2:   // The Ziggurat: high ground in the middle that anything can climb
-          terrace(0, 0, 2600, 2600, 3); for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 760, sy * 760, 200, 520); lowWall(sx * 2400, sy * 1900, 900, sx * sy > 0); }
-          Glow(V(0, 0, 122), V(700, 700, 3), T.glow, 8);
-          break;
-        case 3:   // The Breakwater: staggered waist-high walls; you go over, they go round
-          for (let r = 0; r < 5; r++) { const y = -1800 + r * 900; for (const x of (r % 2 ? [-1100, 1100] : [-2200, 0, 2200])) lowWall(x, y, 1200, true); }
-          for (const s of [-1, 1]) pillar(s * 3000, 0, 260);
-          break;
-        case 4:   // Twin Drums: two great drums to run rings round, a figure of eight between them
-          for (const s of [-1, 1]) { Oct(V(s * 1550, 0, H / 2), V(1500, 1500, H), T.wall, true, true); Oct(V(s * 1550, 0, 35), V(1580, 1580, 70), T.trim, false, false); Glow(V(s * 1550, 0, H * 0.56), V(1510, 1510, 12), T.glow, 7); pillar(0, s * 1700, 260); lowWall(s * 1550, s * 2200, 1000, true); lowWall(s * 1550, -s * 2200, 1000, true); }
-          break;
-        case 5:   // The Foundry: machines in two rows and the furnace in the middle
-          for (const sx of [-1, 1]) for (const sy of [-1, 1]) { block(sx * 1700, sy * 1350, 800, 1500, 440); Glow(V(sx * 1700, sy * 1350, 448), V(500, 1100, 6), T.glow, 0); Cyl(V(sx * 1700, sy * 1350, 440 + (H - 440) / 2), 160, H - 440, T.floor2, false, false); }
-          block(0, 0, 900, 900, 300); Glow(V(0, 0, 308), V(620, 620, 6), T.glow, 0); for (const s of [-1, 1]) Box(V(s * 2900, 0, H - 260), V(120, hy * 2, 120), T.trim, false, false);
-          break;
-        case 6:   // The Hypostyle: a forest of columns
-          for (let x = -2400; x <= 2400; x += 1200) for (let y = -2100; y <= 2100; y += 1400) { if (x === 0 && Math.abs(y) > 1500) continue; pillar(x + ((y / 1400) % 2 ? 300 : 0), y, 210); }
-          break;
-        default:   // The Ring: a broken circle of wall round a raised middle
-          for (let k = 0; k < 8; k++) { const a = (k + 0.5) / 8 * Math.PI * 2, x = Math.cos(a) * 1900, y = Math.sin(a) * 1700; Box(V(x, y, 210), V(1000, 110, 420), T.wall, true, true, 90 + a * 180 / Math.PI); }
-          terrace(0, 0, 1500, 1500, 2); brazier(0, 0, T, 200);
-          break;
-      }
+        craftBoss(i - 8, { M, T, hx, hy, H, rnd, rr });
+      } else craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
       dress(T.name === 'Ossuary' ? 0 : THEMES.indexOf(T), hx, hy, H, T, boss);
       // where they come up: all over the room, never on top of a doorway
       const n = boss ? 14 : 16;
-      for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * Math.PI * 2, r = k % 2 ? 0.86 : 0.55, x = Math.cos(a) * (hx - 300) * r, y = Math.sin(a) * (hy - 700) * r; SpawnAt(V(x, y, 0), zone); }
+      if (kind === 1 || kind === 5) { for (const [px, py] of [[600, 2400], [2650, 350], [750, 700], [2000, 2400]]) for (const ex of [-1, 1]) for (const ey of [-1, 1]) SpawnAt(V(ex * px, ey * py, 0), zone); }   // the streets between the blocks, never inside one
+      else for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * Math.PI * 2, r = k % 2 ? 0.86 : 0.55, x = Math.cos(a) * (hx - 300) * r, y = Math.sin(a) * (hy - 700) * r; SpawnAt(V(x, y, 0), zone); }
     });
     ARENAS[i] = A;
   };

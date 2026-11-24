@@ -293,15 +293,21 @@ export class Enemy {
     if (this.slowT > 0) this.slowT -= dt;
     if (this.frenzyT > 0) this.frenzyT -= dt;
     this.dotTick -= dt;
-    if (this.dotTick <= 0 && (this.burnT > 0 || this.bleedT > 0)) {
+    if (this.dotTick <= 0 && (this.burnT > 0 || this.bleedT > 0 || this.slowT > 0)) {
       this.dotTick = 0.25;
       let dot = 0;
       if (this.burnT > 0) {
         dot += this.burnDps * 0.25; this.burnT -= 0.25;
-        G.fx.flash(this.pos.clone().addScaledVector(randDir(), 30 * this.bodyScale), lin(1, 0.45, 0.05), 16 * this.bodyScale, 0.3, false);
+        // on fire: flames standing on the body and smoke coming off it
+        for (let q = 0; q < 2; q++) { const o = randDir().multiplyScalar(26 * this.bodyScale); o.y = Math.abs(o.y) * 1.4 - 10; const h = (34 + Math.random() * 26) * this.bodyScale; G.fx.add({ pos: this.pos.clone().add(o), vel: new THREE.Vector3(0, 150, 0), drag: 1, life: 0.34, size0: h, size1: h * 0.45, rot: (Math.random() - 0.5) * 24, c0: [1, 0.9, 0.5, 1], c1: [1, 0.35, 0.05, 1], fadeOut: 0.5, tex: 'FX_FlameUp', kind: 'add', glow: 2 }); }
+        if (Math.random() < 0.5) G.fx.add({ pos: this.pos.clone().add(new THREE.Vector3(0, 50 * this.bodyScale, 0)), vel: new THREE.Vector3(0, 140, 0), drag: 1, life: 0.8, size0: 26 * this.bodyScale, size1: 70 * this.bodyScale, rot: Math.random() * 360, c0: [0.14, 0.12, 0.12, 0.6], c1: [0.1, 0.1, 0.1, 0], fadeOut: 0.7, tex: 'FX_Smoke' });
       }
-      if (this.bleedT > 0) { dot += this.bleedDps * 0.25; this.bleedT -= 0.25; }
-      this.takeHit(dot, this.pos, new THREE.Vector3(), false);
+      if (this.bleedT > 0) { dot += this.bleedDps * 0.25; this.bleedT -= 0.25;
+        // bleeding: it drips
+        G.fx.add({ mode: 'streak', pos: this.pos.clone().addScaledVector(randDir(), 20 * this.bodyScale), vel: new THREE.Vector3((Math.random() - 0.5) * 120, 60, (Math.random() - 0.5) * 120), gravity: 1700, life: 0.9, size0: 9, size1: 8, stretch: 3, groundY: this.pos.y - this.half, splat: Math.random() < 0.3, c0: [0.75, 0.05, 0.08, 1], fadeOut: 0.1, tex: 'FX_Drop' }); }
+      // chilled: frost hangs on it
+      if (this.slowT > 0 && this.slowAmt > 0.2 && Math.random() < 0.6) G.fx.add({ pos: this.pos.clone().addScaledVector(randDir(), 34 * this.bodyScale), vel: new THREE.Vector3(0, -30, 0), life: 0.5, size0: 20 * this.bodyScale, size1: 12 * this.bodyScale, rot: Math.random() * 60, rotVel: 60, c0: [0.9, 0.97, 1, 1], c1: [0.55, 0.85, 1, 0], fadeOut: 0.6, tex: 'FX_Snow', kind: 'add', glow: 1.6 });
+      if (dot > 0) this.takeHit(dot, this.pos, new THREE.Vector3(), false);
       if (this.dead) return;
     }
     if (this.burnT <= 0) this.burnDps = 0;

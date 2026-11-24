@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { toonMaterial } from './render.js';
 import { cosItem } from './cosmetics.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 const mats = new Map();
 function mat(c, glow = 0) { const k = c + ':' + glow; if (!mats.has(k)) { const m = toonMaterial({ glow }); m.uniforms.uColor.value.setHex(c); mats.set(k, m); } return mats.get(k); }
@@ -10,11 +11,13 @@ const G = { box: new THREE.BoxGeometry(1, 1, 1), cyl: new THREE.CylinderGeometry
 const geo = new Map();
 function taper(top, bot) { const k = top + '/' + bot; if (!geo.has(k)) geo.set(k, new THREE.CylinderGeometry(top, bot, 1, 14)); return geo.get(k); }
 function add(p, g, c, sx, sy, sz, x = 0, y = 0, z = 0, glow = 0) { const m = new THREE.Mesh(g, mat(c, glow)); m.scale.set(sx, sy, sz); m.position.set(x, y, z); p.add(m); return m; }
+// a box with its edges taken off: heads, hands, boots and anything else that should not look like a crate
+function rbox(p, c, w, h, d, x = 0, y = 0, z = 0, r = 4, glow = 0) { const k = `r${w}/${h}/${d}/${r}`; if (!geo.has(k)) geo.set(k, new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.1, h / 2 - 0.1, d / 2 - 0.1))); const m = new THREE.Mesh(geo.get(k), mat(c, glow)); m.position.set(x, y, z); p.add(m); return m; }
 const shade = (c, k) => { const o = new THREE.Color(c); o.multiplyScalar(k); return o.getHex(); };
 const grp = (p, x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); p.add(g); return g; };
 
 export function buildCharacter(look) {
-  const Bd = cosItem('body', look.body), K = Bd.kind, W = Bd.w, LH = Bd.lh, HIP = 62 * LH;
+  const Bd = cosItem('body', look.body), K = Bd.kind, W = Bd.w, LEG = 1.2, LH = Bd.lh * LEG, HIP = 62 * LH, HS = Bd.hs * 0.86;   // longer in the leg and smaller in the head than the old figures
   const tone = K === 'human' ? cosItem('tone', look.tone).c : Bd.c, HAIR = cosItem('hair', look.hair), HC = cosItem('haircol', look.haircol).c;
   const BT = cosItem('boots', look.boots), GL = cosItem('gloves', look.gloves), NK = cosItem('neck', look.neck), SH = cosItem('shoulder', look.shoulder), WS = cosItem('waist', look.waist);
   const O = cosItem('outfit', look.outfit), L = cosItem('legs', look.legs), H = cosItem('hat', look.hat), F = cosItem('face', look.face), B = cosItem('back', look.back);
@@ -26,17 +29,23 @@ export function buildCharacter(look) {
     const leg = grp(root, s * 15 * W, HIP, 0); R[s < 0 ? 'legL' : 'legR'] = leg; leg.scale.set(W, LH, W);
     const peg = BT.style === 'peg' && s > 0, limb = K === 'skeleton' ? 0.5 : 1;
     if (peg) { add(leg, taper(0.5, 0.42), L.a, 26, 20, 26, 0, -10, 0); add(leg, taper(0.4, 0.25), BT.a, 16, 42, 16, 0, -41, 0); continue; }
-    add(leg, taper(0.5, 0.42), L.a, 26 * limb + (limb < 1 ? 8 : 0), 40, 26 * limb + (limb < 1 ? 8 : 0), 0, -20, 0);
+    // a thigh, a knee and a shin that narrows into the boot
+    const lw = 26 * limb + (limb < 1 ? 8 : 0);
+    add(leg, taper(0.5, 0.43), L.a, lw, 22, lw + 1, 0, -11, 0); add(leg, G.ball, shade(L.a, 0.92), lw * 0.88, 9, lw * 0.92, 0, -22, 1.5); add(leg, taper(0.44, 0.38), L.a, lw, 20, lw, 0, -31, 0);
+    add(leg, G.box, shade(L.a, 0.8), lw * 0.5, 16, 1.5, 0, -8, lw * 0.5 - 0.4).rotation.z = s * 0.06;   // a crease down the front
     if (L.chaps) add(leg, G.box, L.b, 8, 34, 28, s * 12, -20, 0);
     if (L.stripe) add(leg, G.box, L.b, 4, 38, 4, s * 13, -20, 0);
     const bs = BT.style;
-    if (bs === 'sandal') { add(leg, G.box, tone, 22, 14, 34, 0, -51, 5); add(leg, G.box, BT.a, 24, 4, 8, 0, -45, 8); add(leg, G.box, BT.b, 26, 4, 38, 0, -60, 5); continue; }
-    const tall = bs === 'tall' ? 12 : bs === 'low' ? -6 : 0;
-    add(leg, G.box, shade(BT.a, 0.95), 26, 18 + tall, 38, 0, -50 + tall / 2, 5);                               // boot
-    add(leg, G.box, shade(BT.b, 0.8), 27, 5, 40, 0, -59.5, 5);                                                 // sole
-    if (bs === 'low') add(leg, G.box, BT.b, 27, 4, 20, 0, -50, 14);
+    if (bs === 'sandal') { rbox(leg, tone, 20, 13, 32, 0, -51, 5, 5); for (let k = 0; k < 4; k++) add(leg, G.ball, shade(tone, 0.9), 5, 5, 6, -7.5 + k * 5, -54, 21); add(leg, G.box, BT.a, 22, 4, 7, 0, -45, 10); add(leg, G.box, BT.a, 4, 4, 22, 0, -45, 0); rbox(leg, BT.b, 24, 4, 38, 0, -60, 5, 1.8); continue; }
+    const tall = bs === 'tall' ? 12 : bs === 'low' ? -6 : 0, bc = shade(BT.a, 0.95);
+    rbox(leg, bc, 24, 18 + tall, 26, 0, -50 + tall / 2, 0, 4);                                // the upper
+    rbox(leg, bc, 24, 13, 24, 0, -53, 15, 5.5);                                               // the toe
+    rbox(leg, shade(BT.a, 0.82), 22, 5, 10, 0, -55, 24, 2.4);                                 // toe cap
+    rbox(leg, shade(BT.b, 0.8), 26, 4.5, 43, 0, -60, 6, 1.8); add(leg, G.box, shade(BT.b, 0.7), 24, 5, 12, 0, -58, -9);   // sole and heel
+    for (let k = 0; k < 3; k++) add(leg, G.box, BT.b, 10, 1.6, 2, 0, -49 + k * 4, 13.2 - k * 2.2).rotation.x = -0.5;                                    // laces
+    if (bs === 'low') { add(leg, G.box, BT.b, 25, 4, 20, 0, -50, 12); add(leg, G.box, 0xf2e8d5, 25.4, 3, 30, 0, -57, 8); }
     if (bs === 'tall') add(leg, G.cyl, BT.b, 29, 4, 29, 0, -36, 0);
-    if (bs === 'spur') { add(leg, G.box, BT.b, 27.5, 4, 39, 0, -47, 5); add(leg, G.cyl, 0xffcd5a, 10, 2, 10, 0, -52, -17).rotation.z = Math.PI / 2; }
+    if (bs === 'spur') { add(leg, G.box, BT.b, 25.5, 4, 27, 0, -47, 0); add(leg, G.box, BT.b, 3, 3, 10, 0, -52, -17); add(leg, G.cyl, 0xffcd5a, 10, 2, 10, 0, -52, -23).rotation.z = Math.PI / 2; add(leg, taper(0.5, 0.4), bc, 24.5, 8, 26.5, 0, -39, 0); }
   }
   add(body, G.cyl, shade(L.a, 0.85), 50, 12, 36, 0, 2, 0);                   // hips
   add(body, G.cyl, O.c, 52, 7, 38, 0, 7, 0);                                 // belt
@@ -57,6 +66,8 @@ export function buildCharacter(look) {
   // ---- torso by style
   const st = O.style;
   add(body, taper(0.5, 0.44), O.a, 58, 50, 40, 0, 34, 0);
+  if (st !== 'poncho') { rbox(body, O.a, 74, 15, 36, 0, 53, 0, 7); add(body, taper(0.5, 0.47), shade(O.a, 0.93), 61, 20, 42, 0, 44, 0.5); }   // a yoke across the shoulders and a chest under it
+  add(body, taper(0.42, 0.5), K === 'human' ? O.c : shade(O.a, 0.8), 26, 6, 24, 0, 62, 0);                                                     // collar
   if (K === 'skeleton') add(body, taper(0.5, 0.5), 0x140d12, 59, 2, 41, 0, 9, 0);
   if (K === 'gator') { const t = grp(body, 0, 4, -18); t.rotation.x = 0.9; add(t, taper(0.2, 0.5), tone, 26, 60, 22, 0, -28, 0); R.tail = t; }
   if (st === 'poncho') { add(body, taper(0.3, 0.62), O.a, 74, 44, 56, 0, 42, 0); add(body, taper(0.585, 0.62), O.b, 74, 6, 56, 0, 26, 0); add(body, taper(0.47, 0.5), shade(O.b, 0.8), 74, 5, 56, 0, 40, 0); }
@@ -92,15 +103,19 @@ export function buildCharacter(look) {
   // ---- arms: shoulder pivots, mitten hands
   for (const s of [-1, 1]) {
     const arm = grp(body, s * 36, 54, 0); R[s < 0 ? 'armL' : 'armR'] = arm;
-    add(arm, G.ball, O.a, 24, 22, 24, 0, 0, 0);
-    add(arm, taper(0.5, 0.42), O.a, 20, 38, 20, 0, -20, 0);
-    if (st === 'stripes') for (let i = 0; i < 3; i++) add(arm, G.cyl, O.b, 20.5, 4, 20.5, 0, -10 - i * 10, 0);
-    if (st === 'plaid') add(arm, G.cyl, O.b, 20.5, 4, 20.5, 0, -22, 0);
-    add(arm, G.cyl, O.c, 19, 7, 19, 0, -40, 0);                              // cuff
-    const bare = GL.id === 'bare', hc = bare ? (st === 'hazmat' || st === 'bones' ? O.b : tone) : GL.a, big = GL.style === 'big' ? 1.35 : 1;
-    add(arm, G.ball, hc, 21 * big, 22 * big, 21 * big, 0, -50, 0);                                             // mitten
+    // shoulder, upper arm, an elbow, a forearm into the cuff, and a hand with a thumb and fingers
+    add(arm, G.ball, O.a, 25, 23, 25, 0, 0, 0);
+    add(arm, taper(0.5, 0.44), O.a, 21, 22, 21, 0, -12, 0); add(arm, G.ball, shade(O.a, 0.92), 19, 12, 19, 0, -23, 0); add(arm, taper(0.46, 0.4), O.a, 20, 18, 20, 0, -31, 0);
+    if (st === 'stripes') for (let i = 0; i < 3; i++) add(arm, G.cyl, O.b, 21.5 - i, 4, 21.5 - i, 0, -10 - i * 10, 0);
+    if (st === 'plaid') add(arm, G.cyl, O.b, 21, 4, 21, 0, -22, 0);
+    add(arm, G.cyl, O.c, 18.5, 6, 18.5, 0, -40, 0);                              // cuff
+    const bare = GL.id === 'bare', hc = bare ? (st === 'hazmat' || st === 'bones' ? O.b : tone) : GL.a, big = GL.style === 'big' ? 1.3 : 1;
+    const hand = grp(arm, 0, -50, 0); hand.scale.setScalar(big);
+    rbox(hand, hc, 10, 14, 17, 0, 1, 0, 3.6);                                                                  // palm
+    for (let k = 0; k < 4; k++) { const f = rbox(hand, shade(hc, k % 2 ? 0.92 : 1), 9, 9, 3.8, 0, -8.5, -6.3 + k * 4.2, 1.6); f.rotation.z = s * 0.25; f.position.x = s * -1.2; }   // four fingers, curled in a little
+    { const t = rbox(hand, hc, 5, 9, 5, s * -5, 0, 9.5, 2); t.rotation.x = 0.5; }                              // thumb
     if (K === 'robot' && bare) { add(arm, G.box, shade(tone, 0.6), 6, 12, 6, -6, -60, 4); add(arm, G.box, shade(tone, 0.6), 6, 12, 6, 6, -60, 4); }
-    if (!bare) { add(arm, G.cyl, GL.b, 21, 5, 21, 0, -42, 0); if (GL.style === 'long') add(arm, taper(0.5, 0.46), GL.a, 22, 16, 22, 0, -32, 0); if (GL.style === 'wrap') for (let i = 0; i < 3; i++) add(arm, G.cyl, GL.b, 21.5, 2, 21.5, 0, -46 - i * 4, 0); }
+    if (!bare) { add(arm, G.cyl, GL.b, 20, 5, 20, 0, -42, 0); if (GL.style === 'long') add(arm, taper(0.5, 0.46), GL.a, 21.5, 16, 21.5, 0, -32, 0); if (GL.style === 'wrap') for (let i = 0; i < 3; i++) rbox(arm, GL.b, 11, 2.2, 18, 0, -46 - i * 3.6, 0, 1); }
     // shoulder piece (left shoulder for single items)
     switch (SH.id) {
       case 'patch': add(arm, G.ball, SH.a, 28, 14, 28, 0, 8, 0); add(arm, G.cyl, SH.b, 29, 2, 29, 0, 4, 0); break;
@@ -119,7 +134,7 @@ export function buildCharacter(look) {
   add(gun, G.box, 0x2a2a32, 7, 10, 44, 0, 4, 18); add(gun, G.box, 0x4E3324, 7, 16, 9, 0, -4, 2); add(gun, G.cyl, 0x46464e, 5, 16, 5, 0, 6, 42).rotation.x = Math.PI / 2;
 
   // ---- head: big, simple face
-  const head = R.head = grp(body, 0, 66, 0); head.scale.set(Bd.hs / W, Bd.hs, Bd.hs / W);
+  const head = R.head = grp(body, 0, 66, 0); head.scale.set(HS / W, HS, HS / W);
   add(head, G.cyl, K === 'skeleton' ? shade(tone, 0.8) : tone, K === 'skeleton' ? 9 : 18, 10, K === 'skeleton' ? 9 : 18, 0, 0, 0);   // neck
   const sk = F.id === 'skull' ? F.a : tone, covered = F.id === 'shades' || F.id === 'gasmask' || F.id === 'hockey';
   const humanEyes = () => { if (!covered) for (const s of [-1, 1]) { if (F.id === 'patch' && s > 0) continue; add(head, G.box, 0x140d12, 7, F.id === 'skull' ? 12 : 8, 2, s * 12, 31, 22.5); } };
@@ -143,10 +158,17 @@ export function buildCharacter(look) {
       for (let i = 0; i < 5; i++) for (const s of [-1, 1]) add(head, G.cone, 0xf2e8d5, 4, 6, 4, s * 17, 9, 18 + i * 8).rotation.x = Math.PI;
       break;
     default:   // human and zombie
-      add(head, G.box, sk, 50, 44, 44, 0, 26, 0); add(head, G.box, sk, 44, 8, 40, 0, 2, 0);
-      for (const s of [-1, 1]) add(head, G.box, shade(tone, 0.85), 5, 14, 10, s * 27, 24, 0);
-      add(head, G.box, shade(sk, 0.85), 8, 10, 6, 0, 22, 24);
-      humanEyes(); if (plainMouth) add(head, G.box, shade(tone, 0.6), 14, 3, 2, 0, 10, 22.5);
+      // a skull with the corners off, a jaw narrower than the brow, cheeks, ears, a nose with a bridge, brows and eyes that have whites
+      rbox(head, sk, 50, 34, 44, 0, 31, 0, 8); rbox(head, sk, 46, 22, 42, 0, 13, 0, 7); rbox(head, sk, 34, 10, 36, 0, 3, 2, 4.5);
+      for (const s of [-1, 1]) { rbox(head, shade(tone, 0.88), 6, 15, 11, s * 26.5, 24, -1, 2.6); add(head, G.box, shade(tone, 0.7), 2, 8, 5, s * 28.6, 24, 0); }
+      if (F.id !== 'skull') {
+        if (F.id !== 'hockey' && F.id !== 'gasmask') { rbox(head, shade(sk, 0.9), 8, 13, 8, 0, 23, 23, 2.6); rbox(head, shade(sk, 0.84), 11, 5, 6, 0, 17.5, 23.5, 2.2); }                    // nose
+        rbox(head, shade(sk, 0.93), 42, 5, 4, 0, 37, 21, 1.8);                                                                               // brow
+        if (!covered) for (const s of [-1, 1]) { if (F.id === 'patch' && s > 0) continue; add(head, G.box, 0xf4efe6, 11, 7.5, 1.4, s * 12, 30.5, 22.3); add(head, G.box, 0x140d12, 5, 6.5, 1.6, s * 12.6, 30.5, 22.6); add(head, G.box, 0xffffff, 1.6, 1.6, 1.8, s * 12.6 + 1.2, 32, 22.7); add(head, G.box, shade(sk, 0.72), 12, 1.6, 1.6, s * 12, 34.6, 22.4); }
+        const bc = K === 'human' && HAIR.id !== 'bald' ? HC : shade(sk, 0.6);
+        if (F.id !== 'shades' && F.id !== 'hockey' && F.id !== 'gasmask') for (const s of [-1, 1]) add(head, G.box, bc, 13, 2.8, 2.4, s * 12, 38.6, 22.6).rotation.z = -s * 0.1;   // eyebrows
+        if (plainMouth) { add(head, G.box, shade(tone, 0.55), 15, 2.2, 1.6, 0, 9.5, 21.6); add(head, G.box, shade(tone, 0.82), 10, 2.6, 1.8, 0, 6.6, 21.4); }
+      } else humanEyes();
       break;
   }
   // Face pieces are built for the human head, then fitted to each other model: wrap() follows the head's shape
@@ -184,19 +206,19 @@ export function buildCharacter(look) {
   if (K === 'human' && HAIR.id !== 'bald') {
     const open = ['none', 'visor', 'halo', 'horns', 'crown'].includes(H.id), hc = HC, hd = shade(HC, 0.8);
     if (open) switch (HAIR.id) {
-      case 'short': add(head, G.box, hc, 52, 12, 46, 0, 46, -1); break;
-      case 'long': add(head, G.box, hc, 52, 12, 46, 0, 46, -1); break;
-      case 'pomp': add(head, G.box, hc, 52, 10, 46, 0, 45, -1); add(head, G.ball, hc, 44, 22, 30, 0, 54, 12); break;
+      case 'short': rbox(head, hc, 53, 13, 47, 0, 45.5, -1, 5); rbox(head, hd, 53, 20, 14, 0, 33, -17, 4); for (const s of [-1, 1]) rbox(head, hd, 4, 12, 9, s * 25.5, 36, 6, 1.6); rbox(head, hc, 30, 6, 10, -6, 49, 19, 2.6); break;
+      case 'long': rbox(head, hc, 53, 13, 47, 0, 45.5, -1, 5); for (const s of [-1, 1]) rbox(head, hd, 6, 40, 20, s * 25, 22, -8, 2.6); break;
+      case 'pomp': rbox(head, hc, 53, 11, 47, 0, 45, -1, 4.5); rbox(head, hd, 53, 20, 14, 0, 33, -17, 4); add(head, G.ball, hc, 44, 22, 30, 0, 54, 12); add(head, G.ball, hd, 36, 14, 22, 0, 50, -4); for (const s of [-1, 1]) rbox(head, hd, 4, 16, 9, s * 25.5, 34, 6, 1.6); break;
       case 'mohawk': for (let i = 0; i < 5; i++) add(head, G.box, hc, 8, 18 - Math.abs(i - 2) * 3, 9, 0, 54, -18 + i * 9); break;
-      case 'braids': add(head, G.box, hc, 52, 12, 46, 0, 46, -1); break;
-      case 'bun': add(head, G.box, hc, 52, 8, 46, 0, 44, -1); add(head, G.ball, hc, 20, 18, 20, 0, 56, -6); break;
+      case 'braids': rbox(head, hc, 53, 13, 47, 0, 45.5, -1, 5); add(head, G.box, hd, 2, 13.2, 47.2, 0, 45.5, -1); rbox(head, hd, 53, 18, 12, 0, 34, -18, 4); break;
+      case 'bun': rbox(head, hc, 53, 9, 47, 0, 44, -1, 4); rbox(head, hd, 53, 18, 12, 0, 34, -18, 4); add(head, G.ball, hc, 20, 18, 20, 0, 56, -6); add(head, G.cyl, hd, 12, 3, 12, 0, 49, -6); break;
       case 'afro': add(head, G.ball, hc, 74, 58, 66, 0, 46, -4); break;
-      case 'mullet': add(head, G.box, hc, 52, 10, 46, 0, 45, -1); break;
+      case 'mullet': rbox(head, hc, 53, 11, 47, 0, 45, -1, 4.5); for (const s of [-1, 1]) rbox(head, hd, 4, 14, 9, s * 25.5, 35, 6, 1.6); rbox(head, hc, 30, 6, 10, 4, 49, 19, 2.6); break;
       case 'spikes': add(head, G.box, hd, 52, 6, 46, 0, 43, -1); for (const [x, z] of [[-16, 10], [0, 12], [16, 10], [-10, -8], [10, -8], [0, -18]]) add(head, G.cone, hc, 12, 22, 12, x, 56, z); break;
       default: break;
     }
-    if (HAIR.id === 'long') add(head, G.box, hc, 54, 50, 10, 0, 22, -22);
-    if (HAIR.id === 'mullet') add(head, G.box, hc, 44, 40, 8, 0, 14, -23);
+    if (HAIR.id === 'long') { rbox(head, hc, 54, 52, 11, 0, 21, -21, 4.5); rbox(head, hd, 46, 14, 9, 0, -8, -21, 4); }
+    if (HAIR.id === 'mullet') { rbox(head, hc, 46, 42, 9, 0, 14, -22, 4); rbox(head, hd, 34, 12, 8, 0, -9, -23, 3.5); }
     if (HAIR.id === 'braids') for (const s of [-1, 1]) { for (let i = 0; i < 4; i++) add(head, G.ball, i % 2 ? hd : hc, 11, 12, 11, s * 26, 28 - i * 11, -12); add(head, G.ball, 0xc8211b, 6, 6, 6, s * 26, -16, -12); }
     if (!open && HAIR.id !== 'long' && HAIR.id !== 'mullet' && HAIR.id !== 'braids') add(head, G.box, hc, 52, 10, 30, 0, 38, -9);   // a little showing under the brim
   }

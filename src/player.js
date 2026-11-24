@@ -770,8 +770,7 @@ export class Player {
     const radius = 380 * (1 + this.stat('ExplosionRadius') * 0.5);
     const dmg = (120 + this.stat('SlamDamage')) * this.flatScale() + this.power() * 1.2 + fall * 0.15;
     const feet = V3(this.pos.x, this.pos.y - 88, this.pos.z);
-    G.fx.ring(feet, radius, lin(1, 0.8, 0.5), 0.35);
-    G.fx.dust(feet, lin(0.45, 0.38, 0.3), 140);
+    G.fx.quake(feet, radius);
     this.play('S_Slam', 1);
     this.addShake(1.2); this.landDipVel -= 300;
     this.invuln = Math.max(this.invuln, 0.25);
@@ -799,7 +798,7 @@ export class Player {
   pickedUp(by) {
     const G = this.game; this.dead = false; this.downed = false; this.health = Math.round(this.maxHealth * 0.4); this.invuln = 3; this.safeT = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
     G.banner(by ? `${String(by).toUpperCase()} GOT YOU UP` : 'BACK ON YOUR FEET', [0.5, 0.9, 1], 2.5); this.play('S_PowerUp', 0.7, 1.2);
-    G.fx.ring(V3(this.pos.x, this.pos.y - 85, this.pos.z), 220, [0.5, 0.9, 1], 0.4);
+    G.fx.rune(V3(this.pos.x, this.pos.y - 85, this.pos.z), 220, [0.5, 0.9, 1], 1.2); G.fx.heal(this.pos);
   }
   revive() {
     const G = this.game; this.dead = false; this.downed = false; this.health = this.maxHealth; this.invuln = 3; this.vel.set(0, 0, 0); G.vm.hidden = false; G.coopDown = false;
@@ -866,12 +865,12 @@ export class Player {
   grenadeDamage(mult) { return Math.max(250, zombieHealth(this.game.round) * mult) * (1 + this.stat('GrenadeDamage')); }   // keeps pace with the round
   grenadeBlast(t, at, P) {
     const N = GRENADES[t], G = this.game, R = N.radius * (1 + this.stat('ExplosionRadius')), dmg = P && P.altDmg ? P.altDmg : this.grenadeDamage(N.dmg);
-    if (t === 6) { this.wells.push({ at: at.clone(), t: 2.2, r: R, dmg }); G.fx.ring(at, R, N.color, 0.5); this.play('S_Grapple', 0.7, 0.5); return; }   // gravity: pull first, burst later
+    if (t === 6) { this.wells.push({ at: at.clone(), t: 2.2, r: R, dmg }); G.fx.rune(at, R, N.color, 2.2); this.play('S_Grapple', 0.7, 0.5); return; }   // gravity: pull first, burst later
     const near = () => G.enemies.filter((E) => !E.dead && !E.burrowed && E.pos.distanceTo(at) < R + 40 * E.bodyScale);
     this.explodeAt(at, R, dmg, 0, true, false, N.color, null);
     if (t === 1) { this.gzones.push({ at: at.clone(), r: R * 0.85, t: 6, tick: 0, dps: dmg * 0.45 }); for (const E of near()) E.applyBurn(dmg * 0.25, 4); }
-    else if (t === 2) { for (const E of near()) E.applySlow(E.isBoss ? 0.35 : 0.75, E.isBoss ? 3 : 6); G.fx.ring(at, R, N.color, 0.6); }
-    else if (t === 3) { const L = near(); let prev = null; for (const E of L) { if (!E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 2.5); E.applySlow(0.9, 2.5); } if (prev) G.fx.arc(prev.pos, E.pos, N.color); prev = E; } G.fx.ring(at, R, N.color, 0.4); }
+    else if (t === 2) { for (const E of near()) E.applySlow(E.isBoss ? 0.35 : 0.75, E.isBoss ? 3 : 6); G.fx.frostBurst(at, R, N.color); }
+    else if (t === 3) { const L = near(); let prev = null; for (const E of L) { if (!E.isBoss) { E.staggerT = Math.max(E.staggerT || 0, 2.5); E.applySlow(0.9, 2.5); } if (prev) G.fx.arc(prev.pos, E.pos, N.color); prev = E; } G.fx.shockStrike(at, R, N.color); G.fx.ring(at, R, N.color, 0.4); }
     else if ((t === 4 || (t === 5 && this.stat('AbilityPower') >= 1) || (this.S.ClusterAll && t !== 6)) && !(P && P.child)) for (let i = 0; i < (t === 5 ? 4 : 5); i++) { const a = i / 5 * Math.PI * 2 + Math.random(); G.projectiles.spawn({ pos: at.clone().add(V3(0, 30, 0)), vel: V3(Math.cos(a) * 420, 520 + Math.random() * 160, Math.sin(a) * 420), damage: 0, splash: N.radius * 0.8, gtype: 4, child: true, gravity: 1, bounces: 1, bounceDamp: 0.3, fuse: 0.7 + Math.random() * 0.3, life: 3, kind: 'Grenade', radius: 8, color: N.color, procCoef: 0, fromProc: true }); }
   }
   tickGrenades(dt) {
@@ -958,7 +957,7 @@ export class Player {
     G.vm.mBite = heavy ? 1 : 0.6;
     this.play('S_HitFlesh2', 0.9, heavy ? 0.7 : 1, 0.08); if (heavy) this.play('S_Slam', 0.6, 1.1, 0.05);
     G.audio.gunPunch(heavy ? 0.9 : 0.45);
-    if (W.quake && heavy) { G.fx.ring(V3(this.pos.x, this.pos.y - 85, this.pos.z).addScaledVector(flat(f).normalize(), 120), 380, lin(0.7, 0.55, 0.4), 0.4); for (const E of G.enemies) if (!E.dead && !T.includes(E) && E.pos.distanceTo(this.pos) < 420) { this.dealDamage(E, base * 0.4, E.pos, safeN2(flat(E.pos.clone().sub(this.pos))), false, 0, true); if (!E.isBoss) E.applyKnock(safeN2(flat(E.pos.clone().sub(this.pos))).multiplyScalar(700).add(V3(0, 380, 0))); } }
+    if (W.quake && heavy) { G.fx.quake(V3(this.pos.x, this.pos.y - 85, this.pos.z).addScaledVector(flat(f).normalize(), 120), 380); for (const E of G.enemies) if (!E.dead && !T.includes(E) && E.pos.distanceTo(this.pos) < 420) { this.dealDamage(E, base * 0.4, E.pos, safeN2(flat(E.pos.clone().sub(this.pos))), false, 0, true); if (!E.isBoss) E.applyKnock(safeN2(flat(E.pos.clone().sub(this.pos))).multiplyScalar(700).add(V3(0, 380, 0))); } }
     const leech = (W.leech || 0) + this.stat('MeleeLifesteal'); if (leech > 0) this.combatHeal(Math.min(12, dealt * leech));
     if (this.stat('MeleeGuard') > 0) this.meleeGuardT = 2;
     if (killed) {
@@ -983,9 +982,9 @@ export class Player {
   // ---- shared pieces of the buffs that do things
   stun(E, t) { if (!E || E.dead || E.isBoss) return; if (E.elite) t *= 0.5; E.staggerT = Math.max(E.staggerT || 0, t); E.attackCd = Math.max(E.attackCd || 0, t + 0.25); E.applySlow(0.9, t); }
   // a shockwave around your feet: two rings, dust, a thump, and everything inside thrown back
-  shockAround(radius, dmg, color, push = 520, lift = 360) {
+  shockAround(radius, dmg, color, push = 520, lift = 360, look = '') {
     const G = this.game, feet = V3(this.pos.x, this.pos.y - 85, this.pos.z);
-    G.fx.ring(feet, radius, color, 0.42); G.fx.ring(feet, radius * 0.55, lerp3(color, [1, 1, 1], 0.5), 0.26);
+    if (look === 'fire') G.fx.fireBurst(feet, radius, color); else if (look === 'frost') G.fx.frostBurst(feet, radius, color); else { G.fx.ring(feet, radius, color, 0.42); G.fx.quake(feet, radius * 0.6, color); }
     G.fx.dust(feet, lin(0.5, 0.42, 0.33), Math.min(160, radius * 0.3));
     G.fx.flash(feet.clone().add(V3(0, 50, 0)), color, radius * 0.35, 0.16, true);
     this.addShake(0.7); this.play('S_Slam', 0.7, 1.05, 0.05);
@@ -1609,7 +1608,7 @@ export class Player {
     }
     if (this.S.GoldKill && !E.isBoss && Math.random() < this.S.GoldKill) {                // Midas Touch: now and then one turns to gold
       const bonus = Math.max(20, E.money * 4);
-      this.addMoney(bonus, true); G.fx.coins(E.pos, 8); G.fx.flash(E.pos, lin(1, 0.82, 0.25), 90, 0.22, true); G.fx.ring(V3(E.pos.x, E.pos.y - 60, E.pos.z), 160, lin(1, 0.82, 0.25), 0.3);
+      this.addMoney(bonus, true); G.fx.gold(E.pos, 160);
       G.hud.floater(E.pos.clone().add(V3(0, 120, 0)), `GOLD  +$${cash(bonus)}`, [1, 0.85, 0.25], 1.4); this.play('S_Cash', 0.7, 1.2, 0.05);
     }
     if (this.S.KillHealth && (this.killHP || 0) < 60 * this.S.KillHealth) { this.killHPc = (this.killHPc || 0) + 1; if (this.killHPc >= 8) { this.killHPc = 0; this.killHP = (this.killHP || 0) + 1; this.recompute(); this.health = Math.min(this.maxHealth, this.health + 1); } }
@@ -1684,17 +1683,17 @@ export class Player {
       }
       case 'Ignite':
         if (alive && !selfC) target.applyBurn(mag * base, 3);
-        else { const c = selfC ? Me : at; for (const E of near(c, 380, target)) E.applyBurn(mag * base, 3); G.fx.ring(c.clone().add(V3(0, -60, 0)), 380, lin(1, 0.4, 0.05), 0.3); }
+        else { const c = selfC ? Me : at; for (const E of near(c, 380, target)) E.applyBurn(mag * base, 3); G.fx.fireBurst(c, 380); }
         break;
       case 'Freeze': {
         const s = Math.min(U.mag + 0.1 * (N - 1), 0.85);
-        if (alive && !selfC && trigger !== 'Periodic') { target.applySlow(s, 2.5); G.fx.flash(target.pos, lin(0.6, 0.9, 1), 40, 0.2, false); }
-        else { for (const E of near(Me, 550, null)) E.applySlow(s, 2.5); G.fx.ring(Me.clone().add(V3(0, -80, 0)), 550, lin(0.6, 0.9, 1), 0.4); }
+        if (alive && !selfC && trigger !== 'Periodic') { target.applySlow(s, 2.5); if (G.time - (target.frFx || -9) > 0.7) { target.frFx = G.time; G.fx.add({ pos: target.pos.clone(), life: 0.35, size0: 40, size1: 130, rot: Math.random() * 60, c0: [0.9, 0.97, 1, 1], c1: [0.55, 0.85, 1, 0], fadeOut: 0.6, tex: 'FX_Snow', kind: 'add', glow: 2 }); } }
+        else { for (const E of near(Me, 550, null)) E.applySlow(s, 2.5); G.fx.frostBurst(Me, 550); }
         break;
       }
-      case 'Heal': this.combatHeal(mag); break;
+      case 'Heal': this.combatHeal(mag); if (G.time - (this.healFxT || -9) > 0.6) { this.healFxT = G.time; G.fx.heal(Me.clone().addScaledVector(this.forward(), 120).add(V3(0, 30, 0))); } break;
       case 'Money': this.addMoney(Math.round(mag * (trigger === 'OnKill' ? Math.min(1, payScale(G.round)) : 1)), true); break;
-      case 'Shield': { let a = mag; if (trigger === 'OnKill') { a = Math.min(a, this.shieldBucket || 0); this.shieldBucket = (this.shieldBucket || 0) - a; } this.overshield = Math.min(this.shieldCap(), this.overshield + a); break; }   // kill shields share a 6-a-second budget, like kill heals
+      case 'Shield': { let a = mag; if (trigger === 'OnKill') { a = Math.min(a, this.shieldBucket || 0); this.shieldBucket = (this.shieldBucket || 0) - a; } this.overshield = Math.min(this.shieldCap(), this.overshield + a); if (a > 0 && G.time - (this.shFxT || -9) > 0.8) { this.shFxT = G.time; G.fx.rune(V3(Me.x, Me.y - 85, Me.z), 130, [0.5, 0.8, 1], 0.5); } break; }   // kill shields share a 6-a-second budget, like kill heals
       case 'Missile': {
         const from = Me.clone().add(V3(0, 90, 0));
         const aimE = alive ? target : this.findNearestEnemy(at, 2500, null);
@@ -1708,7 +1707,7 @@ export class Player {
       case 'ResetDash': this.dashCharges = Math.min(this.maxDash(), this.dashCharges + Math.max(1, Math.round(mag))); break;
       case 'Nova': {
         const R = 420 * (1 + this.stat('ExplosionRadius') * 0.5);
-        G.fx.ring(Me.clone().add(V3(0, -70, 0)), R, lin(1, 0.9, 0.5), 0.3);
+        { const f = Me.clone().add(V3(0, -70, 0)); G.fx.ring(f, R, lin(1, 0.9, 0.5), 0.3); G.fx.rune(f, R * 0.5, lin(1, 0.9, 0.5), 0.35); for (let q = 0; q < 10; q++) { const a = q / 10 * 6.283; G.fx.tracer(f.clone().add(V3(0, 60, 0)), f.clone().add(V3(Math.cos(a) * R, 60, Math.sin(a) * R)), [1, 0.9, 0.5], 5, 0.12); } }
         for (const E of near(Me, R, null)) this.dealDamage(E, mag * base, E.pos, E.pos.clone().sub(Me).normalize(), false, 0, true, 0, 0, 0, 0, lin(1, 0.9, 0.5));
         break;
       }
@@ -1717,18 +1716,18 @@ export class Player {
       case 'Execute': {
         const th = Math.min(U.mag * (1 + 0.25 * (N - 1)), 0.5);
         if (alive && !target.isBoss && target.healthFrac() < th) {
-          G.fx.flash(target.pos, lin(0.9, 0.1, 0.2), 70, 0.25, false);
+          G.fx.execute(target.pos);
           G.hud.floater(target.pos.clone().add(V3(0, 60, 0)), 'EXECUTED', [1, 0.2, 0.25], 1.2);
           target.kill(this, false);
         }
         break;
       }
-      case 'Bleed': if (alive) target.applyBleed(mag * base); break;
+      case 'Bleed': if (alive) { target.applyBleed(mag * base); if (G.time - (target.blFx || -9) > 0.5) { target.blFx = G.time; for (let q = 0; q < 3; q++) G.fx.add({ mode: 'streak', pos: at.clone(), vel: V3((Math.random() - 0.5) * 300, 200 + Math.random() * 200, (Math.random() - 0.5) * 300), gravity: 1700, life: 0.8, size0: 10, size1: 8, stretch: 3, c0: [0.75, 0.05, 0.08, 1], fadeOut: 0.1, tex: 'FX_Drop' }); } } break;
       case 'Clover': this.addLuck(1); break;
       case 'Cooldown': this.abilityCd = Math.max(0, this.abilityCd - mag); break;
-      case 'Invuln': this.invuln = Math.max(this.invuln, U.mag); G.fx.flash(Me, lin(0.8, 0.9, 1), 120, 0.3, true); break;
+      case 'Invuln': this.invuln = Math.max(this.invuln, U.mag); G.fx.rune(V3(Me.x, Me.y - 85, Me.z), 160, lin(0.8, 0.9, 1), U.mag); break;
       case 'Shockwave': {
-        G.fx.ring(Me.clone().add(V3(0, -70, 0)), 450, lin(0.9, 0.9, 1), 0.35);
+        G.fx.ring(Me.clone().add(V3(0, -70, 0)), 450, lin(0.9, 0.9, 1), 0.35); G.fx.quake(Me, 300, [0.8, 0.8, 0.9]);
         for (const E of near(Me, 450, null)) {
           const away = safeN2(E.pos.clone().sub(Me));
           this.dealDamage(E, mag * base, E.pos, away, false, 0, true, 0, 0, 0, 0, lin(0.9, 0.9, 1));

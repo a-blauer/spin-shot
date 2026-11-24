@@ -67,6 +67,7 @@ export class Fx {
         if (P.drag > 0) P.vel.multiplyScalar(Math.max(0, 1 - P.drag * dt));
         P.pos.addScaledVector(P.vel, dt);
         P.rot += P.rotVel * dt;
+        if (P.spin && P.mode === 'fixed') { P.right.applyAxisAngle(UP, P.spin * dt); P.up.applyAxisAngle(UP, P.spin * dt); }
         if (P.groundY > -1e8 && P.pos.y < P.groundY + 2 && P.vel.y < 0) {
           P.pos.y = P.groundY + 2;
           if (P.splat) {
@@ -193,11 +194,97 @@ export class Fx {
     }
     this.add({ pos: b.clone(), life: 0.15, size0: 90, size1: 140, c0: [color[0], color[1], color[2], 1], c1: [color[0], color[1], color[2], 0], tex: 'FX_Glow', kind: 'add', glow: 2 });
   }
+  // ------------------------------------------------------------------ the effect kit
+  // Every kind of effect has its own shape, so you can tell what just happened without reading a number:
+  // fire is tongues of flame and embers, frost is a crystal and flying shards, lightning comes down from above and forks
+  // along the ground, blood sprays, a blow to the ground cracks it and throws dust, and anything that marks an area is a
+  // turning circle of script. A plain ring is only ever the front of a shockwave.
+  floorAt(pos) { const g = this.groundY(pos, 700); return new THREE.Vector3(pos.x, g > -1e8 ? g + 3 : pos.y, pos.z); }
+  ground(pos, tex, r0, r1, color, life, o = {}) {
+    const r = new THREE.Vector3(), u = new THREE.Vector3(); decalBasis(UP, rnd(0, 360), r, u);
+    return this.add(Object.assign({ mode: 'fixed', right: r, up: u, pos: pos.clone().add(new THREE.Vector3(0, 1 + (this.serial++ % 8) * 0.2, 0)), life, size0: r0 * 2, size1: r1 * 2,
+      c0: [color[0], color[1], color[2], color[3] ?? 1], c1: [color[0], color[1], color[2], 0], fadeOut: 0.6, tex, kind: 'add', glow: 2 }, o));
+  }
+  // the front of a blast: a hard thin line racing out, a fainter one after it, and a skirt of dust it kicks up
   ring(pos, radius, color, life = 0.35) {
-    const r = new THREE.Vector3(), u = new THREE.Vector3();
-    decalBasis(UP, rnd(0, 360), r, u);
-    this.add({ mode: 'fixed', right: r, up: u, pos: pos.clone().add(new THREE.Vector3(0, 3, 0)), life, size0: radius * 0.4, size1: radius * 2,
-      c0: [...lerpC(color, [1, 1, 1], 0.3)], c1: [color[0], color[1], color[2], 0], fadeOut: 0.7, tex: 'FX_Ring', kind: 'add', glow: 2 });
+    const c = lerpC(color, [1, 1, 1], 0.35);
+    this.ground(pos, 'FX_Shock', radius * 0.25, radius, c, life, { glow: 2.4 });
+    this.ground(pos, 'FX_Ring', radius * 0.1, radius * 0.8, [color[0], color[1], color[2], 0.5], life * 1.25, { delay: life * 0.15 });
+    const n = Math.min(12, Math.max(5, Math.round(radius / 45)));
+    for (let i = 0; i < n; i++) { const a = (i + Math.random()) / n * 6.283, out = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+      this.add({ pos: pos.clone().addScaledVector(out, radius * 0.2).add(new THREE.Vector3(0, 8, 0)), vel: out.multiplyScalar(radius / Math.max(0.12, life) * 0.9).add(new THREE.Vector3(0, rnd(20, 70), 0)), drag: 3.2, life: life * rnd(1.1, 1.6),
+        size0: radius * 0.1, size1: radius * 0.34, rot: rnd(0, 360), rotVel: rnd(-50, 50), c0: [color[0] * 0.5 + 0.4, color[1] * 0.5 + 0.4, color[2] * 0.5 + 0.4, 0.55], c1: [color[0], color[1], color[2], 0], fadeOut: 0.7, tex: 'FX_Smoke' }); }
+  }
+  fireBurst(pos, R, color = [1, 0.5, 0.12]) {
+    const f = this.floorAt(pos), hot = lerpC(color, [1, 0.9, 0.45], 0.45);
+    this.ground(f, 'FX_FireRing', R * 0.25, R, hot, 0.38, { glow: 2.6 });
+    this.ground(f, 'FX_Disc', R * 0.3, R * 0.8, [color[0], color[1], color[2], 0.35], 0.3);
+    const n = Math.min(16, Math.max(7, Math.round(R / 28)));
+    for (let i = 0; i < n; i++) { const a = (i + Math.random()) / n * 6.283, d = R * rnd(0.25, 0.9), h = R * rnd(0.2, 0.42);
+      this.add({ pos: new THREE.Vector3(f.x + Math.cos(a) * d, f.y + h * 0.4, f.z + Math.sin(a) * d), vel: new THREE.Vector3(Math.cos(a) * 60, rnd(160, 320), Math.sin(a) * 60), drag: 1.5, delay: d / R * 0.12, life: rnd(0.35, 0.6),
+        size0: h, size1: h * 0.5, rot: rnd(-12, 12), c0: [hot[0], hot[1], hot[2], 1], c1: [color[0], color[1] * 0.5, color[2] * 0.3, 1], fadeOut: 0.5, tex: 'FX_FlameUp', glow: 1.3 }); }
+    for (let i = 0; i < 12; i++) { const v = vrand(); v.y = Math.abs(v.y) + 0.6; this.add({ mode: 'streak', pos: f.clone().add(new THREE.Vector3(rnd(-R, R) * 0.5, 20, rnd(-R, R) * 0.5)), vel: v.normalize().multiplyScalar(rnd(250, 700)), gravity: -160, drag: 1.2, life: rnd(0.5, 1.0), size0: 7, size1: 3, stretch: 3, c0: [1, 0.85, 0.4, 1], c1: [1, 0.3, 0.05, 1], fadeOut: 0.5, tex: 'FX_Spark', kind: 'add', glow: 2 }); }
+    for (let i = 0; i < 4; i++) this.add({ pos: f.clone().add(new THREE.Vector3(rnd(-R, R) * 0.4, R * 0.3, rnd(-R, R) * 0.4)), vel: new THREE.Vector3(0, rnd(120, 220), 0), drag: 1, delay: 0.15, life: rnd(0.8, 1.3), size0: R * 0.3, size1: R * 0.7, rot: rnd(0, 360), rotVel: rnd(-30, 30), c0: [0.16, 0.13, 0.13, 0.7], c1: [0.1, 0.1, 0.1, 0], fadeOut: 0.7, tex: 'FX_Smoke' });
+    this.glowAt(f.clone().add(new THREE.Vector3(0, 60, 0)), color, R * 2.6, 0.3);
+    this.decal('FX_Scorch', f, UP, R * 0.9, [1, 1, 1, 0.9], 14);
+  }
+  frostBurst(pos, R, color = [0.55, 0.85, 1]) {
+    const f = this.floorAt(pos), pale = lerpC(color, [1, 1, 1], 0.6);
+    this.ground(f, 'FX_Snow', R * 0.2, R, pale, 0.55, { glow: 2.2, fadeOut: 0.5 });
+    this.ground(f, 'FX_Snow', R * 0.9, R * 0.95, [color[0], color[1], color[2], 0.5], 2.2, { kind: 'fx', glow: 0.6, fadeOut: 0.4, delay: 0.2 });   // the rime it leaves
+    const n = Math.min(18, Math.max(8, Math.round(R / 24)));
+    for (let i = 0; i < n; i++) { const a = (i + Math.random()) / n * 6.283, v = new THREE.Vector3(Math.cos(a), rnd(0.15, 0.9), Math.sin(a)).normalize().multiplyScalar(R * rnd(2.6, 4.4));
+      this.add({ mode: 'streak', pos: f.clone().add(new THREE.Vector3(0, 30, 0)), vel: v, drag: 3.5, gravity: 500, life: rnd(0.3, 0.55), size0: rnd(9, 16), size1: 4, stretch: 4, c0: [1, 1, 1, 1], c1: [color[0], color[1], color[2], 1], fadeOut: 0.4, tex: 'FX_Shard', glow: 1.4 }); }
+    for (let i = 0; i < 6; i++) { const a = rnd(0, 6.283); this.add({ pos: f.clone().add(new THREE.Vector3(Math.cos(a) * R * 0.4, 30, Math.sin(a) * R * 0.4)), vel: new THREE.Vector3(Math.cos(a) * R, 30, Math.sin(a) * R), drag: 3, life: rnd(0.6, 1), size0: R * 0.25, size1: R * 0.6, rot: rnd(0, 360), c0: [0.9, 0.96, 1, 0.6], c1: [0.8, 0.9, 1, 0], fadeOut: 0.7, tex: 'FX_Smoke' }); }
+    this.glowAt(f.clone().add(new THREE.Vector3(0, 50, 0)), color, R * 2.2, 0.25);
+  }
+  // lightning: a bolt down from overhead, a white core, and forks that run out along the ground from where it lands
+  shockStrike(pos, R, color = [0.6, 0.8, 1]) {
+    const f = this.floorAt(pos), top = f.clone().add(new THREE.Vector3(rnd(-120, 120), 1100, rnd(-120, 120)));
+    this.arc(top, f, color); this.arc(top, f, [1, 1, 1]);
+    const n = Math.min(8, Math.max(4, Math.round(R / 60)));
+    for (let i = 0; i < n; i++) { const a = (i + Math.random() * 0.6) / n * 6.283, L = R * rnd(0.6, 1);
+      const r = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), u = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
+      this.add({ mode: 'fixed', right: r, up: u, pos: f.clone().addScaledVector(r, L * 0.5), life: rnd(0.16, 0.3), delay: rnd(0, 0.05), size0: L, size1: L * 1.1, c0: [1, 1, 1, 1], c1: [color[0], color[1], color[2], 0], fadeOut: 0.5, tex: 'FX_Zap', kind: 'add', glow: 3 }); }
+    this.add({ pos: f.clone().add(new THREE.Vector3(0, 30, 0)), life: 0.12, size0: R * 0.7, size1: R * 1.1, rot: rnd(0, 360), c0: [1, 1, 1, 1], c1: [color[0], color[1], color[2], 0], tex: 'FX_Star2', kind: 'add', glow: 3 });
+    this.sparks(f, UP, color, 10); this.glowAt(f.clone().add(new THREE.Vector3(0, 60, 0)), color, R * 3, 0.18);
+    this.decal('FX_Scorch', f, UP, Math.min(90, R * 0.35), [1, 1, 1, 0.8], 10);
+  }
+  bloodBurst(pos, R, color = [0.75, 0.05, 0.08]) {
+    const f = this.floorAt(pos), g = f.y;
+    const n = Math.min(18, Math.max(8, Math.round(R / 22)));
+    for (let i = 0; i < n; i++) { const a = (i + Math.random()) / n * 6.283, v = new THREE.Vector3(Math.cos(a), rnd(0.5, 1.4), Math.sin(a)).normalize().multiplyScalar(R * rnd(2.2, 3.6));
+      this.add({ mode: 'streak', pos: pos.clone(), vel: v, gravity: 1700, life: 1.2, size0: rnd(9, 15), size1: 8, stretch: 3, groundY: g, splat: i % 3 === 0, c0: [color[0], color[1], color[2], 1], fadeOut: 0.1, tex: 'FX_Drop' }); }
+    for (let i = 0; i < 6; i++) this.add({ pos: pos.clone(), vel: vrand().multiplyScalar(R * rnd(0.8, 1.6)).add(new THREE.Vector3(0, 80, 0)), drag: 4, gravity: 300, life: rnd(0.3, 0.55), size0: R * 0.2, size1: R * 0.55, rot: rnd(0, 360), c0: [1, 1, 1, 1], c1: [0.7, 0.7, 0.7, 0], fadeOut: 0.6, tex: 'FX_BloodSpray' });
+    this.add({ pos: pos.clone(), life: 0.5, size0: R * 0.5, size1: R * 1.3, rot: rnd(0, 360), c0: [color[0], color[1], color[2], 0.5], c1: [color[0] * 0.6, 0, 0, 0], fadeOut: 0.8, tex: 'FX_Smoke' });
+    this.decal('FX_Blood_' + Math.floor(Math.random() * 4), f, UP, R * 0.8, [1, 1, 1, 1], 22);
+  }
+  // a blow to the ground: it cracks, dust rolls out low, and chips of it are thrown up
+  quake(pos, R, color = [0.7, 0.6, 0.48]) {
+    const f = this.floorAt(pos);
+    this.decal('FX_Crack', f, UP, R * 1.1, [1, 1, 1, 0.9], 9);
+    this.ground(f, 'FX_Shock', R * 0.2, R, lerpC(color, [1, 1, 1], 0.5), 0.3, { glow: 1.6 });
+    this.dust(f, color, R * 0.5);
+    for (let i = 0; i < 12; i++) { const a = rnd(0, 6.283), d = R * rnd(0.1, 0.7), sz = rnd(10, 22); this.add({ pos: new THREE.Vector3(f.x + Math.cos(a) * d, f.y + 6, f.z + Math.sin(a) * d), vel: new THREE.Vector3(Math.cos(a) * rnd(60, 220), rnd(380, 820), Math.sin(a) * rnd(60, 220)), gravity: 2100, life: 1.1, size0: sz, size1: sz, rot: rnd(0, 360), rotVel: rnd(-500, 500), groundY: f.y, bounce: 0.3, fadeOut: 0.25, c0: [color[0] * 0.55, color[1] * 0.55, color[2] * 0.55, 1], tex: 'FX_Hole', kind: 'sprite' }); }
+  }
+  // a turning circle of script on the floor: an aura, a ward, a field that lasts
+  rune(pos, R, color, life = 0.8) {
+    const f = this.floorAt(pos);
+    this.ground(f, 'FX_Rune', R * 0.85, R, color, life, { spin: 0.9, fadeIn: 0.12, fadeOut: 0.4, glow: 2 });
+    this.ground(f, 'FX_Disc', R * 0.9, R * 0.9, [color[0], color[1], color[2], 0.12], life, { fadeIn: 0.12, fadeOut: 0.4, glow: 1 });
+  }
+  heal(pos, color = [0.5, 1, 0.6]) {
+    for (let i = 0; i < 5; i++) this.add({ pos: pos.clone().add(new THREE.Vector3(rnd(-40, 40), rnd(-50, 10), rnd(-40, 40))), vel: new THREE.Vector3(0, rnd(90, 170), 0), drag: 0.8, delay: i * 0.05, life: rnd(0.6, 0.9), size0: rnd(12, 20), size1: 8, c0: [color[0], color[1], color[2], 1], c1: [color[0], color[1], color[2], 0], fadeOut: 0.6, tex: 'FX_Cross', kind: 'add', glow: 2 });
+  }
+  gold(pos, R = 160) {
+    const f = this.floorAt(pos); this.coins(pos, 8);
+    this.ground(f, 'FX_Shock', R * 0.2, R, [1, 0.85, 0.3], 0.3);
+    for (let i = 0; i < 6; i++) this.add({ pos: pos.clone().add(new THREE.Vector3(rnd(-50, 50), rnd(-20, 60), rnd(-50, 50))), delay: i * 0.04, life: 0.3, size0: 10, size1: 44, rot: rnd(0, 360), rotVel: 200, c0: [1, 0.95, 0.6, 1], c1: [1, 0.8, 0.2, 0], fadeOut: 0.6, tex: 'FX_Star2', kind: 'add', glow: 2.4 });
+  }
+  // a killing mark: a skull that jumps up off the body and is gone
+  execute(pos, color = [1, 0.3, 0.25]) {
+    this.add({ pos: pos.clone().add(new THREE.Vector3(0, 40, 0)), vel: new THREE.Vector3(0, 240, 0), drag: 3, life: 0.6, size0: 46, size1: 90, c0: [1, 1, 1, 1], c1: [color[0], color[1], color[2], 0], fadeOut: 0.5, tex: 'FX_SkullFx', glow: 1.2 });
+    this.add({ pos: pos.clone().add(new THREE.Vector3(0, 40, 0)), life: 0.14, size0: 120, size1: 200, rot: rnd(0, 360), c0: [color[0], color[1], color[2], 1], c1: [color[0], color[1], color[2], 0], tex: 'FX_Star', kind: 'add', glow: 2 });
   }
   gibs(pos, body, scale, count) {
     const ground = this.groundY(pos, 900);
