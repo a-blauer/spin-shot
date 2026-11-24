@@ -132,7 +132,7 @@ export const MAPS = [
     final: { arena: 'UNDER THE GALLOWS', open: 'THE TRAP IS SPRUNG', toast: 'Step into the light to go down through the trap', under: 'UNDER THE GALLOWS', acts: ['THE TIDE COMES IN', 'THE ROPE TIGHTENS'], taunt: 'Every neck has its day',
       win: 'Gallows Wharf is quiet. The Hangman has taken the drop.' } },
   // not a place but a way of playing: twenty rooms, a door chosen after each, a boss in every fifth
-  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down. Clear a room, spend what you earned at its workbench and chest, and go on down. A boss holds every fifth room.',
+  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down, drawn from forty: no two runs go the same way. Clear a room, fit what you found at its workbench, and go on down. A boss holds every fifth room.',
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
       const z = typeof zone === 'number' ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, 7][(z - N_ROOMS) % 2] : z] || THEMES[0];

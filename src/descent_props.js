@@ -150,7 +150,7 @@ export function props(K, Q) {
   };
   // shallow water you can wade: a sheet of it with a low kerb
   P.pool = (x0, y0, x1, y1, water, rim, glint) => {
-    tile(x0, y0, x1, y1, 2.6, water); if (glint) Glow(V((x0 + x1) / 2, (y0 + y1) / 2, 4), V((x1 - x0) * 0.5, (y1 - y0) * 0.4, 2), glint, 0);
+    tile(x0, y0, x1, y1, 2.6, water); if (glint) for (let i = 0; i < 5; i++) Glow(V(x0 + (x1 - x0) * (0.2 + ((i * 37) % 60) / 100), y0 + (y1 - y0) * (0.15 + i * 0.17), 4), V((x1 - x0) * 0.16, 10, 2), glint, 0);
     for (const [a, b, c, d] of [[x0 - 20, y0 - 20, x1 + 20, y0], [x0 - 20, y1, x1 + 20, y1 + 20], [x0 - 20, y0, x0, y1], [x1, y0, x1 + 20, y1]]) Box(V((a + c) / 2, (b + d) / 2, 9), V(c - a, d - b, 18), rim, true, false);
   };
   // a lamp on a post

@@ -130,12 +130,13 @@ export const ROOMS_B = [
   // A prison wing. The cells run down both sides behind bars (some doors stand open: you can fight in and out of them),
   // the guards' cage stands in the middle of the hall, and the mess tables are bolted down either side of it.
   mk(TH('Cell Block', 0x22262a, 0x2c3238, 0x3a4046, 0x6a7078, 0xffe6a0, [1, 0.92, 0.7], 0x161a1e, [0.56, 0.58, 0.6]), [4000, 5400, 1200], { panel: 'none', hang: 'lamp', corner: 'none', c1: 0x5a6068, n: 8 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
+    ({ out: Q_out, hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
       const conc = 0x4a5056, iron = 0x2a2e34, steel = 0x6a7078, paint = 0xc8a03a;
       slabs(450, T.floor, T.floor2, 0x14171a);
       for (const s of [-1, 1]) tile(s * 2250 - 14, -hy + 500, s * 2250 + 14, hy - 500, 2.4, paint);
       // cells: partition walls out from each side wall (stopping short of it), a barred front with a doorway
       const cy = []; for (let y = -4200; y <= 4200; y += 700) if (Math.abs(Math.abs(y) - 500) > 300) cy.push(y);
+      for (const e of [-1, 1]) Q_out.raised.push(e > 0 ? [2440, -hy, hx, hy] : [-hx, -hy, -2440, hy]);   // nothing comes up inside a cell
       for (const sx of [-1, 1]) {
         for (let y = -4550; y <= 4550; y += 700) { if (Math.abs(Math.abs(y) - 350) < 200 && false) continue; solid(sx * 3150, y, 0, 1300, 60, 460, conc); }
         solid(sx * 3150, 0, 460, 1300, 9160, 30, conc, false);   // the cells' roof slab: a gallery nobody walks
