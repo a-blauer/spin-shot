@@ -95,6 +95,14 @@ export const ROOMS_A = [
           Cyl(V(x, y, 600), 8, 60, steel, false, false); solid(x, y, 250, 86, 50, 320, meat, false); deco(x, y, 250, 60, 54, 300, fat); deco(x, y + 20, 520, 40, 12, 50, fat); deco(x, y, 200, 50, 40, 50, meat);
         }
       }
+      // drains down each lane, and what runs to them
+      for (const y of [-1800, -600, 600, 1800]) { tile(-hx + 700, y - 26, hx - 700, y + 26, 2.2, dark); for (let x = -hx + 900; x < hx - 800; x += 600) { tile(x - 60, y - 60, x + 60, y + 60, 2.8, 0x14181c); for (const q of [-30, 0, 30]) tile(x - 50, y + q - 5, x + 50, y + q + 5, 3.4, steel); if ((x / 600 | 0) % 3 === 0) tile(x + 80, y - 14, x + 420, y + 14, 3, 0x5a1a18); } }
+      // the island in the middle: a long block on a kerb, a rack of hooks and knives over it
+      solid(0, 0, 0, 300, 900, 20, 0x5a6670, false); solid(0, 0, 20, 220, 800, 70, 0x7a5a3a); deco(0, 0, 90, 236, 816, 10, 0x5a3e26); for (const y of [-300, 0, 300]) { deco(40, y, 100, 90, 60, 30, meat); deco(-50, y + 90, 100, 14, 120, 6, steel); }
+      for (const e of [-1, 1]) Box(V(0, e * 380, 520 + (H - 520) / 2), V(14, 14, H - 520), dark, false, false); Box(V(0, 0, 520), V(40, 800, 20), steel, false, false); for (let y = -330; y <= 330; y += 110) { Cyl(V(0, y, 480), 6, 70, steel, false, false); Box(V(0, y, 436), V(26, 8, 20), steel, false, false); }
+      hit(0, 0, 0, 220, 800, 90, true); L(0, 0, 440, T.lamp, 2200, 3);
+      // strip curtains at the ends of the door aisle
+      for (const s of [-1, 1]) { Box(V(0, s * 2950, 600), V(1000, 20, 30), steel, false, false); for (let x = -470; x <= 470; x += 78) { if (Math.abs(x) < 160) continue; Box(V(x, s * 2950, 320), V(66, 6, 540), (x / 78 | 0) % 2 ? 0x9ab6c8 : 0x7a96a8, false, false); } }
       // the cutting floor: blocks, a band saw, tubs
       for (const s of [-1, 1]) {
         solid(s * 700, 0, 0, 120, 120, 84, 0x7a5a3a); deco(s * 700, 0, 84, 40, 12, 26, steel); P.table(s * 1500, s * 300, true, 300, steel);
@@ -113,7 +121,7 @@ export const ROOMS_A = [
   // A burying ground that was roofed over and forgotten. Dead trees, plots railed off with iron, a mausoleum in the
   // middle. Open ground with thin cover: you fight from trunk to trunk and over the rails.
   mk(TH('Bone Orchard', 0x1a1f1a, 0x242a22, 0x2a2e2c, 0x6a6e70, 0x9ad8a0, [0.6, 0.9, 0.7], 0x121a16, [0.46, 0.56, 0.5]), [5000, 4800, 1500], { panel: 'arch', hang: 'vine', corner: 'rubble', c1: 0x4a4e50, c2: 0x1a1e1c, n: 26 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, Pyramid, slabs, tile, plat, solid, deco, hit, tall, L, candle, P }) => {
+    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, Pyramid, slabs, tile, plat, solid, deco, hit, tall, L, candle, P }) => {
       const stone = 0x5a5e60, earth = 0x2a241c, path = 0x3a3a34;
       for (let i = 0; i < 90; i++) { const x = ((i * 733) % (hx * 2 - 400)) - hx + 200, y = ((i * 419) % (hy * 2 - 400)) - hy + 200, w = 240 + (i % 5) * 90; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6, i % 3 ? T.floor2 : earth); }
       tile(-240, -hy, 240, hy, 2.4, path); tile(-hx + 300, -200, hx - 300, 200, 2.4, path);
@@ -121,12 +129,20 @@ export const ROOMS_A = [
       plat(0, 0, 900, 1100, 40, stone, T.floor2);
       solid(0, 0, 40, 620, 800, 380, 0x4a4e50); deco(0, 0, 420, 700, 880, 40, stone); Pyramid(V(0, 0, 460 + 110), V(700, 880, 220), 0x3a3e40);
       for (const e of [-1, 1]) { for (const c of [-1, 1]) Cyl(V(c * 250, e * 430, 40 + 190), 70, 380, stone, false, false); deco(0, e * 402, 40, 200, 8, 300, 0x0c0e10); Glow(V(0, e * 408, 300), V(120, 4, 30), T.glow, 0); }
-      L(0, 0, 760, T.lamp, 2600, 2.6); tall(0, 0, 760);
+      // its doors: bronze, ajar, a lintel with a name plate and an urn each side; a mourning figure on the ridge
+      for (const e of [-1, 1]) { deco(0, e * 400, 40, 260, 20, 330, stone); deco(-60, e * 414, 46, 96, 10, 290, 0x4a5a4a); Box(V(86, e * 440, 40 + 150), V(96, 10, 290), 0x4a5a4a, false, false, e * 50); deco(0, e * 414, 350, 300, 30, 40, 0x7a7e80); deco(0, e * 432, 356, 180, 6, 24, 0xc8c4b0);
+        for (const c of [-1, 1]) { Cyl(V(c * 380, e * 500, 40 + 50), 60, 100, stone, false, false); Ball(V(c * 380, e * 500, 40 + 130), V(90, 90, 80), 0x7a7e80); Cyl(V(c * 380, e * 500, 40 + 176), 50, 14, stone, false, false); }
+        deco(0, e * 425, 420, 720, 40, 60, 0x7a7e80); }
+      for (const z of [130, 260]) deco(0, 0, 40 + z, 632, 812, 12, 0x3a3e40);
+      Box(V(0, 0, 690), V(60, 60, 30), stone, false, false); Box(V(0, 0, 760), V(40, 30, 110), 0x8a8e90, false, false); Ball(V(0, 0, 840), V(40, 40, 44), 0x8a8e90); for (const e of [-1, 1]) BoxRot(V(e * 50, 0, 760), V(14, 60, 130), 0x8a8e90, R(0, 0, e * 30), false);
+      L(0, 0, 900, T.lamp, 2600, 2.6); tall(0, 0, 760);
+      // lanterns on shepherd's crooks down the paths
+      for (const s of [-1, 1]) for (const d of [1100, 2300, 3500]) { for (const [x, y] of [[s * 300, d], [s * 300, -d], [d, s * 260], [-d, s * 260]]) { if (Math.abs(x) > hx - 600 || Math.abs(y) > hy - 700) continue; Box(V(x, y, 100), V(10, 10, 200), 0x2a2e30, false, false); Box(V(x + 20, y, 200), V(50, 8, 8), 0x2a2e30, false, false); Box(V(x + 40, y, 170), V(24, 24, 36), 0x2a2e30, false, false); Glow(V(x + 40, y, 170), V(16, 16, 24), T.glow, 0); } }
       // plots: a rail round three sides, graves in two ranks, a tree at the back
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const [px, py] of [[1700, 1500], [3300, 1500], [1700, 3300], [3300, 3300]]) {
         const x = sx * px, y = sy * py;
         P.fence(x, y + sy * 480, 1000, true, 0x2a2e30); P.fence(x + sx * 500, y, 960, false, 0x2a2e30);
-        for (const gx of [-300, 0, 300]) for (const gy of [-250, 150]) P.grave(x + gx, y + gy, (gx + gy) % 200 ? stone : 0x7a7e80, ((gx * 7 + gy) % 13) - 6);
+        for (const gx of [-300, 0, 300]) for (const gy of [-250, 150]) { if ((gx + gy + px) % 3 === 0) { Box(V(x + gx, y + gy, 70), V(18, 14, 140), 0x7a7e80, false, false); Box(V(x + gx, y + gy, 100), V(80, 14, 18), 0x7a7e80, false, false); hit(x + gx, y + gy, 0, 80, 24, 130, false); tile(x + gx - 40, y + gy + 14, x + gx + 40, y + gy + 210, 2.6, 0x2a241c); } else P.grave(x + gx, y + gy, (gx + gy) % 200 ? stone : 0x7a7e80, ((gx * 7 + gy) % 13) - 6); }
         if ((px + py) % 3200 === 0) P.deadTree(x - sx * 330, y + sy * 330, 620 + (px % 500)); else P.lampPost(x - sx * 420, y - sy * 380, 280, T.lamp, 0x2a2e30);
       }
       for (const s of [-1, 1]) { P.deadTree(s * 900, s * 2400, 700); P.deadTree(-s * 900, s * 2400, 560); P.deadTree(s * 2500, -s * 300, 640); P.wagon(s * 800, -s * 1250, true, 0x3a2c20); }
@@ -197,6 +213,11 @@ export const ROOMS_A = [
       // stumps of the living rock, and ridges of it to get behind
       for (const [x, y, d, h] of [[2000, 1000, 520, 760], [-2000, -1000, 520, 760], [-900, 2500, 440, 520], [900, -2500, 440, 520], [3400, 2900, 480, 900], [-3400, -2900, 480, 900]]) { Oct(V(x, y, h / 2), V(d, d * 0.9, h), rock, true, true); Oct(V(x, y, 40), V(d + 160, d + 140, 80), rock2, false, false); Pyramid(V(x, y, h + 90), V(d * 0.8, d * 0.7, 180), rock); tall(x, y, d / 2 + 200); }
       for (const s of [-1, 1]) { lowWall(s * 300, s * 2300, 700, true, rock, rock2, 120, 140); lowWall(s * 3000, -s * 900, 700, false, rock, rock2, 120, 140); lowWall(-s * 1900, s * 300, 600, false, rock, rock2, 120, 140); }
+      // shards everywhere underfoot, veins of it in the walls, and what the last people to dig here left behind
+      for (let i = 0; i < 60; i++) { const a = i * 2.399, r = 700 + (i * 197) % 3700, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) > hx - 400 || Math.abs(y) > hy - 800 || (Math.abs(x) < 1500 && Math.abs(y) > hy - 1500)) continue; const c = [vio, cyan, rose][i % 3]; for (let q = 0; q < 3; q++) { const h = 50 + ((i + q) % 4) * 26; Pyramid(V(x + q * 34 - 30, y + (q % 2) * 40, h * 0.45), V(h * 0.34, h * 0.34, h), c[q], R((q - 1) * 16, i * 23, (q - 1) * -10)); } if (i % 5 === 0) Glow(V(x, y, 3), V(120, 120, 2), c[0], 7); }
+      for (const sx of [-1, 1]) for (let y = -hy + 500; y < hy - 300; y += 380) { if (Math.abs(Math.abs(y) - 500) < 260) continue; const z = 200 + ((y * 7 + 9999) % 600), c = [0xb07aff, 0x7ad0ff, 0xff8ad0][Math.abs(Math.round(y / 380)) % 3]; Glow(V(sx * (hx - 4), y, z), V(6, 240, 16), c, 0, R(0, 0, ((y / 380) % 2 ? 24 : -18))); Glow(V(sx * (hx - 4), y + 90, z + 130), V(6, 120, 10), c, 0, R(0, 0, -30)); Pyramid(V(sx * (hx - 30), y - 60, z - 60), V(60, 60, 130), c, R(0, 0, sx * 70)); }
+      for (const s of [-1, 1]) { const x = s * 1100, y = -s * 3600; solid(x, y, 30, 170, 230, 100, 0x4a3a2c); for (const a of [-1, 1]) for (const e of [-1, 1]) Cyl(V(x + e * 70, y + a * 70, 24), 46, 14, 0x3a3e46, false, false, R(90, 0, 0)); for (let q = 0; q < 4; q++) Pyramid(V(x + (q % 2) * 60 - 30, y + (q > 1 ? 50 : -50), 160), V(50, 50, 90), vio[q % 3], R(q * 9, q * 30, 0)); for (const e of [-1, 1]) { Box(V(x + e * 70, y, 2.6), V(12, 900, 6), 0x8a8e96, false, false); }
+        for (let t = -400; t <= 400; t += 160) Box(V(x, y + t, 2), V(240, 44, 4), 0x3a2c20, false, false); Box(V(x + 260, y + 120, 60), V(10, 10, 120), 0x5a3e26, false, false, 0); Box(V(x + 260, y + 120, 124), V(90, 12, 14), 0x8a8e96, false, false); P.lampPost(x - 300, y - 200, 220, T.lamp, 0x2a2e30); }
       // pools of light in the low places
       for (const [x, y, d] of [[900, -700, 500], [-900, 700, 500], [2900, 1300, 420], [-2900, -1300, 420], [-1500, 3200, 460], [1500, -3200, 460], [3900, -400, 380], [-3900, 400, 380]]) { Cyl(V(x, y, 2.2), d, 3, 0x241a40, false, false); Glow(V(x, y, 4.4), V(d * 0.55, d * 0.55, 2), T.glow, 1); }
     }),

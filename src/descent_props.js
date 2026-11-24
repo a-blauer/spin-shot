@@ -17,6 +17,7 @@ export function props(K, Q) {
     if (style === 'round') Cyl(V(x, y, h / 2), d, h, col, true, true); else if (style === 'oct') Oct(V(x, y, h / 2), V(d, d, h), col, true, true); else Box(V(x, y, h / 2), V(d, d, h), col, true, true);
     const cap = style === 'square' ? (z, s, t) => Box(V(x, y, z), V(s, s, t), trim, false, false) : (z, s, t) => Oct(V(x, y, z), V(s, s, t), trim, false, false);
     cap(35, d + 110, 70); cap(92, d + 50, 44); cap(h - 35, d + 110, 70); cap(h - 92, d + 50, 44);
+    if (d >= 100) { const band = (z, c, g) => (g ? Glow(V(x, y, z), V(d + 8, d + 8, 12), c, style === 'round' ? 1 : style === 'oct' ? 7 : 0) : cap(z, d + 16, 20)); band(Math.min(h * 0.5, 620), T.glow, true); band(Math.min(h * 0.5, 620) - 40, trim); band(Math.min(h * 0.5, 620) + 40, trim); }
     tall(x, y, d / 2 + 170);
   };
   P.obelisk = (x, y, h, col, glow, w = 150) => {
@@ -122,9 +123,14 @@ export function props(K, Q) {
     Cyl(V(x, y, 62 + h), d + 40, 24, col, false, false); hit(x, y, 50, d * 0.8, d * 0.8, h, false); L(x, y, 50 + h * 0.6, [((liquid >> 16) & 255) / 255, ((liquid >> 8) & 255) / 255, (liquid & 255) / 255], 700, 1.4);
     if (h > 380) tall(x, y, d / 2 + 140);
   };
-  P.gear = (x, y, z, d, col, along = true, th = 26) => {   // stood on edge; `along` true puts its face along X
-    const rot = along ? AY : AX; Cyl(V(x, y, z), d, th, col, false, false, rot); Oct(V(x, y, z), along ? V(d * 1.12, th * 0.7, d * 1.12) : V(th * 0.7, d * 1.12, d * 1.12), col, false, false);
-    Box(V(x, y, z), along ? V(d * 0.8, th * 0.7, d * 0.8) : V(th * 0.7, d * 0.8, d * 0.8), col, false, false); Cyl(V(x, y, z), d * 0.28, th + 16, 0x2a2420, false, false, rot);
+  // a cog stood on edge: a rim with round teeth, a web with four lightening holes, a hub and its pin. `along` true: its face lies along X
+  P.gear = (x, y, z, d, col, along = true, th = 26) => {
+    const rot = along ? AY : AX, at = (u, w, o = 0) => (along ? V(x + u, y + o, z + w) : V(x + o, y + u, z + w)), dk = 0x1a1c1e;
+    Cyl(at(0, 0), d, th, col, false, false, rot); Cyl(at(0, 0), d * 0.84, th + 4, dk, false, false, rot); Cyl(at(0, 0), d * 0.8, th + 8, col, false, false, rot);
+    const n = Math.max(10, Math.round(d / 34));
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283; Cyl(at(Math.cos(a) * d * 0.52, Math.sin(a) * d * 0.52), d * 0.11, th, col, false, false, rot); }
+    for (let i = 0; i < 4; i++) { const a = i * 1.571 + 0.785; Cyl(at(Math.cos(a) * d * 0.24, Math.sin(a) * d * 0.24), d * 0.2, th + 12, dk, false, false, rot); }
+    Cyl(at(0, 0), d * 0.2, th + 22, col, false, false, rot); Cyl(at(0, 0), d * 0.08, th + 34, dk, false, false, rot);
   };
   P.crystal = (x, y, h, cols, glow) => {
     hit(x, y, 0, h * 0.42, h * 0.42, h * 0.55, true); Pyramid(V(x, y, h / 2), V(h * 0.3, h * 0.3, h), cols[0]);

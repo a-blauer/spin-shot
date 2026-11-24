@@ -10,7 +10,7 @@ export const ROOMS_D = [
   // Something spun this room shut. Web hangs in sheets between leaning posts and makes walls you can see through;
   // cocoons hang from the roof and lie in heaps, and the nest is a mound in the middle with eggs in it.
   mk(TH('Webbed Den', 0x1c1a1e, 0x28242a, 0x2e2a30, 0x6a6470, 0xe0d8ff, [0.85, 0.82, 1], 0x18161c, [0.54, 0.52, 0.6]), [4600, 4600, 1300], { panel: 'none', hang: 'vine', corner: 'rubble', c1: 0xc8c4d0, c2: 0xa8a4b0, glow: 0xe0d8ff, n: 40, rail: false },
-    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, platOct, tile, solid, deco, hit, tall, L, P }) => {
+    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, platOct, tile, solid, deco, hit, tall, L, rr, P }) => {
       const silk = 0xd8d4e0, grey = 0xa8a4b0, wood = 0x3a2c24, egg = 0xe8e0c8;
       for (let i = 0; i < 80; i++) { const x = ((i * 859) % (hx * 2 - 300)) - hx + 150, y = ((i * 523) % (hy * 2 - 300)) - hy + 150, w = 200 + (i % 5) * 90; Oct(V(x, y, 1.2 + (i % 3) * 0.5), V(w * 2, w * 1.5, 2), i % 3 ? T.floor2 : 0x141216, false, false); }
       // the nest
@@ -25,6 +25,11 @@ export const ROOMS_D = [
         hit(x, y, 0, along ? len - 60 : 30, along ? 30 : len - 60, 480, true);
       };
       for (const s of [-1, 1]) { web(s * 1900, s * 800, 1300, false); web(s * 800, -s * 1900, 1300, true); web(s * 2900, -s * 2200, 1100, true); web(-s * 2200, -s * 2900, 1100, false); web(s * 3500, s * 2600, 900, false); web(s * 900, s * 3300, 900, true); }
+      // strands from the roof down to the floor all round, old bones, and the small ones' webs low in the corners of things
+      for (let i = 0; i < 40; i++) { const a = i * 2.399, r = 1000 + (i * 211) % 3300, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) > hx - 300 || Math.abs(y) > hy - 700 || (Math.abs(x) < 1400 && Math.abs(y) > hy - 1500)) continue;
+        if (i % 2) { const lean = 12 + (i % 4) * 7; BoxRot(V(x, y, H / 2), V(5, 5, H / Math.cos(lean * Math.PI / 180)), silk, R(lean * Math.cos(a), 0, lean * Math.sin(a)), false); Ball(V(x + Math.sin(a) * 0, y, 6), V(120, 120, 16), grey); }
+        else { for (let q = 0; q < 4; q++) BoxRot(V(x + q * 22 - 30, y + (q % 2) * 26, 8), V(rr(70, 130), 12, 12), 0xd8d0b8, R(0, i * 31 + q * 50, 0), false); if (i % 4 === 0) Ball(V(x + 40, y - 30, 26), V(50, 46, 52), 0xd8d0b8); Ball(V(x, y, 0), V(260, 220, 36), grey); } }
+      for (const sx of [-1, 1]) for (let y = -hy + 600; y < hy - 300; y += 520) { if (Math.abs(Math.abs(y) - 500) < 300) continue; for (let q = 0; q < 5; q++) BoxRot(V(sx * (hx - 160), y, 80 + q * 150), V(5, 5, 460), silk, R(0, 0, sx * (38 + q * 6)), false); for (let q = 0; q < 3; q++) Box(V(sx * (hx - 6), y, 240 + q * 190), V(8, 420 - q * 90, 6), silk, false, false); Ball(V(sx * (hx - 30), y + 60, 520), V(60, 60, 130), silk); }
       // cocoons: hung, and heaped
       const cocoon = (x, y, z, s = 1) => { Ball(V(x, y, z), V(110 * s, 110 * s, 240 * s), silk); Ball(V(x, y, z + 20 * s), V(116 * s, 116 * s, 60 * s), grey); };
       for (const [x, y, z] of [[1200, 1300, 520], [-1200, -1300, 560], [2500, 300, 600], [-2500, -300, 520], [300, 2500, 640], [-300, -2500, 560], [3300, -900, 600], [-3300, 900, 620], [1900, 3500, 560], [-1900, -3500, 600]]) { Cyl(V(x, y, z + 120 + (H - z - 120) / 2), 8, H - z - 120, silk, false, false); cocoon(x, y, z); tall(x, y, 240); }
@@ -41,7 +46,11 @@ export const ROOMS_D = [
       const rust = 0x8a4a2a, iron = 0x3a3e46, yel = 0xc8a03a, body = [0x7a3a2a, 0x3a5a6a, 0x5a6a3a, 0x8a7a4a, 0x4a4e56];
       for (let i = 0; i < 70; i++) { const x = ((i * 823) % (hx * 2 - 300)) - hx + 150, y = ((i * 467) % (hy * 2 - 300)) - hy + 150, w = 220 + (i % 5) * 100; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6, i % 3 ? T.floor2 : 0x1a1612); }
       // a hulk: a boxy body with a cab, no wheels; stacked up to three high, each skewed on the last
-      let hi = 0; const hulk = (x, y, z, yaw) => { const c = body[(hi++) % 5]; Box(V(x, y, z + 55), V(380, 170, 110), c, true, z === 0, yaw); Box(V(x, y, z + 138), V(190, 150, 56), c, false, false, yaw); Box(V(x, y, z + 140), V(196, 130, 40), 0x1a1e22, false, false, yaw); Box(V(x, y, z + 8), V(390, 180, 16), iron, false, false, yaw); };
+      let hi = 0; const hulk = (x, y, z, yaw) => { const c = body[(hi++) % 5]; const c0 = Math.cos(yaw * Math.PI / 180), s0 = Math.sin(yaw * Math.PI / 180), at = (u, w, zz) => V(x + u * c0 - w * s0, y + u * s0 + w * c0, z + zz);
+        Box(V(x, y, z + 62), V(380, 170, 96), c, true, z === 0, yaw); Box(at(-20, 0, 132), V(200, 156, 56), c, false, false, yaw); Box(at(-20, 0, 134), V(206, 140, 36), 0x1a1e22, false, false, yaw); Box(at(-20, 0, 134), V(150, 162, 36), 0x1a1e22, false, false, yaw);   // body, cab, glass
+        Box(V(x, y, z + 14), V(392, 176, 14), iron, false, false, yaw); Box(at(192, 0, 60), V(10, 130, 40), iron, false, false, yaw); for (const e of [-1, 1]) { Box(at(194, e * 56, 76), V(8, 30, 22), 0xe8e0c0, false, false, yaw); Box(at(-192, e * 60, 76), V(8, 26, 18), 0x8a2a22, false, false, yaw); }   // sills, grille, lamps
+        for (const a of [-1, 1]) for (const e of [-1, 1]) { Cyl(at(a * 120, e * 80, 34), 76, 26, 0x17181c, false, false, R(90, yaw, 0)); Cyl(at(a * 120, e * 92, 34), 34, 8, 0x6a6e76, false, false, R(90, yaw, 0)); }   // wheels
+        if (hi % 3 === 0) Box(at(110, 0, 116), V(150, 150, 8), rust, false, false, yaw + 6); };
       const stackOf = (x, y, n, yaw) => { for (let k = 0; k < n; k++) hulk(x + (k % 2) * 30, y - (k % 2) * 20, k * 166, yaw + k * 9); if (n > 2) tall(x, y, 320); };
       for (const s of [-1, 1]) { stackOf(s * 1900, s * 600, 3, 80); stackOf(s * 1900, s * 1050, 2, 95); stackOf(s * 1900, s * 1500, 3, 86); stackOf(-s * 800, s * 2300, 2, 10); stackOf(-s * 1350, s * 2350, 3, -6); stackOf(s * 3300, -s * 1700, 3, 20); stackOf(s * 3800, -s * 1500, 2, 35); stackOf(s * 3400, s * 2900, 2, 70); stackOf(-s * 3500, s * 600, 1, 50); stackOf(s * 600, s * 3500, 1, -20); }
       // the crusher
@@ -93,14 +102,22 @@ export const ROOMS_D = [
   // A sculpture court. The colossus kneels at the middle with the room's light in its hands; smaller figures stand in
   // ranks on their plinths like a crowd turned to stone, and half-cut blocks wait where the carvers left them.
   mk(TH('Hall of Statues', 0x26282a, 0x34383a, 0x40464a, 0xc8c4b8, 0xa0e0ff, [0.78, 0.9, 1], 0x1a1e22, [0.54, 0.58, 0.62]), [4600, 4600, 1700], { panel: 'niche', hang: 'lamp', corner: 'rubble', c1: 0xc8c4b8, c2: 0x8a8a84, n: 6 },
-    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, slabs, tile, plat, platOct, solid, deco, hit, tall, L, ring, AX, AY, P }) => {
+    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, ConeShape, Pyramid, slabs, tile, plat, platOct, solid, deco, hit, tall, L, ring, AX, AY, P }) => {
       const stone = 0xa8a49a, pale = 0xc8c4b8, dark = 0x5a5e5a, wood = 0x5a3e26;
       slabs(480, T.floor, T.floor2, 0x15181a, (x, y) => Math.hypot(x, y) < 1700);
       Cyl(V(0, 0, 1.4), 3300, 2.4, 0x1e2224, false, false); ring(0, 0, 2.8, 3200, 30, pale, 0x1e2224);
       // the colossus: kneeling, built of blocks, holding a bowl of light
       platOct(0, 0, 900, 80, dark, 0x34383a);
-      solid(0, 0, 80, 420, 320, 300, stone, false); deco(-130, -40, 380, 160, 200, 300, stone); deco(130, 120, 380, 160, 360, 140, stone); deco(0, 0, 380 + 300, 380, 240, 380, stone); Ball(V(0, 30, 80 + 1150), V(220, 230, 260), stone);
-      for (const e of [-1, 1]) { BoxRot(V(e * 240, 130, 80 + 800), V(110, 110, 380), stone, R(-60, 0, e * 10), false); } Cyl(V(0, 330, 80 + 760), 320, 60, pale, false, false); Glow(V(0, 330, 80 + 800), V(240, 240, 30), T.glow, 1); L(0, 330, 1000, T.lamp, 3000, 3.2); hit(0, 60, 380, 380, 300, 700, false); tall(0, 100, 760);
+      // it stands on a drum, robed, a bowl of fire held out before it in both hands; four times the height of a man
+      Oct(V(0, 0, 80 + 60), V(560, 560, 120), dark, true, false); Oct(V(0, 0, 80 + 126), V(600, 600, 14), pale, false, false);
+      const Z = 80 + 134;
+      Oct(V(0, 0, Z + 230), V(380, 300, 460), stone, false, false); Oct(V(0, 0, Z + 40), V(440, 360, 80), stone, false, false); for (let q = -2; q <= 2; q++) Box(V(q * 70, 150, Z + 250), V(14, 10, 420), 0x8a8a84, false, false);   // the robe and its folds
+      Box(V(0, 0, Z + 470), V(400, 250, 40), pale, false, false); Oct(V(0, 0, Z + 600), V(340, 250, 240), stone, false, false); Box(V(0, 0, Z + 730), V(460, 230, 70), stone, false, false);   // belt, chest, shoulders
+      for (const e of [-1, 1]) { Ball(V(e * 230, 0, Z + 740), V(150, 170, 130), pale); Cyl(V(e * 235, 20, Z + 620), 90, 220, stone, false, false); BoxRot(V(e * 190, 190, Z + 520), V(80, 80, 300), stone, R(-78, 0, e * -20), false); Ball(V(e * 110, 330, Z + 560), V(90, 90, 70), pale); }
+      Cyl(V(0, 0, Z + 790), 110, 60, stone, false, false); Ball(V(0, 10, Z + 900), V(190, 200, 220), stone); Box(V(0, 100, Z + 880), V(40, 30, 70), 0x8a8a84, false, false); for (const e of [-1, 1]) Box(V(e * 46, 96, Z + 925), V(40, 10, 16), 0x2a2e30, false, false);   // neck, head, nose, eyes
+      Oct(V(0, 10, Z + 1010), V(230, 230, 50), pale, false, false); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; Pyramid(V(Math.cos(a) * 96, 10 + Math.sin(a) * 96, Z + 1070), V(36, 36, 80), pale); }   // the crown
+      Cyl(V(0, 360, Z + 560), 320, 50, pale, false, false); Cyl(V(0, 360, Z + 520), 160, 40, pale, false, false); Glow(V(0, 360, Z + 592), V(260, 260, 20), T.glow, 1); ConeShape(V(0, 360, Z + 680), V(140, 140, 180), T.glow); L(0, 360, Z + 760, T.lamp, 3200, 3.2);
+      hit(0, 0, 80, 440, 360, 800, false); tall(0, 100, 760);
       // the crowd: ranks of figures, each on a plinth, facing the middle; poses and sizes by turn
       let n = 0; for (const [r, k] of [[1500, 8], [2500, 12]]) for (let q = 0; q < k; q++) { const a = (q + (r > 2000 ? 0.5 : 0)) / k * 6.283, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) < 420 && Math.abs(y) > 1000) continue; P.statue(x, y, 240 + (n % 3) * 40, n % 4 ? pale : stone, dark, n % 2); n++; }
       // the carvers' corner pieces: blocks half cut, a head on its side, scaffolding round an unfinished giant
@@ -200,8 +217,12 @@ export const ROOMS_D = [
       // the dolls' house: open-fronted, two floors you can see into, a pitched roof
       plat(0, 0, 1500, 900, 40, wood, 0x5a4a2a);
       for (const e of [-1, 1]) solid(e * 700, 0, 40, 60, 800, 620, white, false); solid(0, 380, 40, 1400, 50, 620, white, false); deco(0, 0, 40 + 300, 1400, 800, 26, wood); deco(0, 0, 40 + 620, 1500, 900, 30, red);
-      for (const e of [-1, 1]) BoxRot(V(0, e * 230, 40 + 790), V(1500, 560, 30), red, R(e * -35, 0, 0), false); for (const x of [-350, 350]) { deco(x, 404, 40 + 120, 150, 8, 150, blue); deco(x, 404, 40 + 420, 150, 8, 150, blue); }
-      P.table(-350, 0, true, 200, wood, 40); P.bed(350, 100, true, 0xd87a9a, 40 + 326); hit(0, 380, 40, 1400, 60, 620, true); L(0, -100, 560, T.lamp, 2400, 3); tall(0, 0, 1000);
+      for (const e of [-1, 1]) BoxRot(V(0, e * 230, 40 + 790), V(1500, 560, 30), red, R(0, 0, e * 35), false); for (const x of [-350, 350]) { deco(x, 404, 40 + 120, 150, 8, 150, blue); deco(x, 404, 40 + 420, 150, 8, 150, blue); }
+      P.table(-350, 0, true, 200, wood, 40); P.bed(350, 100, true, 0xd87a9a, 40 + 326);
+      // rooms: a wall between them on each floor, papered at the back; a stove and a dresser below, a wardrobe and a cot above
+      for (const z of [40, 40 + 326]) { deco(0, 100, z, 30, 520, 280, white); deco(0, -100, z + 200, 30, 120, 80, white); for (let x = -620; x <= 620; x += 155) deco(x, 352, z + 20, 70, 6, 250, x % 310 ? 0xe8b8c8 : 0xb8d8e8); deco(0, 350, z, 1340, 10, 24, wood); }
+      solid(380, 250, 40, 150, 110, 130, 0x2a2e30, false); deco(380, 250, 170, 30, 30, 150, 0x2a2e30); Glow(V(380, 192, 100), V(70, 6, 40), 0xff7a2a, 0); solid(560, -150, 40, 120, 200, 150, blue, false); for (const q of [-1, 1]) Ball(V(497, -150 + q * 50, 120), V(14, 20, 20), yel);
+      solid(-520, 250, 40 + 326, 200, 120, 240, green, false); deco(-520, 188, 40 + 336, 6, 6, 220, yel); solid(-250, 0, 40 + 326, 150, 90, 60, white, false); deco(-250, -48, 40 + 326, 150, 8, 110, wood); deco(-250, 48, 40 + 326, 150, 8, 110, wood); P.rug(-350, -250, 380, 220, red, yel); hit(0, 380, 40, 1400, 60, 620, true); L(0, -100, 560, T.lamp, 2400, 3); tall(0, 0, 1000);
       // the railway: a loop of track round the house, and the train stopped on it
       for (let q = 0; q < 40; q++) { const a = q / 40 * 6.283, r = 2100; Box(V(Math.cos(a) * r, Math.sin(a) * r * 0.86, 3), V(260, 40, 6), wood, false, false, a * 57.3); } for (const dr of [-80, 80]) for (let q = 0; q < 40; q++) { const a = q / 40 * 6.283, r = 2100 + dr; Box(V(Math.cos(a) * r, Math.sin(a) * r * 0.86, 8), V(16, 340 + dr * 0.1, 6), 0x8a8e96, false, false, a * 57.3); }
       const car = (x, y, c, eng) => { solid(x, y, 30, 180, 320, 110, c, false); for (const a of [-1, 1]) for (const e of [-1, 1]) Cyl(V(x + e * 96, y + a * 100, 40), 80, 16, 0x2a2420, false, false, AX); if (eng) { Cyl(V(x, y + 60, 190), 130, 200, 0x2a2420, false, false, AY); Cyl(V(x, y + 120, 290), 50, 80, 0x2a2420, false, false); deco(x, y - 100, 140, 180, 120, 130, c); } else deco(x, y, 140, 150, 280, 50, yel); hit(x, y, 0, 190, 320, eng ? 270 : 180, true); };

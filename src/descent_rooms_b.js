@@ -10,7 +10,7 @@ export const ROOMS_B = [
   // A wood of mushrooms taller than a house, their caps a second roof. The trunks are the cover; the big one stands on
   // a mound in the middle, and rings of small ones mark the clearings.
   mk(TH('Fungal Grotto', 0x1a1e24, 0x22303a, 0x26303a, 0x5a6a5a, 0x5affd8, [0.4, 1, 0.9], 0x0e2026, [0.42, 0.6, 0.62]), [4800, 4600, 1500], { panel: 'none', hang: 'vine', corner: 'rubble', c1: 0x3a4a44, c2: 0x2a3a34, n: 30, rail: false },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, platOct, tile, hit, tall, L, lowWall, P }) => {
+    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, ConeShape, platOct, tile, hit, tall, L, lowWall, P }) => {
       const caps = [0x8a3a6a, 0x3a6a8a, 0xc87a3a, 0x6a4a9a], gl = [0x5affd8, 0xff8ad0, 0xffd86a, 0x8ab0ff], loam = 0x1c2a22;
       for (let i = 0; i < 100; i++) { const x = ((i * 877) % (hx * 2 - 300)) - hx + 150, y = ((i * 541) % (hy * 2 - 300)) - hy + 150, w = 200 + (i % 6) * 80; Oct(V(x, y, 1.2 + (i % 3) * 0.5), V(w * 2, w * 1.5, 2), i % 3 ? T.floor2 : loam, false, false); }
       platOct(0, 0, 1000, 80, 0x2a3a34, loam); P.mushroom(0, 0, 900, caps[0], gl[0]); L(0, 0, 700, T.lamp, 2800, 3);
@@ -19,6 +19,12 @@ export const ROOMS_B = [
       for (const [x, y, h, c] of BIG) { P.mushroom(x, y, h, caps[c], gl[c]); L(x, y, h * 0.7, [((gl[c] >> 16) & 255) / 255, ((gl[c] >> 8) & 255) / 255, (gl[c] & 255) / 255], 1100, 1.5); }
       // fairy rings in the clearings, and a pool in each
       for (const [x, y, c] of [[2300, -500, 0], [-2300, 500, 1], [-700, 2100, 2], [700, -2100, 3], [3700, 3300, 1], [-3700, -3300, 2]]) { Cyl(V(x, y, 2), 520, 3, 0x12303a, false, false); Glow(V(x, y, 4.2), V(260, 220, 2), gl[c], 1); for (let q = 0; q < 9; q++) { const a = q / 9 * 6.283; P.mushroom(x + Math.cos(a) * 400, y + Math.sin(a) * 400, 70 + (q % 3) * 30, caps[(c + q) % 4], q % 2 ? gl[c] : 0); } }
+      // undergrowth: clumps of little ones, ferns, moss on the walls, spores in the air under the big caps
+      for (let i = 0; i < 56; i++) { const a = i * 2.399, r = 800 + (i * 193) % 3600, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) > hx - 400 || Math.abs(y) > hy - 800 || (Math.abs(x) < 1500 && Math.abs(y) > hy - 1500)) continue;
+        if (i % 3) for (let q = 0; q < 3; q++) { const h = 30 + ((i + q) % 4) * 14, w = h * 1.1, mx = x + q * 40 - 40, my = y + (q % 2) * 46; Cyl(V(mx, my, h / 2), h * 0.2, h, 0xd8cfa8, false, false); ConeShape(V(mx, my, h + w * 0.2), V(w, w, w * 0.44), caps[(i + q) % 4]); }
+        else for (let q = 0; q < 5; q++) { const b = q * 1.257 + i; BoxRot(V(x + Math.cos(b) * 50, y + Math.sin(b) * 50, 46), V(120, 26, 5), [0x2a6a4a, 0x3a8a5a][q % 2], R(0, b * 57.3, -32), false); } }
+      for (const sx of [-1, 1]) for (let y = -hy + 500; y < hy - 300; y += 420) { if (Math.abs(Math.abs(y) - 500) < 280) continue; const c = Math.abs(Math.round(y / 420)) % 4; Box(V(sx * (hx - 4), y, 300), V(8, 300, 520), 0x2a4a34, false, false); for (let q = 0; q < 3; q++) { const z = 180 + q * 170, w = 150 - q * 26; Cyl(V(sx * (hx - w * 0.3), y + (q - 1) * 70, z), w, 16, caps[(c + q) % 4], false, false); Glow(V(sx * (hx - w * 0.3), y + (q - 1) * 70, z - 10), V(w * 0.7, w * 0.7, 4), gl[(c + q) % 4], 1); } }
+      for (const [x, y, h, c] of BIG) for (let q = 0; q < 5; q++) Glow(V(x + Math.cos(q * 1.3 + x) * h * 0.3, y + Math.sin(q * 1.3 + x) * h * 0.3, h * (0.35 + q * 0.1)), V(10, 10, 10), gl[c], 2);
       // fallen caps and logs to fight over
       for (const s of [-1, 1]) { Cyl(V(s * 900, s * 1500, 70), 150, 800, 0x3a2c20, false, false, R(90, 30, 0)); hit(s * 900, s * 1500, 0, 620, 420, 130, true); Ball(V(s * 2500, s * 1300, 0), V(520, 520, 260), caps[1]); hit(s * 2500, s * 1300, 0, 360, 360, 120, true); lowWall(-s * 400, s * 3700, 700, true, 0x2a3a34, 0x5a6a5a, 110, 130); lowWall(s * 4000, -s * 1100, 700, false, 0x2a3a34, 0x5a6a5a, 110, 130); }
     }),
@@ -26,9 +32,9 @@ export const ROOMS_B = [
   // ------------------------------------------------------------------------------------------------ SEWER JUNCTION
   // Four channels meet at a round sump. The channels are shallow water with a kerb; the four quarters between them are
   // raised walkways with the works on them, and footbridges cross the channels. You are always choosing a quarter.
-  mk(TH('Sewer Junction', 0x1e2420, 0x2a322a, 0x343c34, 0x6a6a4a, 0xb8ff5a, [0.75, 1, 0.45], 0x1a2414, [0.5, 0.58, 0.42]), [4600, 4600, 1100], { panel: 'arch', hang: 'chain', corner: 'barrels', c1: 0x4a4e3e, c2: 0x0c100c, n: 8 },
+  mk(TH('Sewer Junction', 0x2a322c, 0x46503e, 0x3c463a, 0x8a8a5a, 0xb8ff5a, [0.75, 1, 0.45], 0x1a2414, [0.5, 0.58, 0.42]), [4600, 4600, 1100], { panel: 'arch', hang: 'chain', corner: 'barrels', c1: 0x4a4e3e, c2: 0x0c100c, n: 8 },
     ({ hx, hy, H, T, Box, Cyl, Oct, Glow, tile, plat, solid, deco, hit, tall, L, barrel, crate, lowWall, AX, AY, P }) => {
-      const brick = 0x4a4436, water = 0x1e3a22, slime = 0xb8ff5a, iron = 0x3a3e36;
+      const brick = 0x6a5a40, water = 0x1e4a30, slime = 0xb8ff5a, iron = 0x3a3e36;
       tile(-hx, -hy, hx, hy, 1.4, 0x161c16); tile(-420, -hy, 420, hy, 2.4, water); tile(-hx, -420, hx, 420, 2.4, water);
       for (const s of [-1, 1]) { tile(s * 420 - 30, -hy, s * 420 + 30, hy, 3.4, T.trim); tile(-hx, s * 420 - 30, hx, s * 420 + 30, 3.4, T.trim); }
       for (let i = 0; i < 14; i++) { Glow(V(((i * 37) % 700) - 350, -hy + 400 + i * 620, 4), V(120, 30, 2), slime, 0); Glow(V(-hx + 400 + i * 620, ((i * 53) % 700) - 350, 4), V(30, 120, 2), slime, 0); }
@@ -155,6 +161,14 @@ export const ROOMS_B = [
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) solid(sx * 330, sy * 430, 80, 40, 40, 300, iron, false);
       for (const s of [-1, 1]) { for (let p = -360; p <= 360; p += 60) Cyl(V(s * 330, p, 80 + 190), 12, 220, iron, false, false); hit(s * 330, 0, 80, 20, 820, 110, false); deco(s * 330, 0, 80, 30, 860, 110, steel); }
       deco(0, 0, 380, 760, 960, 24, iron); P.table(0, 0, true, 240, 0x4a3626, 80); Glow(V(0, 0, 80 + 84), V(60, 40, 10), 0x3aff7a, 0); L(0, 0, 330, T.lamp, 1800, 2.6); tall(0, 0, 560);
+      // a bridge between the two galleries, over the cage, railed; lamps under it
+      Box(V(0, 0, 475), V(4840, 260, 20), conc, false, false); for (const e of [-1, 1]) { Box(V(0, e * 124, 540), V(4840, 10, 10), iron, false, false); for (let x = -2400; x <= 2400; x += 300) Box(V(x, e * 124, 512), V(10, 10, 60), iron, false, false); for (const x of [-1500, 1500]) Box(V(x, e * 100, 475 + (H - 475) / 2 + 10), V(14, 14, H - 495), iron, false, false); } for (const x of [-1500, 1500]) { Box(V(x, 0, 450), V(60, 60, 30), iron, false, false); Glow(V(x, 0, 432), V(44, 44, 8), T.glow, 0); }
+      // every cell has its number, painted over the door, and the block's stripe runs the length of the hall
+      for (const sx of [-1, 1]) { cy.forEach((y, i) => { Box(V(sx * 2492, y, 420), V(8, 110, 60), paint, false, false); Box(V(sx * 2486, y, 420), V(8, 70 - (i % 3) * 14, 30), iron, false, false); }); tile(sx * 1700 - 40, -hy + 500, sx * 1700 + 40, hy - 500, 2.4, 0x8a2a22); }
+      // riot barricades: mess tables thrown on their sides, across the hall from each door
+      for (const s of [-1, 1]) for (const e of [-1, 1]) { const x = e * 500, y = s * 4300; Box(V(x, y, 48), V(420, 12, 92), steel, true, true, e * s * 12); Box(V(x, y + s * 30, 20), V(380, 40, 8), steel, false, false, e * s * 12); for (const q of [-1, 1]) Box(V(x + q * 180, y + s * 40, 46), V(10, 68, 10), 0x3a2c20, false, false, e * s * 12); }
+      // the yard phone, the bins, a notice board on the cage
+      for (const s of [-1, 1]) { solid(s * 2200, s * 600, 0, 60, 140, 200, 0x34383e, false); Box(V(s * 2200 - s * 34, s * 600, 150), V(8, 60, 70), 0x1a1c1e, false, false); Glow(V(s * 2200 - s * 39, s * 600, 170), V(4, 30, 16), 0x3aff7a, 0); Cyl(V(-s * 2150, s * 900, 45), 80, 90, 0x3a5a3a, true, false); Cyl(V(-s * 2150, s * 900, 92), 86, 8, iron, false, false); Box(V(s * 344, 0, 80 + 190), V(6, 300, 150), 0x7a5a36, false, false); for (let q = -1; q <= 1; q++) Box(V(s * 349, q * 90, 80 + 190 + q * 16), V(4, 60, 80), 0xe8e0d0, false, false); }
       // mess tables, bolted in rows
       for (const s of [-1, 1]) for (const y of [1700, 2600, 3500]) for (const e of [-1, 1]) P.mess(e * 950, s * y, true, 420, steel);
       // overhead walkway rails and lamps
