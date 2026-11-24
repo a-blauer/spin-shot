@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { toonMaterial, hex, sprite, Atlas, G } from './render.js';
 import { PRIM } from './world.js';
 import { URot } from './mapkit.js';
-import { buildGun, gunFeel } from './guns.js';
+import { buildGun, dressGun, gunFeel } from './guns.js';
 import { Meta } from './meta.js';
 
 const d2r = (d) => d * Math.PI / 180;
@@ -463,6 +463,7 @@ export class ViewModel {
     const sk = Meta.skin();
     const Glove = hex(sk.glove), GloveLight = hex(sk.gloveL), Cuff = hex(sk.cuff), Sleeve = hex(sk.sleeve), SleeveStripe = hex(sk.stripe);
     const SightZ = spec.Sight, MuzzleAt = spec.Muzzle, EjectAt = spec.Eject, SupportRest = spec.Support;
+    { const Pl = this.game.player, own = Pl && Pl.weapons ? Pl.weapons.find((s) => s.def === this.weaponDef) : null; dressGun(this, W, spec, this.coresOverride || (own && own.cores) || [], this.game.data); }   // parts fitted at the bench show on the gun
     this.gunPartCount = this.parts.length;
     if (this.PumpRoot) this.A.pump = this.PumpRoot;
     if (!this.A.mag) this.A.mag = this.MagRoot;
@@ -560,8 +561,8 @@ export class ViewModel {
   }
 
   // Static copy of a weapon model (no hands, no flash) lit like the world: for wall-buy plaques.
-  static displayModel(game, def, tier = 0) {
-    const vm = new ViewModel(game);
+  static displayModel(game, def, tier = 0, cores = null) {
+    const vm = new ViewModel(game); vm.coresOverride = cores || [];
     vm.weaponDef = def; vm.weaponTier = tier; vm.noMerge = true;
     vm.build();
     vm.parts.forEach((o, i) => { o.userData.extra = i >= vm.gunPartCount; });

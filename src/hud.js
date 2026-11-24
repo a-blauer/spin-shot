@@ -211,6 +211,8 @@ export class Hud {
     return tw + padX * 2;
   }
   icon(name, x, y, size, alpha = 1) {
+    // the Descent's parts have no painted icon: a six-sided tag in the part's colour with its short name
+    if (name[0] === 'U' && name[1] === '_') { const U = DATA.upgrades[+name.slice(2)]; if (U && U.core) { const g = this.g, r = size * 0.5; g.globalAlpha = alpha; g.fillStyle = U.hex; g.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); g.globalAlpha = 1; this.text(U.glyph, x, y + size * 0.13, size * 0.36, '#14100e', 'center', F_BIG, 400, 0, alpha); return; } }
     if (!this.icons) return;
     const m = this.icons.meta[name]; if (!m) return;
     const I = this.icons.img, W = I.width, H = I.height;

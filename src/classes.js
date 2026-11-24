@@ -3,6 +3,7 @@
 //     don't turn up less, and each class has perks nobody else can find.
 //   * gun modifiers: come only from the workbench and live on one gun. Anything that changes how a gun behaves
 //     (extra projectiles, pierce, on-hit effects, reload tricks, alt-fire) is in this pool.
+import './cores.js';
 import { buildOf, countBuilds } from './builds.js';
 import { DATA, RARITIES, rarityIndex } from './data.js';
 import { Meta } from './meta.js';

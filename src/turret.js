@@ -116,7 +116,7 @@ export class Turret {
     const old = this.bound, W = DATA.weapons[S.def];
     this.setGun({ def: S.def, tier: S.tier, mods: (S.mods || []).slice() });
     if (old) { S.def = old.def; S.tier = old.tier; S.mods = old.mods || []; S.ammo = P.magSize(S); S.reserve = P.reserveSize(S); P.recompute(); G_vm(P, S); }
-    else { S.def = -1; S.tier = 0; S.mods = []; S.ammo = 0; S.reserve = 0; P.cycleWeapon(1); }
+    else { P.returnCores(S); S.def = -1; S.tier = 0; S.mods = []; S.ammo = 0; S.reserve = 0; P.cycleWeapon(1); }
     P.toast(`${W.name} is bound to the turret`, RARITY_HEX[W.rarity]); P.play('S_MagIn', 0.9, 0.8);
   }
   destroy() { this.game.scene.remove(this.group); const i = this.game.interactables.indexOf(this); if (i >= 0) this.game.interactables.splice(i, 1); }

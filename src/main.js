@@ -6,6 +6,7 @@ import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
 import { Net } from './net.js';
+import { makeCraft } from './craft.js';
 import * as THREE from 'three';
 import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
 import { MAPS } from './maps.js';
@@ -363,6 +364,17 @@ prog.addEventListener('click', (e) => e.stopPropagation());
 // ---- character locker: live 3D preview plus every cosmetic by slot
 const locker = document.getElementById('locker');
 let lockCanvas = null, lockR = null, lockScene = null, lockCam = null, lockChar = null, lockSlot = 'outfit', lockT = 0, lockSpin = 0.5;
+// One preview canvas and one WebGL context for the life of the page (the locker and the workbench share it). Making a
+// new context per redraw makes browsers (phones especially) throw away the oldest one, which is the game's own renderer.
+function ensureLock() {
+  if (lockCanvas) return;
+  lockCanvas = document.createElement('canvas'); lockCanvas.id = 'lcanvas'; lockCanvas.width = 360; lockCanvas.height = 460;
+  try {
+    lockR = new THREE.WebGLRenderer({ canvas: lockCanvas, antialias: true, alpha: true }); lockR.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lockR.setSize(360, 460, false);
+    lockScene = new THREE.Scene(); lockCam = new THREE.PerspectiveCamera(30, 360 / 460, 10, 3000); lockCam.position.set(0, 130, 610); lockCam.lookAt(0, 112, 0);
+    const fl = new THREE.Mesh(new THREE.CylinderGeometry(110, 120, 8, 32), new THREE.MeshBasicMaterial({ color: 0x2a1820 })); fl.position.y = -4; lockScene.add(fl); lockerRebuild();
+  } catch (err) { lockR = null; }
+}
 function lockerRebuild() { if (!lockScene) return; if (lockChar) lockScene.remove(lockChar); lockChar = buildCharacter(Meta.look()); lockScene.add(lockChar); }
 function renderLocker() {
   const [have, total] = Meta.cosCount();
@@ -381,14 +393,7 @@ function renderLocker() {
   locker.querySelectorAll('.litem').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setLook(lockSlot, el.dataset.id); lockerRebuild(); renderLocker(); }; });
   // One preview canvas and one WebGL context for the life of the page. Making a new context per redraw makes
   // browsers (phones especially) throw away the oldest one, which is the game's own renderer.
-  if (!lockCanvas) {
-    lockCanvas = document.createElement('canvas'); lockCanvas.id = 'lcanvas'; lockCanvas.width = 360; lockCanvas.height = 460;
-    try {
-      lockR = new THREE.WebGLRenderer({ canvas: lockCanvas, antialias: true, alpha: true }); lockR.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lockR.setSize(360, 460, false);
-      lockScene = new THREE.Scene(); lockCam = new THREE.PerspectiveCamera(30, 360 / 460, 10, 3000); lockCam.position.set(0, 130, 610); lockCam.lookAt(0, 112, 0);
-      const fl = new THREE.Mesh(new THREE.CylinderGeometry(110, 120, 8, 32), new THREE.MeshBasicMaterial({ color: 0x2a1820 })); fl.position.y = -4; lockScene.add(fl); lockerRebuild();
-    } catch (err) { lockR = null; }
-  }
+  ensureLock(); if (lockR) lockR.setSize(360, 460, false); lockCanvas.id = 'lcanvas';
   const cv = lockCanvas; locker.querySelector('#lcanvas').replaceWith(cv);
   let drag = null;
   cv.onpointerdown = (e) => { drag = e.clientX; cv.setPointerCapture(e.pointerId); };
@@ -711,17 +716,30 @@ function resize() {
 }
 addEventListener('resize', resize);
 
+// the Descent's workbench window: the game goes on underneath (co-op does not stop), but you are not steering
+const craft = makeCraft({
+  game: () => game, audio, preview: () => { ensureLock(); return lockR ? { R: lockR, canvas: lockCanvas } : null; },
+  entered: () => { mode = 'craft'; keys.clear(); mouseL = mouseR = false; stick.x = stick.y = 0; touchFire = false; if (document.pointerLockElement) document.exitPointerLock(); },
+  left: () => { if (mode === 'craft') { mode = 'play'; keys.clear(); mouseL = mouseR = false; requestLock(); } },
+});
+window.__craft = craft;
 let last = performance.now(), fpsAcc = 0, fpsN = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  tickLocker(dt); tickLobby(dt);
+  tickLocker(dt); tickLobby(dt); craft.tick(dt);
+  if (game && !game.openCraft) game.openCraft = () => craft.show();
+  if (mode === 'craft' && (!game || game.player.dead || !game.descent)) craft.close();
   hud.needMouse = mode === 'play' && !TEST && !TOUCH && !lockFailed && !document.pointerLockElement;
   if (window.__dmhFixedDt) dt = window.__dmhFixedDt;
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { hud.fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
   if (!game) { hud.draw(null, dt, 'title'); return; }
   if (mode === 'play') {
+    const In = readInput();
+    if (!window.__dmhHold) { try { game.step(dt, In); } catch (e) { if (!window.__dmhErr) { window.__dmhErr = true; console.error(e); } } }
+  } else if (mode === 'craft') {
+    keys.clear(); mouseL = mouseR = false; lookX = lookY = 0;
     const In = readInput();
     if (!window.__dmhHold) { try { game.step(dt, In); } catch (e) { if (!window.__dmhErr) { window.__dmhErr = true; console.error(e); } } }
   } else if (mode === 'title') {
@@ -732,7 +750,7 @@ function frame(now) {
     game.env.update(dt, game.camera.position, game.zone);
   }
   game.render();
-  hud.draw(game, mode === 'play' || mode === 'paused' ? dt : 0, mode);
+  hud.draw(game, mode === 'play' || mode === 'paused' || mode === 'craft' ? dt : 0, mode);
 }
 requestAnimationFrame(frame);
 boot().catch((e) => { console.error(e); status('Failed to load: ' + e.message); });

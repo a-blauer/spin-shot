@@ -276,8 +276,9 @@ export class Pickups {
     const K = { type, amount, base: L, pos: L.clone(), age: 0, life: power ? 25 : 30, power, size: power ? 90 : 64, color: PICKUP_COLOR[type], spr: sprite(PICKUP_ICON[type]) };
     if (buff) {   // an upgrade lying on the ground: its own icon, tinted and labelled by rarity
       const h = RARITY_HEX[buff.rarity];
-      K.spr = sprite('U_' + amount) || K.spr; K.size = 84; K.life = Infinity; K.white = true;   // buffs and tonics wait for you: they never despawn
-      K.label = textMesh(buff.name, 24, h, 0.8); this.scene.add(K.label);
+      K.spr = (buff.core ? null : sprite('U_' + amount)) || K.spr; K.size = 84; K.life = Infinity; K.white = true;   // buffs and tonics wait for you: they never despawn
+      K.label = textMesh(buff.name, 24, buff.core ? buff.hex : h, 0.8); this.scene.add(K.label);
+      if (buff.core) { const c = new THREE.Color(buff.hex); K.white = false; K.color = [c.r, c.g, c.b]; }   // a part glows its own colour
     }
     if (tonic) { K.spr = sprite('TN_' + amount) || K.spr; K.size = 78; K.white = true; K.life = Infinity; K.label = textMesh(TONICS[amount].name.toUpperCase(), 20, '#ffb359', 0.8); this.scene.add(K.label); }
     if (nade) { K.color = lin(...nade.color); K.size = 58; K.label = textMesh(nade.name.toUpperCase() + ' GRENADE', 20, nade.hex, 0.8); this.scene.add(K.label); }

@@ -6,7 +6,7 @@ import { DATA, lin, randInt, zombieCount, maxAlive } from './data.js';
 import { V, R } from './mapkit.js';
 import { Interactable } from './interact.js';
 import { ARENAS, spots } from './map_descent.js';
-import { rollBuff } from './classes.js';
+import { rollCore } from './cores.js';
 import { Meta } from './meta.js';
 
 export const ROOMS = 20;
@@ -124,7 +124,6 @@ export class Descent {
   open() {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 2500, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
-    for (let t = 0; t < 4; t++) { const Ch = this.station('Chest', S.chest[0] + t * 300, S.chest[1], S.chestYaw, 0, t, 'Chest'); Ch.keep = true; }   // one of each: wooden, iron, gilt, reliquary
     g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 950, -1, 'Mystery Box');
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));
@@ -132,7 +131,7 @@ export class Descent {
     I.pane = I.part(null, 0, V(0, f * 104, 245), V(370, 8, 490), C(col), null, 1.1); I.pane.material = I.pane.material.clone(); I.pane.material.transparent = true; I.pane.material.opacity = 0.55;
     I.part(null, 0, V(0, f * 40, 4), V(370, 260, 4), C(col), null, 1.6);
     I.text(null, V(0, f * 60, 680), S.textYaw, 96, boss ? 'THE SEAL' : 'THE WAY DOWN', hex); I.text(null, V(0, f * 60, 624), S.textYaw, 40, boss ? 'something is waiting' : `room ${this.room + 1} of ${ROOMS}`, '#e8e0d0');
-    I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nSpend what you mean to spend first: the bench and the chest stay here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
+    I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nFit your parts at the bench first: it stays here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
       use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
     g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); g.fx.ring(V3(S.bench[0], 6, S.bench[1] - f * 120), 260, lin(0.4, 0.9, 1), 0.5); g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
@@ -181,11 +180,14 @@ export class Descent {
   // One in a hundred of everything that dies leaves a buff. What it can be depends on what died: the common run leave
   // common and uncommon ones, the stranger kinds up to rare, and an elite up to epic.
   dropBuff(E, at) {
-    if (E.isBoss || E.splitChild || E.noLoot || E.ai === 'Totem' || Math.random() >= 0.01) return;
-    const cap = E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2;
-    const T = [[55, 45], [45, 40, 15], [30, 35, 25, 10]][cap - 1];
-    let r = Math.random() * 100, ri = 0; for (let q = 0; q < T.length; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
-    const P = this.g.player, u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) { this.g.pickups.spawn('Buff', at.clone().add(V3(0, 0, 60)), u); this.g.hud.toast('Something dropped a buff', '#c58cff'); }
+    if (E.splitChild || E.noLoot || E.ai === 'Totem') return;
+    const P = this.g.player, drop = (cap, off = 0) => this.g.pickups.spawn('Buff', at.clone().add(V3(Math.cos(off) * (off ? 90 : 0), 0, Math.sin(off) * (off ? 90 : 0)).add(V3(0, 0, 60))), rollCore(cap, P.upgradeStacks));
+    // a boss always leaves three good ones, an elite usually leaves one, and the rank and file leave them often enough
+    // that a room is worth two or three early on and a handful later (the odds thin as the rooms fill up)
+    if (E.isBoss) { for (let k = 0; k < 3; k++) drop(3, 0.5 + k * 2.1); return; }
+    const odds = E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5);
+    if (Math.random() >= odds) return;
+    drop(E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2);
   }
 
   // ------------------------------------------------------------------ co-op

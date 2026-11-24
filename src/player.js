@@ -20,6 +20,7 @@ import { gunSound } from './gunsound.js';
 import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
+import { isCore, coreKind } from './cores.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -59,7 +60,8 @@ export class Player {
     this.upgradeOrder = [];
     this.procCd = new Array(DATA.upgrades.length).fill(0);
     this.periodic = new Array(DATA.upgrades.length).fill(0);
-    this.weapons = [0, 1, 2].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], altCd: 0, hot: 0 }));
+    this.weapons = [0, 1, 2].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
+    this.coreInv = {};   // gun parts carried but not fitted: upgrade index -> how many
     this.cls = CLASSES[0];
     this.maxSlots = 2; this.active = 0;
     this.money = 500; this.luck = 0; this.kills = 0; this.headshots = 0;
@@ -131,7 +133,8 @@ export class Player {
     let target = this.active;
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def < 0) { target = i; break; }
     const S = this.weapons[target];
-    S.def = def; S.tier = 0; S.mods = []; S.altCd = 0; S.hot = 0;
+    this.returnCores(S);   // whatever was fitted to the gun you are giving up comes back to your pack
+    S.def = def; S.tier = 0; S.mods = []; S.cores = []; S.altCd = 0; S.hot = 0;
     this.reloading = false; this.active = target; this.fireCd = 0.45; this.wield = false;
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(def, 0, true);
@@ -192,7 +195,7 @@ export class Player {
     this.stats[STAT.MaxHealth] += this.killHP || 0;   // Trophy Rack: health earned by kills
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
-    for (const u of (this.slot && this.slot.mods) || []) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
+    for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
     this.eff = eff;
     this.statsDirty = true;
     // suit sets: 3 / 6 / 9 different upgrades of a suit
@@ -252,6 +255,7 @@ export class Player {
     if (type === 'Clover') this.addLuck(1);
     else if (type === 'MoneyBag') { this.addMoney(amount, true); this.toast(`Money bag  +$${cash(amount)}`, '#ffd23a'); this.play('S_Cash', 0.8); }
     else if (type === 'Tonic') this.gainTonic(amount);
+    else if (type === 'Buff' && isCore(amount)) this.gainCore(amount);
     else if (type === 'Buff') { if (this.upgradeStacks[amount] >= DATA.upgrades[amount].stacks) { const u = rollBuff(rarityIndex(DATA.upgrades[amount].rarity), this.upgradeStacks, this.cls.id); if (u >= 0) this.addUpgrade(u); else { this.addMoney(500, true); this.toast('Nothing left to learn  +$50', '#ffd23a'); } } else this.addUpgrade(amount); this.play('S_Upgrade', 0.9); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 90, 0.3, true); }
     else if (type === 'Grenade') { const N = GRENADES[amount]; if (this.grenades.length >= this.grenadeMax()) this.grenades.shift(); this.grenades.push(amount); this.toast(`${N.name} grenade  -  ${N.desc}`, N.hex); this.play('S_MagIn', 0.8, 0.8); }
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
@@ -1233,7 +1237,7 @@ export class Player {
     const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
-    const multi = W.pellets * Math.min(2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
+    const multi = W.pellets * Math.min(this.game.descent ? 6 : 2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
     let pellets = W.pellets + Math.floor(multi);
     if (Math.random() < multi - Math.floor(multi)) pellets++;
     let damage = W.dmg * (1 + 0.2 * S.tier);
@@ -1807,7 +1811,7 @@ export class Player {
       case 'Slots': I.slotUse(this); break;
       case 'Chest': this.openChest(I); break;
       case 'MysteryBox': I.boxUse(this); break;
-      case 'HighRoller': this.benchUpgrade(); break;
+      case 'HighRoller': if (this.game.descent && !this.wield && this.game.openCraft) this.game.openCraft(); else this.benchUpgrade(); break;
       case 'Turret': I.bind(this); break;
       default: this.openMenu(I); break;
     }
@@ -2161,6 +2165,37 @@ export class Player {
     const p = 1 - this.reloadT / Math.max(0.01, this.reloadDur), S = this.slot;
     if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
     else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
+  }
+  // ---------------------------------------------------------------- the Descent's parts
+  gainCore(u) {
+    const U = DATA.upgrades[u];
+    if (U.kind === 'me') { if (this.upgradeStacks[u] >= U.stacks) { this.addMoney(1500, true); this.toast(`${U.name} is as high as it goes  +$150`, '#ffd23a'); } else { this.addUpgrade(u); this.toast(`${U.name}  -  ${U.desc}  (x${this.upgradeStacks[u]})`, U.hex); } }
+    else { this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${U.name}  -  ${U.desc}.  Fit it at a workbench.`, U.hex); this.coreNew = (this.coreNew || 0) + 1; }
+    this.play('S_Upgrade', 0.8, 1.1); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 80, 0.25, true);
+  }
+  coreSlots(S) { return S.def < 0 ? 0 : 4 + S.mods.length; }   // four to start, one more with every tune-up
+  refit(S) {
+    this.recompute();
+    S.ammo = Math.min(S.ammo, this.magSize(S)); S.reserve = Math.min(S.reserve, this.reserveSize(S));
+    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), false);
+  }
+  fitCore(S, u) {
+    if (S.def < 0 || !(this.coreInv[u] > 0) || S.cores.length >= this.coreSlots(S)) return false;
+    this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u];
+    const mag0 = this.magSize(S); S.cores.push(u); this.refit(S); if (this.magSize(S) > mag0) S.ammo = Math.min(this.magSize(S), S.ammo + this.magSize(S) - mag0);
+    return true;
+  }
+  pullCore(S, k) { const u = S.cores[k]; if (u === undefined) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
+  returnCores(S) { if (!S.cores || !S.cores.length) return; for (const u of S.cores) this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${S.cores.length} part${S.cores.length > 1 ? 's' : ''} came back to your pack`, '#ffcd5a'); S.cores = []; }
+  // the numbers on the bench card, for the gun in hand
+  gunSheet() {
+    const S = this.slot; if (S.def < 0) return null; const W = DATA.weapons[S.def], st = (n) => this.stat(n);
+    const extra = Math.min(this.game.descent ? 6 : 2, st('Multishot'));
+    const dmg = W.dmg * (1 + 0.2 * S.tier) * Math.max(0.1, 1 + st('Damage')), rate = W.rate * (1 + st('FireRate')) * (1 + 0.03 * S.tier);
+    const crit = Math.min(0.75, 0.05 + (W.critBonus || 0) + st('CritChance')), critX = 2 + st('CritDamage');
+    const perShot = dmg * W.pellets * (1 + extra * 0.5);
+    return { name: W.name, cls: W.cls, damage: dmg, pellets: W.pellets * (1 + extra), rate, dps: perShot * rate * (1 + crit * (critX - 1)), mag: this.magSize(S), reserve: this.reserveSize(S), reload: W.reload / Math.max(0.2, 1 + st('ReloadSpeed')),
+      crit: crit * 100, critX, head: 100 * (1 + st('HeadshotDamage')), pierce: (W.pierce || 0) + st('Pierce'), bounce: st('Ricochet'), save: st('AmmoSave') * 100, steal: st('Lifesteal') * 100 };
   }
   benchCost(S) { return Math.round([10000, 20000, 40000, 50000][Math.min(3, S.mods.length)] * this.priceMult()); /* $1,000, $2,000, $4,000, $5,000 */ }
   benchUpgrade() {

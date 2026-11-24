@@ -678,6 +678,7 @@ export class Interactable {
       }
       case 'HighRoller': {
         if (player && player.wield) { const MW = MELEE[player.meleeDef || 0], mt = player.meleeTier || 0; return mt >= HONE_MAX ? `${MW.name} +${mt} is as sharp as it gets` : `[E] Hone ${MW.name}${mt ? ' +' + mt : ''}  $${cash(player.honeCost())}\n+30% damage, more reach and a faster swing (${mt} of ${HONE_MAX}). Honing stays with you if you change blades.`; }
+        if (G.descent && player) { const n = Object.values(player.coreInv || {}).reduce((x, y) => x + y, 0); return `[E] Workbench\n${n ? `Fit your parts: ${n} waiting.` : 'Fit parts to your guns and tune them up.'}`; }
         const J = player && player.benchJob;
         if (J) return J.t > 0 ? `Working on ${G.data.weapons[J.def].name}  -  ${Math.ceil(J.t)}s` : `[E] Claim the ${G.data.weapons[J.def].name} upgrade`;
         const S = player && player.slot, W = S && S.def >= 0 ? G.data.weapons[S.def] : null;

@@ -1221,3 +1221,42 @@ function buildGunWith(vm, W, tier, PAL) {
   }
   return { Sight, Muzzle, Eject, Support, twoHandPistol, Optic };
 }
+
+// ---------------------------------------------------------------------------------------------- fitted parts
+// What the Descent's workbench bolts on shows on the gun. Each kind of part has its own small piece, placed off the
+// muzzle and the sight line every gun reports, and it grows a little with every extra copy.
+export function dressGun(vm, W, spec, cores, DATA) {
+  if (!cores || !cores.length) return;
+  const n = {}; for (const u of cores) { const k = DATA.upgrades[u].look; if (k) n[k] = (n[k] || 0) + 1; }
+  const M = spec.Muzzle, mx = M.X, my = M.Y || 0, mz = M.Z, sz = spec.Sight || mz + 4;
+  const steel = C(0x2a2d33), steelL = C(0x8a909a);
+  const B = (x, y, z, sx, sy, szz, col, glow = 0, rot = null) => vm.Part(null, 0, V(x, y, z), V(sx, sy, szz), col, rot, glow);
+  const tube = (x0, x1, y, z, r, col) => vm.Cap(null, V(x0, y, z), V(x1, y, z), r, col);
+  const q = (k, most = 4) => Math.min(most, n[k] || 0);
+  // Heavy Rounds: a muzzle brake that gets bigger, with lit ports
+  if (n.brake) { const k = q('brake'), s = 2.5 + k * 0.35; B(mx - 1.4, my, mz, 3.2 + k * 0.3, s, s, steel); for (let i = 0; i < Math.min(3, k); i++) B(mx - 0.6 - i * 0.9, my, mz, 0.35, s + 0.12, 0.9, C(0xffb057), 1.6); }
+  // Rapid Bolt: cooling fins along the top of the barrel
+  for (let i = 0; i < q('fins', 6); i++) B(mx - 5 - i * 1.3, my, mz + 1.5, 0.45, 2.3, 1.5, C(0x6fd6ff), 0.9);
+  // Split Barrel: more barrels, laid alongside and under the first
+  { const at = [[1.9, -0.3], [-1.9, -0.3], [0, -2.0], [1.9, -2.0], [-1.9, -2.0], [0, 1.9]]; for (let i = 0; i < q('barrel', 6); i++) { tube(mx - 11, mx + 0.4, my + at[i][0], mz + at[i][1], 0.7, steelL); B(mx - 9, my + at[i][0] * 0.5, mz + at[i][1] * 0.5, 1.2, Math.abs(at[i][0]) + 1.6, Math.abs(at[i][1]) + 1.6, steel); } }
+  // Extended Mag: more magazine under the gun
+  if (n.mag) { const k = q('mag', 6); B(6.4, 0, -2.2 - k * 0.9, 3.2, 2.0, 2.6 + k * 1.8, steel); B(6.4, 0, -3.4 - k * 1.8, 3.5, 2.2, 0.6, steelL); }
+  // Quick Hands: pull tape on the magazine
+  for (let i = 0; i < q('tape', 3); i++) B(6.4, 0, -0.6 - i * 1.3, 3.5, 2.3, 0.5, C(0xffe36a), 0.5);
+  // Keen Sight: a lit dot sight on top
+  if (n.dot) { const k = q('dot'); B(3.5, 0, sz + 0.5, 3.4, 1.5, 1.0, steel); B(4.6, 0, sz + 1.6, 0.4, 1.5, 1.6, steel); B(4.65, 0, sz + 1.6, 0.2, 0.5 + k * 0.12, 0.5 + k * 0.12, C(0xff3a3a), 2.6); }
+  // Marksman Scope: a tube sight with a lit lens
+  if (n.scope) { const k = q('scope'), r = 0.95 + k * 0.1, z = sz + 2.4 + (n.dot ? 1.6 : 0); tube(4, 13 + k, 0, z, r, steel); for (const x of [6, 11]) B(x, 0, z - r - 0.3, 0.8, 0.9, 1.1, steel); B(13.2 + k, 0, z, 0.25, r * 1.5, r * 1.5, C(0x9ad0ff), 2.2); }
+  // Hollow Tip and Piercing Tip: what shows at the muzzle
+  if (n.tip) B(mx + 0.3, my, mz, 0.5, 1.5, 1.5, C(0xff4d8a), 2.2 + q('tip') * 0.3);
+  if (n.needle) { const k = q('needle'); B(mx + 1.2 + k * 0.5, my, mz, 2.4 + k, 0.36, 0.36, C(0xe8eef5), 0.8); }
+  // Feed Loop: a belt of rounds along the side
+  for (let i = 0; i < Math.min(6, (n.belt || 0) * 2); i++) B(1 + i * 1.5, 1.7, mz - 2.4, 0.9, 0.9, 2.0, i % 2 ? C(0xd9a441) : C(0x8fe08a), i % 2 ? 0 : 0.5);
+  // the elements: lit bands round the barrel, one per copy, in the element's colour
+  let band = 0;
+  for (const [k, col] of [['fire', 0xff7a1a], ['frost', 0x7fd8ff], ['blood', 0xd0252a], ['shock', 0x9a8cff], ['blast', 0xff5a3a]]) for (let i = 0; i < q(k, 3); i++) { B(mx - 3.4 - band * 1.5, my, mz, 0.6, 2.9, 2.9, C(col), 2.0); band++; }
+  // Ricochet: bright steel on the muzzle; Gilded: gold along the top; Leech: a vial at the side
+  if (n.chrome) B(mx - 0.2, my, mz, 0.7, 3.0 + q('chrome') * 0.2, 3.0 + q('chrome') * 0.2, C(0xdfe6ee));
+  for (let i = 0; i < q('gold', 4); i++) B(-1 + i * 2.6, 0, sz - 0.6, 1.8, 2.4, 0.5, C(0xffd23a), 0.7);
+  for (let i = 0; i < q('vial', 3); i++) { B(0.5 + i * 2.2, -1.9, mz - 1.2, 1.3, 0.9, 2.6, C(0xc8306a), 1.4); B(0.5 + i * 2.2, -1.9, mz + 0.3, 1.5, 1.1, 0.5, steelL); }
+}
