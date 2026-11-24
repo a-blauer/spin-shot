@@ -14,6 +14,7 @@ import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONU
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
 import { Meta } from './meta.js';
+import { ROMAN, attuneOf, temperOf, ASC, DEEDS, deed } from './deeds.js';
 const WD = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
 const BONE = '#f2e8d5', GOLD = '#ffcd5a', BLOOD = '#e0342c', INK = '#140d12', PANEL = 'rgba(22,14,20,0.86)';
 const F_BIG = '"Big Shoulders Display", Impact, "Arial Narrow", sans-serif';
@@ -432,7 +433,7 @@ export class Hud {
     // money + luck
     const my = y - 92 * S;
     const ms = `$${Math.floor(P.money / 10).toLocaleString()}`;
-    const mw = this.text(ms, x, my, 60 * S, GOLD, 'left', F_BIG, 400, 0.12);
+    const mw = game.descent ? -18 * S : this.text(ms, x, my, 60 * S, GOLD, 'left', F_BIG, 400, 0.12);   // no money in the Descent
     let lx = x + mw + 18 * S;
     if (game.doublePoints > 0) lx += this.text('x2', lx - 8 * S, my - 30 * S, 28 * S, GOLD, 'left', F_BIG, 400, 0.12) + 6 * S;
     // health
@@ -507,12 +508,19 @@ export class Hud {
       g.fillStyle = INK; g.fillRect(x - (i + 1) * pw - 1, y + 14 * S, pw, 16 * S);
       g.fillStyle = i < filledN ? (low ? '#ffb347' : BONE) : 'rgba(255,255,255,0.12)'; g.fillRect(x - (i + 1) * pw + 1, y + 16 * S, pw - 3 * S, 12 * S);
     }
+    // the Descent: how far this gun is from its next evolution, and the marks it has earned on other runs
+    if (game.descent) {
+      const bw = 300 * S, by = y + 36 * S, t = Sl.mods.length, need = P.evoNeed(Sl), f = t >= 4 ? 1 : Math.min(1, (Sl.evoK || 0) / need), EV = '#ff8cff';
+      g.fillStyle = INK; g.fillRect(x - bw - 2, by - 2, bw + 4, 6 * S + 4); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x - bw, by, bw, 6 * S); g.fillStyle = EV; g.fillRect(x - bw * f, by, bw * f, 6 * S);
+      this.text(t >= 4 ? 'FULLY EVOLVED' : `EVOLVE ${ROMAN[t + 1]}   ${Sl.evoK || 0} / ${need}`, x, by + 26 * S, 15 * S, EV, 'right', F_TXT, 700, 0.1);
+      const a = Meta.asc(Wd.name); if (a > 0) { const A = attuneOf(Wd.name), T = temperOf(Wd.name); this.text(`ASCENDED ${ROMAN[a]}${T.id ? '  ' + T.name.toUpperCase() : ''}${A.id ? '  ' + A.name.toUpperCase() : ''}`, x, by + 44 * S, 14 * S, A.hex || GOLD, 'right', F_TXT, 700, 0.1); }
+    }
     // what this gun has been given at the workbench, and whether its alt-fire is ready
-    { const mods = Sl.mods || []; let my = y - 300 * S;
+    { const mods = game.descent ? [] : Sl.mods || []; let my = y - 300 * S;
       for (const u of mods) { const U = DATA.upgrades[u]; this.text(U.name.toUpperCase(), x, my, 15 * S, RARITY_HEX[U.rarity], 'right', F_TXT, 700, 0.1); my -= 18 * S; }
       const alt = P.altKind && P.altKind();
       if (P.deadeyeT > 0) this.text(`DEADEYE  ${P.deadeyeT.toFixed(1)}`, this.W / 2, this.H / 2 + 96 * S, 20 * S, '#ffcd5a', 'center', F_BIG, 400, 0.12);
-      if (Sl.hot > 0) this.text('HOT MAG', x, y + 44 * S, 15 * S, '#ff8a2a', 'right', F_TXT, 700, 0.1); }
+      if (Sl.hot > 0) this.text('HOT MAG', x - (game.descent ? 320 * S : 0), y + (game.descent ? 30 : 44) * S, 15 * S, '#ff8a2a', 'right', F_TXT, 700, 0.1); }
     // melee weapon, with the three-swing chain
     { const MW = MELEE[P.meleeDef || 0], mn = MW.name.toUpperCase() + (P.meleeTier ? ` +${P.meleeTier}` : ''); this.text(mn, x, y - 232 * S, 26 * S, RARITY_HEX[MW.rarity], 'right', F_BIG, 400, 0.1); const tw = this.measure(mn, 26 * S, F_BIG);
       this.key('Q', x - tw - 38 * S, y - 241 * S, 24 * S);
@@ -924,7 +932,7 @@ export class Hud {
     const qx = x + pad + tw + 30 * S, qy = y + headH * 0.5, qr = Math.max(17 * S, this.fs(0) * 0.9);
     g.beginPath(); g.arc(qx, qy, qr, 0, Math.PI * 2); g.fillStyle = M.showHelp ? GOLD : 'rgba(0,0,0,0.45)'; g.fill(); g.lineWidth = 2 * S; g.strokeStyle = GOLD; g.stroke();
     this.text('?', qx, qy + qr * 0.42, qr * 1.25, M.showHelp ? INK : GOLD, 'center', F_BIG, 400, 0);
-    this.chip(`$${Math.floor(P.money / 10).toLocaleString()}`, x + w - pad, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
+    if (!game.descent) this.chip(`$${Math.floor(P.money / 10).toLocaleString()}`, x + w - pad, y + headH * 0.5, 18 * S, GOLD, 'rgba(0,0,0,0.45)', 'right');
     let cy = y + headH + 22 * S;
     if (showReels) { this.drawReels(P, W / 2, cy + 80 * S, S); cy += 178 * S; }
     for (const it of items) { it.draw(x + pad, cy); cy += it.h; }
@@ -1092,6 +1100,7 @@ export class Hud {
   drawVictory(game, P, W, H, S) {
     const g = this.g;
     g.fillStyle = 'rgba(20,10,4,0.78)'; g.fillRect(0, 0, W, H);
+    if (game.descent) return this.drawDescentWon(game, P, W, H, S);
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text((game.map.final?.win || ""), W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
@@ -1101,6 +1110,37 @@ export class Hud {
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });
     this.drawRenown(W, S, cy + 250 * S, 1);
     this.hints('[Enter] Back to the menu', W / 2, cy + 388 * S, 24 * S);
+  }
+  // The Descent, won: who carried it, and which gun was marked for it
+  drawDescentWon(game, P, W, H, S) {
+    const g = this.g, D = game.descent; if (!D.result) D.reward();
+    const R = D.result, cy = H * 0.2, EV = '#ff8cff';
+    this.text('THE DESCENT IS DONE', W / 2, cy, 110 * S, GOLD, 'center', F_BIG, 400, 0.06);
+    this.text(`${R.diff.toUpperCase()}   -   ${P.kills} KILLS   -   ${P.headshots} HEADSHOTS`, W / 2, cy + 46 * S, 22 * S, BONE, 'center', F_TXT, 700, 0.1);
+    // the ascension
+    const pw = 860 * S, px = W / 2 - pw / 2, py = cy + 84 * S, ph = 250 * S;
+    this.panel(px, py, pw, ph, R.asc ? EV : 'rgba(255,205,90,0.6)', 'rgba(20,10,16,0.9)', 12 * S);
+    if (R.asc) {
+      const L = R.level, A = ASC[L - 1];
+      this.text('ASCENDED', W / 2, py + 44 * S, 26 * S, EV, 'center', F_TXT, 700, 0.3);
+      this.text(R.asc.toUpperCase(), W / 2, py + 112 * S, 72 * S, BONE, 'center', F_BIG, 400, 0.06);
+      for (let k = 0; k < 3; k++) { const sx = W / 2 + (k - 1) * 54 * S, sy = py + 150 * S, r = 15 * S; g.save(); g.translate(sx, sy); g.rotate(Math.PI / 4); g.fillStyle = k < L ? EV : 'rgba(255,255,255,0.12)'; g.fillRect(-r, -r, 2 * r, 2 * r); g.restore(); }
+      this.text(`${ROMAN[L]}  ${A.name.toUpperCase()}`, W / 2, py + 200 * S, 24 * S, GOLD, 'center', F_BIG, 400, 0.12);
+      this.text(A.text, W / 2, py + 228 * S, 19 * S, BONE, 'center', F_TXT, 600, 0.06);
+    } else {
+      this.text('NO NEW ASCENSION', W / 2, py + 70 * S, 40 * S, GOLD, 'center', F_BIG, 400, 0.1);
+      this.text(R.already ? `The guns that carried this run already wear their ${R.diff} mark.` : 'No gun did enough of the work to be marked.', W / 2, py + 118 * S, 20 * S, BONE, 'center', F_TXT, 600, 0.06);
+      this.text('A gun is marked once on each difficulty: carry a different gun, or go down on a harder one.', W / 2, py + 148 * S, 18 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
+    }
+    // who did the work
+    let ty = py + ph + 44 * S;
+    this.text('DAMAGE THIS RUN', W / 2, ty, 16 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.2); ty += 12 * S;
+    for (const q of R.top) { const bw = 520 * S, bx = W / 2 - bw / 2; ty += 34 * S; g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(bx, ty - 16 * S, bw, 22 * S); g.fillStyle = q.name === R.asc ? EV : 'rgba(255,205,90,0.75)'; g.fillRect(bx, ty - 16 * S, bw * q.share, 22 * S); this.text(q.name.toUpperCase(), bx - 14 * S, ty + 2 * S, 18 * S, BONE, 'right', F_TXT, 700, 0.06); this.text(`${Math.round(q.share * 100)}%`, bx + bw + 14 * S, ty + 2 * S, 18 * S, BONE, 'left', F_TXT, 700, 0.06); }
+    // deeds earned on the way
+    const nd = DEEDS.filter((d) => deed(d.id)).length; ty += 50 * S;
+    this.text(`DEEDS  ${nd} / ${DEEDS.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
+    const nx = DEEDS.find((d) => !deed(d.id)); if (nx) this.text(`Next: ${nx.name}  -  ${nx.need}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
+    this.hints('[Enter] Back to the menu', W / 2, ty + 78 * S, 24 * S);
   }
   drawPaused(W, H, S) {
     const g = this.g;

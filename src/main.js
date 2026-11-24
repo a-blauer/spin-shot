@@ -4,7 +4,7 @@ import { MELEE, rollMelee } from './melee.js';
 import { MUTATORS, setMutators, mutators, mutXp, DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
-import { COSMETICS, SLOTS, SLOT_NAMES, needText } from './cosmetics.js';
+import { COSMETICS, SLOTS, SLOT_NAMES, needText, PAGES, SHAPES, bodyStatLines, DEFAULT_SHAPE, FACE_PRESETS } from './cosmetics.js';
 import { Net } from './net.js';
 import { makeCraft } from './craft.js';
 import * as THREE from 'three';
@@ -14,6 +14,8 @@ import { setParts } from './puppet.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
+import { DEEDS, deed, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
+import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST } from './cores.js';
 import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
@@ -364,37 +366,78 @@ function renderProgress() {
 prog.addEventListener('click', (e) => e.stopPropagation());
 // ---- character locker: live 3D preview plus every cosmetic by slot
 const locker = document.getElementById('locker');
-let lockCanvas = null, lockR = null, lockScene = null, lockCam = null, lockChar = null, lockSlot = 'outfit', lockT = 0, lockSpin = 0.5;
+let lockCanvas = null, lockR = null, lockScene = null, lockCam = null, lockChar = null, lockPage = 'build', lockT = 0, lockSpin = 0.5, lockZoom = 0;
+const LW = 420, LH = 580;
 // One preview canvas and one WebGL context for the life of the page (the locker and the workbench share it). Making a
 // new context per redraw makes browsers (phones especially) throw away the oldest one, which is the game's own renderer.
 function ensureLock() {
   if (lockCanvas) return;
-  lockCanvas = document.createElement('canvas'); lockCanvas.id = 'lcanvas'; lockCanvas.width = 360; lockCanvas.height = 460;
+  lockCanvas = document.createElement('canvas'); lockCanvas.id = 'lcanvas'; lockCanvas.width = LW; lockCanvas.height = LH;
   try {
-    lockR = new THREE.WebGLRenderer({ canvas: lockCanvas, antialias: true, alpha: true }); lockR.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lockR.setSize(360, 460, false);
-    lockScene = new THREE.Scene(); lockCam = new THREE.PerspectiveCamera(30, 360 / 460, 10, 3000); lockCam.position.set(0, 130, 610); lockCam.lookAt(0, 112, 0);
+    lockR = new THREE.WebGLRenderer({ canvas: lockCanvas, antialias: true, alpha: true }); lockR.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lockR.setSize(LW, LH, false);
+    lockScene = new THREE.Scene(); lockCam = new THREE.PerspectiveCamera(30, LW / LH, 10, 3000); lockCam.position.set(0, 130, 640); lockCam.lookAt(0, 112, 0);
     const fl = new THREE.Mesh(new THREE.CylinderGeometry(110, 120, 8, 32), new THREE.MeshBasicMaterial({ color: 0x2a1820 })); fl.position.y = -4; lockScene.add(fl); lockerRebuild();
   } catch (err) { lockR = null; }
 }
 function lockerRebuild() { if (!lockScene) return; if (lockChar) lockScene.remove(lockChar); lockChar = buildCharacter(Meta.look()); lockScene.add(lockChar); }
+// The character creator. A page of the body's sliders (three of them change how you play, and say so as you drag), then
+// pages for the face, the hair and what is worn. The figure on the left is the real one, rebuilt on every change.
+const hx6 = (n) => '#' + (n || 0).toString(16).padStart(6, '0');
+function lockerStats() {
+  const L = bodyStatLines(Meta.look()), all = [...L.arms, ...L.legs, ...L.weight];
+  const el = locker.querySelector('#lstats'); if (el) el.innerHTML = all.length ? all.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span class="nil">An ordinary build: nothing gained, nothing given up.</span>';
+  for (const k of ['arms', 'legs', 'weight']) { const e = locker.querySelector(`#lfx-${k}`); if (e) e.innerHTML = L[k].length ? L[k].map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span class="nil">No effect at the middle.</span>'; }
+}
 function renderLocker() {
-  const [have, total] = Meta.cosCount();
-  let h = `<div class="ph"><h2>CHARACTER</h2><span class="lcount">${have} / ${total} unlocked</span><button id="lclose">DONE</button></div><div class="lwrap"><canvas id="lcanvas" width="360" height="460"></canvas><div class="lside"><div class="ltabs">`;
-  for (const sl of SLOTS) h += `<button class="ltab ${sl === lockSlot ? 'on' : ''}" data-slot="${sl}">${SLOT_NAMES[sl]}</button>`;
-  h += '</div><div class="lgrid">';
-  const cur = Meta.look()[lockSlot], hx = (n) => '#' + (n || 0).toString(16).padStart(6, '0');
-  for (const I of COSMETICS[lockSlot]) {
-    const ok = Meta.cosUnlocked(lockSlot, I.id), c1 = I.c ?? I.a, c2 = I.b ?? I.c ?? I.a;
-    h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''}" data-id="${I.id}"><div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx(c1)}"></i><i style="background:${hx(c2)}"></i>`}</div><b>${I.name}</b><span>${ok ? (cur === I.id ? 'Equipped' : '') : needText(I)}</span></div>`;
+  const [have, total] = Meta.cosCount(), look = Meta.look(), sh = look.shape;
+  let h = `<div class="ph"><h2>CHARACTER</h2><span class="lcount">${have} / ${total} pieces unlocked</span><button id="lrand" class="alt">RANDOM LOOK</button><button id="lclose">DONE</button></div><div class="lwrap"><div class="lleft"><canvas id="lcanvas" width="${LW}" height="${LH}"></canvas><div class="lhint">Drag to turn</div><div class="lstats"><h4>WHAT THIS BODY DOES</h4><div id="lstats"></div></div></div><div class="lside"><div class="ltabs">`;
+  for (const P of PAGES) h += `<button class="ltab ${P.id === lockPage ? 'on' : ''}" data-page="${P.id}">${P.name}</button>`;
+  h += '</div><div class="lscroll">';
+  const page = PAGES.find((P) => P.id === lockPage) || PAGES[0];
+  const slider = (K) => { const v = Math.round(sh[K.id] * 10); return `<div class="lsl${K.stat ? ' st' : ''}"><div class="lsn"><b>${K.name}</b><i id="lsv-${K.id}"></i></div><div class="lsr"><span>${K.lo}</span><input type="range" min="-10" max="10" step="1" value="${v}" data-shape="${K.id}"><span>${K.hi}</span></div>${K.stat ? `<div class="lfx" id="lfx-${K.id}"></div>` : ''}</div>`; };
+  if (page.id === 'face') h += `<div class="lsec"><h3>FACES <i>a whole face to start from; change any part of it below</i></h3><div class="lgrid">${FACE_PRESETS.map((Q, i) => `<div class="litem ${Object.keys(Q.set).every((k) => look[k] === Q.set[k]) ? 'sel' : ''}" data-face="${i}"><b>${Q.name}</b></div>`).join('')}</div></div>`;
+  for (const slot of page.slots) {
+    const cur = look[slot];
+    h += `<div class="lsec"><h3>${SLOT_NAMES[slot]}</h3><div class="lgrid${COSMETICS[slot].every((I) => I.c !== undefined && I.a === undefined) ? ' sw' : ''}">`;
+    for (const I of COSMETICS[slot]) {
+      const ok = Meta.cosUnlocked(slot, I.id), c1 = I.c ?? I.a, c2 = I.b ?? I.c ?? I.a;
+      h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''}" data-slot="${slot}" data-id="${I.id}"><div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx6(c1)}"></i><i style="background:${hx6(c2)}"></i>`}</div><b>${I.name}</b>${ok ? '' : `<span>${needText(I)}</span>`}</div>`;
+    }
+    h += '</div></div>';
+    if (slot === 'body') {
+      h += `<div class="lsec"><h3>BUILD <i>these three change how you play</i></h3>${SHAPES.filter((K) => K.stat).map(slider).join('')}</div>`;
+      h += `<div class="lsec"><h3>SHAPE <i>looks only</i></h3><div class="lsl2">${SHAPES.filter((K) => !K.stat).map(slider).join('')}</div><button id="lreset" class="alt">RESET THE BODY</button></div>`;
+    }
   }
   h += '</div></div></div>';
+  const sc0 = locker.querySelector('.lscroll'), top0 = sc0 ? sc0.scrollTop : 0;
   locker.innerHTML = h;
-  locker.querySelector('#lclose').onclick = (e) => { e.stopPropagation(); locker.style.display = 'none'; Net.refreshPresence(); renderLobby(); };
-  locker.querySelectorAll('.ltab').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); lockSlot = el.dataset.slot; renderLocker(); }; });
-  locker.querySelectorAll('.litem').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setLook(lockSlot, el.dataset.id); lockerRebuild(); renderLocker(); }; });
+  { const sc = locker.querySelector('.lscroll'); if (sc) sc.scrollTop = top0; }
+  lockerStats();
+  locker.querySelector('#lclose').onclick = (e) => { e.stopPropagation(); locker.style.display = 'none'; Net.refreshPresence(); if (game && game.round === 0) game.player.setBody(Meta.look()); renderLobby(); };
+  locker.querySelectorAll('.ltab').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); lockPage = el.dataset.page; const sc = locker.querySelector('.lscroll'); if (sc) sc.scrollTop = 0; renderLocker(); }; });
+  locker.querySelectorAll('.litem').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; if (el.dataset.face !== undefined) Meta.setLooks(FACE_PRESETS[+el.dataset.face].set); else Meta.setLook(el.dataset.slot, el.dataset.id); lockerRebuild(); renderLocker(); }; });
+  locker.querySelectorAll('input[data-shape]').forEach((el) => {
+    const say = () => { const v = +el.value, K = SHAPES.find((q) => q.id === el.dataset.shape), o = locker.querySelector(`#lsv-${K.id}`); if (o) o.textContent = K.zero === -1 ? (v > -10 ? `${(v + 10) * 5}%` : '') : v === 0 ? '' : `${v > 0 ? K.hi : K.lo} ${Math.abs(v) * 10}%`; };
+    say();
+    el.oninput = (e) => { e.stopPropagation(); Meta.setShape(el.dataset.shape, +el.value / 10); say(); lockerRebuild(); lockerStats(); };
+    el.addEventListener('keydown', (e) => e.stopPropagation()); el.addEventListener('pointerdown', (e) => e.stopPropagation());
+  });
+  { const b = locker.querySelector('#lreset'); if (b) b.onclick = (e) => { e.stopPropagation(); Meta.setShapes(DEFAULT_SHAPE); lockerRebuild(); renderLocker(); }; }
+  locker.querySelector('#lrand').onclick = (e) => {
+    e.stopPropagation();
+    const pick = (slot) => { const L = COSMETICS[slot].filter((I) => Meta.cosUnlocked(slot, I.id)); return L[Math.floor(Math.random() * L.length)].id; }, o = {};
+    for (const P of PAGES) for (const slot of P.slots) o[slot] = pick(slot);
+    for (const slot of ['face', 'neck', 'shoulder', 'back', 'mark']) if (Math.random() < 0.6) o[slot] = 'none';
+    if (Math.random() < 0.5) o.fhair = 'none'; if (Math.random() < 0.7) o.lips = 'natural';
+    Meta.setLooks(o);
+    const S0 = Meta.shape(), r = () => Math.round((Math.random() * 2 - 1) * 7) / 10;
+    Meta.setShapes(Object.assign({}, S0, { muscle: r(), shoulders: r(), hips: r(), head: Math.round((Math.random() * 2 - 1) * 4) / 10 }));   // the three that change how you play are left as you set them
+    lockerRebuild(); renderLocker();
+  };
   // One preview canvas and one WebGL context for the life of the page. Making a new context per redraw makes
   // browsers (phones especially) throw away the oldest one, which is the game's own renderer.
-  ensureLock(); if (lockR) lockR.setSize(360, 460, false); lockCanvas.id = 'lcanvas';
+  ensureLock(); if (lockR) lockR.setSize(LW, LH, false); lockCanvas.id = 'lcanvas'; if (lockCam) { lockCam.aspect = LW / LH; lockCam.updateProjectionMatrix(); }
   const cv = lockCanvas; locker.querySelector('#lcanvas').replaceWith(cv);
   let drag = null;
   cv.onpointerdown = (e) => { drag = e.clientX; cv.setPointerCapture(e.pointerId); };
@@ -403,24 +446,44 @@ function renderLocker() {
 }
 function tickLocker(dt) {
   if (locker.style.display !== 'block' || !lockR || !lockChar) return;
-  lockT += dt; lockChar.rotation.y = lockSpin + Math.sin(lockT * 0.4) * 0.25;
+  lockT += dt; lockChar.rotation.y = lockSpin + Math.sin(lockT * 0.4) * 0.12;
   animateCharacter(lockChar, lockT, 0, { preview: true });
+  // the camera stands back for the body and the clothes and comes in for the face and the hair
+  const R = lockChar.userData.rig, hy = (R.hipY || 74) + 92, close = lockPage === 'face' || lockPage === 'hair' ? 1 : 0;
+  lockZoom += (close - lockZoom) * Math.min(1, dt * 6);
+  const z = lockZoom, tall = hy + 40, ty = (tall * 0.5) * (1 - z) + hy * z, dist = Math.max(600, tall * 3.1) * (1 - z) + 250 * z;
+  lockCam.position.set(0, ty + 14 * (1 - z), dist); lockCam.lookAt(0, ty, 0);
   lockR.render(lockScene, lockCam);
 }
 locker.addEventListener('click', (e) => e.stopPropagation());
 // test hook: contact sheet of every piece in a slot on one base model
-window.__charSheet = (body, slot, view) => {
-  const V = { head: [0, 150, 250, 150, 0.55], torso: [0, 105, 300, 105, 0.5], legs: [0, 40, 300, 35, 0.5], back: [0, 110, 420, 105, 2.6], full: [0, 125, 600, 110, 0.5], side: [0, 150, 250, 150, 1.45] }[view];
-  const items = COSMETICS[slot], cw = 240, ch = 300, cols = Math.min(8, items.length), out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(items.length / cols);
+window.__charSheet = (base, slot, view, cols0) => {
+  const V = { head: [0, 166, 260, 164, 0.45], face: [0, 160, 175, 160, 0.3], torso: [0, 130, 320, 130, 0.5], legs: [0, 45, 320, 40, 0.5], back: [0, 135, 440, 130, 2.6], full: [0, 125, 640, 115, 0.5], side: [0, 162, 260, 160, 1.45], rear: [0, 160, 270, 158, 2.75] }[view];
+  const items = COSMETICS[slot], cw = 240, ch = 300, cols = cols0 || Math.min(8, items.length), out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(items.length / cols);
   const g = out.getContext('2d'); g.fillStyle = '#3a2430'; g.fillRect(0, 0, out.width, out.height);
-  lockR.setSize(cw, ch, false); const cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(V[0], V[1], V[2]); cam.lookAt(0, V[3], 0);
+  ensureLock(); lockR.setSize(cw, ch, false); const cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(V[0], V[1], V[2]); cam.lookAt(0, V[3], 0);
   const sc = new THREE.Scene();
   items.forEach((I, i) => {
-    const look = Object.assign({}, Meta.look(), window.__baseLook || {}, { body, [slot]: I.id }), ch3 = buildCharacter(look); ch3.rotation.y = V[4]; animateCharacter(ch3, 0, 0, { preview: true }); sc.add(ch3);
+    const look = Object.assign({}, Meta.look(), base || {}, { [slot]: I.id }), ch3 = buildCharacter(look); ch3.rotation.y = V[4]; animateCharacter(ch3, 0, 0, { preview: true }); sc.add(ch3);
     lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(ch3);
     g.fillStyle = '#ffcd5a'; g.font = '16px sans-serif'; g.fillText(I.name, (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
   });
-  lockR.setSize(360, 460, false);
+  lockR.setSize(LW, LH, false);
+  return out.toDataURL('image/jpeg', 0.85);
+};
+// a sheet of whole looks: [{ label, look, yaw, view }]
+window.__lookSheet = (list, cols = 6, cw = 240, ch = 320) => {
+  const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
+  const g = out.getContext('2d'); g.fillStyle = '#3a2430'; g.fillRect(0, 0, out.width, out.height);
+  ensureLock(); lockR.setSize(cw, ch, false); const sc = new THREE.Scene();
+  list.forEach((Q, i) => {
+    const look = Object.assign({}, Meta.look(), Q.look || {}); look.shape = Object.assign({}, DEFAULT_SHAPE, (Q.look || {}).shape);
+    const c3 = buildCharacter(look); c3.rotation.y = Q.yaw === undefined ? 0.5 : Q.yaw; animateCharacter(c3, Q.t || 0, Q.speed || 0, { preview: !Q.aim }); sc.add(c3);
+    const V = Q.view || [0, 125, 700, 112]; const cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(V[0], V[1], V[2]); cam.lookAt(0, V[3], 0);
+    lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(c3);
+    g.fillStyle = '#ffcd5a'; g.font = '15px sans-serif'; g.fillText(Q.label || '', (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
+  });
+  lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.85);
 };
 window.__build = buildCharacter; window.__THREE = THREE;
@@ -458,7 +521,8 @@ function renderLobby() {
   else h += `<div class="lbcode"><span>LOBBY CODE</span><b>${esc2(Net.code)}</b></div><button id="lbleave" class="wide alt">LEAVE LOBBY</button>`;
   h += `<p class="msg">${esc2(lobbyMsg)}</p></section>`;
   // character
-  h += `<section><h3>CHARACTER</h3><div class="lbchar">${SLOTS.map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`;
+  { const BL = bodyStatLines(L), bl = [...BL.arms, ...BL.legs, ...BL.weight];
+    h += `<section><h3>CHARACTER</h3><div class="lbchar">${['body', 'outfit', 'hat', 'hair'].map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><div class="lbbody">${bl.length ? bl.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span>An ordinary build.</span>'}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`; }
   h += '</aside><main>';
   const daily = !client && Meta.dailyOn();
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
@@ -488,6 +552,19 @@ function renderLobby() {
     h += group('HEIRLOOM', chip('data-heir=""', !cur, false, 'None', '') + WORLD.map((m) => { const ok = Meta.heirloomUnlocked(m.id); return chip(`data-heir="${m.id}"`, cur === m.id, !ok, esc2(m.heirloom), ok ? '' : 'Locked', `data-why="${esc2(Meta.stateOf('h:' + m.id) === 'ready' ? 'Earned: claim it in Progress.' : `Reach round ${HEIRLOOM_ROUND} in ${m.name}.`)}" data-grp="h"`); }).join(''),
       info('h') || (U ? `You start the run with it. ${esc2(U.desc)}` : 'One buff to start the run with. Each map gives up its own.')); }
   h += '</section>';
+  // the Descent's own progression: what going down has earned, and what you take with you
+  if (MAPS[curMap] && MAPS[curMap].mode === 'descent') {
+    const asc = Meta.ascended().sort(), marks = asc.reduce((a, n) => a + Meta.asc(n), 0), dia = (n) => '\u25C6'.repeat(n) + '\u25C7'.repeat(3 - n), nd = DEEDS.filter((D) => deed(D.id)).length;
+    h += '<section><h3>THE DESCENT</h3>';
+    h += group('DEEDS', DEEDS.map((D) => { const ok = deed(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Earned' : 'Locked', `data-why="${esc2(D.need + ' ' + D.text)}" data-grp="d"`); }).join(''),
+      info('d') || (nd ? `<ul class="lbkit">${DEEDS.filter((D) => deed(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.text)}</li>`).join('')}</ul>` : 'Nothing is bought down there. Going deeper earns deeds: machines and favours that give you more say over the next run. Click one to see how it is earned.'), `${nd} of ${DEEDS.length}`);
+    const cur = Meta.carry();
+    h += group('CARRIED GUN', chip('data-carry=""', !cur, false, 'None', 'the usual start') + asc.map((n) => { const a = Meta.asc(n), T = temperOf(n), A = attuneOf(n); return chip(`data-carry="${esc2(n)}"`, cur === n, false, esc2(n), `${dia(a)}${T.id ? ' ' + T.name : ''}${A.id ? ' ' + A.name : ''}`); }).join(''),
+      asc.length ? `An ascended gun can go down with you from the first room. <span class="dim2">${marks} mark${marks === 1 ? '' : 's'} on ${asc.length} gun${asc.length === 1 ? '' : 's'}. ${ROMAN[2]} lets you choose its temper and ${ROMAN[3]} its element, both at any workbench.</span>` : 'Finish a Descent and the gun that did the most damage ascends. A gun can ascend once on each difficulty, three times in all: I, it can start runs with you; II, you choose its temper; III, you bind it to an element.', asc.length ? '' : 'none ascended yet');
+    if (deed('keep')) { const k = Meta.keepsake(), kd = CORE_LIST.findIndex((d) => d.name === k), KU = kd >= 0 ? ups[CORE_0 + kd] : null;
+      h += group('KEEPSAKE', chip('data-keep=""', !k, false, 'None', '') + CORE_LIST.map((d, i) => chip(`data-keep="${esc2(d.name)}"`, k === d.name, false, `<em style="color:${ups[CORE_0 + i] ? ups[CORE_0 + i].hex : '#fff'}">${esc2(d.name)}</em>`, '')).join(''), KU ? `You start every Descent carrying it. ${esc2(KU.desc)}` : 'One part to start every Descent with.'); }
+    h += '</section>';
+  }
   // stakes
   if (!client) {
     const mu = Meta.mutators(), T = Meta.today(), B = Meta.dailyBest(), bonus = Math.round((MUTATORS.reduce((a, M, i) => a + ((mu >> i) & 1 ? M.xp : 0), 0) + (daily ? 0.5 : 0)) * 100);
@@ -519,6 +596,8 @@ function renderLobby() {
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.h; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.w; Meta.setStarter(el.dataset.w); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-carry]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCarry(el.dataset.carry); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-keep]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setKeepsake(el.dataset.keep); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 let beginning = false;
@@ -528,7 +607,7 @@ async function beginRun() {
   const hm = Net.role === 'client' ? Net.hostMap() : Meta.map(), want = MAPS[hm] ? hm : game.mapId;
   if (want !== game.mapId && game.round === 0) { beginning = true; lobby.style.display = 'none'; await rebuildGame(want); beginning = false; }
   if (Net.role !== 'client') { setDifficulty(Meta.difficulty()); setMutators(Meta.mutators(), Meta.dailyOn()); }
-  if (game.round === 0) game.player.setClass(Meta.cls());
+  if (game.round === 0) { game.player.setBody(Meta.look()); game.player.setClass(Meta.cls()); }
   lobby.style.display = 'none'; locker.style.display = 'none';
   // apply the chosen starting weapon to a fresh run
   const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
@@ -538,6 +617,13 @@ async function beginRun() {
     game.metaRun = true; Meta.beginRun();
     const hn = Meta.heirloom(), hi = hn ? game.data.upgrades.findIndex((u) => u.name === hn) : -1;
     if (hi >= 0 && !P.upgradeStacks[hi]) { P.addUpgrade(hi); game.hud.toast(`Heirloom: ${hn}`, '#ffd24d'); }
+    // the Descent: an ascended gun may go down with you, and so may a keepsake
+    if (game.descent) {
+      const cn = Meta.carry(), ci = cn ? game.data.weapons.findIndex((w) => w.name === cn && !w.cash) : -1;
+      if (ci > 0) { P.weapons[0].def = ci; P.weapons[0].tier = 0; P.weapons[0].mods = []; P.weapons[0].evoK = 0; P.recompute(); P.refillAll(); game.vm.setWeapon(ci, 0, false); game.hud.toast(`Carried: ${cn}  -  ascended ${ROMAN[Meta.asc(cn)]}`, '#ff8cff'); }
+      const kn = deed('keep') ? Meta.keepsake() : '', ki = kn ? CORE_LIST.findIndex((d) => d.name === kn) : -1;
+      if (ki >= 0) P.gainCore(CORE_0 + ki);
+    }
   }
   game.touch = TOUCH;
   if (Net.role === 'client' && game.round === 0) { const a = Math.random() * 6.28; P.pos.x += Math.cos(a) * 130; P.pos.z += Math.sin(a) * 130; }   // don't spawn inside the host

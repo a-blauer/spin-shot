@@ -56,12 +56,12 @@ export const SIG = {
   },
   // ------------------------------------------------------------------ SMGs
   'Back-Alley': {
-    name: 'Mugger', short: 'Within 4.5 m: +50% damage, life steal and extra cash on kills. Weak at range.',
-    text: 'Inside four and a half metres it hits 50% harder, steals life with every bullet and shakes extra cash out of anything it kills. Past fifteen metres it does a quarter less.',
-    play: 'Stay in their faces. The closer the fight, the more it pays and the more it heals.', fav: ['Leech Rounds', 'Gilded Rounds', 'Rapid Bolt'], aff: { Lifesteal: 2 }, proc: { Money: 2 },
+    name: 'Mugger', short: 'Within 4.5 m: +50% damage, life steal, and kills pay extra (in the Descent they count twice toward evolving). Weak at range.',
+    text: 'Inside four and a half metres it hits 50% harder, steals life with every bullet and shakes extra cash out of anything it kills; in the Descent, where there is no cash, those kills count twice toward evolving. Past fifteen metres it does a quarter less.',
+    play: 'Stay in their faces. The closer the fight, the more it pays and the more it heals.', fav: ['Leech Rounds', 'Heavy Rounds', 'Rapid Bolt'], aff: { Lifesteal: 2 }, proc: { Money: 2 },
     pre: (p, E) => { const d = dist(p, E); return d < 450 ? 1.5 : 1.5 - 0.75 * clamp((d - 450) / 1050, 0, 1); },
     post(p, E, C, g, h) { if (dist(p, E) < 450 + E.radius) p.combatHeal(h.dealt * (0.015 + p.stat('Lifesteal'))); },
-    kill(p, E) { if (dist(p, E) < 450 + E.radius) { const pay = Math.round((E.money || 0) * 0.5) + 50; p.addMoney(pay, true); say(p, E.pos, 'MUGGED', GOLD, 0.95); } },
+    kill(p, E) { if (dist(p, E) < 450 + E.radius) { const pay = Math.round((E.money || 0) * 0.5) + 50; p.addMoney(pay, true); if (p.game.descent && C && C.S) C.S.evoK = (C.S.evoK || 0) + (E.isBoss ? 10 : E.elite ? 3 : 1); say(p, E.pos, 'MUGGED', GOLD, 0.95); } },
   },
   "Hornet's Nest": {
     name: 'Swarm', short: 'Each hit on one target adds +2.5% damage, to +75%, then spills over.',
@@ -124,7 +124,7 @@ export const SIG = {
   'Gold Rush': {
     name: 'Paydirt', short: 'Pays on every hit, and hits harder the richer you are: up to +100% at $6,000.',
     text: 'Every hit pays, and the gun hits harder the more money you are carrying: +1% for every $60, up to +100% at $6,000.',
-    play: 'A reason not to spend. Hoard and it becomes a monster; every purchase is a choice to weaken it.', fav: ['Gilded Rounds', 'Fortune', 'Rapid Bolt'], aff: { MoneyGain: 1.5 }, proc: { Money: 2 },
+    play: 'A reason not to spend. Hoard and it becomes a monster; every purchase is a choice to weaken it.', fav: ['Heavy Rounds', 'Rapid Bolt', 'Keen Sight'], aff: { MoneyGain: 1.5 }, proc: { Money: 2 },
     rich: (p) => clamp(p.money / 60000, 0, 1),
     sheet(p) { return { dmg: 1 + this.rich(p) }; },
     shot(p, S, W, g, C) { C.mult *= 1 + this.rich(p); },

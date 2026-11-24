@@ -139,7 +139,7 @@ export class Projectiles {
       const start = P.pos.clone(), end = start.clone().addScaledVector(P.vel, dt);
       let moved = false;
       if (P.hostile) {
-        if (!player.dead && segCapsule(start, end, player.pos, 45 + P.radius, 95 + P.radius)) {
+        if (!player.dead && segCapsule(start, end, player.pos, 45 * ((player.body && player.body.hit) || 1) + P.radius, 95 + P.radius)) {
           player.receiveDamage(P.damage, P, false, P.slow, P.slow > 0 ? 2 : 0);
           this.detonate(P, player.pos.clone());
           continue;

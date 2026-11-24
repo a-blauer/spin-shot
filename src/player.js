@@ -6,6 +6,7 @@ import { buildHit, buildKill, buildHurt, buildTick, buildChanged, buildNote } fr
 import { cash, cost10, difficulty, mutMoney, mutHealth } from './data.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
+import { bodyStats } from './cosmetics.js';
 import {
   diff, DATA, STATS, TONICS, zombieHealth, payScale, effRound, SUITS, SUIT_BONUS, SUIT_HEX, SYMBOLS, VAULT_COST, RARITIES, RARITY_HEX, rarityIndex, luckMult, luckRerollChance, rollRarity, rollUpgradeOfRarity,
   rollWeaponOfRarity, rarityPrice, hexRGB, lerp3, lin, randInt, frandRange,
@@ -20,7 +21,8 @@ import { gunSound } from './gunsound.js';
 import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
-import { isCore, coreKind } from './cores.js';
+import { isCore, coreKind, rollCoreAt, coreTier } from './cores.js';
+import { deed, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit } from './deeds.js';
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
@@ -124,6 +126,7 @@ export class Player {
   spreadDeg() {
     const W = this.W;
     let s = W.spread * (this.aiming ? 0.55 : 1) * Math.max(0.15, 1 - this.stat('Spread')) * (1 + this.bloom);
+    if (W.auto && this.body) s *= this.body.spread;   // long arms hold a gun that keeps firing less steadily, short arms more
     if (!this.grounded) s *= 1.15;
     { const sg = sigOf(W); if (sg && sg.spread && this.slot.def >= 0) s *= sg.spread(this, this.slot, W, sigState(this.slot)); }
     return s;
@@ -136,7 +139,7 @@ export class Player {
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def < 0) { target = i; break; }
     const S = this.weapons[target];
     this.returnCores(S);   // whatever was fitted to the gun you are giving up comes back to your pack
-    S.def = def; S.tier = 0; S.mods = []; S.cores = []; S.altCd = 0; S.hot = 0;
+    S.def = def; S.tier = 0; S.mods = []; S.cores = []; S.altCd = 0; S.hot = 0; S.evoK = 0;
     this.reloading = false; this.active = target; this.fireCd = 0.45; this.wield = false;
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
     this.game.vm.setWeapon(def, 0, true);
@@ -190,7 +193,13 @@ export class Player {
     const take = Math.min(this.magSize(S) - S.ammo, S.reserve);
     S.ammo += take; S.reserve -= take;
   }
+  // the body you built: reach, steadiness, legs, health, how much of you there is to hit
+  setBody(look) {
+    this.body = bodyStats(look); this.recompute(); if (this.health > this.maxHealth || this.game.round === 0) this.health = this.maxHealth;
+    const vm = this.game.vm; if (vm && vm.weaponDef >= 0 && !this.wield) vm.setWeapon(vm.weaponDef, vm.weaponTier || 0, false);   // the arms in view are this body's arms
+  }
   recompute() {
+    if (!this.body) this.body = bodyStats(Meta.look());
     for (let i = 0; i < this.stats.length; i++) this.stats[i] = this.booth[i];
     this.upgradeStacks.forEach((n, u) => {
       if (n <= 0) return;
@@ -202,6 +211,8 @@ export class Player {
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
     for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
     this.eff = eff;
+    // an ascended gun's temper: one strength traded for another (the Descent only)
+    if (this.game.descent && this.slot && this.slot.def >= 0) { const T = temperOf(DATA.weapons[this.slot.def].name); for (const [k, v] of T.mods) this.stats[STAT[k]] += v; }
     // the gun's own leanings: the stats it favours count for more while it is in your hands
     { const sg = this.slot && this.slot.def >= 0 ? sigOf(DATA.weapons[this.slot.def]) : null; if (sg && sg.aff) for (const k in sg.aff) { const i = STAT[k]; if (i !== undefined && this.stats[i] > 0) this.stats[i] *= sg.aff[k]; } }
     this.statsDirty = true;
@@ -215,7 +226,7 @@ export class Player {
     this.stats[STAT.MoveSpeed] += 0.07 * tiers.Wind; this.stats[STAT.DashCooldown] += 0.15 * tiers.Wind;
     if (this.suitTiers) for (const k of SUITS) if (tiers[k] > this.suitTiers[k]) { this.game.banner(`${k.toUpperCase()} SET ${'I'.repeat(tiers[k])}`, lin(1, 0.8, 0.2), 3); this.toast(`${SUIT_BONUS[k]} (x${tiers[k]})`, SUIT_HEX[k]); }
     this.suitCounts = sc; this.suitTiers = tiers;
-    this.maxHealth = Math.max(30, Math.round((150 + this.stat('MaxHealth')) * mutHealth()));
+    this.maxHealth = Math.max(30, Math.round((150 + this.stat('MaxHealth')) * mutHealth() * this.body.health));
     this.health = Math.min(this.health, this.maxHealth);
     this.dashCharges = Math.min(this.dashCharges ?? 1, this.maxDash());
     buildChanged(this);
@@ -238,13 +249,14 @@ export class Player {
   slotPrice() { return Math.round((750 + 250 * this.slotPulls) * this.priceMult() * (1 + 0.18 * Math.max(0, this.game.round - 1)) / 50) * 50; }   // dearer every round
   tonicPrice(i) { const T = TONICS[i]; return Math.round((T.base + T.step * this.tonicLevels[i]) * this.priceMult()); }
   addMoney(amount, mult) {
-    if (amount <= 0) return;
+    if (amount <= 0 || this.game.descent) return;   // there is no money down there
     let a = amount;
     if (mult) { a *= mutMoney() * Math.max(0, 1 + this.stat('MoneyGain')); if (this.game.doublePoints > 0) a *= 2; }
     this.money += Math.max(1, Math.round(a));
     Meta.bump('moneyEarned', Math.max(1, Math.round(a)));
   }
   spend(amount) {
+    if (this.game.descent) return true;   // nothing in the Descent is bought
     amount = cost10(amount);
     if (amount < 0 || this.money < amount) { this.toast(`Not enough money  ($${cash(amount)} needed)`, '#ff5a4d'); this.play('S_Deny', 0.6); return false; }
     this.money -= amount;
@@ -419,7 +431,7 @@ export class Player {
   // ------------------------------------------------------------------ movement
   updateMoveSpeed() {
     if (this.sliding) return;
-    let s = WalkSpeed * (1 + Math.min(1, this.stat('MoveSpeed')) + (this.krT > 0 ? (this.krN || 0) * this.S.KillRush : 0) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
+    let s = WalkSpeed * this.body.speed * (1 + Math.min(1, this.stat('MoveSpeed')) + (this.krT > 0 ? (this.krN || 0) * this.S.KillRush : 0) + this.haste + (this.wield ? 0.08 : 0)) * (this.meleeCharge > 0 ? 0.7 : 1);
     if (this.sprintHeld && this.inFwd > 0.1 && !this.aiming) s *= SprintMult;
     if (this.aiming) s *= 0.7;
     s *= this.game.mech.slow(this);   // wading
@@ -525,7 +537,7 @@ export class Player {
 
     if (this.dashT > 0) {
       this.dashT -= dt;
-      this.vel.copy(this.dashDir).multiplyScalar(DashSpeed);
+      this.vel.copy(this.dashDir).multiplyScalar(DashSpeed * this.body.dash);
       const dd = this.stat('DashDamage');
       if (dd > 0) {
         const struck = G.enemies.filter((E) => !E.dead && !this.dashHits.has(E) && E.pos.distanceTo(this.pos) < 170);
@@ -601,7 +613,7 @@ export class Player {
 
   onJump() {
     if (this.dead || this.inMenu()) return;
-    const jm = 1 + this.stat('JumpPower');
+    const jm = (1 + this.stat('JumpPower')) * Math.sqrt(this.body.jump);   // height goes with the square of the push
     if (this.grappling) { this.endGrapple(true); return; }
     if (this.wallRunning) {
       const v = this.wallNormal.clone().multiplyScalar(720).addScaledVector(this.wallDir, Math.max(Math.hypot(this.vel.x, this.vel.z) * 0.85, 700)).add(V3(0, 820 * jm, 0));
@@ -834,7 +846,7 @@ export class Player {
     if (this.meleeBuffer > 0 && this.meleeCd <= 0 && this.meleeHitT < 0) this.meleeSwing();
   }
   meleeSpeed() { return 1 + 0.08 * (this.flow || 0) + this.stat('MeleeSpeed') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + honeSpeed(this.meleeTier || 0) + (this.wield ? 0.1 : 0); }
-  meleeRange() { return MELEE[this.meleeDef].range * 1.4 * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
+  meleeRange() { return MELEE[this.meleeDef].range * 1.4 * this.body.reach * (1 + this.stat('MeleeRange')) * honeRange(this.meleeTier || 0) * (this.wield ? 1.08 : 1); }
   // everything that multiplies a swing before the per-hit rolls: buffs, frenzy, honing, and having the blade in hand
   meleePower() { return (1 + this.stat('MeleeDamage') + (this.frenzy || 0) * this.stat('MeleeFrenzy') + (this.wield ? 0.15 : 0) + this.stat('HealthMelee') * Math.max(0, this.maxHealth - 150) / 25) * honeDamage(this.meleeTier || 0); }
   meleeCleave() { return MELEE[this.meleeDef].cleave + this.stat('MeleeCleave') + honeCleave(this.meleeTier || 0); }
@@ -842,6 +854,7 @@ export class Player {
   honeMelee() {
     const W = MELEE[this.meleeDef], t = this.meleeTier || 0;
     if (t >= HONE_MAX) { this.toast(`${W.name} is as sharp as it gets`, '#ccc'); return; }
+    if (this.game.descent && !this.honeFree) { this.toast(`${W.name} hones itself on what it kills: ${Math.max(1, 12 - (this.meleeK || 0))} more`, '#ffcd5a'); return; }
     if (!this.spend(this.honeCost())) return;
     this.meleeTier = t + 1; this.benchUses++;
     this.play('S_Upgrade', 0.9); this.game.vm.meleeShow(W);
@@ -1057,6 +1070,9 @@ export class Player {
   receiveDamage(amount, source, melee, slowAmt = 0, slowTime = 0, silent = false) {
     if (this.dead || amount <= 0 || this.invuln > 0 || this.game.godMode) return;
     if (this.rushT > 0) return;                               // nothing lands on a Brawler mid-charge
+    if (!silent && source && this.body.evade > 0 && Math.random() < this.body.evade) {   // a thin body slips a blow now and then
+      this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'EVADED', [0.75, 1, 0.8], 1); this.play('S_Dash', 0.35, 1.5, 0.05); return;
+    }
     { const sg = this.slot.def >= 0 && !this.wield ? sigOf(this.W) : null; if (sg && sg.hurt) { amount = sg.hurt(this, this.slot, this.W, sigState(this.slot), amount, source); if (!(amount > 0)) return; } }
     if (this.S.Bulwark && this.game.time > (this.bwT || 0)) {   // Scrap Plating: one blow in ten seconds rings off the plate, and the ring knocks them back
       this.bwT = this.game.time + Math.max(5, 11 - this.S.Bulwark); this.shockAround(400, this.power() * 0.8, [0.75, 0.82, 0.9]); this.play('S_Ricochet', 0.8, 0.7, 0.05);
@@ -1251,7 +1267,7 @@ export class Player {
     const wasLast = !echo && S.ammo === 1;
     // the shot's own context: the gun's signature reads and writes it from the trigger pull to the last thing hit
     const sig = sigOf(W), sg = sigState(S);
-    const C = this.shotCtx = { sig, W, S, g: sg, echo, mult: 1, pierce: 0, chains: 0, last: wasLast, seen: new Set(), hits: 0, gen: 0 };
+    const C = this.shotCtx = { sig, W, S, def: S.def, g: sg, echo, mult: 1, pierce: 0, chains: 0, last: wasLast, seen: new Set(), hits: 0, gen: 0 };
     if (sig && sig.shot && !echo) sig.shot(this, S, W, sg, C);
     const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
@@ -1541,6 +1557,10 @@ export class Player {
     if (!fromProc && this.procDepth < 1) buildHit(this, E, at, dealt, crit, head);
     const killed = E.dead;
     sigAfter(this, E, dealt, killed, dir);
+    if (G.descent) {   // who did the work this run, and what an attuned gun leaves on what it hits
+      const dfn = C ? (C.def !== undefined ? C.def : C.S ? C.S.def : -1) : this.meleeHitting || this.wield ? -1 : this.slot.def;
+      if (dfn >= 0) { const R = this.runDmg || (this.runDmg = {}); R[dfn] = (R[dfn] || 0) + dealt; if (C && !killed) attuneHit(this, E, attuneOf(DATA.weapons[dfn].name), dealt, procCoef, at); }
+    }
     if (C) { C.hits++; if (SG) { const h = { dealt, crit, head, killed, at, dir }; if (SG.post) SG.post(this, E, C, sgG, h); if (killed && SG.kill) { E.sgKilled = true; SG.kill(this, E, C, sgG, h); } else if (!killed) E.sgLast = { C, t: G.time }; } }
     // bullets shove what they hit: a stumble back in proportion to the damage, and a short freeze on a kill
     if (!fromProc && dir && !E.isBoss && !E.remote && !killed && E.ai !== 'Flyer') {
@@ -1652,9 +1672,10 @@ export class Player {
     this.addMoney(pay, true);
     this.killPulse = 1;
     this.play('S_Kill', 0.6, 1, 0.08);
-    G.fx.coins(E.pos, clamp(Math.floor(pay / 40), 1, 8));
+    if (!G.descent) G.fx.coins(E.pos, clamp(Math.floor(pay / 40), 1, 8));
     if (E.isBoss) this.addShake(1.5);
-    G.hud.floater(E.pos.clone().add(V3(0, 80, 0)), `+$${cash(pay)}`, [1, 0.85, 0.25], headshot ? 1.2 : 1);
+    if (!G.descent) G.hud.floater(E.pos.clone().add(V3(0, 80, 0)), `+$${cash(pay)}`, [1, 0.85, 0.25], headshot ? 1.2 : 1);
+    else this.creditKill(E);
     const S = this.slot;
     if (S.def >= 0 && this.stat('KillReload') > 0) S.ammo = Math.min(this.magSize(S), S.ammo + Math.round(this.stat('KillReload')));
     if (this.deadeyeT > 0 && (this.deadeyeExt || 0) < 4) { const e = Math.min(this.stat('DeadeyeExtend'), 4 - (this.deadeyeExt || 0)); this.deadeyeT += e; this.deadeyeExt = (this.deadeyeExt || 0) + e; }   // kills stretch Deadeye, 4 seconds at most
@@ -2223,10 +2244,56 @@ export class Player {
     if (p >= 0.42 && p <= 0.62) { this.finishReload(); S.hot = this.magSize(S); this.toast('Perfect reload  -  hot magazine', '#ffcd5a'); this.play('S_Crit', 0.7, 1.4); this.game.vm.jolt && this.game.vm.jolt(0.6); }
     else { this.arFail = true; this.reloadT += this.reloadDur * 0.25; this.play('S_Deny', 0.5); }
   }
+  // ---------------------------------------------------------------- the Descent: guns that grow, parts you can trade
+  // A gun evolves by being used. Kills with it in this run count toward the next of four evolutions (what a paid
+  // tune-up was); an elite counts three and a boss ten. A gun you put down keeps what it has earned only while you hold it.
+  evoNeed(S) { return S.mods.length >= 4 ? Infinity : Math.round(EVO_NEED[S.mods.length] / (1 + Math.max(0, this.stat('EvolveSpeed')))); }
+  creditKill(E) {
+    const C = this.shotCtx || (E.sgLast && this.game.time - E.sgLast.t < 1.5 ? E.sgLast.C : null), n = E.isBoss ? 10 : E.elite ? 3 : 1;
+    if (this.meleeHitting || (this.wield && !C)) {   // the blade hones itself the same way
+      if ((this.meleeTier || 0) < HONE_MAX) { this.meleeK = (this.meleeK || 0) + n; if (this.meleeK >= 12) { this.meleeK -= 12; this.honeFree = true; this.honeMelee(); this.honeFree = false; } }
+      return;
+    }
+    const S = C && C.S && C.S.def >= 0 && (C.def === undefined || C.S.def === C.def) ? C.S : this.slot;
+    if (!S || S.def < 0) return;
+    S.evoK = (S.evoK || 0) + n;
+    while (S.mods.length < 4 && S.evoK >= this.evoNeed(S)) { S.evoK -= this.evoNeed(S); if (!this.evolve(S)) break; }
+  }
+  evolve(S) {
+    const W = DATA.weapons[S.def], u = rollGunMod(S.mods, W, this.cls.id, this.luck); if (u < 0) return false;
+    S.mods.push(u); S.tier = S.mods.length;
+    this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
+    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
+    this.play('S_Upgrade', 0.9); Meta.bump('mods'); Meta.best('dEvo', S.tier); if (S.tier >= 3) Meta.bump('tier3');
+    this.game.banner(`${W.name.toUpperCase()} EVOLVED  -  ${ROMAN[S.tier]}`, lin(1, 0.45, 0.85), 2.6);
+    this.toast(`${W.name} ${ROMAN[S.tier]}: +20% damage, a bigger magazine, a little faster.${S.tier < 4 ? `  ${this.evoNeed(S)} kills to the next.` : '  Fully evolved.'}`, '#ff8cff');
+    this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 110, 0.45, true);
+    return true;
+  }
+  // the Recycler: two parts you do not want become one you might; later it can turn one part into another, and strike a
+  // kind of part from the run altogether
+  takePart(u) { if (!(this.coreInv[u] > 0)) return false; this.coreInv[u]--; return true; }
+  recycle(a, b) {
+    if (!deed('recycle') || (a === b ? (this.coreInv[a] || 0) < 2 : !(this.coreInv[a] > 0 && this.coreInv[b] > 0))) return -1;
+    this.takePart(a); this.takePart(b);
+    const u = rollCoreAt(Math.min(coreTier(a), coreTier(b)), new Set([a, b, ...(this.banCores || [])]), this.upgradeStacks);
+    this.gainCore(u); return u;
+  }
+  rerollPart(a) {
+    if (!deed('reroll') || !(this.rerolls > 0) || !this.takePart(a)) return -1;
+    this.rerolls--; const u = rollCoreAt(coreTier(a), new Set([a, ...(this.banCores || [])]), this.upgradeStacks);
+    this.gainCore(u); return u;
+  }
+  banishPart(a) {
+    if (!deed('banish') || (this.banishN || 0) >= 3 || !(this.coreInv[a] > 0)) return false;
+    this.coreInv[a] = 0; (this.banCores || (this.banCores = new Set())).add(a); this.banishN = (this.banishN || 0) + 1;
+    this.toast(`${DATA.upgrades[a].name} is struck from this run`, '#ff9a8a'); this.play('S_Deny', 0.6, 0.7); return true;
+  }
+
   // ---------------------------------------------------------------- the Descent's parts
   gainCore(u) {
     const U = DATA.upgrades[u];
-    if (U.kind === 'me') { if (this.upgradeStacks[u] >= U.stacks) { this.addMoney(1500, true); this.toast(`${U.name} is as high as it goes  +$150`, '#ffd23a'); } else { this.addUpgrade(u); this.toast(`${U.name}  -  ${U.desc}  (x${this.upgradeStacks[u]})`, U.hex); } }
+    if (U.kind === 'me') { if (this.upgradeStacks[u] >= U.stacks) { if (this.game.descent) { this.heal(25); this.toast(`${U.name} is as high as it goes  -  +25 health instead`, '#7dff8a'); } else { this.addMoney(1500, true); this.toast(`${U.name} is as high as it goes  +$150`, '#ffd23a'); } } else { this.addUpgrade(u); this.toast(`${U.name}  -  ${U.desc}  (x${this.upgradeStacks[u]})`, U.hex); } }
     else { this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${U.name}  -  ${U.desc}.  Fit it at a workbench.`, U.hex); this.coreNew = (this.coreNew || 0) + 1; }
     this.play('S_Upgrade', 0.8, 1.1); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 80, 0.25, true);
   }

@@ -89,7 +89,7 @@ export class Game {
   tips(dt) {
     const P = this.player, F = P.focus; if (P.dead) return;
     this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
-    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom', 'Kills pay money. Every room has an ammo box by the way in and two guns on the side walls. Press Tab to see what you carry.'); if (this.descent.cleared) this.tip('ddoor2', 'The room is clear. A workbench, a Mystery Box and four chests, one of each rarity, are open by the far door. Chests can be bought as often as you can pay, dearer each time. The lit door leads on.'); }
+    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom3', 'Nothing is bought down here. The ammo box and the two guns on the side walls are free, and a gun evolves on its own as you kill with it: watch the bar under your ammo.'); if (this.descent.cleared) this.tip('ddoor3', 'The room is clear. By the far door: a workbench to fit the parts you picked up, and a Mystery Box with one free roll. The lit door leads on.'); }
     else if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
     if (this.round >= 2 && this.quest.def) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
     if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');
@@ -622,10 +622,10 @@ export class Game {
     if (this.net.role === 'host' && E.netKiller && !E.isBoss) return;   // a teammate's kill: their client pays them
     const P = this.player, loc = E.pos.clone();
     P.onEnemyKilled(E, headshot);
-    if (E.has('Gilded') || E.ai === 'Gilded') this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40);
+    if (!this.descent && (E.has('Gilded') || E.ai === 'Gilded')) this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40);
     if (E.isBoss) {
       if (!this.descent) this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
-      this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
+      if (!this.descent) this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bossKilled(!!E.boss.final, difficulty());
       if (E.boss.final) this.levelComplete();
       this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);

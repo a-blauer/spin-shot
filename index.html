@@ -50,14 +50,36 @@ body:not(.ready) #title .menu { display: none; }
 #locker .ph { display: flex; align-items: center; gap: 16px; } #locker h2 { font-family: "Big Shoulders Display"; font-size: 38px; margin: 0; color: #ffcd5a; letter-spacing: 2px; flex: 1; }
 #locker .lcount { font-size: 18px; color: #c9bfae; }
 #locker button { font-family: "Big Shoulders Display"; font-size: 17px; letter-spacing: 2px; padding: 6px 14px; color: #140d12; background: #ffcd5a; border: 0; border-radius: 6px; box-shadow: 0 3px 0 #000; cursor: pointer; }
-#locker .lwrap { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; }
-#locker canvas { position: static; display: block; flex: none; width: min(360px, 80vw); height: auto; aspect-ratio: 360/460; background: radial-gradient(circle at 50% 40%, #4a2632, #1a0e14 75%); border: 2px solid #3a2430; border-radius: 8px; touch-action: none; cursor: grab; }
-#locker .lside { flex: 1; min-width: 260px; } #locker .ltabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-#locker .ltab { background: #2a1820; color: #f2e8d5; box-shadow: none; border: 1px solid #6a4a52; } #locker .ltab.on { background: #c8211b; border-color: #c8211b; }
-#locker .lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-#locker .litem { background: rgba(255,255,255,0.06); border: 2px solid transparent; border-radius: 6px; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-height: 74px; }
-#locker .litem b { font-size: 19px; } #locker .litem span { font-size: 15px; color: #c9bfae; } #locker .litem.sel { border-color: #ffcd5a; background: rgba(255,205,90,0.12); }
+#locker { display: none; flex-direction: column; overflow: hidden !important; }
+#locker[style*="block"] { display: flex !important; }
+#locker button.alt { background: #2a1820; color: #ffcd5a; border: 1px solid #ffcd5a; box-shadow: none; }
+#locker .lwrap { display: flex; gap: 18px; margin-top: 10px; flex: 1; min-height: 0; }
+#locker .lleft { flex: none; width: min(380px, 38vw); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+#locker canvas { position: static; display: block; flex: none; width: 100%; height: auto; aspect-ratio: 420/580; max-height: calc(100vh - 330px); min-height: 220px; object-fit: contain; background: radial-gradient(circle at 50% 40%, #4a2632, #1a0e14 75%); border: 2px solid #3a2430; border-radius: 8px; touch-action: none; cursor: grab; }
+#locker .lhint { text-align: center; font-size: 14px; color: #8f8478; margin: 3px 0 6px; letter-spacing: 1px; }
+#locker .lstats { background: rgba(255,255,255,0.05); border: 1px solid #5a3a44; border-radius: 6px; padding: 8px 12px; }
+#locker .lstats h4 { margin: 0 0 4px; font: 400 17px "Big Shoulders Display"; letter-spacing: 2px; color: #ffcd5a; }
+#locker .lstats span, #locker .lfx span { display: block; font-size: 17px; line-height: 1.25; }
+#locker .up { color: #8fe08a; } #locker .dn { color: #ff8a7a; } #locker .nil { color: #9a8f86; }
+#locker .lside { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; } #locker .ltabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; flex: none; }
+#locker .ltab { background: #2a1820; color: #f2e8d5; box-shadow: none; border: 1px solid #6a4a52; font-size: 20px; padding: 7px 18px; } #locker .ltab.on { background: #c8211b; border-color: #c8211b; }
+#locker .lscroll { flex: 1; overflow-y: auto; min-height: 0; padding-right: 8px; }
+#locker .lsec { margin-bottom: 16px; } #locker .lsec h3 { margin: 0 0 6px; font: 400 21px "Big Shoulders Display"; letter-spacing: 2px; color: #ffcd5a; border-bottom: 1px solid #5a3a44; padding-bottom: 2px; }
+#locker .lsec h3 i { font: 400 15px "Barlow Condensed", sans-serif; letter-spacing: 0; color: #9a8f86; margin-left: 10px; font-style: normal; }
+#locker .lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; }
+#locker .lgrid.sw { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+#locker .litem { background: rgba(255,255,255,0.06); border: 2px solid transparent; border-radius: 6px; padding: 6px 9px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-height: 44px; justify-content: center; }
+#locker .litem:hover { background: rgba(255,255,255,0.12); }
+#locker .litem b { font-size: 18px; line-height: 1.05; } #locker .litem span { font-size: 14px; color: #c9bfae; } #locker .litem.sel { border-color: #ffcd5a; background: rgba(255,205,90,0.14); }
 #locker .litem.locked { opacity: 0.5; cursor: default; } #locker .litem.locked span { color: #ff9a4d; }
+#locker .lsl { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; } #locker .lsl.st { border-left: 3px solid #ffcd5a; }
+#locker .lsn { display: flex; justify-content: space-between; align-items: baseline; } #locker .lsn b { font-size: 19px; } #locker .lsn i { font-style: normal; font-size: 15px; color: #ffcd5a; }
+#locker .lsr { display: flex; align-items: center; gap: 10px; } #locker .lsr span { font-size: 14px; color: #9a8f86; width: 54px; } #locker .lsr span:last-child { text-align: right; }
+#locker .lsr input { flex: 1; accent-color: #ffcd5a; height: 22px; cursor: pointer; }
+#locker .lfx { min-height: 22px; margin-top: 2px; } #locker .lfx span { display: inline-block; margin-right: 14px; font-size: 16px; }
+#locker .lsl2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; margin-bottom: 8px; } #locker .lsl2 .lsl { margin: 0; }
+@media (max-width: 760px) { #locker .lwrap { flex-direction: column; overflow-y: auto; } #locker .lleft { width: 100%; overflow: visible; } #locker canvas { max-height: 44vh; width: auto; margin: 0 auto; } #locker .lside { overflow: visible; } #locker .lscroll { overflow: visible; } }
+#lobby .lbbody { margin: 6px 0 2px; font-size: 15px; line-height: 1.2; } #lobby .lbbody span { display: block; color: #9a8f86; } #lobby .lbbody .up { color: #8fe08a; } #lobby .lbbody .dn { color: #ff8a7a; }
 #locker .lsw { display: flex; height: 10px; border-radius: 3px; overflow: hidden; } #locker .lsw i { flex: 1; }
 #lobby { display: none; position: fixed; inset: 3vh 3vw; cursor: default; background: rgba(20,10,16,0.96); border: 2px solid #ffcd5a; padding: 14px 22px 0; z-index: 5; color: #f2e8d5; font-family: "Barlow Condensed", sans-serif; font-size: 18px; flex-direction: column; }
 #lobby[style*="block"] { display: flex !important; }

@@ -8,7 +8,7 @@
 // A reward is EARNED when its goal is met and UNLOCKED when the player claims it on the Progress screen.
 // Everything is a pure function of the lifetime stats, so nothing can be lost by a change to the numbers.
 import { MUTATORS, mutXp } from './data.js';
-import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString } from './cosmetics.js';
+import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString, SHAPES, DEFAULT_SHAPE, shapeOf } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
 
 export const GUN_LEVELS = [150, 500, 1200, 2500, 5000];           // kills needed for levels 1..5
@@ -202,6 +202,18 @@ export const Meta = {
   save() { if (!dirty) return; dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: progress lasts for this session only */ } },
   reset() { S = fresh(); dirty = true; recompute(); this.save(); },
   setUnlockAll(v) { unlockAll = v; },
+  allOn() { return unlockAll; },
+  // ---- the Descent: a gun is marked once for each difficulty it has carried a winning run on
+  asc(name) { const m = (S.asc || {})[name] || 0; return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); },
+  ascHas(name, df) { return !!((((S.asc || {})[name] || 0) >> df) & 1); },
+  ascend(name, df) { S.asc = S.asc || {}; if (this.ascHas(name, df)) return false; S.asc[name] = (S.asc[name] || 0) | (1 << df); this.bump('dAsc'); dirty = true; this.save(); return true; },
+  ascended() { return Object.keys(S.asc || {}).filter((n) => this.asc(n) > 0); },
+  ascPick(name) { return (S.ascPick || {})[name] || {}; },
+  setAscPick(name, key, val) { S.ascPick = S.ascPick || {}; S.ascPick[name] = Object.assign({}, S.ascPick[name], { [key]: val }); dirty = true; this.save(); },
+  carry() { return S.carry && this.asc(S.carry) > 0 ? S.carry : ''; },
+  setCarry(n) { S.carry = n || ''; dirty = true; this.save(); },
+  keepsake() { return S.keepsake || ''; },
+  setKeepsake(n) { S.keepsake = n || ''; dirty = true; this.save(); },
   get state() { return S; },
   stat(k) { return val(k); },
   // tips are shown once per profile
@@ -262,9 +274,20 @@ export const Meta = {
   howToUnlock(kind, name) { for (const M of MILESTONES) { const R = M.reward; if ((kind === 'skin' ? R.skin === name : (R[kind] || []).includes(name)) && M.how) return M.how; } return ''; },
   challengeDone(id) { const A = ACHIEVEMENTS.find((a) => a.id === id); return !!A && val(A.stat) >= A.need; },
   cosUnlocked(slot, id) { const I = cosItem(slot, id); return unlockAll || !I.need || !!S.cos[slot + ':' + I.id]; },
-  look() { const L = {}; for (const s of SLOTS) { const id = (S.look || {})[s]; L[s] = this.cosUnlocked(s, id) ? cosItem(s, id).id : DEFAULT_LOOK[s]; } return L; },
+  look() {
+    const L = {}, K = S.look || {};
+    for (const s of SLOTS) { const id = K[s]; L[s] = id !== undefined && COSMETICS[s].some((I) => I.id === id) && this.cosUnlocked(s, id) ? id : DEFAULT_LOOK[s]; }
+    // facial hair used to be a piece of facewear
+    if (K.fhair === undefined) { if (K.face === 'stache') L.fhair = 'horseshoe'; else if (K.face === 'beard') L.fhair = 'beard'; else if (K.face === 'greybeard') L.fhair = 'long'; }
+    L.shape = shapeOf({ shape: S.shape });
+    return L;
+  },
+  shape() { return shapeOf({ shape: S.shape }); },
+  setShape(id, v) { if (!SHAPES.some((K) => K.id === id)) return; S.shape = Object.assign({}, DEFAULT_SHAPE, S.shape); S.shape[id] = Math.max(-1, Math.min(1, Math.round((+v || 0) * 10) / 10)); dirty = true; this.save(); },
+  setShapes(o) { S.shape = Object.assign({}, DEFAULT_SHAPE, o); dirty = true; this.save(); },
+  setLooks(o) { const L = this.look(); delete L.shape; for (const k of SLOTS) if (o[k] !== undefined && this.cosUnlocked(k, o[k])) L[k] = cosItem(k, o[k]).id; S.look = L; dirty = true; this.save(); },
   lookStr() { return lookString(this.look()); },
-  setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; S.look = Object.assign({}, DEFAULT_LOOK, S.look); S.look[slot] = cosItem(slot, id).id; dirty = true; this.save(); },
+  setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; const L = this.look(); delete L.shape; L[slot] = cosItem(slot, id).id; S.look = L; dirty = true; this.save(); },
   starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.rank || (this.rank() >= T.rank && !!S.claimed['r' + T.rank])); },
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
   cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },

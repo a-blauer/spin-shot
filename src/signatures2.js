@@ -312,7 +312,7 @@ export const SIG2 = {
   'House Edge': {
     name: 'Raise', short: 'Fires chips and is fed with money. Hold the trigger to raise: dearer and deadlier.',
     text: 'It shoots chips and it is loaded with your money: a dollar a chip to start. Every chip in a burst raises the stake, another dollar every third chip and 5% more damage every one, up to +165%. A kill pays $15 plus three times the stake. Broke, it fires at 40%.',
-    play: 'Short bursts are cheap and weak; long ones are ruinous and devastating. Kill with the big chips and it pays for itself.', fav: ['Gilded Rounds', 'Fortune', 'Hollow Tip'], aff: { MoneyGain: 1.5 }, proc: { Money: 2 },
+    play: 'Short bursts are cheap and weak; long ones are ruinous and devastating. Kill with the big chips and it pays for itself.', fav: ['Hollow Tip', 'Heavy Rounds', 'Rapid Bolt'], aff: { MoneyGain: 1.5 }, proc: { Money: 2 },
     free: true, stake: (g) => 1 + Math.floor((g.raise || 0) / 3),
     ammo(p, S, W, g) { return ['$' + this.stake(g), 'A CHIP']; },
     shot(p, S, W, g, C) {

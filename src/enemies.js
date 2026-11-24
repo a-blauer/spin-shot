@@ -550,7 +550,7 @@ export class Enemy {
   meleeStrike() {
     const G = this.game, P = G.net.targetOf(this);
     const dist = P.pos.distanceTo(this.pos);
-    const reach = this.def.range * Math.max(1, this.bodyScale * 0.8) * 1.35 + 40;
+    const reach = this.def.range * Math.max(1, this.bodyScale * 0.8) * 1.35 + 40 + ((P.body && (P.body.hit - 1) * 45) || 0);   // a broad body is easier to reach
     this.lungeT = 0.22;
     G.audio.playAt('S_Attack', this.pos, 0.8, Math.min(1.3, Math.max(0.7, 1.1 / Math.max(this.bodyScale, 0.5))), 0.1);
     if (this.ai === 'Brute') {

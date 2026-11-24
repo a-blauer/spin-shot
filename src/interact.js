@@ -148,11 +148,13 @@ export class Interactable {
       B.state = 'closing'; B.t = 0; this.boxShow(-1); return;
     }
     if (B.state !== 'idle') return;
-    if (!P.spend(Math.round(950 * P.priceMult()))) return;
+    if (G.descent) { if (!(P.boxRolls > 0)) { P.toast('The box has nothing more for you in this room', '#ccc'); P.play('S_Deny', 0.5); return; } P.boxRolls--; }
+    else if (!P.spend(Math.round(950 * P.priceMult()))) return;
     B.uses++;
-    if (B.uses > B.limit && G.boxSpots && G.boxSpots.some((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800)) { P.money += Math.round(950 * P.priceMult()); B.state = 'leaving'; B.t = 0; G.audio.playAt('S_Lose', this.pos, 0.9); G.banner('THE BOX IS MOVING', lin(0.4, 0.75, 1), 3); return; }   // refunded, and gone
+    if (!G.descent && B.uses > B.limit && G.boxSpots && G.boxSpots.some((S) => G.zones[S.zone].unlocked && S.pos.distanceTo(this.pos) > 800)) { P.money += Math.round(950 * P.priceMult()); B.state = 'leaving'; B.t = 0; G.audio.playAt('S_Lose', this.pos, 0.9); G.banner('THE BOX IS MOVING', lin(0.4, 0.75, 1), 3); return; }   // refunded, and gone
     const r = rollBoxRarity(G.round);   // never a Common: the box is always a step up from what you started with
     let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
+    if (G.descent) for (let k = 0; k < 12 && G.data.weapons[prize].cash; k++) prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);   // nothing that is fed with money
     if (Math.random() < (P.cls.id === 'brawler' ? 0.35 : 0.1) && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
     B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;
     G.audio.playAt('S_Door', this.pos, 0.8, 0.9);
@@ -662,6 +664,7 @@ export class Interactable {
       }
       case 'WallBuy': {
         const n = G.data.weapons[this.weapon].name;
+        if (G.descent) { const D = G.data.weapons[this.weapon]; return player && player.hasWeapon(this.weapon) ? `[E] ${n}: refill its ammo` : `[E] Take ${n}\n${D.rarity} ${D.cls.toLowerCase()}.  ${D.desc}`; }
         if (player && player.hasWeapon(this.weapon)) return `[E] ${n} ammo  $${cash(Math.floor(this.cost / 2))}`;
         return `[E] ${n}  $${cash(this.cost)}`;
       }
@@ -674,11 +677,12 @@ export class Interactable {
         const B = this.box;
         if (B.state === 'offer') { const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; return `[E] Take ${D.name}\n${D.rarity}${isMelee(B.prize) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
         if (B.state !== 'idle') return '';
+        if (G.descent) { const n = player ? player.boxRolls || 0 : 0; return n > 0 ? `[E] Mystery box  (free: ${n} roll${n > 1 ? 's' : ''} left in this room)\nA random weapon. Take it or leave it.` : 'The mystery box is spent for this room'; }
         return `[E] Mystery box  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nA random weapon. It moves on after a few uses.`;
       }
       case 'HighRoller': {
         if (player && player.wield) { const MW = MELEE[player.meleeDef || 0], mt = player.meleeTier || 0; return mt >= HONE_MAX ? `${MW.name} +${mt} is as sharp as it gets` : `[E] Hone ${MW.name}${mt ? ' +' + mt : ''}  $${cash(player.honeCost())}\n+30% damage, more reach and a faster swing (${mt} of ${HONE_MAX}). Honing stays with you if you change blades.`; }
-        if (G.descent && player) { const n = Object.values(player.coreInv || {}).reduce((x, y) => x + y, 0); return `[E] Workbench\n${n ? `Fit your parts: ${n} waiting.` : 'Fit parts to your guns and tune them up.'}`; }
+        if (G.descent && player) { const n = Object.values(player.coreInv || {}).reduce((x, y) => x + y, 0); return `[E] Workbench\n${n ? `Fit your parts: ${n} waiting.` : 'Fit parts to your guns.'}`; }
         const J = player && player.benchJob;
         if (J) return J.t > 0 ? `Working on ${G.data.weapons[J.def].name}  -  ${Math.ceil(J.t)}s` : `[E] Claim the ${G.data.weapons[J.def].name} upgrade`;
         const S = player && player.slot, W = S && S.def >= 0 ? G.data.weapons[S.def] : null;

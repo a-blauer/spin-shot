@@ -310,7 +310,9 @@ export class ViewModel {
     const sk = Meta.skin(), M = (c, glow = 0) => vmMat(new THREE.Color(c), glow);
     // The weapon sits in a fist at the end of a full arm. The arm hangs off a shoulder pivot below the screen, so the
     // swing is the arm rotating about that shoulder, never a weapon sliding through the air.
-    const ARM = 21, pivot = new THREE.Group(), hand = new THREE.Group(); hand.position.set(0, 0, -ARM); pivot.add(hand);
+    // the body you built shows in the arm: its length carries the weapon further out, its weight thickens the sleeve
+    const shp = Meta.shape(), wK = shp.weight > 0 ? 1 + 0.22 * shp.weight : 1 + 0.14 * shp.weight;
+    const ARM = 21 * (1 + 0.1 * shp.arms), pivot = new THREE.Group(), hand = new THREE.Group(); hand.position.set(0, 0, -ARM); pivot.add(hand);
     g.remove(tool); hand.add(tool); tool.scale.setScalar(0.62); this.mtool = tool; this.mhand = hand;
     // The handle passes through the fist and the butt shows below it. `shaft` carries the model so the fist stays put
     // while the weapon is slid down in the grip.
@@ -336,12 +338,12 @@ export class ViewModel {
       this.mhand2 = fistOn(tool, this.mTwoDrop ? -this.mTwoDrop : TWO / 0.62, 0.96 / 0.62);
       // its arm is not part of the tool: it is strung each frame from the left shoulder to wherever that fist is, so it
       // reads as an arm in every pose
-      const a2 = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.5, 1, 10), M(sk.sleeve)); g.add(a2); this.marm2 = a2;
+      const a2 = new THREE.Mesh(new THREE.CylinderGeometry(1.0 * wK, 1.5 * wK, 1, 10), M(sk.sleeve)); g.add(a2); this.marm2 = a2;
       const c2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.3, 10), M(sk.cuff)); g.add(c2); this.mcuff2 = c2;
     } else { this.mhand2 = null; this.marm2 = null; this.mcuff2 = null; this.mTwoDrop = 0; }
     this.mModel = W.model || 'shovel';
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.5, ARM * 0.5, 10), M(sk.sleeve)); fore.rotation.x = Math.PI / 2; fore.position.set(0, 0, -ARM * 0.72); pivot.add(fore);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, ARM * 0.6, 10), M(sk.sleeve)); upper.rotation.x = Math.PI / 2; upper.position.set(0, 0, -ARM * 0.25); pivot.add(upper);
+    const fore = new THREE.Mesh(new THREE.CylinderGeometry(1.05 * wK, 1.5 * wK, ARM * 0.5, 10), M(sk.sleeve)); fore.rotation.x = Math.PI / 2; fore.position.set(0, 0, -ARM * 0.72); pivot.add(fore);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(1.5 * wK, 2.1 * wK, ARM * 0.6, 10), M(sk.sleeve)); upper.rotation.x = Math.PI / 2; upper.position.set(0, 0, -ARM * 0.25); pivot.add(upper);
     const cuff = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 1.3, 10), M(sk.cuff)); cuff.rotation.x = Math.PI / 2; cuff.position.set(0, 0, -ARM + 2); pivot.add(cuff);
     const stripe = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.8, 10), M(sk.stripe)); stripe.rotation.x = Math.PI / 2; stripe.position.set(0, 0, -ARM * 0.47); pivot.add(stripe);
     pivot.rotation.order = 'YXZ'; g.add(pivot); this.mpivot = pivot;
@@ -493,8 +495,11 @@ export class ViewModel {
     this.Cap(g, V(-1.6, 3.0, 1.9), V(3.4, 2.5, 1.3), 1.3, GloveLight);                          // trigger finger
     this.Cap(g, V(-5.4, -3.0, 2.2), V(-0.8, -3.3, 3.2), 1.45, GloveLight);                      // thumb
     this.Cap(g, V(-13.6, 2.6, -11.4), V(-9.4, 1.2, -6.6), 4.5, Cuff);
-    this.Cap(g, V(-38, 11, -42), V(-14.4, 2.9, -12.4), 5.0, Sleeve, 6.6);
-    this.Cap(g, V(-18.6, 4.3, -17.6), V(-17.4, 3.9, -16.2), 5.5, SleeveStripe);
+    // the body shows in the arms: weight thickens the sleeve (the hand stays the size the grip was made for), and long
+    // arms hold the gun further out at the hip. Down the sights it comes back to the same place whatever the arm.
+    const shp = Meta.shape(), wK = shp.weight > 0 ? 1 + 0.22 * shp.weight : 1 + 0.14 * shp.weight; this.armOff = shp.arms * 2.4;
+    this.Cap(g, V(-46, 13.2, -50), V(-14.4, 2.9, -12.4), 5.0 * wK, Sleeve, 6.6 * wK);
+    this.Cap(g, V(-18.6, 4.3, -17.6), V(-17.4, 3.9, -16.2), 5.5 * wK, SleeveStripe);
     this.support = this.scene_(SupportRest);
     const sp = this.support;
     const palm = this.Part(sp, 2, V(0, -0.6, -2.6), V(9.4, 7.4, 4.6), Glove);
@@ -511,7 +516,7 @@ export class ViewModel {
       const th = add(new THREE.Mesh(new THREE.CapsuleGeometry(1.15, 3.6, 3, 8), vmMat(GloveLight, 0))); th.rotation.z = Math.PI / 2; th.position.set(0.6, 2.9, 0.6);
     }
     this.Cap(sp, V(-4.6, -8.2, -11), V(-2.4, -3.8, -5), 3.7, Cuff);                  // the forearm comes up from below, so it never crosses the view when the hand works the gun
-    this.Cap(sp, V(-12, -28, -48), V(-5, -8.8, -11.8), 4.2, Sleeve, 5.6);
+    this.Cap(sp, V(-14, -33, -57), V(-5, -8.8, -11.8), 4.2 * wK, Sleeve, 5.6 * wK);
     // muzzle flash: star facing the camera, flame along the barrel, additive glow
     const big = ['Shotgun', 'Sniper', 'Launcher'].includes(this.cls);
     this.FS = big ? 21 : (this.cls === 'Pistol' ? 14 : 17);
@@ -749,7 +754,7 @@ export class ViewModel {
     // held low and to the right, so the middle of the view is clear and the barrel still points where you look.
     const cant = f.cant || null;
     const ads = cant ? { X: 25, Y: cant[1], Z: cant[2] } : this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
-    const hb = HIP_BIG[this.cls] || [0, 0, 0], hp = { X: HipPos.X + hb[0], Y: HipPos.Y + hb[1], Z: HipPos.Z + hb[2] };
+    const hb = HIP_BIG[this.cls] || [0, 0, 0], hp = { X: HipPos.X + hb[0] + (this.armOff || 0), Y: HipPos.Y + hb[1], Z: HipPos.Z + hb[2] };
     const pos = { X: hp.X + (ads.X - hp.X) * this.aimA, Y: hp.Y + (ads.Y - hp.Y) * this.aimA, Z: hp.Z + (ads.Z - hp.Z) * this.aimA };
     const rot = { P: this.adsPose && !cant ? this.adsPose.P * this.aimA : 0, Y: cant ? (cant[3] || 0) * this.aimA : 0, R: cant ? cant[0] * this.aimA : 0 };
     // a pair of pistols is held as a pair: one each side of the middle, at the hip and when aimed

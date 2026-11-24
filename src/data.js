@@ -43,7 +43,7 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   // buffs that do something rather than add a number
   'LandShock', 'Quake', 'Glide', 'OpenerStun', 'PointBlank', 'AirKillJump', 'WeakPoint', 'HeadPop', 'LightBolt', 'Parry', 'BladeWave', 'WallCrit', 'LowBurn', 'CritStun', 'Trample', 'BlockShock', 'SpendNova', 'GoldKill',
   'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound',
-  'HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch'];
+  'HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch', 'EvolveSpeed'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);

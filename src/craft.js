@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { DATA, RARITY_HEX, cash } from './data.js';
 import { CORE0, CORE_DEFS, coreSvg } from './cores.js';
 import { sigOf, sigProc } from './signatures.js';
+import { Meta } from './meta.js';
+import { deed, DEEDS, ROMAN, ASC, TEMPERS, ATTUNES, temperOf, attuneOf } from './deeds.js';
 
 const CSS = `
 #craft { display:none; position:fixed; inset:0; z-index:9; cursor:default; color:#f2e8d5; font-family:"Barlow Condensed",sans-serif;
@@ -52,6 +54,41 @@ const CSS = `
 #craft .slot small { font:700 12px "Barlow Condensed"; color:#d8cdb8; text-align:center; line-height:1; margin-top:3px; }
 #craft .slot.none { width:auto; flex:1; color:#9a8f7c; font-size:18px; }
 #craft .slot em { position:absolute; top:-9px; right:-9px; min-width:26px; padding:0 4px; height:26px; border-radius:13px; background:var(--c); color:#14100e; font:400 19px "Big Shoulders Display"; font-style:normal; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px #000; }
+#craft .evo { margin-top:10px; }
+#craft .evo .eb { height:10px; background:rgba(255,255,255,.1); border:1px solid rgba(255,140,255,.5); }
+#craft .evo .eb i { display:block; height:100%; background:#ff8cff; }
+#craft .evo .et { display:flex; justify-content:space-between; font-size:17px; color:#b9ad98; margin-top:4px; }
+#craft .evo .et b { font:400 21px "Big Shoulders Display"; letter-spacing:1px; color:#ff8cff; }
+#craft .asc { margin-top:8px; padding:8px 10px; border:1px solid rgba(255,140,255,.35); background:rgba(40,16,40,.45); font-size:16px; color:#b9ad98; line-height:1.2; }
+#craft .asc h4 { margin:0 0 4px; font:400 20px "Big Shoulders Display"; letter-spacing:1px; color:#ff8cff; }
+#craft .asc h4 s { text-decoration:none; color:#ffcd5a; margin-left:8px; letter-spacing:4px; }
+#craft .asc .ar { display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:5px; }
+#craft .asc .ar label { width:64px; font:400 16px "Big Shoulders Display"; letter-spacing:1px; color:#e9dfc8; }
+#craft .asc .ap { padding:3px 9px; border:1px solid rgba(255,255,255,.25); cursor:pointer; color:#e9dfc8; font-size:15px; }
+#craft .asc .ap:hover { border-color:#ff8cff; }
+#craft .asc .ap.on { background:#ff8cff; color:#1a0f0c; border-color:#ff8cff; font-weight:700; }
+#craft .asc .lk { opacity:.55; }
+#craft .asc .ar em { font-style:normal; color:#b9ad98; font-size:15px; margin-left:6px; }
+#craft .mid { overflow-y:auto; }
+#craft .rec { margin-top:8px; padding:7px 10px; flex:none; border:2px solid #9affc0; background:rgba(14,40,28,.55); }
+#craft .rec.over { background:rgba(40,90,60,.7); }
+#craft .rec.locked { border-color:rgba(255,255,255,.2); background:rgba(0,0,0,.25); }
+#craft .rec h3 { margin:0 0 6px; font:400 22px "Big Shoulders Display"; letter-spacing:1px; color:#9affc0; }
+#craft .rec.locked h3 { color:#8f8676; }
+#craft .rec p { margin:0; font-size:15px; color:#b9ad98; line-height:1.2; }
+#craft .rec .hop { display:flex; gap:8px; align-items:center; margin:4px 0 6px; }
+#craft .rec h3 i { font:400 14px "Barlow Condensed",sans-serif; letter-spacing:0; color:#b9ad98; font-style:normal; margin-left:6px; }
+#craft .rec .hs { width:44px; height:44px; border:2px dashed rgba(154,255,192,.5); display:flex; align-items:center; justify-content:center; color:rgba(154,255,192,.5); font-size:24px; }
+#craft .rec .hs.f { border:2px solid var(--c); cursor:pointer; background:rgba(0,0,0,.4); }
+#craft .rec .hs svg { width:36px; height:36px; }
+#craft .rec .hop b { font:400 24px "Big Shoulders Display"; color:#9affc0; }
+#craft .rec .rb { display:flex; flex-wrap:wrap; gap:6px; }
+#craft .rec button { font:400 17px "Big Shoulders Display"; letter-spacing:1px; padding:5px 10px; background:#12281c; color:#9affc0; border:2px solid #9affc0; cursor:pointer; }
+#craft .rec button:hover:not(:disabled) { background:#9affc0; color:#0c1a12; }
+#craft .rec button:disabled { opacity:.35; cursor:default; }
+#craft .rec button.bn { color:#ff9a8a; border-color:#ff9a8a; background:#2a1412; }
+#craft .rec button.bn:hover:not(:disabled) { background:#ff9a8a; color:#1a0c0a; }
+#craft .rec .out { margin-top:6px; font-size:16px; color:#e9dfc8; min-height:19px; }
 #craft .tune { margin-top:10px; display:flex; gap:12px; align-items:center; }
 #craft .tune button { font:400 21px "Big Shoulders Display"; letter-spacing:1px; padding:8px 16px; background:#3a2418; color:#ffcd5a; border:2px solid #ffcd5a; cursor:pointer; white-space:nowrap; }
 #craft .tune button:hover:not(:disabled) { background:#ffcd5a; color:#1a0f0c; }
@@ -160,20 +197,20 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   function render(flash) {
     const p = P(), S = p.slot, G = guns(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0).sort((a, b) => a - b);
     const total = inv.reduce((s, u) => s + p.coreInv[u], 0);
-    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun to fit it, or off it to take it back. Fitting is free and a gun takes any number of parts. Hold Shift to move every copy at once.</div><div class="cash">$${cash(p.money)}</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun to fit it, or off it to take it back. A gun takes any number of parts, and evolves on its own as you kill with it. Hold Shift to move every copy at once.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>PARTS <i>${total} carried</i></h2><div class="list">`;
     if (!inv.length) h += `<div class="empty">You are not carrying any parts.<br><br>They drop from what you kill: the stranger the enemy, the better the part. Bosses always leave three.</div>`;
     const sg = sigOf(DATA.weapons[S.def]);
     for (const u of inv) { const nt = suits(sg, U(u)); h += `<div class="chip${nt ? ' suit' : ''}" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}${nt ? ` <u>${nt}</u>` : ''}</span></div><em>x${p.coreInv[u]}</em></div>`; }
-    h += `</div></div><div class="mid"><div class="tabs">`;
+    h += `</div>${recHtml(p)}</div><div class="mid"><div class="tabs">`;
     for (const i of G) { const W = DATA.weapons[p.weapons[i].def], s = p.weapons[i]; h += `<div class="tab${i === p.active ? ' on' : ''}" data-i="${i}" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${s.cores.length} part${s.cores.length === 1 ? '' : 's'} fitted</small></div>`; }
     h += `</div><div class="table" id="ctable"><canvas id="ccv"></canvas><div class="hint">${total ? 'Drop a part here' : ''}</div><div class="pop" id="cpop"></div></div><div class="slots">`;
     // what is on the gun: one tile per kind of part, however many of it there are
     const on = new Map(); for (const u of S.cores) on.set(u, (on.get(u) || 0) + 1);
     if (!on.size) h += `<div class="slot none">Nothing fitted to this gun yet</div>`;
     for (const [u, c] of [...on].sort((a, b) => a[0] - b[0])) h += `<div class="slot fill" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<small>${esc(U(u).name)}</small>${c > 1 ? `<em>x${c}</em>` : ''}</div>`;
-    const maxed = S.mods.length >= 4, cost = maxed ? 0 : p.benchCost(S);
-    h += `</div><div class="tune"><button id="ctune" ${maxed || p.money < cost ? 'disabled' : ''}>${maxed ? 'FULLY TUNED' : `TUNE-UP  $${cash(cost)}`}</button><span>${maxed ? 'This gun has had all four tune-ups.' : '+20% damage, +15% magazine and reserve, and a little fire rate and reload. Four to a gun; a tune-up stays with the gun.'}</span></div></div>`;
+    const maxed = S.mods.length >= 4, need = p.evoNeed(S), k = S.evoK || 0;
+    h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY EVOLVED' : `EVOLVED ${S.mods.length ? ROMAN[S.mods.length] : '0'} OF IV`}</b><span>${maxed ? 'This gun has evolved four times.' : `${Math.max(0, need - k)} more kills with this gun and it evolves: +20% damage, +15% magazine and reserve, a little fire rate and reload.`}</span></div></div>${ascHtml(S)}</div>`;
     h += `<div class="col"><h2>${esc(DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto">${statsHtml(flash)}</div></div></div>`;
     // passives
     const pas = []; for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k; if (CORE_DEFS[k].kind === 'me' && p.upgradeStacks[u] > 0) pas.push(u); }
@@ -185,13 +222,45 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (flash) setTimeout(() => el.querySelectorAll('.row b').forEach((b) => b.classList.remove('up', 'down')), 60);
     el.querySelector('#cclose').onclick = close;
     el.querySelectorAll('.tab').forEach((tb) => { tb.onclick = () => { const i = +tb.dataset.i; if (i !== p.active) { p.switchTo(i); lastSheet = null; modelKey = ''; H.audio.play('S_Switch', 0.6); render(false); } }; });
-    const tu = el.querySelector('#ctune'); tu.onclick = () => { const n0 = S.mods.length; p.benchUpgrade(); if (S.mods.length > n0) { bump = 1; pop('#ffcd5a'); } render(true); };
+    // an ascended gun's temper and element
+    el.querySelectorAll('.ap').forEach((b) => { b.onclick = () => { Meta.setAscPick(DATA.weapons[S.def].name, b.dataset.k, b.dataset.v); p.recompute(); H.audio.play('S_Fit', 0.7); bump = 0.6; pop('#ff8cff'); render(true); }; });
+    // the Recycler
+    el.querySelectorAll('.hs.f').forEach((b) => { b.onclick = () => { hop.splice(+b.dataset.h, 1); H.audio.play('S_Unfit', 0.6); render(false); }; });
+    const act = (id, fn) => { const b = el.querySelector(id); if (b) b.onclick = () => { const r = fn(); hop = []; if (r === false || r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play(id === '#rban' ? 'S_Deny' : 'S_Upgrade', 0.8); recOut = id === '#rban' ? 'Struck from this run.' : `The Recycler made: <b style="color:${U(r).hex}">${esc(U(r).name)}</b>${CORE_DEFS[r - CORE0].kind === 'me' ? ' (yours at once)' : ''}`; } render(true); }; };
+    act('#rrec', () => p.recycle(hop[0], hop[1])); act('#rrer', () => p.rerollPart(hop[0])); act('#rban', () => p.banishPart(hop[0]));
     el.querySelectorAll('.chip').forEach((c) => {
       c.onpointerdown = (e) => startDrag(e, { kind: 'fit', u: +c.dataset.u });
       c.onpointerenter = () => { if (!drag) { hover = +c.dataset.u; refreshStats(); } }; c.onpointerleave = () => { if (!drag && hover >= 0) { hover = -1; refreshStats(); } };
     });
     el.querySelectorAll('.slot.fill').forEach((s) => { s.onpointerdown = (e) => startDrag(e, { kind: 'pull', u: +s.dataset.u }); });
     if (cv) cv.onpointerdown = (e) => { drag = { kind: 'spin', x: e.clientX }; cv.setPointerCapture(e.pointerId); };
+  }
+  // ---- the Recycler: a hopper for up to two parts, and what the machine can do with them
+  let hop = [], recOut = '';
+  function recHtml(p) {
+    if (!deed('recycle')) return `<div class="rec locked" id="crec"><h3>THE RECYCLER</h3><p>Locked. ${DEEDS.find((d) => d.id === 'recycle').need} Then two parts you do not want become one new part.</p></div>`;
+    // only what you still carry can sit in the hopper
+    const c = {}; hop = hop.filter((u) => { c[u] = (c[u] || 0) + 1; return (p.coreInv[u] || 0) >= c[u]; });
+    const slot = (i) => (hop[i] !== undefined ? `<div class="hs f" data-h="${i}" style="--c:${U(hop[i]).hex}" title="${esc(U(hop[i]).name)}: click to take it back">${gly(hop[i])}</div>` : '<div class="hs">+</div>');
+    const rr = deed('reroll'), bn = deed('banish'), left = 3 - (p.banishN || 0);
+    let h = `<div class="rec" id="crec"><h3 title="Drop parts in here. Two become one new part, as rare as the lesser of them.">THE RECYCLER <i>drop two parts in</i></h3><div class="hop">${slot(0)}<b>+</b>${slot(1)}</div><div class="rb">`;
+    h += `<button id="rrec" ${hop.length === 2 ? '' : 'disabled'}>RECYCLE</button>`;
+    h += rr ? `<button id="rrer" ${hop.length === 1 && p.rerolls > 0 ? '' : 'disabled'} title="Turn one part into another of the same rarity. Once a room.">REROLL (${p.rerolls > 0 ? p.rerolls : 0})</button>` : '';
+    h += bn ? `<button id="rban" class="bn" ${hop.length === 1 && left > 0 ? '' : 'disabled'} title="This kind of part will not drop again this run. You lose the ones you carry.">BANISH (${left})</button>` : '';
+    h += `</div><div class="out">${recOut}</div>`;
+    const nx = !rr ? DEEDS.find((d) => d.id === 'reroll') : !bn ? DEEDS.find((d) => d.id === 'banish') : null;
+    if (nx) h += `<p style="opacity:.75">Next: ${esc(nx.name)}. ${esc(nx.need)}</p>`;
+    return h + '</div>';
+  }
+  // ---- what this gun has earned on other runs
+  function ascHtml(S) {
+    const W = DATA.weapons[S.def], a = Meta.asc(W.name), dia = '\u25C6'.repeat(a) + '\u25C7'.repeat(3 - a);
+    if (!a) return `<div class="asc lk"><h4>NOT YET ASCENDED <s>${dia}</s></h4>Finish a Descent with this gun doing the most damage and it ascends: once on each difficulty, three times in all. I: start runs with it. II: choose its temper. III: bind it to an element.</div>`;
+    const T = temperOf(W.name), A = attuneOf(W.name);
+    let h = `<div class="asc"><h4>ASCENDED ${ROMAN[a]} <s>${dia}</s></h4>`;
+    h += a >= 2 ? `<div class="ar"><label>TEMPER</label>${TEMPERS.map((t) => `<span class="ap${t.id === T.id ? ' on' : ''}" data-k="temper" data-v="${t.id}" title="${esc(t.text)}">${t.name}</span>`).join('')}<em>${esc(T.text)}</em></div>` : `<div>${ROMAN[2]}, Tempered: win with it on another difficulty to choose a temper for it.</div>`;
+    h += a >= 3 ? `<div class="ar"><label>ELEMENT</label>${ATTUNES.map((t) => `<span class="ap${t.id === A.id ? ' on' : ''}" data-k="attune" data-v="${t.id}" title="${esc(t.text)}" ${t.hex && t.id !== A.id ? `style="color:${t.hex}"` : ''}>${t.name}</span>`).join('')}<em>${esc(A.text)}</em></div>` : a >= 2 ? `<div style="margin-top:4px">${ROMAN[3]}, Attuned: win with it on the third difficulty to bind it to an element.</div>` : '';
+    return h + '</div>';
   }
   function refreshStats() { const c = el.querySelector('#cstats'); if (c) { const keep = lastSheet; c.innerHTML = statsHtml(false); lastSheet = keep; } }
   function pop(col) { const q = el.querySelector('#cpop'); if (!q) return; q.style.setProperty('--c', col); q.classList.remove('go'); void q.offsetWidth; q.classList.add('go'); }
@@ -205,12 +274,14 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     H.audio.play('S_UIMove', 0.5, 1.2);
   }
   function moveGhost(e) { if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; } }
+  const overRec = (e) => { const n = el.querySelector('#crec'); if (!n || n.classList.contains('locked')) return false; const r = n.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
   const overTable = (e) => { const tb = el.querySelector('#ctable'), sl = el.querySelector('.slots'); const hit = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }; return hit(tb) || hit(sl); };
   addEventListener('pointermove', (e) => {
     if (!open || !drag) return;
     if (drag.kind === 'spin') { const dx = e.clientX - drag.x; spin += dx * 0.012; spinV = dx * 0.5; drag.x = e.clientX; return; }
     if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) drag.moved = true;
     moveGhost(e); const tb = el.querySelector('#ctable'); if (tb) tb.classList.toggle('over', drag.kind === 'fit' && overTable(e));
+    const rc = el.querySelector('#crec'); if (rc) rc.classList.toggle('over', drag.kind === 'fit' && overRec(e));
   });
   addEventListener('pointerup', (e) => {
     if (!open || !drag) return; const d = drag; drag = null;
@@ -219,6 +290,11 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const p = P(), S = p.slot, on = overTable(e); hover = -1;
     // a part dropped on the gun (or simply clicked) is fitted; a fitted part dragged off the bench (or clicked) comes off
     const all = d.all || e.shiftKey;
+    if (d.kind === 'fit' && d.moved && overRec(e)) {   // into the Recycler's hopper
+      const inHop = hop.filter((u) => u === d.u).length;
+      if (hop.length < 2 && (p.coreInv[d.u] || 0) > inHop) { hop.push(d.u); recOut = ''; H.audio.play('S_Fit', 0.6, 0.8); } else H.audio.play('S_Deny', 0.6);
+      render(false); return;
+    }
     if (d.kind === 'fit' && (on || !d.moved)) {
       let n = 0; while (p.fitCore(S, d.u)) { n++; if (!all) break; }
       if (n) { bump = 1; H.audio.play('S_Fit', 0.9); render(true); pop(U(d.u).hex); return; }
@@ -229,7 +305,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   addEventListener('keydown', (e) => { if (!open) return; e.stopImmediatePropagation(); if (e.code === 'KeyE' || e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyF') { e.preventDefault(); close(); } }, true);
   addEventListener('keyup', (e) => { if (open) e.stopImmediatePropagation(); }, true);
 
-  function show() { if (open || !H.game() || !H.game().descent) return; open = true; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
+  function show() { if (open || !H.game() || !H.game().descent) return; open = true; hop = []; recOut = ''; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
   function close() { if (!open) return; open = false; if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
   return { show, close, tick, isOpen: () => open, refresh: () => { if (open) render(false); } };
 }
