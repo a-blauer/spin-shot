@@ -1,6 +1,7 @@
 // Sulfur-style HUD drawn on a 2D canvas: chunky condensed type with dark outlines, bone-white and saloon-gold
 // panels with clipped corners. Crosshair with spread/kick, hit markers, damage arcs, floating numbers,
 // banners, toasts, boss bar, power-up timers, casino menus (with live slot reels), inventory and death card.
+import { BUILDS, TIERS } from './builds.js';
 import { ATTACK_LABEL } from './enemies.js';
 import { TONICS } from './data.js';
 import { cash } from './data.js';
@@ -248,6 +249,7 @@ export class Hud {
     if (!P.inMenu() && !P.showInventory) this.drawCards(); else this.cardsBottom = 0;
     this.drawFloaters(game, dt);
     this.drawCoop(game);
+    if (!P.inMenu() && !P.dead) this.drawBuilds(P, H, S, game.round <= 1 ? 350 * S : 0);
     this.drawTip(dt, W, H, S, !!P.menu || P.dead || P.showInventory);
     if (!P.dead) {
       this.drawCasinoMarker(game);
@@ -637,6 +639,18 @@ export class Hud {
     this.text(`${Math.round(d / 100)}m`, x, y + 66 * S + bob, 15 * S, BONE, 'center', F_TXT, 600);
   }
   // things in the world that teammates need to find: pings, and anyone who is down
+  // the builds you are feeding: family, rank and how many buffs it holds, down the left edge
+  drawBuilds(P, H, S, ox = 0) {
+    if (!P.build) return; const L = Object.keys(BUILDS).filter((b) => P.build[b] > 0).sort((a, b) => P.build[b] - P.build[a]); if (!L.length) return;
+    let y = H * 0.36;
+    for (const b of L) {
+      const n = P.build[b], r = (P.buildRank && P.buildRank[b]) || 0, next = TIERS[r], on = r > 0;
+      this.g.globalAlpha = on ? 1 : 0.55;
+      this.text(`${b.toUpperCase()}${r ? ' ' + 'I'.repeat(r) : ''}`, ox + 22 * S, y, 15 * S, on ? BUILDS[b].hex : '#b8b0a4', 'left', F_TXT, 700);
+      this.text(next ? `${n}/${next}` : `${n}`, ox + 150 * S, y, 13 * S, '#d9cfbd', 'left', F_TXT, 500);
+      this.g.globalAlpha = 1; y += 20 * S;
+    }
+  }
   drawCoop(game) {
     const S = this.S, W = this.W, H = this.H, P = game.player, g = this.g;
     const mark = (pos, lift, label, sub, col, big) => {

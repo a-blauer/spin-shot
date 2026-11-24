@@ -1040,7 +1040,8 @@ export class Player {
       this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'DEFLECTED', [0.75, 0.85, 1], 1); return;
     }
     amount *= diff().dmg;   // difficulty: everything that hurts you is scaled here, once
-    buildHurt(this, source);
+    buildHurt(this, source, amount);
+    if (this.buildRank && this.buildRank.Bulwark > 2) amount *= 0.75;
     if (this.rushGuardT > 0) amount *= 1 - this.stat('RushGuard');
     const raw = amount;
     // Duelist's Sash: a blow that lands just as you swing is turned aside, and whoever threw it is left reeling
@@ -1439,7 +1440,8 @@ export class Player {
     const G = this.game;
     const mult = this.damageMult(E);
     let crit = !fromProc && Math.random() < Math.min(0.75, 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0));
-    if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }   // Second Opinion: the shot after a headshot kill
+    if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }
+    if (!fromProc && this.goldRound && !this.meleeHitting) crit = true;   // Second Opinion: the shot after a headshot kill
     let weak = false;
     if (!fromProc && this.S.WeakPoint && (E.elite || E.isBoss)) { E.pryN = (E.pryN || 0) + 1; if (E.pryN % 5 === 0) { crit = true; weak = true; } }   // Pry Bar: every fifth hit finds the gap
     if (!fromProc) this.lastCrit = crit;
@@ -1458,6 +1460,8 @@ export class Player {
     const head = headshot && !fromProc;
     if (head) dmg *= 1.75 + this.stat('HeadshotDamage');
     if (this.hsN > 0 && this.S.HeadStreak && !fromProc) dmg *= 1 + this.hsN * this.S.HeadStreak;
+    if (this.buildRank && this.buildRank.Ember > 2 && E.burnT > 0) dmg *= 1.3;
+    if (this.goldRound && !fromProc && !this.meleeHitting) { this.goldRound = false; dmg *= 2; G.fx.flash(at, [1, 0.85, 0.3], 220, 0.2, true); G.hud.floater(at.clone().add(V3(0, 40, 0)), 'GOLDEN ROUND', [1, 0.85, 0.3], 1); }
     if (hollow) { dmg *= 1 + this.S.HollowN; G.fx.flash(at, [1, 0.8, 0.3], 150, 0.16, true); G.fx.sparks(at, dir ? dir.clone().negate() : V3(0, 1, 0), [1, 0.85, 0.4], 10); if (!E.isBoss && dir) E.launch(V3(dir.x * 620, 260, dir.z * 620)); G.hud.floater(at.clone().add(V3(0, 30, 0)), 'HOLLOW POINT', [1, 0.8, 0.3], 0.8); }
     if (G.instaKill > 0 && !E.isBoss) dmg = Math.max(dmg, E.health + E.shield + 1);
     if (head && !E.isBoss && this.S.HeadExecute && E.health < E.maxHealth * this.S.HeadExecute) dmg = Math.max(dmg, E.health + E.shield + 1);   // Killshot
@@ -2324,7 +2328,7 @@ export class Player {
         break;
       case 'Chest': {
         title = `${['WOODEN', 'IRON', 'GILDED', 'RELIQUARY'][M.tier] || ''} CHEST`;
-        help.push({ kind: 'info', text: 'Choose one of three buffs. Every buff feeds a build (Ember, Frost, Storm, Blood, Powder, Deadeye, Bulwark, Rush, Fortune, Blade): hold 2 of one build to wake its power, 5 to wake the second. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
+        help.push({ kind: 'info', text: 'Choose one of three buffs. Every buff feeds a build (Ember, Frost, Storm, Blood, Powder, Deadeye, Bulwark, Rush, Fortune, Blade): hold 2 of one build to wake its power, 5 for the second, 8 for the third. Two builds awake together can make a combination. Your builds are listed down the left of the screen. Banish strikes a buff from every chest for the rest of the run and draws another in its place; you get two banishes a run. Nothing can hurt you for five seconds after the chest opens.', color: dim });
         if (M.banish) res('BANISH WHICH ONE?', '#ff6a5a'); else res('CHOOSE ONE', gold);
         M.offers.forEach((u, i) => { const U = DATA.upgrades[u]; const have = this.upgradeStacks[u]; const B = buildNote(this, U); opt(String(i + 1), U.name, { icon: `U_${u}`, suit: U.suit, tag: U.rarity.toUpperCase() + (B ? '  ·  ' + B.name : ''), tagColor: RARITY_HEX[U.rarity], color: M.banish ? '#ff9a8a' : RARITY_HEX[U.rarity], desc: U.desc + (B ? `\n${B.text}` : ''), note: have ? `owned x${have}` : '' }); });
         opt('4', M.banish ? 'Cancel banish' : `Banish one  (${this.banishes} left)`, { color: this.banishes > 0 ? bone : '#8a8078' });

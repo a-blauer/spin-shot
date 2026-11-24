@@ -887,15 +887,15 @@
 "mods": [
 [
 "MoveSpeed",
-0.08
+0.05
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnKill",
+"fx": "Haste",
+"chance": 1,
+"mag": 0.1,
 "cd": 0,
-"desc": "+8% move speed.",
+"desc": "Kills give +10% move speed for 4s. +5% move speed.",
 "insp": "RoR2 Paul's Goat Hoof"
 },
 {
@@ -927,15 +927,15 @@
 "mods": [
 [
 "MaxHealth",
-25
+20
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+25 max health.",
+"trigger": "OnHurt",
+"fx": "Shockwave",
+"chance": 1,
+"mag": 0.6,
+"cd": 4,
+"desc": "Taking a hit throws out a shockwave for 60% Power (4s cooldown). +20 max health.",
 "insp": "CoD Juggernog (lite)"
 },
 {
@@ -963,15 +963,15 @@
 "mods": [
 [
 "MoneyGain",
-0.1
+0.06
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
-"cd": 0,
-"desc": "+10% money from all sources.",
+"trigger": "OnMultiKill",
+"fx": "Money",
+"chance": 1,
+"mag": 40,
+"cd": 3,
+"desc": "Killing 3 enemies in quick succession pays $4 (3s cooldown). +6% money.",
 "insp": "Brotato Harvesting"
 },
 {
@@ -1351,15 +1351,15 @@
 "mods": [
 [
 "SpeedDamage",
-0.2
+0.15
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnDash",
+"fx": "Chain",
+"chance": 1,
+"mag": 0.8,
 "cd": 0,
-"desc": "+20% damage per 1000 speed above a walk.",
+"desc": "Dashing arcs lightning to nearby enemies for 80% Power. +15% damage per 1000 speed above a walk.",
 "insp": "Titanfall momentum"
 },
 {
@@ -2407,12 +2407,12 @@
 0.27
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnKill",
+"fx": "Missile",
+"chance": 0.2,
+"mag": 1.5,
 "cd": 0,
-"desc": "+7% crit chance, +27% proc chance.",
+"desc": "20% of kills fire a homing rocket for 150% Power. +7% crit chance, +27% proc chance.",
 "insp": "Balatro Oops! All 6s"
 },
 {
@@ -2831,15 +2831,15 @@
 "mods": [
 [
 "MeleeDamage",
-0.2
+0.15
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnMeleeKill",
+"fx": "Rage",
+"chance": 1,
+"mag": 0.1,
 "cd": 0,
-"desc": "+20% melee damage.",
+"desc": "Melee kills grant +10% damage for 4s. +15% melee damage.",
 "insp": "melee"
 },
 {
@@ -2849,15 +2849,15 @@
 "mods": [
 [
 "MeleeSpeed",
-0.12
+0.1
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnMeleeKill",
+"fx": "Shield",
+"chance": 1,
+"mag": 6,
 "cd": 0,
-"desc": "+12% melee swing speed.",
+"desc": "Melee kills grant 6 overshield. +10% melee swing speed.",
 "insp": "melee"
 },
 {
@@ -4096,12 +4096,12 @@
 0.15
 ]
 ],
-"trigger": null,
-"fx": null,
-"chance": 0,
-"mag": 0,
+"trigger": "OnEliteKill",
+"fx": "Heal",
+"chance": 1,
+"mag": 25,
 "cd": 0,
-"desc": "+15% to all healing.",
+"desc": "Killing an elite heals 25. +15% to all healing.",
 "insp": "RoR2 Rejuvenation Rack (lite)"
 },
 {
