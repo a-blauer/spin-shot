@@ -596,7 +596,7 @@ function setPaused(p) {
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op only the host needs songs: the host\u2019s radio plays for everyone, and is sent to the other players as it plays.</p></div>' + `<div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div><div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op only the host needs songs: the host\u2019s radio plays for everyone, and is sent to the other players as it plays.</p></div>' + `<div class="pfs"><button id="pmenu">MENU SONG</button><button id="pmenuclr">CLEAR</button><span id="pmenun"></span><input id="pmenufile" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div><div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
@@ -609,6 +609,20 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   pauseEl.querySelector('#pradd').onclick = () => file.click();
   file.onchange = async () => { n.textContent = 'loading\u2026'; await R.addFiles([...file.files]); file.value = ''; draw(); };
   pauseEl.querySelector('#prclr').onclick = () => { R.clear(); };
+  // the main-menu song: chosen once, kept in this browser, played whenever the title screen or the lobby is up
+  const mAudio = document.createElement('audio'); mAudio.loop = true; let mUrl = '', mFor = null;
+  const mName = pauseEl.querySelector('#pmenun'), mFile = pauseEl.querySelector('#pmenufile');
+  const mSync = () => {
+    const S = R.menuSong; mName.textContent = S ? S.title : 'none chosen  -  pick a file and it plays on the main menu';
+    const want = !!S && (title.style.display !== 'none' || lobby.style.display === 'block') && !document.hidden;
+    if (S !== mFor) { mAudio.pause(); if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = mUrl; mFor = S || null; }
+    mAudio.volume = Math.max(0, Math.min(1, (audio.musicVol ?? 0.5) * 0.9));
+    if (want) { if (mAudio.paused) mAudio.play().catch(() => { /* waits for the first click */ }); } else if (!mAudio.paused) mAudio.pause();
+  };
+  setInterval(mSync, 400); window.addEventListener('pointerdown', mSync); R.ready.then(mSync);
+  pauseEl.querySelector('#pmenu').onclick = () => mFile.click();
+  mFile.onchange = async () => { mName.textContent = 'loading\u2026'; await R.setMenu(mFile.files[0]); mFile.value = ''; mSync(); };
+  pauseEl.querySelector('#pmenuclr').onclick = async () => { await R.clearMenu(); mSync(); };
   new MutationObserver(() => { if (pauseEl.style.display !== 'none') draw(); }).observe(pauseEl, { attributes: true, attributeFilter: ['style'] });
 }
 pauseEl.querySelector('#ptips').onclick = (e) => { Meta.tipsReset(); Meta.save(); e.target.textContent = 'TIPS WILL SHOW AGAIN'; };

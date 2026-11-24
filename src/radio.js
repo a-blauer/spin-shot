@@ -10,6 +10,7 @@ const DB = 'polyshot-radio', STORE = 'tracks';
 const CHUNK = 12000, MAXCHUNKS = 5000;   // a song goes out in 12 KB pieces; 60 MB is the most the radio will send
 const b64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 6000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 6000)); return btoa(s); };
 const unb64 = (str) => { const s = atob(str), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const MENU_KEY = '__menusong';   // one song kept apart from the radio: it plays on the main menu
 const keyOf = (name) => String(name).replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 60);
 const titleOf = (name) => String(name).replace(/\.[a-z0-9]{2,5}$/i, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 70);
 
@@ -39,11 +40,19 @@ export class Radio {
   get role() { return this.game && this.game.net ? this.game.net.role : 'solo'; }
   sort() { this.tracks.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)); }
   async restore() {
-    try { this.db = await idb(); const all = await tx(this.db, 'readonly', (s) => s.getAll()); for (const r of all || []) if (r && r.key && r.data) this.tracks.push({ key: r.key, title: r.title || r.key, data: r.data }); this.sort(); }
+    try { this.db = await idb(); const all = await tx(this.db, 'readonly', (s) => s.getAll()); for (const r of all || []) { if (r && r.key === MENU_KEY) { this.menuSong = r; continue; } if (r && r.key && r.data) this.tracks.push({ key: r.key, title: r.title || r.key, data: r.data }); } this.sort(); }
     catch (e) { this.db = null; }   // no storage here (private window, sandbox): songs still work, for this visit only
     if (this.onChange) this.onChange();
     if (this.active && this.cur < 0 && this.tracks.length && this.role !== 'client') this.play(Math.floor(Math.random() * this.tracks.length), 0);
   }
+  // the main-menu song: one file, kept in this browser like the radio's, never uploaded
+  async setMenu(f) {
+    if (!f) return false; let data; try { data = await f.arrayBuffer(); } catch (e) { return false; }
+    this.menuSong = { key: MENU_KEY, title: titleOf(f.name), data, type: f.type || 'audio/mpeg' };
+    if (this.db) { try { await tx(this.db, 'readwrite', (s) => s.put(this.menuSong)); } catch (e) { /* over quota: this visit only */ } }
+    return true;
+  }
+  async clearMenu() { this.menuSong = null; if (this.db) { try { await tx(this.db, 'readwrite', (s) => s.delete(MENU_KEY)); } catch (e) { /* nothing to remove */ } } }
   // add the files the player picked; returns how many were new
   async addFiles(files) {
     let n = 0;
