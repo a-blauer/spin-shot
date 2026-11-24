@@ -25,7 +25,7 @@ const DEPTH = { Body: 0.82, Head: 1.0, ArmFront: 1.0, ArmBack: 1.0, LegFront: 1.
 
 // ------------------------------------------------------------------------------------------------ sculpting a part
 const _cv = typeof document !== 'undefined' ? document.createElement('canvas') : null;
-function sculpt(D, role) {
+function sculpt(D, role, soft = 0) {
   const m = Atlas.meta[D.tex], tex = Atlas.tex[m.atlas], img = tex && tex.image;
   const W = D.size[0], H = D.size[1];
   const RW = Math.max(10, Math.min(56, Math.round(W / 2.2))), RH = Math.max(10, Math.min(56, Math.round(H / 2.2)));
@@ -36,7 +36,7 @@ function sculpt(D, role) {
     try { c.drawImage(img, m.u0 * iw, m.v0 * ih, (m.u1 - m.u0) * iw, (m.v1 - m.v0) * ih, 0, 0, RW, RH); px = c.getImageData(0, 0, RW, RH).data; } catch (e) { px = null; }
   }
   const N = RW * RH, inside = new Uint8Array(N), d = new Float32Array(N);
-  for (let i = 0; i < N; i++) inside[i] = px ? (px[i * 4 + 3] > 110 ? 1 : 0) : 1;
+  for (let i = 0; i < N; i++) inside[i] = px ? (px[i * 4 + 3] > (soft ? 20 : 110) ? 1 : 0) : 1;
   // distance to the outline, in cm (two-pass chamfer); the picture's own border counts as outline
   const sx = W / RW, sy = H / RH, BIG = 1e6, diag = Math.hypot(sx, sy);
   for (let i = 0; i < N; i++) d[i] = inside[i] ? BIG : 0;
@@ -73,7 +73,7 @@ function sculpt(D, role) {
   const cover = (u, v) => { const cx = u * RW - 0.5, cy = v * RH - 0.5, R = Math.max(1, Math.round(RW / nx * 0.5)), Ry = Math.max(1, Math.round(RH / ny * 0.5)); let n = 0, t = 0;
     for (let oy = -Ry; oy <= Ry; oy++) for (let ox = -R; ox <= R; ox++) { const X = Math.round(cx + ox), Y = Math.round(cy + oy); t++; if (X >= 0 && Y >= 0 && X < RW && Y < RH && inside[Y * RW + X]) n++; } return n / t; };
   const F = new Float32Array((nx + 1) * (ny + 1));
-  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) F[j * (nx + 1) + i] = cover(i / nx, j / ny) - 0.42;
+  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) F[j * (nx + 1) + i] = cover(i / nx, j / ny) - (soft ? 0.12 : 0.42);
   let zmax = 0; const seen = new Map();
   const vert = (key, u, v, rim, s) => {
     const kk = key + (s ? 'b' : 'f'); let id = seen.get(kk); if (id !== undefined) return id;
@@ -95,6 +95,13 @@ function sculpt(D, role) {
           poly.push(vert('e' + lo[0] + ',' + lo[1] + '>' + hi[0] + ',' + hi[1], x / nx, y / ny, true, s)); } }
       for (let k = 1; k + 1 < poly.length; k++) { if (s) idx.push(poly[0], poly[k], poly[k + 1]); else idx.push(poly[0], poly[k + 1], poly[k]); }
     }
+  }
+  // Art too fine or too faint to raise a form from (a crackle of lightning, a glassy wing): try again reading fainter
+  // paint as solid, and if there is still nothing, it stays a flat painted card that turns with the body.
+  if (!idx.length && !soft) return sculpt(D, role, 1);
+  if (!idx.length) {
+    for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) { pos.push((u - 0.5) * W, (0.5 - v) * H, 0); uv.push(u0 + (u1 - u0) * u, v1 + (v0 - v1) * v); nor.push(0, 0, 1); col.push(ar, ag, ab); side.push(2); }
+    idx.push(0, 3, 1, 1, 3, 2);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
@@ -126,7 +133,8 @@ function material(atlas) {
       void main() {
         vec4 t = texture2D(map, vUv);
         // the front is the painting; the back is its colour blocks, and so is any sliver of the solid the painting does not reach
-        vec3 base = mix(vCol, t.rgb, smoothstep(0.3, 0.6, t.a) * (1.0 - step(0.5, vSide)));
+        if (vSide > 1.5 && t.a < 0.3) discard;   // a flat card keeps its painted edge
+        vec3 base = vSide > 1.5 ? t.rgb : mix(vCol, t.rgb, smoothstep(0.3, 0.6, t.a) * (1.0 - step(0.5, vSide)));
         // right up against the eye it thins out to nothing instead of filling the view (a solid body can be stood inside; a cut-out could not)
         float dist = distance(vW, cameraPosition);
         if (dist < 95.0) { float keep = smoothstep(38.0, 95.0, dist); vec2 q = floor(mod(gl_FragCoord.xy, 4.0)); float th = (q.x * 4.0 + mod(q.y * 2.0 + q.x * 3.0, 4.0) + 0.5) / 16.0; if (keep < fract(th + q.y * 0.25)) discard; }
@@ -281,4 +289,12 @@ export class Body3D extends Puppet {
       K.n++;
     }
   }
+}
+
+// for checking the whole bestiary: what was sculpted for a creature, part by part
+export function bodies3dAudit(creature) {
+  if (!SCENE || !PARTS) return null; const list = kindFor(creature), defs = PARTS.filter((D) => D.creature === creature);
+  return defs.map((D, i) => { const K = list[i]; if (!K) return { role: D.role, missing: true };
+    const p = K.geo.getAttribute('position').array; let bad = 0; for (let k = 0; k < p.length; k++) if (!Number.isFinite(p[k])) bad++;
+    return { role: D.role, tris: K.tris, thick: +K.thick.toFixed(1), w: +D.size[0].toFixed(0), h: +D.size[1].toFixed(0), bad }; });
 }

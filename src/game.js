@@ -10,7 +10,7 @@ import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment, base as envBase } from './env.js';
 import { Fx } from './fx.js';
-import { bodies3dInit, bodies3dBegin, bodies3dEnd, bodies3dStats } from './body3d.js';
+import { bodies3dInit, bodies3dBegin, bodies3dEnd, bodies3dStats, bodies3dAudit } from './body3d.js';
 import { ViewModel, vmSun } from './viewmodel.js';
 import { Enemy } from './enemies.js';
 import { Player } from './player.js';
@@ -863,7 +863,7 @@ export class Game {
     this.fx.draw();
     bodies3dBegin();
     for (const E of this.enemies) E.draw(B);
-    bodies3dEnd(); this.b3 = bodies3dStats;
+    bodies3dEnd(); this.b3 = bodies3dStats; this.b3audit = bodies3dAudit;
     this.projectiles.draw(B.add);
     this.pickups.draw(B.sprite, B.add);
     this.drawCable(B.add);

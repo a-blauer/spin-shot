@@ -1083,7 +1083,7 @@ export class Hud {
     g.fillStyle = 'rgba(20,10,4,0.78)'; g.fillRect(0, 0, W, H);
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
-    this.text(game.map.final.win, W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
+    this.text((game.map.final?.win || ""), W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
     const stats = [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
