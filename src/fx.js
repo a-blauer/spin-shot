@@ -151,21 +151,21 @@ export class Fx {
   explosion(pos, radius, color) {
     const R = Math.max(60, radius);
     const ground = this.groundY(pos, R + 200);
-    this.add({ pos: pos.clone(), life: 0.16, size0: R * 1.2, size1: R * 2.2, rot: rnd(0, 360), c0: [1, 0.95, 0.8, 1], c1: [...lerpC(color, [1, 0.6, 0.15], 0.5)], fadeOut: 0.5, tex: 'FX_Star', glow: 1.2 });
-    this.add({ pos: pos.clone(), life: 0.45, size0: R * 3.5, size1: R * 4.5, c0: [...lerpC(color, [1, 0.7, 0.3], 0.5)], c1: [color[0], color[1], color[2], 0], fadeOut: 0.4, tex: 'FX_Glow', kind: 'add', glow: 2.5 });
-    const puffs = Math.min(14, Math.max(5, Math.round(R / 30)));
+    this.add({ pos: pos.clone(), life: 0.14, size0: R * 0.7, size1: R * 1.3, rot: rnd(0, 360), c0: [1, 0.95, 0.8, 1], c1: [...lerpC(color, [1, 0.6, 0.15], 0.5)], fadeOut: 0.5, tex: 'FX_Star', glow: 1.2 });
+    this.add({ pos: pos.clone(), life: 0.3, size0: R * 1.8, size1: R * 2.4, c0: [...lerpC(color, [1, 0.7, 0.3], 0.5)], c1: [color[0], color[1], color[2], 0], fadeOut: 0.4, tex: 'FX_Glow', kind: 'add', glow: 2.5 });
+    const puffs = Math.min(9, Math.max(4, Math.round(R / 45)));
     for (let i = 0; i < puffs; i++) {
       const d = vrand(); d.y = d.y * 0.6 + 0.35;
-      this.add({ pos: pos.clone().addScaledVector(d, R * 0.2), vel: d.clone().multiplyScalar(R * rnd(1.6, 3.2)).add(new THREE.Vector3(0, 80, 0)), drag: 3.5, gravity: -60, life: rnd(0.6, 1.1),
-        size0: R * rnd(0.45, 0.7), size1: R * rnd(0.9, 1.3), rot: rnd(0, 360), rotVel: rnd(-60, 60), c0: [1, 0.62, 0.18, 1], c1: [0.16, 0.13, 0.13, 0.9], fadeOut: 0.45, tex: 'FX_Puff' });
+      this.add({ pos: pos.clone().addScaledVector(d, R * 0.2), vel: d.clone().multiplyScalar(R * rnd(1.1, 2.0)).add(new THREE.Vector3(0, 60, 0)), drag: 3.5, gravity: -60, life: rnd(0.4, 0.75),
+        size0: R * rnd(0.28, 0.42), size1: R * rnd(0.5, 0.75), rot: rnd(0, 360), rotVel: rnd(-60, 60), c0: [1, 0.62, 0.18, 1], c1: [0.16, 0.13, 0.13, 0.9], fadeOut: 0.45, tex: 'FX_Puff' });
     }
     for (let i = 0; i < 10; i++) {
       const v = vrand().add(new THREE.Vector3(0, 0.7, 0)).normalize().multiplyScalar(rnd(900, 1900));
       this.add({ mode: 'streak', pos: pos.clone(), vel: v, gravity: 1800, life: rnd(0.35, 0.7), size0: 10, size1: 10, stretch: 6, c0: [1, 0.85, 0.4, 1], c1: [1, 0.4, 0.1, 1], groundY: ground, tex: 'FX_Spark', glow: 1 });
     }
     if (ground > -1e8 && pos.y - ground < R) {
-      this.ring(new THREE.Vector3(pos.x, ground + 4, pos.z), R * 1.1, lerpC(color, [1, 1, 1], 0.4), 0.3);
-      this.decal('FX_Scorch', new THREE.Vector3(pos.x, ground, pos.z), UP, R * 1.4, [1, 1, 1, 1], 30);
+      this.ring(new THREE.Vector3(pos.x, ground + 4, pos.z), R, lerpC(color, [1, 1, 1], 0.4), 0.26);
+      this.decal('FX_Scorch', new THREE.Vector3(pos.x, ground, pos.z), UP, R * 0.9, [1, 1, 1, 1], 30);
     }
   }
   tracer(a, b, color, width = 5, life = 0.06) {

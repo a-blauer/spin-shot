@@ -1207,10 +1207,15 @@ export class Player {
       return;
     }
     if (!this.fireHeld || this.inMenu() || this.dead) return;
-    if (!this.W.auto && !(this.stat('FullAuto') > 0) && this.fireConsumed) return;
+    // a gun that fires once per pull keeps firing while the trigger is held, at half its rate: tap for full speed, hold to rest the finger
+    if (!this.W.auto && !(this.stat('FullAuto') > 0) && this.fireConsumed) {
+      if (this.fireCd > 0 || this.reloading) return;
+      this.semiT = (this.semiT || 0) + dt; if (this.semiT < (this.semiGap || 0.2)) return;
+      this.fireConsumed = false;
+    }
     if (this.fireCd <= (FL && FL.chargeUp ? FL.chargeUp : 0) && this.game.vm.switchT <= 0.05) {
       if (FL && FL.chargeUp && this.slot.ammo > 0 && !this.reloading) { this.railT = FL.chargeUp; this.fireConsumed = true; this.play('S_Energy', 0.6, 0.55); return; }
-      if (this.fireCd <= 0) { this.fireWeapon(); this.fireConsumed = true; }
+      if (this.fireCd <= 0) { this.fireWeapon(); this.fireConsumed = true; this.semiT = 0; this.semiGap = Math.max(0.05, this.fireCd); }
     }
   }
   fireWeapon(echo = false) {
@@ -2138,7 +2143,7 @@ export class Player {
     this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;
   }
   // ---------------------------------------------------------------- gun modifiers (workbench)
-  altKind() { for (const a of ALT_STATS) if (this.stat(a) > 0) return a; return null; }
+  altKind() { return null; }   // alternate fire was taken out: a gun does one thing
   fireAlt(S, W) {
     const G = this.game, kind = this.altKind(), pw = this.power();
     const muzzle = G.vm.muzzleWorld(), eye = G.camera.position.clone(), dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);

@@ -48,7 +48,7 @@ for (const u of DATA.upgrades) {
   const names = u.mods.map((m) => m[0]), melee = names.some((n) => n.startsWith('Melee'));
   u.cls = (CLASSES.find((C) => C.name === u.insp) || {}).id || null;           // class perk: only that class is offered it
   u.gun = !!u.bench;   // the bench only tunes a gun's numbers now; everything that changes how a gun behaves comes out of chests with the rest
-  u.alt = names.find((n) => ALT_STATS.includes(n)) || null;
+  u.alt = names.find((n) => ALT_STATS.includes(n)) || null; if (u.alt) u.cut = true;   // alternate fire was taken out, so nothing offers it
   u.grapple = u.trigger === 'OnGrapple' || (names.length > 0 && names.every((n) => n === 'GrappleCooldown'));   // only perks that do nothing without a hook
   u.fits = [];
   for (const id in FIT) { const F = FIT[id]; if ((F.melee && melee) || names.some((n) => F.stats.includes(n)) || F.trig.includes(u.trigger) || (u.fx && F.fx.includes(u.fx))) u.fits.push(id); }

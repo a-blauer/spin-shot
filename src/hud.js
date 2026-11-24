@@ -501,7 +501,6 @@ export class Hud {
     { const mods = Sl.mods || []; let my = y - 300 * S;
       for (const u of mods) { const U = DATA.upgrades[u]; this.text(U.name.toUpperCase(), x, my, 15 * S, RARITY_HEX[U.rarity], 'right', F_TXT, 700, 0.1); my -= 18 * S; }
       const alt = P.altKind && P.altKind();
-      if (alt) { const rdy = Sl.altCd <= 0; this.text(rdy ? 'ALT-FIRE READY  -  AIM AND FIRE' : `ALT-FIRE ${Sl.altCd.toFixed(1)}s`, this.W / 2, this.H / 2 + 74 * S, 15 * S, rdy ? '#7dff8a' : 'rgba(255,255,255,0.5)', 'center', F_TXT, 700, 0.12); }
       if (P.deadeyeT > 0) this.text(`DEADEYE  ${P.deadeyeT.toFixed(1)}`, this.W / 2, this.H / 2 + 96 * S, 20 * S, '#ffcd5a', 'center', F_BIG, 400, 0.12);
       if (Sl.hot > 0) this.text('HOT MAG', x, y + 44 * S, 15 * S, '#ff8a2a', 'right', F_TXT, 700, 0.1); }
     // melee weapon, with the three-swing chain
@@ -702,7 +701,6 @@ export class Hud {
       g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(sx - bw / 2 - 2, sy - 2, bw + 4, bh + 4);
       g.fillStyle = acc; g.fillRect(sx - bw / 2, sy, bw * clamp(E.health / E.maxHealth, 0, 1), bh);
       if (E.shield > 0 && E.maxShield > 0) { g.fillStyle = 'rgba(90,165,255,0.95)'; g.fillRect(sx - bw / 2, sy - 4 * S, bw * (E.shield / E.maxShield), 3 * S); }
-      if (E.elite || E.variant) this.text(E.displayName().toUpperCase(), sx, sy - 8 * k * S, 16 * k * S, acc, 'center', F_TXT, 700, 0.18);
     }
   }
   drawHelp(game, W, H, S, dt) {

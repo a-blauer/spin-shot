@@ -25,7 +25,7 @@ const DRY = new Set(['S_UIMove', 'S_UISelect', 'S_Buy', 'S_Deny', 'S_Upgrade', '
 const JIT = { S_HitMarker: 0.05, S_HitFlesh: 0.09, S_HitFlesh2: 0.09, S_HitWall: 0.1, S_Step0: 0.09, S_Step1: 0.09, S_Step2: 0.09, S_Step3: 0.09, S_ShellDrop: 0.06, S_HullDrop: 0.06, S_ShellIn: 0.05, S_Kill: 0.04,
   S_Coin: 0.06, S_Cash: 0.05, S_Dash: 0.05, S_Jump: 0.05, S_Land: 0.07, S_Explosion: 0.1, S_Gib: 0.1, S_Splat: 0.12, S_EnemyDie: 0.1, S_Attack: 0.1, S_Ricochet: 0.15, S_Chain: 0.08, S_Rack: 0.03 };
 // The loud ones push the music down for a moment so they land in clear air.
-const DUCK = { S_Explosion: 0.45, S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S_Screech: 0.6 };
+const DUCK = { S_Slam: 0.5, S_Stomp: 0.6, S_BossRoar: 0.45, S_Screech: 0.6 };
 
 export class Audio {
   constructor(base = 'audio/') {
