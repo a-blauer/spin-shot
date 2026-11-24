@@ -58,7 +58,8 @@ export class Radio {
       if (this.db) { try { await tx(this.db, 'readwrite', (s) => s.put(T)); } catch (e) { /* over quota: keep it for this visit */ } }
     }
     if (this.onChange) this.onChange();
-    if (n && this.active && this.cur < 0 && this.role !== 'client') this.play(0, 0);
+    this.bag = null;
+    if (n && this.active && this.cur < 0 && this.role !== 'client') this.play(Math.floor(Math.random() * this.tracks.length), 0);
     return n;
   }
   async clear() {
@@ -85,18 +86,25 @@ export class Radio {
     const A = this.audio, ctx = A.ctx;
     if (!ctx || !A.musicBus || !this.tracks.length) return;
     i = ((i % this.tracks.length) + this.tracks.length) % this.tracks.length;
-    this.stop(); const seq = this.loadSeq; this.cur = i; this.missing = '';
+    this.stop(); const seq = this.loadSeq; this.cur = i; this.missing = ''; this.deal(i);
     const T = this.tracks[i], t0 = performance.now();
     let buf;
     try { buf = T.buf || await ctx.decodeAudioData(T.data.slice(0)); } catch (e) { buf = null; }
     if (seq !== this.loadSeq) return;                       // something else was asked for while this one was decoding
-    if (!buf) { if (this.role !== 'client' && this.tracks.length > 1) this.play(i + 1, 0); return; }   // not a file this browser can play
+    if (!buf) { if (this.role !== 'client' && this.tracks.length > 1) this.play(this.upNext, 0); return; }   // not a file this browser can play
     for (const O of this.tracks) if (O !== T) O.buf = null;  // one decoded song in memory at a time
     T.buf = buf; this.dur = buf.duration;
     if (this.role === 'client') at = Math.max(0, at + (performance.now() - t0) / 1000);  // a guest: the host's song moved on while this was decoding
-    if (at >= buf.duration - 0.25) { if (this.role !== 'client') this.play(i + 1, 0); return; }
-    this.start(buf, at, () => { if (this.active && this.role !== 'client') this.play(this.cur + 1, 0); });
+    if (at >= buf.duration - 0.25) { if (this.role !== 'client') this.play(this.upNext, 0); return; }
+    this.start(buf, at, () => { if (this.active && this.role !== 'client') this.play(this.upNext, 0); });
     if (!quiet) this.say(`♪  ${T.title}`);
+  }
+  // Shuffle: every song once, in a fresh random order, before any comes round again. The one after this is always
+  // already chosen, so the host can start sending it to guests early.
+  deal(i) {
+    const n = this.tracks.length; this.bag = (this.bag || []).filter((k) => k !== i && k < n);
+    if (!this.bag.length) { this.bag = [...Array(n).keys()].filter((k) => k !== i); for (let a = this.bag.length - 1; a > 0; a--) { const b = Math.floor(Math.random() * (a + 1)); [this.bag[a], this.bag[b]] = [this.bag[b], this.bag[a]]; } }
+    this.upNext = this.bag.length ? this.bag[this.bag.length - 1] : i;
   }
   say(text) { if (this.game && this.game.player) this.game.player.toast(text, '#8fd0ff'); }
   start(buf, at, ended) {
@@ -115,12 +123,12 @@ export class Radio {
   command(next) {
     if (!this.active) return;
     if (!this.tracks.length) { if (this.game && this.game.player) this.game.player.toast('The radio is empty  -  add songs from the pause menu (P)', '#8fd0ff'); return; }
-    this.play(next ? this.cur + 1 : Math.max(0, this.cur), 0);
+    this.play(next ? (this.cur < 0 ? Math.floor(Math.random() * this.tracks.length) : this.upNext) : Math.max(0, this.cur), 0);
   }
   // host -> guests, in the state message
   state() {
     const T = this.active && this.cur >= 0 ? this.tracks[this.cur] : null; if (!T) return null;
-    const N = this.tracks[(this.cur + 1) % this.tracks.length];
+    const N = this.tracks[this.upNext % this.tracks.length];
     return [T.key, Math.round(this.pos() * 10) / 10, T.title, T.data.byteLength, Math.round((T.buf ? T.buf.duration : 0) * 10) / 10, N && N !== T ? N.key : '', N && N !== T ? N.data.byteLength : 0];
   }
   // a guest hears what the host hears
