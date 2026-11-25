@@ -45,7 +45,13 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false } =
         #endif
         vec4 w = modelMatrix * p;
         vW = w.xyz;
-        vN = normalize(mat3(modelMatrix) * n);
+        #ifdef USE_INSTANCING
+          vN = normalize(mat3(modelMatrix) * n);
+        #else
+          // the normal matrix keeps a stretched shape's normals true (a squashed ball no longer shades like a bead);
+          // it works in view space, so turn the result back into the world's frame
+          vN = normalize((vec4(normalMatrix * n, 0.0) * viewMatrix).xyz);
+        #endif
         vCol = vec3(1.0);
         #ifdef USE_INSTANCING_COLOR
           vCol = instanceColor;

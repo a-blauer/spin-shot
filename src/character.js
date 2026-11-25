@@ -95,6 +95,25 @@ function clothTube(p, key, spine, radAt, colAt, edges = [], mod = null, closeTip
     return { p: f.P.clone().addScaledVector(o, r), n: f.N.clone().multiplyScalar(c).addScaledVector(f.B, sn / 0.92).normalize().addScaledVector(f.T, -slope).normalize() }; };
   return { p: F[F.length - 1].P.clone(), surf };
 }
+// An oval-sectioned body swept along a smooth spine (a foot: ankle to toe), its sections a across and b the other way,
+// cut flat at `floor` so it stands on its sole; closed round at the toe (tip says how round). colAt(s, point) colours it.
+function sweepAB(p, key, spine, abAt, colAt, floor = -1e9, tip = 1) {
+  if (!geo.has(key)) {
+    const curve = new THREE.CatmullRomCurve3(spine.map((q) => new THREE.Vector3(q[0], q[1], q[2])), false, 'centripetal'), L = curve.getLength(), M = 48, S = 28;
+    const [a1, b1] = abAt(1), tipS = Math.min(0.35, (Math.min(a1, b1) * tip) / L), pos = [], col = [], idx = [], C = new THREE.Color();
+    let N = new THREE.Vector3(1, 0, 0);
+    for (let i = 0; i <= M; i++) {
+      const t = i / M, P = curve.getPointAt(t), T = curve.getTangentAt(t); N = N.clone().addScaledVector(T, -N.dot(T)).normalize(); const B = new THREE.Vector3().crossVectors(T, N);
+      const e = t > 1 - tipS ? Math.sqrt(Math.max(0, 1 - ((t - 1 + tipS) / tipS) ** 2)) : 1, [a, b] = abAt(t);
+      for (let j = 0; j < S; j++) { const ph = (j / S) * Math.PI * 2, q = P.clone().addScaledVector(N, Math.cos(ph) * a * e).addScaledVector(B, Math.sin(ph) * b * e); q.y = Math.max(q.y, floor); pos.push(q.x, q.y, q.z); C.set(colAt(t, q)); col.push(C.r, C.g, C.b); }
+    }
+    for (let i = 0; i < M; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = a + S, d = b + S; idx.push(a, b, c2, b, d, c2); }
+    { const m = 20 * S, A = new THREE.Vector3().fromArray(pos, m * 3), Bv = new THREE.Vector3().fromArray(pos, (m + 1) * 3), Cv = new THREE.Vector3().fromArray(pos, (m + S) * 3), mid = curve.getPointAt(20 / M);
+      if (new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A)).dot(new THREE.Vector3().subVectors(A, mid)) < 0) for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); geo.set(key, g);
+  }
+  p.add(new THREE.Mesh(geo.get(key), matV(0xffffff)));
+}
 // A ring of cloth turned round the hat's axis from a profile [[r, y], ...]: brims, cuffs, a beanie. closed: the profile is a
 // loop (a cuff with thickness); mod(t, ph) nudges [r, y] at each point (waves in a brim, knit ribs), colAt(t, ph) colours it.
 function clothRing(p, key, P, closed, colAt, mod = () => [0, 0]) {
@@ -182,54 +201,77 @@ export function buildCharacter(look) {
     if (peg) { const pg = grp(leg, 0, 0, 0); pg.scale.y = HIP / (62 * LEG); add(pg, taper(0.5, 0.42), L.a, 26, 20, 26, 0, -10, 0); add(pg, G.cyl, 0x6a6a72, 19, 3, 19, 0, -21, 0); add(pg, taper(0.4, 0.25), BT.a, 16, 42, 16, 0, -41, 0); add(pg, G.cyl, 0x3a3a40, 9, 2.4, 9, 0, -61, 0); continue; }
     // the foot hangs from the ankle at its own size: y 0 is the ankle, -21 the ground
     const up = grp(leg, 0, 0, 0), ft = grp(leg, 0, -41 * lq, 0); up.scale.y = lq; ft.scale.set(FW / LEGW, 1 / LEG, FW / LEGW);
-    // a thigh, a knee and a shin that narrows into the boot
-    const lw = 26;
-    add(up, taper(0.5, 0.43), L.a, lw, 22, lw + 1, 0, -11, 0); add(up, G.ball, shade(L.a, 0.92), lw * 0.88, 9, lw * 0.92, 0, -22, 1.5); add(up, taper(0.44, 0.38), L.a, lw, 20, lw, 0, -31, 0);
-    add(up, G.box, shade(L.a, 0.8), lw * 0.5, 16, 1.5, 0, -8, lw * 0.5 - 0.4).rotation.z = s * 0.06;   // a crease down the front
-    if (L.chaps) { add(up, G.box, L.b, 8, 34, 28, s * 12, -20, 0); for (let k = 0; k < 6; k++) add(up, G.box, shade(L.b, 0.8), 5, 3.4, 2, s * 17.5, -6 - k * 5.6, -11 + (k % 2) * 3).rotation.z = s * 0.3; add(up, G.cyl, 0xc9c9d0, 6, 1.6, 6, s * 16.2, -7, 6).rotation.z = Math.PI / 2; }
-    if (L.stripe) add(up, G.box, L.b, 4, 38, 4, s * 13, -20, 0);
+    // the trouser leg: one piece of cloth from the hip to the hem. It narrows to the knee, folds a little there, and either
+    // breaks over the boot in a turned hem or narrows to go into a tall boot. y here runs 0 (hip) to -41 (ankle).
+    const lw = 26, LKY = [L.id, L.a, L.b, tucked].join(':');
+    const tS = (y) => (2 - y) / 41.5, hemC = L.id === 'denim' ? mix(L.a, 0xffffff, 0.28) : shade(L.a, 0.84);
+    const bands = L.id === 'teal' ? [[tS(-2), tS(-4)], [tS(-35.8), tS(-38.2)]] : [];
+    const legR = (t) => cprof(tucked ? [[0, 13.6], [0.2, 13.2], [0.45, 12], [0.55, 11.4], [0.8, 10.4], [1, 9.6]] : [[0, 13.6], [0.2, 13.2], [0.45, 12], [0.55, 11.6], [0.75, 11], [0.88, 11.3], [0.9, 12.5], [1, 12.6]], t);
+    const fold = (t, ph) => 1 - 0.05 * Math.exp(-(((t - 0.55) / 0.08) ** 2)) * Math.pow(0.5 + 0.5 * Math.cos(t * 41.5 * 2.2 + Math.sin(ph)), 2) - (tucked ? 0 : 0.04 * Math.exp(-(((t - 0.82) / 0.05) ** 2)) * (0.5 + 0.5 * Math.cos(ph * 3)));
+    clothTube(up, 'leg' + LKY, [[0, 2, 0], [0, -39.5, 0]], legR, (t) => (!tucked && t > 0.9 ? hemC : bands.some((q) => t > q[0] && t < q[1]) ? L.b : L.a), [...(tucked ? [] : [0.9]), ...bands.flat()], fold, false);
+    // a point on the leg's cloth at angle ph (0 the wearer's left, PI/2 the front) and height y, lift off it, and the way out
+    const legAt = (ph, y, lift = 0.3) => { const r = legR(tS(y)) + lift; return [new THREE.Vector3(r * Math.cos(ph), y, 0.92 * r * Math.sin(ph)), new THREE.Vector3(Math.cos(ph), 0, Math.sin(ph) / 0.92).normalize()]; };
+    const OUT = s > 0 ? 0 : Math.PI, FRONT = Math.PI / 2;
+    // something laid on the leg: centred on angle phC, hw radians either side, between heights y0 and y1
+    const legPanel = (k, c, y0, y1, phC, hw, th = 0.8, lift = 0.3) => shell(up, c, 'lp' + LKY + k + s, 12, 26, (u, v) => {
+      const y = y1 + (y0 - y1) * v, ph = phC + u * hw, [P, n] = legAt(ph, y, lift), r = legR(tS(y)), e = Math.min((1 - Math.abs(u)) * hw * r, y1 - y, y - y0);
+      return [P.x, P.y, P.z, n.x, n.y, n.z, th * Math.sqrt(Math.max(0, Math.min(1, e / 0.6))), 1];
+    });
+    const legDisc = (c, ph, y, d, out) => { const [P, n] = legAt(ph, y, out), g = grp(up, P.x, P.y, P.z); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); add(g, G.cyl, c, d, 1.2, d / lq).rotation.x = Math.PI / 2; return g; };
+    if (L.chaps) { legPanel('ch', L.b, -36, -1, OUT, 1.45, 1.8);   // leather over the outside of the leg, fringed down the seam, buckled at the hip
+      for (let k = 0; k < 9; k++) { const [P] = legAt(OUT + s * 0.25 * ((k % 2) - 0.5), -3 - k * 3.8, 1.6), m = add(up, taper(0.5, 0.2), shade(L.b, 0.8), 2.2, 8 / lq, 1.4, P.x + s * 1.6, P.y - 2 / lq, P.z); m.rotation.z = s * 0.3; }
+      legDisc(0xc9c9d0, OUT + s * 0.6, -4, 5, 2.2); }
+    if (L.stripe || L.id === 'red' || L.id === 'white') legPanel('sp', L.b, -38, -1, OUT, L.id === 'red' ? 0.11 : 0.16, 0.6);   // a stripe down the outside
     switch (L.id) {   // what each pair is known by
-      case 'denim': add(up, G.box, shade(L.a, 0.72), 1.2, 30, 1.2, s * lw * 0.47, -18, 0); break;
-      case 'dust': rbox(up, shade(L.a, 0.78), 13, 10, 3, 0, -22, lw * 0.44, 1.2); add(up, G.box, shade(L.a, 0.6), 9, 1, 3.2, 0, -19.4, lw * 0.44); break;
-      case 'black': for (let k = 0; k < 5; k++) add(up, G.ball, 0xc9c9d0, 2.6, 2.6 / lq, 2.6, s * lw * 0.49, -5 - k * 7.4, 0); break;
-      case 'red': add(up, G.box, L.b, 2.6, 38, 3, s * 12.7, -20, 0); break;
-      case 'teal': add(up, taper(0.5, 0.5), L.b, lw * 0.82, 2.4, lw * 0.82, 0, -37, 0); add(up, taper(0.5, 0.5), L.b, lw * 0.98, 2, lw * 1.02, 0, -3, 0); break;
-      case 'white': for (const x of [-6, 6]) add(up, G.box, shade(L.a, 0.8), 0.9, 38, 0.9, x, -20, lw * 0.45); add(up, G.box, L.b, 1.6, 38, 2, s * 12.9, -20, 0); break;
+      case 'denim': legPanel('sm', shade(L.a, 0.72), -36, -1, OUT, 0.045, 0.3); break;   // the outer seam
+      case 'dust': legPanel('kp', shade(L.a, 0.78), -27.5, -16.5, FRONT, 0.42, 1); legPanel('kps', shade(L.a, 0.6), -19.8, -19, FRONT, 0.36, 1.3); break;   // a knee patch, stitched across
+      case 'black': for (let k = 0; k < 5; k++) legDisc(0xc9c9d0, OUT, -5 - k * 7.4, 2.8, 0.9); break;   // studs down the seam
+      case 'white': for (const d of [-0.42, 0.42]) legPanel('cr' + d, shade(L.a, 0.8), -36, -3, FRONT + d, 0.03, 0.25); break;   // pressed creases
       default: break;
     }
     const bs = BT.style, B1 = shade(BT.a, 0.95), B2 = shade(BT.b, 0.8), GOLDM = 0xc9a43a;
-    const sole = (th = 4, c = B2, len = 31, z = 4.5, w = 22) => rbox(ft, c, w, th, len, 0, -21 + th / 2, z, 1.6);
-    const shaft = (h, c = B1, r = 23.5) => add(ft, taper(0.5, 0.47), c, r, h + 9, r, 0, (h - 9) / 2, -1);    // from h above the ankle to 9 below it
-    const vamp = (c = B1, toe = true) => { rbox(ft, c, 21, 13, 22, 0, -11.5, 1, 5); if (toe) rbox(ft, c, 20, 10, 16, 0, -13, 10.5, 4.8); };
+    const sole = (th = 4, c = B2, pointed = false) => sweepAB(ft, 'so' + [th, c, pointed].join(':'), [[0, -21 + th / 2, -10.6], [0, -21 + th / 2, 5], [0, -21 + th / 2, pointed ? 24 : 21]],   // a sole cut to the foot's outline
+      (t) => [pointed ? cprof([[0, 9.8], [0.35, 10.6], [0.72, 8], [1, 3.4]], t) : cprof([[0, 10.4], [0.4, 11.3], [0.8, 10.8], [1, 9]], t), th / 2], () => c, -1e9, pointed ? 0.4 : 1);
+    // the shaft: smooth leather from h above the ankle to 9 below it, wide enough at every height to take the trouser leg inside
+    const legLen = 41 * lq * LEG, needR = (yf) => (yf <= 0 ? 0 : legR(tS(Math.min(2, -41 + yf / (lq * LEG)))) * LEGW / (FW) + 0.9);
+    const shaftR = (yf) => Math.max(11.75, needR(yf)), BKY = [BT.id, L.id, Math.round(lq * 100), Math.round(LEGW * 100), Math.round(FW * 100)].join(':');
+    const shaft = (h, c = B1) => { clothTube(ft, 'sh' + BKY + h + c, [[0, h, -1], [0, -9, -1]], (t) => shaftR(h - t * (h + 9)), () => c, [], (t, ph) => 1 + 0.012 * Math.cos(ph * 5 + t * 4), false); return shaftR(h); };
+    const tallH = Math.min(23, 0.6 * legLen), spurH = Math.min(18, 0.52 * legLen);   // tall boots come to just below the knee, whatever the leg
+    // the foot: one smooth shape from inside the shaft, down round the heel, over the instep to the toe, standing flat on
+    // its sole. cap: a toe cap or rubber toe in another colour; pointed: a riding boot's narrow toe.
+    const vamp = (c = B1, cap = null, pointed = false, soleTop = -16.2) => sweepAB(ft, 'ft' + [BT.id, c, cap, pointed, soleTop].join(':'),
+      pointed ? [[0, -2, -2], [0, -11, -2.4], [0, -14.4, 5], [0, -15.6, 13], [0, -16.2, 21.4]] : [[0, -2, -2], [0, -11, -2], [0, -14.2, 5.6], [0, -15.4, 12.6], [0, -15.8, 18.4]],
+      (t) => pointed ? [cprof([[0, 11.2], [0.3, 10.8], [0.6, 9.6], [0.85, 6.6], [1, 3.4]], t), cprof([[0, 11], [0.3, 10.2], [0.6, 7.4], [0.85, 5.2], [1, 3]], t)]
+        : [cprof([[0, 11.2], [0.3, 10.9], [0.6, 10.4], [0.85, 9.8], [1, 9]], t), cprof([[0, 11], [0.3, 10.4], [0.6, 7.8], [0.85, 6.4], [1, 5.6]], t)],
+      (t, q) => (cap !== null && t > 0.72 && q.y < -9.5 ? cap : c), soleTop, pointed ? 0.5 : 1);
     if (bs === 'sandal') {
       add(ft, G.cyl, tone, 17, 9, 17, 0, -4, -1); rbox(ft, tone, 18, 9, 27, 0, -13.2, 4.5, 4.4); for (let k = 0; k < 4; k++) add(ft, G.ball, shade(tone, 0.9), 4.4, 4.4, 5.4, -6.4 + k * 4.3, -15, 18.2 - Math.abs(k - 1) * 0.8);
       rbox(ft, BT.a, 20, 3, 4.5, 0, -10, 11.5, 1.2); rbox(ft, BT.a, 20.5, 3, 4.5, 0, -8.2, 2.5, 1.2); add(ft, G.box, BT.a, 3, 3, 12, 0, -9, 7); add(ft, G.cyl, BT.a, 19, 2.6, 19, 0, -3, -1); add(ft, G.ball, GOLDM, 3.4, 3.4, 2, s * 9.6, -3, 2); sole(3.4, BT.b); continue;
     }
-    if (!tucked) { const hr = lw * 0.98 * Math.max(1, FW / LEGW); add(up, taper(0.5, 0.5), L.id === 'denim' ? mix(L.a, 0xffffff, 0.28) : shade(L.a, 0.84), hr, 5, hr, 0, -37.6, 0); }   // the hem comes down over the boot
     if (bs === 'spur') {   // a riding boot: tall stitched shaft, pointed toe, a heel under it and a spur behind
-      shaft(18); add(ft, G.cyl, BT.b, 24.4, 2.4, 24.4, 0, 17.4, -1); for (const k of [-1, 1]) { add(ft, G.box, BT.b, 1.3, 13, 1.3, k * 4, 8, 10.6).rotation.z = k * 0.42; add(ft, G.box, shade(BT.a, 0.7), 2.4, 6, 3, k * 11.8, 17, -1); }
-      vamp(B1, false); add(ft, G.cone, B1, 19, 14, 11, 0, -13.4, 18).rotation.x = Math.PI / 2; add(ft, G.box, shade(BT.a, 0.75), 13, 1.2, 1.2, 0, -8.4, 11.6);
-      sole(3, B2, 24, 2); add(ft, G.cone, B2, 19.4, 14.4, 3, 0, -19.5, 18).rotation.x = Math.PI / 2; add(ft, G.box, shade(BT.b, 0.6), 18, 6.4, 9, 0, -17.8, -6.4);
+      { const rT = shaft(spurH), H = spurH; add(ft, G.cyl, BT.b, rT * 2 + 1, 2.4, rT * 2 + 1, 0, H - 0.6, -1); for (const k of [-1, 1]) { add(ft, G.box, BT.b, 1.3, H * 0.72, 1.3, k * 4, H * 0.44, shaftR(H * 0.44) - 1.2).rotation.z = k * 0.42; add(ft, G.box, shade(BT.a, 0.7), 2.4, 6, 3, k * (rT + 0.2), H - 1, -1); } }   // stitching up the front, pull straps either side
+      vamp(B1, null, true, -17.8);
+      sole(3, B2, true); add(ft, G.box, shade(BT.b, 0.6), 18, 6.4, 9, 0, -17.8, -6.4);
       add(ft, G.box, GOLDM, 2.6, 2.2, 9, 0, -12.6, -14); add(ft, G.cyl, 0xffcd5a, 8.5, 1.4, 8.5, 0, -12.6, -19.6).rotation.z = Math.PI / 2; for (let k = 0; k < 6; k++) add(ft, G.box, 0xffcd5a, 1.2, 2.6, 2.6, 0, -12.6 + Math.sin(k * 1.047) * 5, -19.6 + Math.cos(k * 1.047) * 5);
-      if (BT.id === 'snake') for (let k = 0; k < 7; k++) add(ft, G.ball, shade(BT.a, 0.7), 4, 3, 2, (k % 2 ? 4.5 : -4.5) * (k % 3 ? 1 : 0.2), 13 - k * 3.6, 10.4 - (k > 4 ? 0.4 : 0));
-      if (BT.id === 'redb') { for (let k = 0; k < 5; k++) add(ft, G.cone, BT.b, 3, 5, 1.4, Math.sin(k * 1.2566) * 3.4, 6 + Math.cos(k * 1.2566) * 3.4, 10.9).rotation.z = -k * 1.2566; add(ft, G.cyl, BT.b, 5, 1.4, 5, 0, 6, 10.9).rotation.x = Math.PI / 2; }
+      if (BT.id === 'snake') for (let k = 0; k < 7; k++) { const y = spurH * 0.72 - k * spurH * 0.2; add(ft, G.ball, shade(BT.a, 0.7), 4, 3, 2, (k % 2 ? 4.5 : -4.5) * (k % 3 ? 1 : 0.2), y, (y > 0 ? shaftR(y) : 11.75) - 1.6 - (k > 4 ? 0.4 : 0)); }
+      if (BT.id === 'redb') { const z = shaftR(6) - 0.6; for (let k = 0; k < 5; k++) add(ft, G.cone, BT.b, 3, 5, 1.4, Math.sin(k * 1.2566) * 3.4, 6 + Math.cos(k * 1.2566) * 3.4, z).rotation.z = -k * 1.2566; add(ft, G.cyl, BT.b, 5, 1.4, 5, 0, 6, z).rotation.x = Math.PI / 2; }
       continue;
     }
     if (bs === 'tall') {   // a long smooth boot the trousers go into
-      shaft(23); vamp(); add(ft, G.cyl, BT.b, 24.6, 3, 24.6, 0, 22, -1); sole(4.6); add(ft, G.box, shade(BT.b, 0.6), 21, 2.6, 10, 0, -19.8, -6.4);
-      if (BT.id === 'rubber') { rbox(ft, shade(BT.a, 0.8), 20.6, 6, 8, 0, -15.4, 15.4, 2.8); add(ft, G.cyl, shade(BT.a, 0.8), 23.9, 2, 23.9, 0, 3, -1); }
-      if (BT.id === 'blackb') for (const y of [4, 13]) { add(ft, G.cyl, BT.b, 24.2, 2.6, 24.2, 0, y, -1); add(ft, G.box, 0xc9c9d0, 1.6, 4, 4.6, s * 12.2, y, 2); }
-      if (BT.id === 'goldb') { add(ft, G.box, BT.b, 2.4, 24, 1.4, 0, 9, 10.7); rbox(ft, BT.b, 20.4, 5, 7, 0, -15.6, 15.8, 2.4); add(ft, G.ball, BT.b, 5, 5, 2.4, s * 11.6, 14, -1); }
+      const rT = shaft(tallH); vamp(B1, BT.id === 'rubber' ? shade(BT.a, 0.8) : BT.id === 'goldb' ? BT.b : null); add(ft, G.cyl, BT.b, rT * 2 + 1.2, 3, rT * 2 + 1.2, 0, tallH - 1, -1); sole(4.6); add(ft, G.box, shade(BT.b, 0.6), 21, 2.6, 10, 0, -19.8, -6.4);
+      if (BT.id === 'rubber') { const r = shaftR(3); add(ft, G.cyl, shade(BT.a, 0.8), r * 2 + 0.6, 2, r * 2 + 0.6, 0, 3, -1); }
+      if (BT.id === 'blackb') for (const y of [tallH * 0.2, tallH * 0.6]) { const r = shaftR(y); add(ft, G.cyl, BT.b, r * 2 + 0.8, 2.6, r * 2 + 0.8, 0, y, -1); add(ft, G.box, 0xc9c9d0, 1.6, 4, 4.6, s * (r + 0.6), y, 2); }   // strap and buckle
+      if (BT.id === 'goldb') { add(ft, G.box, BT.b, 2.4, tallH, 1.4, 0, tallH / 2 - 2.5, shaftR(tallH / 2) - 1.2 + 0.4); add(ft, G.ball, BT.b, 5, 5, 2.4, s * (shaftR(tallH * 0.6) + 0.2), tallH * 0.6, -1); }
       continue;
     }
     if (bs === 'low') {   // a canvas shoe: a white rubber toe and sole, a stripe down the side, laces
-      shaft(2.6, B1); add(ft, G.cyl, 0xf2e8d5, 24, 1.6, 24, 0, 3.4, -1); vamp(); rbox(ft, 0xf2e8d5, 20.6, 7.4, 8, 0, -14.4, 15.4, 3.2); rbox(ft, BT.a, 10, 9, 4, 0, -2.6, 8.6, 1.6);
-      sole(5, 0xf2e8d5); rbox(ft, BT.b, 22.5, 1.3, 31.5, 0, -17.2, 4.5, 0.6); for (const k of [-1, 1]) add(ft, G.box, BT.b, 0.9, 4.4, 13, k * 10.6, -10.4, 1).rotation.x = 0.5;
+      { const rT = shaft(2.6, B1); add(ft, G.cyl, 0xf2e8d5, rT * 2 + 0.6, 1.6, rT * 2 + 0.6, 0, 3.4, -1); } vamp(B1, 0xf2e8d5, false, -16); rbox(ft, BT.a, 10, 9, 4, 0, -2.6, 8.6, 1.6);
+      sole(5, 0xf2e8d5); sweepAB(ft, 'rim' + BT.b, [[0, -17.2, -10.4], [0, -17.2, 5], [0, -17.2, 21.2]], (t) => [cprof([[0, 10.7], [0.4, 11.6], [0.8, 11.1], [1, 9.3]], t), 0.65], () => BT.b);   // the coloured line round the rubber sole for (const k of [-1, 1]) add(ft, G.box, BT.b, 0.9, 4.4, 13, k * 10.6, -10.4, 1).rotation.x = 0.5;
       for (let k = 0; k < 3; k++) add(ft, G.box, 0xf2e8d5, 8.4, 1.3, 1.6, 0, -4.6 - k * 2.6, 9.6 + k * 1.9).rotation.x = -0.6;
       continue;
     }
     // a working boot: a round toe with a cap, laces up the front and a heavy sole
-    shaft(8); add(ft, G.cyl, shade(BT.a, 0.72), 24.6, 2.6, 24.6, 0, 7.4, -1); vamp(); rbox(ft, shade(BT.a, 0.78), 20.6, 7.6, 8.4, 0, -14.2, 15.2, 3.2);
+    { const rT = shaft(8); add(ft, G.cyl, shade(BT.a, 0.72), rT * 2 + 1, 2.6, rT * 2 + 1, 0, 7.4, -1); } vamp(B1, shade(BT.a, 0.78));
     sole(4.8); add(ft, G.box, shade(BT.b, 0.6), 21.6, 2.6, 10, 0, -19.8, -6.4); rbox(ft, shade(BT.a, 1.15), 8, 14, 2, 0, -1, 10.2, 1);
     for (let k = 0; k < 4; k++) add(ft, G.box, BT.b, 9.5, 1.2, 1.4, 0, 4.4 - k * 3.3, 11 + (k > 2 ? 0.6 : 0));
     if (st === 'stripes' && s < 0) { add(ft, G.tor, 0x6a6a72, 27, 27, 24, 0, 11, -1).rotation.x = Math.PI / 2; for (let k = 0; k < 3; k++) add(ft, G.tor, 0x6a6a72, 7, 9, 5, s * (14 + k * 2.4), 7 - k * 6.4, -3).rotation.y = k % 2 ? 0 : Math.PI / 2; add(ft, G.ball, 0x3a3a40, 13, 13, 13, s * 24, -14.4, -4); }
@@ -600,7 +642,12 @@ export function buildCharacter(look) {
         (t, ph, i) => { const k = i >= 3 && i <= 7 ? (i === 3 || i === 7 ? 0.55 : 1) : 0; return [0, -k * (2.6 + 1.8 * Math.sin(3 * ph + 0.6))]; });
       tipAt = cone(76 * hh, 6, R0 - 1.5, 2.2, (i) => (i === 3 ? [-0.5 * flop, 0.2] : i > 3 ? [-0.12 * flop, 0.05] : [0, 0])); scatter(tipAt, 0.4); break; }
     case 'jester': add(hat, G.dome, HB, 53, 30, 49, 0, 0, 0); add(hat, G.cyl, HA, 54, 6, 50, 0, 3, 0); for (const s of [-1, 1]) { const t = cone(54 * hh, 6, 14, 2, (i) => [0, -s * (i === 0 ? 0.6 : 0.24 * flop)], [s * 8, 6, 0], () => (s > 0 ? HA : HB), false); add(hat, G.ball, 0xffcd5a, 8, 8, 8, t.p.x, t.p.y, t.p.z); add(hat, G.ball, 0x3a2a22, 2.4, 2.4, 2.4, t.p.x, t.p.y - 3.4, t.p.z + 1.4); } break;
-    case 'mushroom': add(hat, G.dome, HA, 84, 50 * hh, 78, 0, 1, 0); add(hat, G.cyl, 0xf2e8d5, 82, 3.4, 76, 0, 1, 0); add(hat, G.tor, HA, 84, 78, 12, 0, 2, 0).rotation.x = PI / 2; for (let k = 0; k < 9; k++) { const a = k * 2.4, e = 0.35 + (k % 3) * 0.26; add(hat, G.ball, HB, 13 - (k % 3) * 2, 5, 13 - (k % 3) * 2, Math.sin(a) * 41 * Math.cos(e), 1 + 25 * hh * Math.sin(e) * 0.99, Math.cos(a) * 38 * Math.cos(e)); } break;
+    case 'mushroom': { const Hh = 25 * hh, P = []; for (let k = 0; k <= 12; k++) { const e = (k / 12) * (Math.PI / 2); P.push([k === 12 ? 0 : 42 * Math.cos(e), 1 + Hh * Math.sin(e)]); }   // a smooth turned cap
+      clothRing(hat, 'mush' + [HA, Math.round(hh * 20)].join(':'), P, false, () => HA);
+      add(hat, G.cyl, 0xf2e8d5, 82, 3.4, 76, 0, 1, 0); add(hat, G.tor, HA, 84, 78, 12, 0, 2, 0).rotation.x = PI / 2;
+      for (let k = 0; k < 9; k++) { const a = k * 2.4, e = 0.35 + (k % 3) * 0.26, p = new THREE.Vector3(42 * Math.cos(e) * Math.sin(a), 1 + Hh * Math.sin(e), 38.64 * Math.cos(e) * Math.cos(a)), n = new THREE.Vector3(p.x / 1764, (p.y - 1) / (Hh * Hh), p.z / 1493).normalize(), d = 13 - (k % 3) * 2;
+        const g = grp(hat, p.x, p.y, p.z); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); add(g, G.cyl, HB, d, 1, d, 0, 0, 0.2).rotation.x = PI / 2; }   // spots lying flat on it
+      break; }
     case 'acorn': add(hat, G.dome, HA, 58, 44 * hh, 54, 0, 0, 0); add(hat, G.cyl, shade(HA, 0.8), 60, 5, 56, 0, 2.5, 0); for (let k = 1; k < 4; k++) { const e = k * 0.36, m = add(hat, G.tor, HB, 58 * Math.cos(e), 54 * Math.cos(e), 16, 0, 22 * hh * Math.sin(e), 0); m.rotation.x = PI / 2; } { const st = add(hat, G.cyl, HB, 5, 10, 5, 2, 22 * hh + 3, 0); st.rotation.z = -0.3; add(hat, G.ball, 0x4f8a3a, 14, 2.4, 8, 9, 22 * hh + 6, 0).rotation.z = 0.3; } break;
     case 'pot': add(hat, G.cyl, HA, 56, 34 * hh, 52, 0, 17 * hh, 0); add(hat, G.tor, HB, 57, 53, 16, 0, 1.5, 0).rotation.x = PI / 2; add(hat, G.cyl, shade(HA, 0.8), 57, 2.4, 53, 0, 34 * hh, 0); for (const s of [-1, 1]) add(hat, G.tor, HB, 15, 12, 30, s * 30, 22 * hh, 0); add(hat, G.ball, shade(HA, 0.7), 9, 7, 3, 14, 20 * hh, 24.6); break;
     case 'horns': add(hat, G.dome, HA, 55, 46 * hh, 51, 0, 2, 0); add(hat, G.cyl, 0xc9a43a, 56.4, 6, 52.4, 0, 4, 0); add(hat, G.box, 0xc9a43a, 5, 24 * hh, 52.6, 0, 13 * hh, 0); for (const s of [-1, 1]) { const h = add(hat, G.cone, HB, 13, 30, 13, s * 30, 16, 0); h.rotation.z = -s * 0.75; add(hat, G.cyl, 0xc9a43a, 14, 4, 14, s * 24.6, 9.6, 0).rotation.z = -s * 0.75; } break;
