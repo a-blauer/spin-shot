@@ -496,6 +496,21 @@ window.__lookSheet = (list, cols = 6, cw = 240, ch = 320) => {
   lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.85);
 };
+// test hook: a sheet of guns as the workbench shows them, with parts fitted. list: [{ def, cores, yaw, pitch, label }]
+window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
+  const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
+  const g = out.getContext('2d'); g.fillStyle = '#5a4a52'; g.fillRect(0, 0, out.width, out.height);
+  ensureLock(); lockR.setSize(cw, ch, false); const sc = new THREE.Scene();
+  list.forEach((Q, i) => {
+    const m = game.vm.constructor.displayModel(game, Q.def, Q.tier || 0, Q.cores || []), piv = new THREE.Group(); piv.add(m); sc.add(piv);
+    const b = new THREE.Box3().setFromObject(m), c = b.getCenter(new THREE.Vector3()); m.position.sub(c); piv.rotation.set(Q.pitch || 0, Q.yaw === undefined ? -Math.PI / 2 : Q.yaw, 0);
+    const s = b.getSize(new THREE.Vector3()), r = Math.max(s.z, s.y * (cw / ch), s.x) * 0.56 + 1.5, cam = new THREE.OrthographicCamera(-r, r, r * ch / cw, -r * ch / cw, -500, 500); cam.position.set(0, 0, 100); cam.lookAt(0, 0, 0);
+    lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(piv);
+    g.fillStyle = '#ffcd5a'; g.font = '14px sans-serif'; g.fillText(Q.label || game.data.weapons[Q.def].name, (i % cols) * cw + 5, Math.floor(i / cols) * ch + 15);
+  });
+  lockR.setSize(LW, LH, false);
+  return out.toDataURL('image/jpeg', 0.88);
+};
 window.__build = buildCharacter; window.__THREE = THREE;
 window.__locker = () => { locker.style.display = 'block'; renderLocker(); };
 

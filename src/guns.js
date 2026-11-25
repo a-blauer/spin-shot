@@ -1626,40 +1626,149 @@ function buildGunWith(vm, W, tier, PAL) {
 }
 
 // ---------------------------------------------------------------------------------------------- fitted parts
-// What the Descent's workbench bolts on shows on the gun. Each kind of part has its own small piece, placed off the
-// muzzle and the sight line every gun reports, and it grows a little with every extra copy.
+// What the Descent's workbench bolts on shows on the gun. Nothing here is placed by a number that assumes a shape:
+// every piece is put where the gun really is. The model is probed with rays (what is the top of it here, the side of
+// it there, where does the barrel end), each piece is sized to the section it sits on and set into the surface it
+// found, and it is hung on the same moving part (a slide, a pump, a magazine, a spinning barrel) so it goes where that
+// part goes. A piece that has nothing to sit on for a particular weapon becomes a small stud on its top instead.
 export function dressGun(vm, W, spec, cores, DATA) {
   if (!cores || !cores.length) return;
   const n = {}; for (const u of cores) { const k = DATA.upgrades[u].look; if (k) n[k] = (n[k] || 0) + 1; }
-  const M = spec.Muzzle, mx = M.X, my = M.Y || 0, mz = M.Z, sz = spec.Sight || mz + 4;
-  const steel = C(0x2a2d33), steelL = C(0x8a909a);
-  const B = (x, y, z, sx, sy, szz, col, glow = 0, rot = null) => vm.Part(null, 0, V(x, y, z), V(sx, sy, szz), col, rot, glow);
-  const tube = (x0, x1, y, z, r, col) => vm.Cap(null, V(x0, y, z), V(x1, y, z), r, col);
-  const q = (k, most = 4) => Math.min(most, n[k] || 0);
-  // Heavy Rounds: a muzzle brake that gets bigger, with lit ports
-  if (n.brake) { const k = q('brake'), s = 2.5 + k * 0.35; B(mx - 1.4, my, mz, 3.2 + k * 0.3, s, s, steel); for (let i = 0; i < Math.min(3, k); i++) B(mx - 0.6 - i * 0.9, my, mz, 0.35, s + 0.12, 0.9, C(0xffb057), 1.6); }
-  // Rapid Bolt: cooling fins along the top of the barrel
-  for (let i = 0; i < q('fins', 6); i++) B(mx - 5 - i * 1.3, my, mz + 1.5, 0.45, 2.3, 1.5, C(0x6fd6ff), 0.9);
-  // Split Barrel: more barrels, laid alongside and under the first
-  { const at = [[1.9, -0.3], [-1.9, -0.3], [0, -2.0], [1.9, -2.0], [-1.9, -2.0], [0, 1.9]]; for (let i = 0; i < q('barrel', 6); i++) { tube(mx - 11, mx + 0.4, my + at[i][0], mz + at[i][1], 0.7, steelL); B(mx - 9, my + at[i][0] * 0.5, mz + at[i][1] * 0.5, 1.2, Math.abs(at[i][0]) + 1.6, Math.abs(at[i][1]) + 1.6, steel); } }
-  // Extended Mag: more magazine under the gun
-  if (n.mag) { const k = q('mag', 6); B(6.4, 0, -2.2 - k * 0.9, 3.2, 2.0, 2.6 + k * 1.8, steel); B(6.4, 0, -3.4 - k * 1.8, 3.5, 2.2, 0.6, steelL); }
-  // Quick Hands: pull tape on the magazine
-  for (let i = 0; i < q('tape', 3); i++) B(6.4, 0, -0.6 - i * 1.3, 3.5, 2.3, 0.5, C(0xffe36a), 0.5);
-  // Keen Sight: a lit dot sight on top
-  if (n.dot) { const k = q('dot'); B(3.5, 0, sz + 0.5, 3.4, 1.5, 1.0, steel); B(4.6, 0, sz + 1.6, 0.4, 1.5, 1.6, steel); B(4.65, 0, sz + 1.6, 0.2, 0.5 + k * 0.12, 0.5 + k * 0.12, C(0xff3a3a), 2.6); }
-  // Marksman Scope: a tube sight with a lit lens
-  if (n.scope) { const k = q('scope'), r = 0.95 + k * 0.1, z = sz + 2.4 + (n.dot ? 1.6 : 0); tube(4, 13 + k, 0, z, r, steel); for (const x of [6, 11]) B(x, 0, z - r - 0.3, 0.8, 0.9, 1.1, steel); B(13.2 + k, 0, z, 0.25, r * 1.5, r * 1.5, C(0x9ad0ff), 2.2); }
-  // Hollow Tip and Piercing Tip: what shows at the muzzle
-  if (n.tip) B(mx + 0.3, my, mz, 0.5, 1.5, 1.5, C(0xff4d8a), 2.2 + q('tip') * 0.3);
-  if (n.needle) { const k = q('needle'); B(mx + 1.2 + k * 0.5, my, mz, 2.4 + k, 0.36, 0.36, C(0xe8eef5), 0.8); }
-  // Feed Loop: a belt of rounds along the side
-  for (let i = 0; i < Math.min(6, (n.belt || 0) * 2); i++) B(1 + i * 1.5, 1.7, mz - 2.4, 0.9, 0.9, 2.0, i % 2 ? C(0xd9a441) : C(0x8fe08a), i % 2 ? 0 : 0.5);
-  // the elements: lit bands round the barrel, one per copy, in the element's colour
-  let band = 0;
-  for (const [k, col] of [['fire', 0xff7a1a], ['frost', 0x7fd8ff], ['blood', 0xd0252a], ['shock', 0x9a8cff], ['blast', 0xff5a3a]]) for (let i = 0; i < q(k, 3); i++) { B(mx - 3.4 - band * 1.5, my, mz, 0.6, 2.9, 2.9, C(col), 2.0); band++; }
-  // Ricochet: bright steel on the muzzle; Gilded: gold along the top; Leech: a vial at the side
-  if (n.chrome) B(mx - 0.2, my, mz, 0.7, 3.0 + q('chrome') * 0.2, 3.0 + q('chrome') * 0.2, C(0xdfe6ee));
-  for (let i = 0; i < q('gold', 4); i++) B(-1 + i * 2.6, 0, sz - 0.6, 1.8, 2.4, 0.5, C(0xffd23a), 0.7);
-  for (let i = 0; i < q('vial', 3); i++) { B(0.5 + i * 2.2, -1.9, mz - 1.2, 1.3, 0.9, 2.6, C(0xc8306a), 1.4); B(0.5 + i * 2.2, -1.9, mz + 0.3, 1.5, 1.1, 0.5, steelL); }
+  const M = spec.Muzzle, mx = M.X, my = M.Y || 0, mz = M.Z, steel = C(0x2a2d33), steelL = C(0x8a909a), q = (k, most = 4) => Math.min(most, n[k] || 0);
+  const gun = vm.gun; gun.updateWorldMatrix(true, true);
+  const magKind = ['mag', 'box', 'cell', 'twin'].includes((vm.feel && vm.feel.reload) || 'mag'), under = (o, g) => { for (let p = o; p; p = p.parent) if (p === g) return true; return false; };
+  const shown = (o) => { for (let p = o; p && p !== gun.parent; p = p.parent) if (!p.visible) return false; return true; };
+  const targets = []; gun.traverse((o) => { if (o.isMesh && shown(o) && !(vm.MagRoot && !magKind && under(o, vm.MagRoot))) targets.push(o); });
+  if (!targets.length) return;
+  const RC = new THREE.Raycaster(), toW = (x, y, z) => gun.localToWorld(new THREE.Vector3(y, z, -x)), toD = (x, y, z) => new THREE.Vector3(y, z, -x).transformDirection(gun.matrixWorld);
+  const cast = (o, d, list = targets) => { RC.set(toW(o[0], o[1], o[2]), toD(d[0], d[1], d[2])); RC.far = 400; const h = RC.intersectObjects(list, false)[0]; if (!h) return null; const l = gun.worldToLocal(h.point.clone()); return { X: -l.z, Y: l.x, Z: l.y, obj: h.object }; };
+  const top = (x, y) => cast([x, y, 150], [0, 0, -1]), bot = (x, y) => cast([x, y, -150], [0, 0, 1]), side = (x, z, sg) => cast([x, sg * 150, z], [0, -sg, 0]), front = (y, z) => cast([150, y, z], [-1, 0, 0]);
+  // the whole gun, to know where its middle is
+  const bb = new THREE.Box3(); for (const o of targets) { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld).applyMatrix4(gun.matrixWorld.clone().invert())); }
+  const X0 = -bb.max.z, X1 = -bb.min.z, YC = (bb.min.x + bb.max.x) / 2, ZC = (bb.min.y + bb.max.y) / 2, XC = (X0 + X1) / 2;
+  // pieces: made in the gun's own space, then handed to whatever they sit on
+  const made = []; let tag = '';
+  const give = (m, par) => { if (par && par !== gun) par.attach(m); made.push([m, tag]); return m; };
+  const hideIfSighted = (m) => { if (!spec.SightExact) return m; if (!vm.adsHide) { vm.adsHide = new THREE.Group(); gun.add(vm.adsHide); } vm.adsHide.attach(m); return m; };   // on a weapon aimed along a fixed line, what stands on top steps aside when you aim
+  const B = (x, y, z, sx, sy, szz, col, glow, par) => give(vm.Part(null, 0, V(x, y, z), V(sx, sy, szz), col, null, glow || 0), par);
+  const tube = (x0, x1, y, z, r, col, par) => { const k = vm.parts.length; vm.Cap(null, V(x0, y, z), V(x1, y, z), r, col); for (const m of vm.parts.slice(k)) give(m, par); };
+  const grpOf = (h) => (h && h.obj ? h.obj.parent : gun);
+  // the section of the gun round the bore line at x: how wide, how tall, and its middle
+  const ring = (x, zr = mz) => {
+    const a = side(x, zr, -1), b = side(x, zr, 1); if (!a || !b || b.Y - a.Y < 0.3) return null;
+    const hw = (b.Y - a.Y) / 2, cy = (a.Y + b.Y) / 2; let hz = hw, cz = zr;
+    const t = top(x, cy + hw * 0.5) || top(x, cy), u = bot(x, cy + hw * 0.5) || bot(x, cy);
+    if (t && u) { const mh = (t.Z - u.Z) / 2; if (mh <= hw * 2.2 && mh >= hw * 0.4 && t.Z >= zr && u.Z <= zr) { hz = Math.min(mh * 1.12, Math.max(mh, hw * 1.6)); cz = (t.Z + u.Z) / 2; } }
+    return { x, hw, hz, cy, cz, par: grpOf(b) };
+  };
+  // the foremost solid section: the barrel on a gun, whatever leads on a weapon that has none
+  let R0 = null; for (let k = 0; k < 14 && !R0; k++) R0 = ring(mx - 1.2 - k * 1.2);
+  const barrel = !!R0 && R0.hw < 7 && Math.abs(R0.cy - my) < 3;
+  let studs = 0;
+  const stud = (col, glow = 1.2) => {   // nothing to hang it on: a lit stud set into the top
+    for (let k = 0; k < 16; k++) { const x = XC - 3 + studs * 1.7 + k * 1.3, t = top(x, YC) || top(x, 0); if (t) { studs++; return hideIfSighted(B(t.X, t.Y, t.Z + 0.12, 1.1, 1.1, 0.7, C(col), glow, grpOf(t))); } }
+    return null;
+  };
+  // a band round the section at x. Round a wide nose (a dish, a drum, a cage) it is a thin hoop, not a slab
+  const collar = (x, len, col, glow, grow = 0.9) => { const r = ring(x); if (!r || r.hw > 9) return null; const wide = r.hw > 3; r.len = wide ? Math.min(len, 0.5) : len; return B(x, r.cy, r.cz, r.len, r.hw * 2 + (wide ? Math.min(grow, 0.5) : grow), r.hz * 2 + (wide ? Math.min(grow, 0.5) : grow), col, glow, r.par) && r; };
+
+  tag = 'brake';
+  // Heavy Rounds: a muzzle brake sized to the barrel, with lit ports
+  if (n.brake) { const k = q('brake'), r = barrel ? collar(R0.x, 3 + k * 0.3, steel, 0, 0.9 + k * 0.3) : null; if (r) { const np = Math.max(1, Math.min(3, k, Math.floor(r.len / 0.9))); for (let i = 0; i < np; i++) B(r.x + (np - 1) * 0.45 - i * 0.9, r.cy, r.cz, Math.min(0.35, r.len * 0.6), r.hw * 2 + (r.hw > 3 ? 0.65 : 1.05 + k * 0.3), Math.min(0.9, r.hz), C(0xffb057), 1.6, r.par); } else stud(0xffb057); }
+  tag = 'chrome';
+  // Ricochet: a bright ring just behind the muzzle
+  if (n.chrome) { if (!(barrel && collar(R0.x - (n.brake ? 2.4 : 0.2), 0.7, C(0xdfe6ee), 0, 1.3 + q('chrome') * 0.2))) stud(0xdfe6ee, 0.4); }
+  tag = 'element';
+  // the elements: lit bands round the barrel, one per copy, each sized to where it sits
+  { let band = 0; for (const [k, col] of [['fire', 0xff7a1a], ['frost', 0x7fd8ff], ['blood', 0xd0252a], ['shock', 0x9a8cff], ['blast', 0xff5a3a]]) for (let i = 0; i < q(k, 3); i++) { if (!(barrel && collar(R0.x - 2.6 - (n.brake ? 1.2 : 0) - band * 1.5, 0.6, C(col), 2.0, 0.7))) stud(col, 2); band++; } }
+  tag = 'fins';
+  // Rapid Bolt: cooling fins standing on the top of the barrel
+  for (let i = 0; i < q('fins', 6); i++) { const x = (barrel ? R0.x : mx) - 4.2 - i * 1.3, a = top(x, my - 0.45), b = top(x, my + 0.45), t = a && b ? (a.Z < b.Z ? a : b) : null; if (barrel && t && t.Z < mz + 9) hideIfSighted(B(x, my, t.Z + 0.5, 0.45, Math.min(2.3, R0.hw * 2 + 0.5), 1.5, C(0x6fd6ff), 0.9, grpOf(t))); else stud(0x6fd6ff, 0.9); }
+  tag = 'barrel';
+  // Split Barrel: more barrels, each lying against the first and clamped to it
+  if (n.barrel) {
+    if (barrel) {
+      let L = 3; while (L < 11) { const r = ring(R0.x - L - 0.5); if (!r || r.hw > R0.hw * 2.4 || r.hw < R0.hw * 0.5) break; L += 1; }
+      const f = front(R0.cy, R0.cz), xf = f && Math.abs(f.X - mx) < 4 ? f.X : mx, rr = Math.max(0.4, Math.min(0.8, R0.hw * 0.62)), dy = R0.hw + rr - 0.18, dz = R0.hz + rr - 0.18;
+      const at = [[dy, 0], [-dy, 0], [0, -dz], [dy * 0.74, -dz * 0.74], [-dy * 0.74, -dz * 0.74], [0, dz]];
+      for (let i = 0; i < q('barrel', 6); i++) { tube(xf - L, xf + 0.2, R0.cy + at[i][0], R0.cz + at[i][1], rr, steelL, R0.par); for (const cx of [xf - L + 0.9, xf - 1.6]) B(cx, R0.cy + at[i][0] * 0.5, R0.cz + at[i][1] * 0.5, 1.1, Math.abs(at[i][0]) + rr * 2, Math.abs(at[i][1]) + rr * 2, steel, 0, R0.par); }
+    } else for (let i = 0; i < q('barrel', 6); i++) stud(0x8a909a, 0);
+  }
+  tag = 'tip';
+  // Hollow Tip and Piercing Tip: what shows in the mouth of the barrel
+  if (n.tip || n.needle) {
+    const f = barrel ? front(R0.cy, R0.cz) : null, solid = !!f && Math.abs(f.X - R0.x) < 4, xf = solid ? f.X : barrel ? R0.x : null;   // a bore the ray goes down has no face: the piece plugs it instead
+    if (xf === null) { if (n.tip) stud(0xff4d8a, 2.4); if (n.needle) stud(0xe8eef5, 0.8); }
+    else { const d = solid ? Math.max(0.5, Math.min(1.5, R0.hw * 1.5)) : R0.hw * 2 + 0.12;
+      if (n.tip) B(xf + 0.12, R0.cy, R0.cz, 0.45, d, solid ? d : R0.hz * 2 + 0.12, C(0xff4d8a), 2.2 + q('tip') * 0.3, R0.par);
+      if (n.needle) { const k = q('needle'), len = 2.4 + k, t = Math.min(0.36, R0.hw * 0.7); if (!solid) B(xf - 0.3, R0.cy, R0.cz, 0.4, d, R0.hz * 2 + 0.12, steelL, 0, R0.par); B(xf + len / 2 - 0.4, R0.cy, R0.cz, len, t, t, C(0xe8eef5), 0.8, R0.par); } }
+  }
+  tag = 'mag';
+  // Extended Mag and Quick Hands: on the magazine itself when the weapon has one hanging under it, in the magazine's own
+  // frame so they go with it through a reload; otherwise a pouch and a strap on the underside
+  {
+    let mag = null;
+    if (magKind && vm.MagRoot) {
+      const MR = vm.MagRoot, ms = targets.filter((o) => under(o, MR));
+      if (ms.length) {
+        const inv = MR.matrixWorld.clone().invert(), lb = new THREE.Box3(); for (const o of ms) lb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld).applyMatrix4(inv));
+        // its foot: where rays from below (in its own frame) meet it lowest
+        const dn = new THREE.Vector3(0, 1, 0).transformDirection(MR.matrixWorld), hits = [];
+        for (let k = 0; k <= 8; k++) { const z = lb.min.z + ((lb.max.z - lb.min.z) * (k + 0.5)) / 9, o = MR.localToWorld(new THREE.Vector3((lb.min.x + lb.max.x) / 2, lb.min.y - 60, z)); RC.set(o, dn); RC.far = 200; const h = RC.intersectObjects(ms, false)[0]; if (h) { const l = MR.worldToLocal(h.point.clone()); hits.push([z, l.y]); } }
+        if (hits.length) {
+          const low = Math.min(...hits.map((h) => h[1])), foot = hits.filter((h) => h[1] < low + 0.7), z0 = foot[0][0], z1 = foot[foot.length - 1][0], step = (lb.max.z - lb.min.z) / 9;
+          // is that foot the underside of the gun, or buried in it
+          const fw = MR.localToWorld(new THREE.Vector3((lb.min.x + lb.max.x) / 2, low, (z0 + z1) / 2)), fl = gun.worldToLocal(fw.clone()), below = cast([-fl.z, fl.x, -150], [0, 0, 1]);
+          if (below && under(below.obj, MR)) mag = { MR, lb, low, zc: (z0 + z1) / 2, len: Math.max(z1 - z0 + step, (lb.max.z - lb.min.z) * 0.5), w: lb.max.x - lb.min.x, xc: (lb.min.x + lb.max.x) / 2 };
+        }
+      }
+    }
+    const inMag = (col, glow, x, y, z, sx, sy, sz) => { const m = vm.Part(mag.MR, 0, V(0, 0, 0), V(1, 1, 1), col, null, glow || 0); m.position.set(x, y, z); m.scale.set(sx, sy, sz); made.push([m, tag]); return m; };
+    if (n.mag) {
+      const k = q('mag', 6);
+      if (mag) { const h = 1.2 + k * 1.5; inMag(steel, 0, mag.xc, mag.low - h / 2 + 0.35, mag.zc, mag.w * 0.96, h, mag.len * 0.96); inMag(steelL, 0, mag.xc, mag.low - h + 0.2, mag.zc, mag.w * 1.1, 0.6, mag.len * 1.08); }
+      else { let b = null; for (const dx of [0, -2, 2, -4, 4, -6, 6]) { b = bot(XC + dx, YC) || bot(XC + dx, 0); if (b) break; } if (b) { const h = 1.6 + k * 1.1; B(b.X, b.Y, b.Z - h / 2 + 0.35, 3.2, 2.0, h, steel, 0, grpOf(b)); B(b.X, b.Y, b.Z - h + 0.3, 3.5, 2.2, 0.6, steelL, 0, grpOf(b)); B(b.X, b.Y, b.Z - h * 0.45, 3.4, 2.15, 0.5, C(0xd9a441), 0, grpOf(b)); } }
+    }
+    for (let i = 0; i < q('tape', 3); i++) {
+      if (mag) { const span = mag.lb.max.y - mag.low, y = mag.low + Math.min(span * 0.8, 0.9 + i * 1.3); if (y < mag.lb.max.y - 0.2) inMag(C(0xffe36a), 0.5, mag.xc, y, mag.zc, mag.w + 0.34, 0.5, mag.len + 0.34); }
+      else { let b = null; for (const dx of [0, -2, 2, -4, 4, -6, 6]) { b = bot(XC + dx + 2.4 + i * 1.1, YC) || bot(XC + dx + 2.4 + i * 1.1, 0); if (b) break; } if (b) B(b.X, b.Y, b.Z - 0.08, 0.5, 2.0, 0.5, C(0xffe36a), 0.5, grpOf(b)); }   // no magazine to tape: tabs on the underside
+    }
+  }
+  tag = 'sight';
+  // Keen Sight and Marksman Scope: a sight stands on legs that reach down to whatever is under each of them
+  let dotTop = -1e9;
+  const mount = (xs) => { for (const off of [0, -1.5, 1.5, -3, 3, 4.5, 6, 8, -5]) { const h = xs.map((x) => top(x + off, 0)); if (h.every((t) => t && t.Z > ZC - 2)) return { off, h, zt: Math.max(...h.map((t) => t.Z)) }; } return null; };
+  if (n.dot) {
+    const k = q('dot'), m = mount([2.2, 4.8]);
+    if (m) { const p = grpOf(m.h[0]), x0 = 3.5 + m.off; for (let i = 0; i < 2; i++) { const d = m.zt - m.h[i].Z; if (d > 0.04) hideIfSighted(B(m.h[i].X, 0, m.h[i].Z + d / 2, 1.0, 1.3, d + 0.2, steel, 0, p)); }
+      hideIfSighted(B(x0, 0, m.zt + 0.4, 3.4, 1.5, 1.0, steel, 0, p)); hideIfSighted(B(x0 + 1.1, 0, m.zt + 1.5, 0.4, 1.5, 1.6, steel, 0, p)); hideIfSighted(B(x0 + 1.15, 0, m.zt + 1.5, 0.2, 0.5 + k * 0.12, 0.5 + k * 0.12, C(0xff3a3a), 2.6, p)); dotTop = m.zt + 2.3; }
+    else stud(0xff3a3a, 2.6);
+  }
+  if (n.scope) {
+    const k = q('scope'), r = 0.95 + k * 0.1, m = mount([6, 11]);
+    if (m) { const p = grpOf(m.h[0]), z = Math.max(m.zt + r + 0.35, n.dot && m.off < 2 ? dotTop + r + 0.15 : -1e9), k0 = vm.parts.length;
+      tube(4 + m.off, 13 + k + m.off, 0, z, r, steel, p); for (let i = 0; i < 2; i++) { const zb = m.h[i].Z, hgt = z - r - zb + 0.5; B(m.h[i].X, 0, zb + hgt / 2 - 0.15, 0.8, 0.9, hgt, steel, 0, p); } B(13.2 + k + m.off, 0, z, 0.25, r * 1.5, r * 1.5, C(0x9ad0ff), 2.2, p);
+      for (const o of vm.parts.slice(k0)) hideIfSighted(o); }
+    else stud(0x9ad0ff, 2.2);
+  }
+  tag = 'gold';
+  // Whetstone: gold plates let into the top
+  for (let i = 0; i < q('gold', 4); i++) { const x = -1 + i * 2.6, t = top(x, 0); if (t && t.Z > ZC - 2) hideIfSighted(B(x, 0, t.Z + 0.1, 1.8, 2.0, 0.5, C(0xffd23a), 0.7, grpOf(t))); else stud(0xffd23a, 0.7); }
+  tag = 'flank';
+  // Feed Loop: rounds clipped along the right side; Leech Rounds: vials along the left. Each one against the side at its own place.
+  // a place on the flank is somewhere the side is solid over the height of the piece, not a wire or an edge it would hang off
+  const flank = (x, sg) => { for (const z of [mz - 2.2, mz - 1, mz, mz - 3.6, ZC, ZC + 1.5, ZC - 1.5]) { const h = side(x, z, sg), a = side(x, z + 0.7, sg), b = side(x, z - 0.7, sg); if (h && a && b && Math.abs(a.Y - h.Y) < 0.5 && Math.abs(b.Y - h.Y) < 0.5) return { h, z }; } return null; };
+  for (let i = 0; i < Math.min(6, (n.belt || 0) * 2); i++) { const f = flank(1 + i * 1.5, 1); if (f) B(1 + i * 1.5, f.h.Y + 0.28, f.z, 0.9, 0.9, 2.0, i % 2 ? C(0xd9a441) : C(0x8fe08a), i % 2 ? 0 : 0.5, grpOf(f.h)); else stud(0x8fe08a, 0.5); }
+  for (let i = 0; i < q('vial', 3); i++) { const x = 0.5 + i * 2.2, f = flank(x, -1); if (f) { B(x, f.h.Y - 0.3, f.z - 0.2, 1.3, 0.9, 2.6, C(0xc8306a), 1.4, grpOf(f.h)); B(x, f.h.Y - 0.3, f.z + 1.3, 1.5, 1.1, 0.5, steelL, 0, grpOf(f.h)); } else stud(0xc8306a, 1.4); }
+  // test builds: is every piece touching the gun, or another piece that is
+  if (typeof window !== 'undefined' && window.__dressCheck) {
+    gun.updateWorldMatrix(true, true); const sc = new THREE.Vector3().setFromMatrixColumn(gun.matrixWorld, 0).length(), all = targets.concat(made.map((q) => q[0])), ax = new THREE.Vector3(), c = new THREE.Vector3();
+    for (const [m, tg] of made) {
+      const others = all.filter((o) => o !== m); let ok = false; m.getWorldPosition(c); if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); const hb = m.geometry.boundingBox.max;
+      const A3 = [0, 1, 2].map((a) => new THREE.Vector3().setFromMatrixColumn(m.matrixWorld, a).multiplyScalar([hb.x, hb.y, hb.z][a])), lng = A3.reduce((p, v) => (v.length() > p.length() ? v : p));
+      for (const off of [0, 0.8, -0.8]) for (let a = 0; a < 3 && !ok; a++) { ax.copy(A3[a]); const half = ax.length(); ax.normalize(); const c2 = c.clone().addScaledVector(lng, off);
+        for (const sg of [1, -1]) { RC.set(c2.clone().addScaledVector(ax, sg * (half + 30 * sc)), ax.clone().multiplyScalar(-sg)); RC.far = 30 * sc + 2 * half + 0.25 * sc; const h = RC.intersectObjects(others, false); if (h.some((q) => q.distance >= 30 * sc - 0.25 * sc)) { ok = true; break; } } }
+      if (!ok) window.__dressCheck.push(W.name + ':' + tg);
+    }
+  }
 }
