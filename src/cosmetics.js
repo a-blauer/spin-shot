@@ -1,47 +1,35 @@
 // Character cosmetics: what exists, what each piece looks like (palette + shape flags) and what unlocks it.
 // `need` is [lifetime stat, amount]; no `need` means it is available from the start.
-// The first fourteen keep their places: a look is sent to other players as these, in this order, and old looks still read.
-export const SLOTS = ['body', 'tone', 'hair', 'haircol', 'outfit', 'legs', 'boots', 'gloves', 'hat', 'face', 'neck', 'shoulder', 'waist', 'back',
-  'jaw', 'eyes', 'eyecol', 'brows', 'nose', 'mouth', 'lips', 'fhair', 'mark'];
-export const SLOT_NAMES = { body: 'FRAME', tone: 'SKIN', hair: 'HAIR', haircol: 'HAIR COLOR', outfit: 'OUTFIT', legs: 'TROUSERS', boots: 'BOOTS', gloves: 'GLOVES', hat: 'HAT', face: 'FACEWEAR', neck: 'NECK', shoulder: 'SHOULDERS', waist: 'WAIST', back: 'BACK',
-  jaw: 'HEAD SHAPE', eyes: 'EYES', eyecol: 'EYE COLOR', brows: 'BROWS', nose: 'NOSE', mouth: 'MOUTH', lips: 'LIPS', fhair: 'FACIAL HAIR', mark: 'MARKS' };
+// The player is a gnome: a hat pulled down to the nose, a nose, a beard (or braids) and a small body. There is no face
+// to model, so everything else is what you shape: the hat, the nose, the beard, the build and what is worn.
+export const SLOTS = ['tone', 'hair', 'haircol', 'outfit', 'legs', 'boots', 'gloves', 'hat', 'face', 'neck', 'shoulder', 'waist', 'back',
+  'hatcol', 'hatpat', 'hattip', 'nose', 'blush', 'beard', 'stache'];
+export const SLOT_NAMES = { tone: 'SKIN', hair: 'HAIR', haircol: 'BEARD AND HAIR COLOR', outfit: 'OUTFIT', legs: 'TROUSERS', boots: 'BOOTS', gloves: 'GLOVES', hat: 'HAT', face: 'ON THE NOSE', neck: 'NECK', shoulder: 'SHOULDERS', waist: 'WAIST', back: 'BACK',
+  hatcol: 'HAT COLOR', hatpat: 'HAT PATTERN', hattip: 'HAT TIP', nose: 'NOSE', blush: 'COMPLEXION', beard: 'BEARD', stache: 'MOUSTACHE' };
 // the creator's pages, and what is on each
 export const PAGES = [
-  { id: 'build', name: 'BODY', slots: ['body'] },
-  { id: 'face', name: 'FACE', slots: ['tone', 'jaw', 'eyes', 'eyecol', 'brows', 'nose', 'mouth', 'lips', 'mark'] },
-  { id: 'hair', name: 'HAIR', slots: ['hair', 'haircol', 'fhair'] },
+  { id: 'build', name: 'BUILD', slots: [] },
+  { id: 'hat', name: 'HAT', slots: ['hat', 'hatcol', 'hatpat', 'hattip'] },
+  { id: 'beard', name: 'NOSE AND BEARD', slots: ['nose', 'tone', 'blush', 'beard', 'stache', 'hair', 'haircol'] },
   { id: 'clothes', name: 'CLOTHES', slots: ['outfit', 'legs', 'boots', 'gloves'] },
-  { id: 'extras', name: 'EXTRAS', slots: ['hat', 'face', 'neck', 'shoulder', 'waist', 'back'] },
+  { id: 'extras', name: 'EXTRAS', slots: ['face', 'neck', 'shoulder', 'waist', 'back'] },
 ];
-// The body is shaped by sliders, each from -1 to 1 with 0 the ordinary build. The first three change how you play;
-// the rest are only looks.
+// Sliders, each from -1 to 1 with 0 the ordinary gnome. The first three change how you play; the rest are only looks.
 export const SHAPES = [
-  { id: 'arms', name: 'Arm length', lo: 'Short', hi: 'Long', stat: true },
-  { id: 'legs', name: 'Leg length', lo: 'Short', hi: 'Long', stat: true },
-  { id: 'weight', name: 'Weight', lo: 'Skinny', hi: 'Heavy', stat: true },
-  { id: 'muscle', name: 'Muscle', lo: 'Lean', hi: 'Brawny' },
-  { id: 'shoulders', name: 'Shoulders', lo: 'Narrow', hi: 'Broad' },
-  { id: 'chest', name: 'Chest', lo: 'Flat', hi: 'Full', zero: -1 },
-  { id: 'hips', name: 'Hips', lo: 'Narrow', hi: 'Wide' },
-  { id: 'rear', name: 'Backside', lo: 'Flat', hi: 'Full', zero: -1 },
-  { id: 'groin', name: 'Groin', lo: 'Flat', hi: 'Full', zero: -1 },
-  { id: 'head', name: 'Head size', lo: 'Small', hi: 'Large' },
+  { id: 'arms', name: 'Arm length', lo: 'Short', hi: 'Long', stat: true, page: 'build' },
+  { id: 'legs', name: 'Leg length', lo: 'Short', hi: 'Long', stat: true, page: 'build' },
+  { id: 'weight', name: 'Weight', lo: 'Skinny', hi: 'Heavy', stat: true, page: 'build' },
+  { id: 'head', name: 'Head and hat size', lo: 'Small', hi: 'Large', page: 'build' },
+  { id: 'hatH', name: 'Hat height', lo: 'Squat', hi: 'Towering', page: 'hat' },
+  { id: 'hatF', name: 'Hat flop', lo: 'Stiff', hi: 'Floppy', page: 'hat' },
+  { id: 'brim', name: 'Brim', lo: 'Narrow', hi: 'Wide', page: 'hat' },
+  { id: 'nose', name: 'Nose size', lo: 'Small', hi: 'Big', page: 'beard' },
+  { id: 'beardL', name: 'Beard length', lo: 'Short', hi: 'Long', page: 'beard' },
+  { id: 'beardW', name: 'Beard fullness', lo: 'Thin', hi: 'Bushy', page: 'beard' },
 ];
-// whole faces to start from: one press sets the head and every feature on it
-export const FACE_PRESETS = [
-  { name: 'Drifter', set: { jaw: 'oval', eyes: 'plain', brows: 'plain', nose: 'plain', mouth: 'plain', mark: 'none' } },
-  { name: 'Bruiser', set: { jaw: 'strong', eyes: 'narrow', brows: 'thick', nose: 'broken', mouth: 'frown', mark: 'scarcheek' } },
-  { name: 'Belle', set: { jaw: 'heart', eyes: 'lashes', brows: 'arched', nose: 'small', mouth: 'full', mark: 'mole' } },
-  { name: 'Old Timer', set: { jaw: 'gaunt', eyes: 'bags', brows: 'thick', nose: 'long', mouth: 'thin', mark: 'wrinkles' } },
-  { name: 'Charmer', set: { jaw: 'diamond', eyes: 'almond', brows: 'arched', nose: 'plain', mouth: 'smirk', mark: 'none' } },
-  { name: 'Gentle', set: { jaw: 'soft', eyes: 'wide', brows: 'worried', nose: 'button', mouth: 'smile', mark: 'freckles' } },
-  { name: 'Outlaw', set: { jaw: 'square', eyes: 'sleepy', brows: 'angry', nose: 'hook', mouth: 'smirk', mark: 'scareye' } },
-  { name: 'Scholar', set: { jaw: 'narrow', eyes: 'down', brows: 'thin', nose: 'long', mouth: 'thin', mark: 'none' } },
-  { name: 'Jolly', set: { jaw: 'round', eyes: 'wide', brows: 'plain', nose: 'broad', mouth: 'grin', mark: 'blush' } },
-  { name: 'Stone', set: { jaw: 'square', eyes: 'narrow', brows: 'uni', nose: 'broad', mouth: 'plain', mark: 'none' } },
-];
+export const FACE_PRESETS = [];
 const cl = (v) => Math.max(-1, Math.min(1, +v || 0));
-export const DEFAULT_SHAPE = { arms: 0, legs: 0, weight: 0, muscle: 0, shoulders: 0, chest: -1, hips: 0, rear: -1, groin: -1, head: 0 };
+export const DEFAULT_SHAPE = { arms: 0, legs: 0, weight: 0, head: 0, hatH: 0, hatF: 0, brim: 0, nose: 0, beardL: 0, beardW: 0 };
 export const shapeOf = (look) => { const o = {}, s = (look && look.shape) || {}; for (const K of SHAPES) o[K.id] = s[K.id] === undefined ? DEFAULT_SHAPE[K.id] : cl(s[K.id]); return o; };
 // What a body is worth in a fight. Long arms reach further with a blade and hold a kicking gun less steadily; long legs
 // jump and dash further and run slower; weight is health against being easy to hit, and the thin can slip a blow.
@@ -69,19 +57,12 @@ const STAT_TEXT = { kills: 'Kill # enemies', headshots: 'Get # headshot kills', 
 export const needText = (I) => (I.need ? STAT_TEXT[I.need[0]].replace('#', I.need[1].toLocaleString()).replace(/\b1 (bosses|runs|guns)/, (m, w) => '1 ' + w.replace(/e?s$/, '')) : '');
 
 export const COSMETICS = {
-  // the frame the sliders work on. f: 0 broad in the shoulder and straight in the waist, 1 narrow in the shoulder and wide in the hip
-  body: [
-    { id: 'regular', name: 'Masculine', f: 0 }, { id: 'fem', name: 'Feminine', f: 1 },
-  ],
+  // what shows of the hair below the hat
   hair: [
-    { id: 'short', name: 'Short' }, { id: 'bald', name: 'Bald' }, { id: 'long', name: 'Long' }, { id: 'pomp', name: 'Pompadour' },
-    { id: 'mohawk', name: 'Mohawk', need: ['kills', 1400] }, { id: 'braids', name: 'Braids', need: ['runs', 9] }, { id: 'bun', name: 'Top Knot', need: ['headshots', 300] },
-    { id: 'afro', name: 'Afro', need: ['bestRound', 4] }, { id: 'mullet', name: 'Mullet', need: ['chests', 45] }, { id: 'spikes', name: 'Spikes', need: ['eliteKills', 75] },
-    { id: 'buzz', name: 'Buzz Cut' }, { id: 'slick', name: 'Slicked Back' }, { id: 'part', name: 'Side Part' }, { id: 'bob', name: 'Bob' }, { id: 'pony', name: 'Ponytail' },
-    { id: 'pigtails', name: 'Pigtails' }, { id: 'curly', name: 'Curls' }, { id: 'dreads', name: 'Locs' }, { id: 'undercut', name: 'Undercut' }, { id: 'flat', name: 'Flat Top' },
-    { id: 'wavy', name: 'Long Waves' }, { id: 'bangs', name: 'Fringe' }, { id: 'rows', name: 'Cornrows' }, { id: 'horseshoe', name: 'Balding' },
+    { id: 'none', name: 'None' }, { id: 'tufts', name: 'Side Tufts' }, { id: 'braids', name: 'Braids' }, { id: 'pigtails', name: 'Pigtails' }, { id: 'long', name: 'Long' }, { id: 'pony', name: 'Ponytail' },
   ],
   haircol: [
+    { id: 'snow', name: 'Snow', c: 0xf4f0e6 },
     { id: 'brown', name: 'Brown', c: 0x3a2a22 }, { id: 'black', name: 'Black', c: 0x1c1a20 }, { id: 'blonde', name: 'Blonde', c: 0xe0b860 }, { id: 'ginger', name: 'Ginger', c: 0xb0502a },
     { id: 'grey', name: 'Grey', c: 0xb8b2a8 }, { id: 'teal', name: 'Teal', c: 0x1f8a8a, need: ['kills', 3600] }, { id: 'pink', name: 'Pink', c: 0xe86a9a, need: ['chests', 100] },
     { id: 'red', name: 'Blood Red', c: 0xc8211b, need: ['headshots', 1600] }, { id: 'white', name: 'White', c: 0xf2e8d5, need: ['bestRound', 6] }, { id: 'goldh', name: 'Gold', c: 0xffcd5a, need: ['moneyEarned', 900000] },
@@ -151,57 +132,42 @@ export const COSMETICS = {
     { id: 'white', name: 'Whites', a: 0xece6d6, b: 0xc8211b, need: ['chests', 200] }, { id: 'goldl', name: 'Gold Trim', a: 0x2a2430, b: 0xffcd5a, stripe: true, need: ['bosses', 16] },
   ],
   hat: [
-    { id: 'none', name: 'None' }, { id: 'cowboy', name: 'Cowboy Hat', a: 0x3a2a22, b: 0xc8211b }, { id: 'cap', name: 'Trucker Cap', a: 0xc8211b, b: 0xf2e8d5 },
+    { id: 'gnome', name: 'Gnome Hat', a: 0xc8211b, b: 0xf2e8d5 }, { id: 'straight', name: 'Pointed', a: 0x1f8a8a, b: 0xffcd5a }, { id: 'curl', name: 'Curled Tip', a: 0x2f6a3a, b: 0xe0ac2a },
+    { id: 'stocking', name: 'Stocking Cap', a: 0xb0502a, b: 0xf2e8d5 }, { id: 'wizard', name: 'Wide Brim', a: 0x34406a, b: 0xffcd5a }, { id: 'jester', name: 'Two Points', a: 0x7a2a8a, b: 0xe0ac2a },
+    { id: 'mushroom', name: 'Toadstool', a: 0xc8211b, b: 0xf2e8d5 }, { id: 'acorn', name: 'Acorn Cap', a: 0x7a5a36, b: 0x4E3324 }, { id: 'pot', name: 'Cooking Pot', a: 0x6a6a72, b: 0x3a3a40 },
+    { id: 'cowboy', name: 'Cowboy Hat', a: 0x3a2a22, b: 0xc8211b }, { id: 'cap', name: 'Trucker Cap', a: 0xc8211b, b: 0xf2e8d5 },
     { id: 'bowler', name: 'Bowler', a: 0x1c1a20, b: 0x6a2030, need: ['kills', 600] }, { id: 'beanie', name: 'Beanie', a: 0x1f6a6a, b: 0xffcd5a, need: ['runs', 15] },
     { id: 'visor', name: 'Telegraph Visor', a: 0x1f8a4c, b: 0x140d12, need: ['chests', 30] }, { id: 'tophat', name: 'Top Hat', a: 0x140d12, b: 0xc8211b, need: ['bestRound', 5] },
     { id: 'sombrero', name: 'Sombrero', a: 0xe0b060, b: 0xc8211b, need: ['kills', 4800] }, { id: 'miner', name: 'Miner Helmet', a: 0xe8c81e, b: 0xfff4d8, need: ['bosses', 4] },
     { id: 'fez', name: 'Fez', a: 0xa01f24, b: 0xffcd5a, need: ['moneyEarned', 150000] }, { id: 'cone', name: 'Traffic Cone', a: 0xf07a1e, b: 0xf2e8d5, need: ['airKills', 150] },
-    { id: 'whitehat', name: 'White Hat', a: 0xece6d6, b: 0xffcd5a, need: ['headshots', 2400] }, { id: 'horns', name: 'Horns', a: 0x8a1f24, b: 0xf2e8d5, need: ['eliteKills', 200] },
-    { id: 'halo', name: 'Halo', a: 0xffe27a, b: 0xffe27a, need: ['bestRound', 9] }, { id: 'crown', name: 'Crown', a: 0xffcd5a, b: 0xc8211b, need: ['wins', 1] },
+    { id: 'whitehat', name: 'White Hat', a: 0xece6d6, b: 0xffcd5a, need: ['headshots', 2400] }, { id: 'horns', name: 'Horned Helm', a: 0x8a8a90, b: 0xf2e8d5, need: ['eliteKills', 200] },
+    { id: 'halo', name: 'Halo', a: 0xf2e8d5, b: 0xffe27a, need: ['bestRound', 9] }, { id: 'crown', name: 'Crown', a: 0xffcd5a, b: 0xc8211b, need: ['wins', 1] },
   ],
-  face: [
-    { id: 'none', name: 'None' }, { id: 'bandana', name: 'Bandana', a: 0xc8211b, b: 0xf2e8d5 },
-    { id: 'specs', name: 'Round Specs', a: 0x140d12, need: ['runs', 6] }, { id: 'shades', name: 'Shades', a: 0x140d12, need: ['kills', 2400] },
-    { id: 'patch', name: 'Eyepatch', a: 0x140d12, need: ['headshots', 200] },
-    { id: 'cigar', name: 'Cigar', a: 0x6a4a32, b: 0xff7a2a, need: ['bosses', 4] }, { id: 'monocle', name: 'Monocle', a: 0xffcd5a, need: ['moneyEarned', 600000] },
-    { id: 'gasmask', name: 'Gas Mask', a: 0x3a3a40, b: 0x9fd6e0, need: ['bosses', 12] },
-    { id: 'skull', name: 'Skull Paint', a: 0xf2e8d5, b: 0x140d12, need: ['eliteKills', 100] }, { id: 'hockey', name: 'Goalie Mask', a: 0xece6d6, b: 0xc8211b, need: ['bestRound', 11] },
+  // a hat keeps its own colours unless you choose others
+  hatcol: [
+    { id: 'own', name: 'Its Own' }, { id: 'red', name: 'Red', c: 0xc8211b }, { id: 'teal', name: 'Teal', c: 0x3f8a96 }, { id: 'forest', name: 'Forest', c: 0x2f6a3a }, { id: 'mustard', name: 'Mustard', c: 0xe0ac2a },
+    { id: 'plum', name: 'Plum', c: 0x6a2a6a }, { id: 'navy', name: 'Navy', c: 0x24345a }, { id: 'rust', name: 'Rust', c: 0xb0502a }, { id: 'sky', name: 'Sky', c: 0x6ab0d8 }, { id: 'pink', name: 'Pink', c: 0xe86a9a },
+    { id: 'moss', name: 'Moss', c: 0x7a8a3a }, { id: 'coal', name: 'Coal', c: 0x24202a }, { id: 'cream', name: 'Cream', c: 0xf2e8d5 }, { id: 'gold', name: 'Gold', c: 0xffcd5a, need: ['moneyEarned', 600000] },
   ],
-  jaw: [
-    { id: 'oval', name: 'Oval' }, { id: 'square', name: 'Square' }, { id: 'round', name: 'Round' }, { id: 'narrow', name: 'Long' }, { id: 'heart', name: 'Heart' }, { id: 'strong', name: 'Lantern Jaw' },
-    { id: 'soft', name: 'Full Cheeks' }, { id: 'gaunt', name: 'Gaunt' }, { id: 'diamond', name: 'Diamond' },
+  hatpat: [
+    { id: 'plain', name: 'Plain' }, { id: 'band', name: 'Band' }, { id: 'stripes', name: 'Stripes' }, { id: 'dip', name: 'Dipped Tip' }, { id: 'spots', name: 'Spots' }, { id: 'stars', name: 'Stars' }, { id: 'patches', name: 'Patches' },
   ],
-  eyes: [
-    { id: 'plain', name: 'Plain' }, { id: 'wide', name: 'Wide' }, { id: 'narrow', name: 'Narrow' }, { id: 'sleepy', name: 'Heavy-lidded' }, { id: 'lashes', name: 'Lashes' },
-    { id: 'almond', name: 'Upturned' }, { id: 'down', name: 'Downturned' }, { id: 'bags', name: 'Tired' },
-  ],
-  eyecol: [
-    { id: 'brown', name: 'Brown', c: 0x4a2c1a }, { id: 'dark', name: 'Dark', c: 0x1a1210 }, { id: 'hazel', name: 'Hazel', c: 0x80602a }, { id: 'green', name: 'Green', c: 0x3f7a4a }, { id: 'blue', name: 'Blue', c: 0x3a6ea8 },
-    { id: 'grey', name: 'Grey', c: 0x7a8088 }, { id: 'amber', name: 'Amber', c: 0xc08a2a }, { id: 'violet', name: 'Violet', c: 0x7a4aa8 }, { id: 'red', name: 'Red', c: 0xb01f24 }, { id: 'white', name: 'Pale', c: 0xc8d8e0 },
-  ],
-  brows: [
-    { id: 'plain', name: 'Plain' }, { id: 'thick', name: 'Thick' }, { id: 'thin', name: 'Thin' }, { id: 'arched', name: 'Arched' }, { id: 'angry', name: 'Scowl' }, { id: 'worried', name: 'Worried' },
-    { id: 'uni', name: 'Monobrow' }, { id: 'none', name: 'None' },
+  hattip: [
+    { id: 'none', name: 'None' }, { id: 'pompom', name: 'Pompom' }, { id: 'bell', name: 'Bell' }, { id: 'star', name: 'Star' }, { id: 'tassel', name: 'Tassel' }, { id: 'flower', name: 'Flower' }, { id: 'lantern', name: 'Lantern' },
   ],
   nose: [
-    { id: 'plain', name: 'Plain' }, { id: 'small', name: 'Small' }, { id: 'broad', name: 'Broad' }, { id: 'long', name: 'Long' }, { id: 'button', name: 'Button' }, { id: 'hook', name: 'Hooked' }, { id: 'broken', name: 'Broken' },
+    { id: 'round', name: 'Round' }, { id: 'potato', name: 'Potato' }, { id: 'long', name: 'Long' }, { id: 'button', name: 'Button' }, { id: 'pointed', name: 'Pointed' }, { id: 'bulb', name: 'Bulb' }, { id: 'hook', name: 'Hooked' },
   ],
-  mouth: [
-    { id: 'plain', name: 'Plain' }, { id: 'smile', name: 'Smile' }, { id: 'frown', name: 'Frown' }, { id: 'smirk', name: 'Smirk' }, { id: 'full', name: 'Full Lips' }, { id: 'grin', name: 'Grin' }, { id: 'thin', name: 'Thin' },
+  blush: [{ id: 'plain', name: 'Plain' }, { id: 'rosy', name: 'Rosy' }, { id: 'red', name: 'Red-nosed' }],
+  // the beard takes the hair colour
+  beard: [
+    { id: 'long', name: 'Long' }, { id: 'round', name: 'Bushy' }, { id: 'forked', name: 'Forked' }, { id: 'braid', name: 'Braided' }, { id: 'twin', name: 'Twin Braids' }, { id: 'short', name: 'Short' },
+    { id: 'curly', name: 'Curly' }, { id: 'wizard', name: 'Wizard' }, { id: 'none', name: 'None' },
   ],
-  lips: [
-    { id: 'natural', name: 'Natural' }, { id: 'red', name: 'Red', c: 0xb01f24 }, { id: 'rose', name: 'Rose', c: 0xd0607a }, { id: 'coral', name: 'Coral', c: 0xe07a5a }, { id: 'plum', name: 'Plum', c: 0x6a2a4a }, { id: 'black', name: 'Black', c: 0x1c1418 },
-  ],
-  // facial hair takes the colour of the hair
-  fhair: [
-    { id: 'none', name: 'None' }, { id: 'stubble', name: 'Stubble' }, { id: 'stache', name: 'Moustache' }, { id: 'pencil', name: 'Pencil' }, { id: 'handlebar', name: 'Handlebar' }, { id: 'horseshoe', name: 'Horseshoe' },
-    { id: 'walrus', name: 'Walrus' }, { id: 'soul', name: 'Soul Patch' }, { id: 'goatee', name: 'Goatee' }, { id: 'vandyke', name: 'Van Dyke' }, { id: 'chinstrap', name: 'Chin Strap' }, { id: 'chops', name: 'Mutton Chops' },
-    { id: 'beard', name: 'Full Beard' }, { id: 'long', name: 'Prospector Beard' },
-  ],
-  mark: [
-    { id: 'none', name: 'None' }, { id: 'freckles', name: 'Freckles' }, { id: 'mole', name: 'Beauty Mark' }, { id: 'blush', name: 'Blush' }, { id: 'scareye', name: 'Scar: Eye' }, { id: 'scarcheek', name: 'Scar: Cheek' },
-    { id: 'scarlip', name: 'Scar: Lip' }, { id: 'liner', name: 'Eyeliner' }, { id: 'shadow', name: 'Eyeshadow', c: 0x6a4a9a }, { id: 'smoky', name: 'Smoky Eyes', c: 0x2a2028 }, { id: 'warpaint', name: 'War Paint', c: 0xc8211b },
-    { id: 'band', name: 'Painted Mask', c: 0x1c1a20 }, { id: 'tear', name: 'Teardrop' }, { id: 'wrinkles', name: 'Weathered' },
+  stache: [{ id: 'droop', name: 'Sweeping' }, { id: 'handlebar', name: 'Handlebar' }, { id: 'walrus', name: 'Walrus' }, { id: 'curl', name: 'Curled' }, { id: 'none', name: 'None' }],
+  face: [
+    { id: 'none', name: 'None' }, { id: 'specs', name: 'Round Specs', a: 0x140d12, need: ['runs', 6] }, { id: 'shades', name: 'Shades', a: 0x140d12, need: ['kills', 2400] },
+    { id: 'monocle', name: 'Monocle', a: 0xffcd5a, need: ['moneyEarned', 600000] }, { id: 'cigar', name: 'Cigar', a: 0x6a4a32, b: 0xff7a2a, need: ['bosses', 4] }, { id: 'pipe', name: 'Pipe', a: 0x4E3324, b: 0xff7a2a },
   ],
   back: [
     { id: 'none', name: 'None' }, { id: 'pack', name: 'Bedroll', a: 0x6a4a32, b: 0xc8211b }, { id: 'shotgun', name: 'Slung Shotgun', a: 0x3a2a22, b: 0x46464e, need: ['kills', 900] },
@@ -211,8 +177,8 @@ export const COSMETICS = {
     { id: 'wings', name: 'Wings', a: 0xf2e8d5, b: 0xffe27a, need: ['wins', 1] },
   ],
 };
-export const DEFAULT_LOOK = { body: 'regular', tone: 't1', hair: 'short', haircol: 'brown', outfit: 'drifter', legs: 'denim', boots: 'work', gloves: 'bare', hat: 'cowboy', face: 'none', neck: 'none', shoulder: 'none', waist: 'belt', back: 'none',
-  jaw: 'oval', eyes: 'plain', eyecol: 'brown', brows: 'plain', nose: 'plain', mouth: 'plain', lips: 'natural', fhair: 'none', mark: 'none' };
+export const DEFAULT_LOOK = { tone: 't1', hair: 'none', haircol: 'snow', outfit: 'drifter', legs: 'denim', boots: 'work', gloves: 'bare', hat: 'gnome', face: 'none', neck: 'none', shoulder: 'none', waist: 'belt', back: 'none',
+  hatcol: 'own', hatpat: 'plain', hattip: 'none', nose: 'round', blush: 'plain', beard: 'long', stache: 'droop' };
 export const cosItem = (slot, id) => COSMETICS[slot].find((I) => I.id === id) || COSMETICS[slot][0];
 // A look as one string, for other players: the pieces in order, then the body's sliders as one letter each (a = -1, k = 0, u = 1).
 export const shapeString = (sh) => SHAPES.map((K) => String.fromCharCode(97 + Math.round((cl(sh[K.id] === undefined ? DEFAULT_SHAPE[K.id] : sh[K.id]) + 1) * 10))).join('');
@@ -221,8 +187,6 @@ export const lookString = (L) => SLOTS.map((s) => L[s]).join('|') + '|~' + shape
 export function parseLook(str) {
   const p = String(str || '').split('|'), L = {}, sh = p.find((q) => q[0] === '~');
   SLOTS.forEach((s, i) => { const v = p[i]; L[s] = v && v[0] !== '~' && COSMETICS[s].some((I) => I.id === v) ? v : DEFAULT_LOOK[s]; });
-  // looks from before facial hair had a slot of its own
-  if (!sh) { const of = p[9]; if (of === 'stache') L.fhair = 'horseshoe'; else if (of === 'beard') L.fhair = 'beard'; else if (of === 'greybeard') L.fhair = 'long'; }
   L.shape = parseShape(sh ? sh.slice(1) : '');
   return L;
 }

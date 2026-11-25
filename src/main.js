@@ -415,11 +415,10 @@ function renderLocker() {
       h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''}" data-slot="${slot}" data-id="${I.id}"><div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx6(c1)}"></i><i style="background:${hx6(c2)}"></i>`}</div><b>${I.name}</b>${ok ? '' : `<span>${needText(I)}</span>`}</div>`;
     }
     h += '</div></div>';
-    if (slot === 'body') {
-      h += `<div class="lsec"><h3>BUILD <i>these three change how you play</i></h3>${SHAPES.filter((K) => K.stat).map(slider).join('')}</div>`;
-      h += `<div class="lsec"><h3>SHAPE <i>looks only</i></h3><div class="lsl2">${SHAPES.filter((K) => !K.stat).map(slider).join('')}</div><button id="lreset" class="alt">RESET THE BODY</button></div>`;
-    }
   }
+  { const SL = SHAPES.filter((K) => K.page === page.id), st = SL.filter((K) => K.stat), ot = SL.filter((K) => !K.stat);
+    if (st.length) h = h.replace('<div class="lscroll">', `<div class="lscroll"><div class="lsec"><h3>BUILD <i>these three change how you play</i></h3>${st.map(slider).join('')}</div>`);
+    if (ot.length) h += `<div class="lsec"><h3>${page.id === 'build' ? 'SIZE' : 'SHAPE'} <i>looks only</i></h3><div class="lsl2">${ot.map(slider).join('')}</div>${page.id === 'build' ? '<button id="lreset" class="alt">RESET EVERY SLIDER</button>' : ''}</div>`; }
   h += '</div></div></div>';
   const sc0 = locker.querySelector('.lscroll'), top0 = sc0 ? sc0.scrollTop : 0;
   locker.innerHTML = h;
@@ -439,11 +438,11 @@ function renderLocker() {
     e.stopPropagation();
     const pick = (slot) => { const L = COSMETICS[slot].filter((I) => Meta.cosUnlocked(slot, I.id)); return L[Math.floor(Math.random() * L.length)].id; }, o = {};
     for (const P of PAGES) for (const slot of P.slots) o[slot] = pick(slot);
-    for (const slot of ['face', 'neck', 'shoulder', 'back', 'mark']) if (Math.random() < 0.6) o[slot] = 'none';
-    if (Math.random() < 0.5) o.fhair = 'none'; if (Math.random() < 0.7) o.lips = 'natural';
+    for (const slot of ['face', 'neck', 'shoulder', 'back']) if (Math.random() < 0.6) o[slot] = 'none';
+    if (o.beard === 'none' && o.hair === 'none') o.hair = 'braids';
     Meta.setLooks(o);
     const S0 = Meta.shape(), r = () => Math.round((Math.random() * 2 - 1) * 7) / 10;
-    Meta.setShapes(Object.assign({}, S0, { muscle: r(), shoulders: r(), hips: r(), head: Math.round((Math.random() * 2 - 1) * 4) / 10 }));   // the three that change how you play are left as you set them
+    Meta.setShapes(Object.assign({}, S0, { hatH: r(), hatF: r(), brim: r(), nose: r(), beardL: r(), beardW: r(), head: Math.round((Math.random() * 2 - 1) * 4) / 10 }));   // the three that change how you play are left as you set them
     lockerRebuild(); renderLocker();
   };
   // One preview canvas and one WebGL context for the life of the page. Making a new context per redraw makes
@@ -460,9 +459,9 @@ function tickLocker(dt) {
   lockT += dt; lockChar.rotation.y = lockSpin + Math.sin(lockT * 0.4) * 0.12;
   animateCharacter(lockChar, lockT, 0, { preview: true });
   // the camera stands back for the body and the clothes and comes in for the face and the hair
-  const R = lockChar.userData.rig, hy = (R.hipY || 74) + 92, close = lockPage === 'face' || lockPage === 'hair' ? 1 : 0;
+  const R = lockChar.userData.rig, hy = R.headY || 130, close = lockPage === 'beard' ? 1 : lockPage === 'hat' ? 0.55 : 0;
   lockZoom += (close - lockZoom) * Math.min(1, dt * 6);
-  const z = lockZoom, tall = hy + 40, ty = (tall * 0.5) * (1 - z) + hy * z, dist = Math.max(600, tall * 3.1) * (1 - z) + 250 * z;
+  const z = lockZoom, tall = (R.topY || 220) + 12, ty = (tall * 0.5) * (1 - z) + (hy + 6) * z, dist = Math.max(520, tall * 2.9) * (1 - z) + 300 * z;
   lockCam.position.set(0, ty + 14 * (1 - z), dist); lockCam.lookAt(0, ty, 0);
   lockR.render(lockScene, lockCam);
 }
@@ -489,7 +488,7 @@ window.__lookSheet = (list, cols = 6, cw = 240, ch = 320) => {
   ensureLock(); lockR.setSize(cw, ch, false); const sc = new THREE.Scene();
   list.forEach((Q, i) => {
     const look = Object.assign({}, Meta.look(), Q.look || {}); look.shape = Object.assign({}, DEFAULT_SHAPE, (Q.look || {}).shape);
-    const c3 = buildCharacter(look); c3.rotation.y = Q.yaw === undefined ? 0.5 : Q.yaw; animateCharacter(c3, Q.t || 0, Q.speed || 0, { preview: !Q.aim }); sc.add(c3);
+    const c3 = buildCharacter(look); if (Q.post && window.__proto) window.__proto(c3, Q.post, look); c3.rotation.y = Q.yaw === undefined ? 0.5 : Q.yaw; animateCharacter(c3, Q.t || 0, Q.speed || 0, { preview: !Q.aim }); sc.add(c3);
     const V = Q.view || [0, 125, 700, 112]; const cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(V[0], V[1], V[2]); cam.lookAt(0, V[3], 0);
     lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(c3);
     g.fillStyle = '#ffcd5a'; g.font = '15px sans-serif'; g.fillText(Q.label || '', (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
@@ -533,7 +532,7 @@ function renderLobby() {
   h += `<p class="msg">${esc2(lobbyMsg)}</p></section>`;
   // character
   { const BL = bodyStatLines(L), bl = [...BL.arms, ...BL.legs, ...BL.weight];
-    h += `<section><h3>CHARACTER</h3><div class="lbchar">${['body', 'outfit', 'hat', 'hair'].map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><div class="lbbody">${bl.length ? bl.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span>An ordinary build.</span>'}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`; }
+    h += `<section><h3>CHARACTER</h3><div class="lbchar">${['hat', 'beard', 'nose', 'outfit'].map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><div class="lbbody">${bl.length ? bl.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span>An ordinary build.</span>'}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`; }
   h += '</aside><main>';
   const daily = !client && Meta.dailyOn();
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
