@@ -68,6 +68,17 @@ function gunMaterial(color, glow, metal, grain = 0) {
       }`,
   });
 }
+// a polygon with each corner rounded off: cut back along both edges by up to r (a third of the shorter edge at most) and
+// joined with a short curve
+function softCorners(pts, r) {
+  const out = [], n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i], a = pts[(i + n - 1) % n], b = pts[(i + 1) % n], la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]), d = Math.min(r, la / 3, lb / 3);
+    const A = [p[0] + ((a[0] - p[0]) / la) * d, p[1] + ((a[1] - p[1]) / la) * d], B = [p[0] + ((b[0] - p[0]) / lb) * d, p[1] + ((b[1] - p[1]) / lb) * d];
+    for (let k = 0; k <= 3; k++) { const t = k / 3, u = 1 - t; out.push([u * u * A[0] + 2 * u * t * p[0] + t * t * B[0], u * u * A[1] + 2 * u * t * p[1] + t * t * B[1]]); }
+  }
+  return out;
+}
 function vmMat(color, glow) {
   const metal = color.metal === undefined ? 0.2 : color.metal;
   const grain = color.grain ? 1 : 0;
@@ -127,14 +138,17 @@ export class ViewModel {
     return m;
   }
   // Side profile ([x forward, z up] points) extruded across the gun to width w, with chamfered edges.
+  // round: the edges are rounded over instead of chamfered (wood, polymer, leather); soft: the outline's corners are
+  // rounded too, by up to that distance.
   Ext(pts, w, color, o = {}) {
-    const bevel = Math.min(o.bevel === undefined ? 0.4 : o.bevel, w * 0.35);
-    const key = JSON.stringify([pts, w, bevel, o.holes || 0]);
+    const bevel = Math.min(o.bevel === undefined ? 0.4 : o.bevel, w * (o.round ? 0.42 : 0.35));
+    if (o.soft) pts = softCorners(pts, o.soft);
+    const key = JSON.stringify([pts, w, bevel, o.holes || 0, o.round || 0]);
     let g = extCache.get(key);
     if (!g) {
       const sh = new THREE.Shape(pts.map((q) => new THREE.Vector2(q[0], q[1])));
       for (const h of o.holes || []) sh.holes.push(new THREE.Path(h.map((q) => new THREE.Vector2(q[0], q[1]))));
-      g = new THREE.ExtrudeGeometry(sh, { depth: w - 2 * bevel, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 1, curveSegments: 6 });
+      g = new THREE.ExtrudeGeometry(sh, { depth: w - 2 * bevel, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: o.round ? 4 : 1, curveSegments: 6 });
       g.translate(0, 0, -(w - 2 * bevel) / 2);
       g.applyMatrix4(new THREE.Matrix4().set(0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1));   // (x fwd, z up, depth) -> view (right, up, -fwd)
       g = g.toNonIndexed(); g.computeVertexNormals();

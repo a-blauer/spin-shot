@@ -400,7 +400,7 @@ function buildGunWith(vm, W, tier, PAL) {
     case 'Copperhead': {
       autoPistol({ len: 15, slide: PAL.steelD, frame: Accent, gripCol: PAL.black });
       T(15, 21, 3.4, 7.6, PAL.steelD); for (let i = 0; i < 3; i++) for (const a of [0, 90, 180, 270]) Ball(16.4 + i * 1.7, Math.cos(d2r(a)) * 1.6, 7.6 + Math.sin(d2r(a)) * 1.6, 0.9, PAL.black);
-      E([[9, 3.2], [12, 3.2], [11.4, -3.6], [9.4, -3.6]], 2.6, PAL.black, { bevel: 0.6 });         // fore grip
+      E([[9, 3.2], [12, 3.2], [11.4, -3.6], [9.4, -3.6]], 2.6, PAL.black, { bevel: 0.6, round: true, soft: 1.2 });         // fore grip
       wireStock(-5, 7.5, PAL.steelD, 13, 7);
       vm.MagRoot = part('mag', -2.4, 0, -6.4, () => { E([[-0.4, 1.6], [-3.4, 1.6], [-7.6, -17.4], [-3.2, -17.4]], 3, PAL.steelD, { bevel: 0.3 }); for (let i = 0; i < 4; i++) B(-4.6 - i * 0.55, 1.55, -8 - i * 2.4, 1.6, 0.2, 1.2, C(0xC8743A), null, 0.4); });   // long stick, copper rounds showing through the witness holes
       Muzzle = V(21.5, 0, 7.6); Support = V(10.4, 0, -1);
@@ -440,7 +440,7 @@ function buildGunWith(vm, W, tier, PAL) {
       part('charge', 4, -2.6, 8.6, () => { Ball(4, -3.4, 8.6, 2, PAL.steelL); B(4, -2.6, 8.6, 1, 1.4, 1, PAL.steelL); }); B(4, -2.35, 8.6, 8, 0.3, 1.4, PAL.black);
       stock(-7, 9.4, PAL.wood, 20, 5, 9, 4.2);
       grip(-2, 3.6, PAL.wood, 11, 16, 5.4, 4); guard(0.6, 3.4, PAL.steelD, 6.6, 4.4);
-      E([[20, 4.6], [24, 4.6], [23.4, -4], [20.6, -4]], 3.4, PAL.wood, { bevel: 0.9 });            // vertical fore grip
+      E([[20, 4.6], [24, 4.6], [23.4, -4], [20.6, -4]], 3.4, PAL.wood, { bevel: 0.9, round: true, soft: 1.2 });            // vertical fore grip
       vm.MagRoot = group(11, 0, 3); into(vm.MagRoot, () => { Ty(0, -5.4, 13, 4.2, PAL.steelD); Ty(0, -5.4, 5, 4.6, Accent, 0, 0.3); Ty(0, -5.4, 14, 1, PAL.steel); });   // drum
       post(29, 8.8, 2.2); notch(-5, 10, 3.6);
       Muzzle = V(34.5, 0, 7.2); Support = V(22, 0, -1); Sight = 12.2;
@@ -516,7 +516,7 @@ function buildGunWith(vm, W, tier, PAL) {
       const gold = C(0xE0AC2A), goldD = C(0xA87818); gold.metal = 1; goldD.metal = 0.9;
       E([[-7, 4.4], [-7, 9.6], [14, 9.6], [14, 4.4]], 4.2, gold, { bevel: 0.5, glow: 0.15 });
       E([[-5, 9.6], [-5, 12.6], [9, 12.6], [11, 9.6]], 1.6, goldD, { bevel: 0.3, holes: [[[-3.6, 10.2], [-3.6, 11.6], [8, 11.6], [9, 10.2]]] });   // carry handle
-      E([[-7, 9.4], [-7, 5], [-24, 2.4], [-26, 2.6], [-26, 10], [-24, 10.2]], 4, PAL.bone, { bevel: 0.9 });   // ivory stock
+      E([[-7, 9.4], [-7, 5], [-24, 2.4], [-26, 2.6], [-26, 10], [-24, 10.2]], 4, PAL.bone, { bevel: 0.9, round: true, soft: 1.2 });   // ivory stock
       T(14, 32, 5.4, 7.2, PAL.bone); for (let i = 0; i < 6; i++) Ring(16.4 + i * 2.6, 7.2, 5.9, 0.5, goldD);
       T(32, 46, 2.4, 7.2, gold, 0, 0.15); E([[36, 7.6], [38, 7.6], [37.6, 12.6], [36.4, 12.6]], 1.4, goldD, { bevel: 0.2 }); T(46, 50, 3.4, 7.2, goldD);
       grip(-2, 4.6, PAL.bone, 11.4, 16, 5.2, 3.8); guard(0.6, 4.4, goldD, 6.6, 4.4);
@@ -565,7 +565,7 @@ function buildGunWith(vm, W, tier, PAL) {
     case 'Stampede': {
       E([[-8, 3.6], [-8, 11], [20, 11], [20, 3.6]], 5.6, Accent, { bevel: 0.9 });
       E(rect(-6, 11, 18, 12), 3, PAL.steelD, { bevel: 0.3 }); for (let i = 0; i < 7; i++) B(-4.6 + i * 3.4, 0, 12.1, 1.6, 3.2, 0.5, PAL.black);
-      E([[-8, 10.6], [-8, 4], [-22, 3], [-24, 3.6], [-24, 10.2], [-22, 10.6]], 5, Accent, { bevel: 1 }); E(rect(-25.4, 3.4, -23.6, 10.4), 5.2, PAL.rubber, { bevel: 0.3 });
+      E([[-8, 10.6], [-8, 4], [-22, 3], [-24, 3.6], [-24, 10.2], [-22, 10.6]], 5, Accent, { bevel: 1, round: true, soft: 1.2 }); E(rect(-25.4, 3.4, -23.6, 10.4), 5.2, PAL.rubber, { bevel: 0.3 });
       T(20, 40, 4.2, 7.6, PAL.steelD); T(20, 30, 6.4, 7.6, PAL.black); for (let i = 0; i < 4; i++) for (const a of [0, 90, 180, 270]) Ball(22 + i * 2.2, Math.cos(d2r(a)) * 3.1, 7.6 + Math.sin(d2r(a)) * 3.1, 1.1, PAL.steelD);
       grip(-3, 3.8, PAL.black, 11, 14, 5.4, 4); guard(-0.4, 3.6, PAL.steelD, 6.6, 4.4);
       part('charge', 8, -3, 8.6, () => { Ball(8, -3.9, 8.6, 2.2, PAL.steelL); B(8, -3.1, 8.6, 1.2, 1.4, 1, PAL.steelL); }); B(8, -2.85, 8.6, 12, 0.3, 1.8, PAL.black);
@@ -630,7 +630,7 @@ function buildGunWith(vm, W, tier, PAL) {
     }
     // ============================================================ SNIPERS
     case 'Widowmaker': {
-      E([[-10, 3.4], [-34, -0.6], [-36, 0], [-36, 8.4], [-34, 9], [-18, 9.6], [-8, 8], [0, 6.4], [30, 6.4], [32, 5], [30, 3.6], [8, 3.4], [2, 2.6], [-2, 0], [-7, -1.6]], 4.6, PAL.black, { bevel: 1.2 });   // one-piece stock
+      E([[-10, 3.4], [-34, -0.6], [-36, 0], [-36, 8.4], [-34, 9], [-18, 9.6], [-8, 8], [0, 6.4], [30, 6.4], [32, 5], [30, 3.6], [8, 3.4], [2, 2.6], [-2, 0], [-7, -1.6]], 4.6, PAL.black, { bevel: 1.2, round: true, soft: 1.2 });   // one-piece stock
       E(rect(-37.4, 0.2, -35.6, 8.6), 4.8, PAL.rubber, { bevel: 0.3 });
       E(rect(-30, 9.4, -20, 11), 3.4, PAL.steelD, { bevel: 0.6 });                                                     // cheek rest
       T(-6, 14, 4.4, 8.2, PAL.steel); T(14, 66, 2.8, 8.2, PAL.steelD); T(66, 70, 4, 8.2, PAL.steel);
@@ -658,7 +658,7 @@ function buildGunWith(vm, W, tier, PAL) {
     // ============================================================ LAUNCHERS
     case 'Dynamite Dan': {
       O(6, 34, 10.5, 9, PAL.steelD); T(33, 36, 11.6, 9, PAL.brass); T(4, 7, 11.6, 9, PAL.brass); Ring(20, 9, 11.4, 0.8, PAL.steel);
-      E([[4, 12], [4, 4.6], [-6, 3.6], [-26, 0.4], [-28, 1], [-28, 8.6], [-26, 9.2], [-8, 9.6]], 5, PAL.wood, { bevel: 1.2 });
+      E([[4, 12], [4, 4.6], [-6, 3.6], [-26, 0.4], [-28, 1], [-28, 8.6], [-26, 9.2], [-8, 9.6]], 5, PAL.wood, { bevel: 1.2, round: true, soft: 1.2 });
       E(rect(-29.4, 1.2, -27.6, 8.8), 5.2, PAL.rubber, { bevel: 0.3 });
       E([[-4, 4.4], [8, 4.4], [8, 3.4], [2, 3], [0, -1], [-6, -1.6], [-7, 1.6]], 1.6, PAL.steelD, { bevel: 0.25, holes: [[[-4.4, 3.4], [0.6, 3.4], [-0.6, 0], [-5, -0.4]]] });
       E([[16, 4], [20, 4], [19.4, -3.4], [16.6, -3.4]], 3.4, PAL.wood, { bevel: 0.9 });
@@ -731,7 +731,7 @@ function buildGunWith(vm, W, tier, PAL) {
       const ice = C(0xDFF6FF);
       E([[-8, 3.6], [-8, 10.4], [14, 10.4], [16, 8.4], [16, 3.6]], 5.4, C(0xE9EEF2), { bevel: 1.2 });                   // enamel body
       E(rect(-6, 10.4, 12, 11.2), 2.4, PAL.steelL, { bevel: 0.2 });
-      E([[-8, 9.6], [-8, 4.6], [-24, 3.4], [-26, 4], [-26, 9.2], [-24, 9.8]], 4.6, C(0xE9EEF2), { bevel: 1, holes: [[[-12, 8.2], [-12, 5.8], [-21, 5.2], [-21, 8.2]]] });
+      E([[-8, 9.6], [-8, 4.6], [-24, 3.4], [-26, 4], [-26, 9.2], [-24, 9.8]], 4.6, C(0xE9EEF2), { bevel: 1, round: true, soft: 1.2, holes: [[[-12, 8.2], [-12, 5.8], [-21, 5.2], [-21, 8.2]]] });
       T(16, 40, 2.4, 7, PAL.steelL); for (let i = 0; i < 6; i++) Ring(19 + i * 3.4, 7, 6.4, 0.9, Accent, 1.2);          // cooling coil
       part('emit', 41, 0, 7, () => Cone(43.6, 7, 4.6, 8, ice, true, 0, 2.2)); T(39, 41, 4.4, 7, PAL.steelL);                                          // crystal emitter
       Ty(4, 12.6, 4.6, 4.4, PAL.steelL); Ty(4, 12.6, 3.2, 4.8, Accent, 0, 1.2);       // coolant canister on top
@@ -769,7 +769,7 @@ function buildGunWith(vm, W, tier, PAL) {
         E(teeth, 0.9, PAL.steelL, { bevel: 0.2, holes: [arc(0, 0, 2.4, 0, 330, 8)] }); Ty(0, 0, 5, 1.6, PAL.steelD); Ty(0, 0, 2, 2.2, PAL.red);
       });
       E(arc(34, 7.4, 13.4, 20, 200, 10).concat(arc(34, 7.4, 11.6, 200, 20, 10)), 3, C(0xC8A020), { bevel: 0.4 });       // blade guard
-      E([[-8, 10.4], [-8, 4.4], [-22, 4], [-24, 4.6], [-24, 9.8], [-22, 10.4]], 5, PAL.black, { bevel: 1, holes: [[[-11, 8.6], [-11, 6], [-20, 5.6], [-20, 8.6]]] });
+      E([[-8, 10.4], [-8, 4.4], [-22, 4], [-24, 4.6], [-24, 9.8], [-22, 10.4]], 5, PAL.black, { bevel: 1, round: true, soft: 1.2, holes: [[[-11, 8.6], [-11, 6], [-20, 5.6], [-20, 8.6]]] });
       grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelD, 6.6, 4.4);
       E([[12, 11], [14, 11], [20, 17], [10, 17], [8, 15.4], [16, 15.4]], 2, PAL.black, { bevel: 0.5 });                  // top handle
       vm.MagRoot = group(6, 0, 3.6); into(vm.MagRoot, () => { for (let i = 0; i < 3; i++) Ty(0, -2 - i * 1.6, 9, 0.8, PAL.steelL); });
@@ -803,7 +803,7 @@ function buildGunWith(vm, W, tier, PAL) {
       const card = (g, x, yaw, roll, col) => { const m = vm.Part(g, 0, V(x, 0, 0), V(8.6, 0.25, 6), col, R(0, yaw, roll), 0.35); return m; };
       vm.MagRoot = group(26, 0, 8);
       into(vm.MagRoot, () => { for (let i = 0; i < 5; i++) { const k = i - 2; const c = vm.Part(cur, 0, V(4 - Math.abs(k) * 0.7, k * 2.6, 1.2 + i * 0.3), V(11, 2.6, 0.3), steelB, R(28, k * 15, 0), 0.15); const pp = vm.Part(cur, 0, V(0.4 - Math.abs(k) * 0.7, k * 1.3, 0.4 + i * 0.3), V(3.4, 1.5, 0.7), PAL.black, R(28, k * 15, 0), 0); (vm.Cards = vm.Cards || []).push({ c, pp, cr: c.position.clone(), pr: pp.position.clone(), k }); } });
-      E([[-8, 10.4], [-8, 4.4], [-22, 3.6], [-24, 4.2], [-24, 9.6], [-22, 10.2]], 4.6, C(0x3a1a20), { bevel: 1 });
+      E([[-8, 10.4], [-8, 4.4], [-22, 3.6], [-24, 4.2], [-24, 9.6], [-22, 10.2]], 4.6, C(0x3a1a20), { bevel: 1, round: true, soft: 1.2 });
       grip(-2, 3.8, PAL.bone, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
       part('deck', 10, 0, 11.6, () => { E([[6, 11.6], [14, 11.6], [14, 13.6], [6, 13.6]], 4, PAL.steelD, { bevel: 0.3 }); for (let i = 0; i < 3; i++) B(10, 0, 13.7 + i * 0.3, 8 - i, 2.6 - i * 0.4, 0.25, steelB); both((s) => Ty(10, 12.6, 1, 0.3, PAL.brass, s * 2.05)); });   // blade cassette on top
       Muzzle = V(34, 0, 8); Support = V(16, 0, 2); Sight = 15;
@@ -811,7 +811,7 @@ function buildGunWith(vm, W, tier, PAL) {
     }
     case 'Black Cat': {
       const eye = C(0x7CFF4A);
-      E([[-10, 3.4], [-30, 0], [-34, 2], [-36, 8], [-33, 9.6], [-30, 7], [-20, 9.4], [-8, 8], [0, 6.4], [28, 6.4], [30, 5], [28, 3.6], [8, 3.4], [2, 2.6], [-2, 0], [-7, -1.6]], 4.4, PAL.black, { bevel: 1.2 });   // stock that curls like a tail
+      E([[-10, 3.4], [-30, 0], [-34, 2], [-36, 8], [-33, 9.6], [-30, 7], [-20, 9.4], [-8, 8], [0, 6.4], [28, 6.4], [30, 5], [28, 3.6], [8, 3.4], [2, 2.6], [-2, 0], [-7, -1.6]], 4.4, PAL.black, { bevel: 1.2, round: true, soft: 1.2 });   // stock that curls like a tail
       T(-6, 14, 4.4, 8.2, PAL.black); T(14, 60, 2.8, 8.2, PAL.steelD); T(60, 72, 4.8, 8.2, PAL.black);                    // integral suppressor
       part('bolt', -4, 0, 8.2, () => { T(-9.6, 2, 3.2, 8.2, PAL.steelD); Pt(1, -4, 3.2, 7.2, 1.4, 1.4, 5, PAL.steelD, R(0, 0, 55)); Ball(-4, 5.6, 5.6, 2.8, eye, 1.4); });
       guard(-2, 2.8, PAL.steelD, 7, 4.2);
@@ -881,7 +881,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (let i = 0; i < 5; i++) Ring(18.5 + i * 2.2, 9, 5.2, 0.7, PAL.steelL);                                             // the spring
       part('emit', 32, 0, 9, () => { Ball(32, 0, 9, 7.6, face); Ball(35.6, 0, 8.6, 2.4, PAL.red, 0.7); both((s) => { Ball(34.8, s * 1.9, 10.6, 1.2, PAL.black); Ball(30.6, s * 3.7, 10.6, 3.6, C(0xF07A2A)); }); E([[34.2, 6.4], [35.8, 5.6], [34.8, 7]], 3, PAL.red, { bevel: 0.2 }); });
       hideAds(() => { Pt(3, 31.4, 0, 15.4, 6.4, 6.4, 7.4, Accent); Ball(31.4, 0, 19.4, 2, gold, 1.2); });
-      E([[-6, 12], [-6, 6], [-18, 5], [-20, 6], [-20, 11], [-18, 12]], 5, red2, { bevel: 1 });
+      E([[-6, 12], [-6, 6], [-18, 5], [-20, 6], [-20, 11], [-18, 12]], 5, red2, { bevel: 1, round: true, soft: 1.2 });
       grip(-2, 3.8, red2, 11.4, 14, 5.4, 4); guard(0.6, 3.6, gold, 6.6, 4.4);
       vm.MagRoot = group(6, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.6, -6.6, 3.6, 0), 5.4, blue, { bevel: 0.5 }); E(rect(-3.9, -1.2, 3.9, 0), 5.8, gold, { bevel: 0.2 }); });
       Muzzle = V(37, 0, 9); Support = V(20, 0, 3); Sight = 16.2;
@@ -912,7 +912,7 @@ function buildGunWith(vm, W, tier, PAL) {
       Ty(40, 11, 4.4, 3.6, PAL.steelD); Ty(40, 11, 1.4, 4.4, PAL.steelL);
       hose([[40, 0, 13.2], [42.2, 0, 11], [42.2, 0, 6.4]], 1, PAL.steelL);
       part('emit', 42.2, 0, 1, () => { Ball(42.2, 0, 0.4, 11, iron); Tz(42.2, 5.2, 6.8, 2.4, PAL.steelD); Ball(40.4, -2.4, 3, 2.6, C(0x6a6e7a)); });
-      E([[-8, 10.4], [-8, 4.4], [-22, 4], [-24, 4.6], [-24, 9.8], [-22, 10.4]], 5, PAL.black, { bevel: 1, holes: [[[-11, 8.6], [-11, 6], [-20, 5.6], [-20, 8.6]]] });
+      E([[-8, 10.4], [-8, 4.4], [-22, 4], [-24, 4.6], [-24, 9.8], [-22, 10.4]], 5, PAL.black, { bevel: 1, round: true, soft: 1.2, holes: [[[-11, 8.6], [-11, 6], [-20, 5.6], [-20, 8.6]]] });
       grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelD, 6.6, 4.4);
       vm.MagRoot = group(5, 0, 3.6); into(vm.MagRoot, () => { E(rect(-4, -6, 4, 0), 5, PAL.steelD, { bevel: 0.5 }); E(rect(-4.3, -3.6, 4.3, -2.2), 5.3, site, { bevel: 0.1 }); });
       Muzzle = V(44, 0, 6); Support = V(22, 0, 5); Sight = 15.5;
@@ -958,7 +958,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(14, 30, 2.6, 7.4, PAL.steelD); Ring(16, 7.4, 3.8, 0.7, PAL.brass); Ring(29.4, 7.4, 3.8, 0.7, PAL.brass);
       hideAds(() => { T(-3, 8.6, 2.4, 13.2, PAL.woodD); { const P = []; for (let a = 0; a <= Math.PI * 2 * 7; a += 0.3) P.push([-2.4 + (a / (Math.PI * 2)) * 1.55, Math.cos(a) * 2.6, 13.2 + Math.sin(a) * 2.6]); hose(P, 1.3, rope); }   /* one rope wound round the spool */ both((s) => Ring(-3.2 + s * 0 + (s > 0 ? 11.6 : 0), 13.2, 7.4, 0.7, PAL.brass)); });   // the coil
       Ring(36, 7.4, 13.5, 1.1, rope); Ball(36, 0, 0.7, 2.2, rope); hose([[9, 0, 11.4], [20, 0, 9.4], [30, 0, 7.6], [36, 0, 1.4]], 0.9, rope);   // the loop, ready
-      E([[-8, 9.2], [-8, 4.6], [-20, 3.4], [-22, 4], [-22, 8.6], [-20, 9.2]], 4.2, lea, { bevel: 1 }); for (let i = 0; i < 4; i++) both((s) => Ball(-11 - i * 2.6, s * 2.14, 6.6, 0.8, PAL.brass));
+      E([[-8, 9.2], [-8, 4.6], [-20, 3.4], [-22, 4], [-22, 8.6], [-20, 9.2]], 4.2, lea, { bevel: 1, round: true, soft: 1.2 }); for (let i = 0; i < 4; i++) both((s) => Ball(-11 - i * 2.6, s * 2.14, 6.6, 0.8, PAL.brass));
       grip(-2, 4.2, lea, 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
       vm.MagRoot = group(6, 0, 4); into(vm.MagRoot, () => { for (let i = 0; i < 4; i++) Ty(0, -1.6 - i * 1.5, 6 - i * 0.3, 1.2, rope); });
       Muzzle = V(37, 0, 7.4); Support = V(18, 0, 3.4); Sight = 11.4;
@@ -972,7 +972,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (let i = 0; i < 6; i++) { const a = d2r(i * 60 + 30); Ball(21, Math.cos(a) * 5.3, 7.6 + Math.sin(a) * 5.3, 1, PAL.brass); }
       part('emit', 32, 0, 7.6, () => { B(32.4, -2.4, 8.8, 4.6, 4.6, 4.6, ivory, R(12, 22, 8)); B(33, 2.6, 6, 4.6, 4.6, 4.6, ivory, R(-10, -25, 14)); Ball(34.9, -2.2, 9, 1.1, PAL.red); Ball(35.4, 2.2, 7, 0.9, PAL.black); Ball(35.2, 3.4, 5, 0.9, PAL.black); Ball(32.2, -2.6, 11.3, 0.9, PAL.black); });
       both((s) => { B(2, s * 2.56, 7.2, 4.4, 0.1, 4.4, ivory); for (const [dx, dz] of [[-1.2, 1.2], [1.2, -1.2], [0, 0], [-1.2, -1.2], [1.2, 1.2]]) Ball(2 + dx, s * 2.64, 7.2 + dz, 0.8, PAL.black); });   // a five on each side
-      E([[-8, 10], [-8, 4.4], [-20, 4], [-22, 4.6], [-22, 9.4], [-20, 10]], 4.6, felt, { bevel: 1 });
+      E([[-8, 10], [-8, 4.4], [-20, 4], [-22, 4.6], [-22, 9.4], [-20, 10]], 4.6, felt, { bevel: 1, round: true, soft: 1.2 });
       grip(-2, 3.8, C(0x2A1A14), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
       vm.MagRoot = group(4, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.4, -6.4, 3.4, 0), 4.4, C(0x7A1F2A), { bevel: 0.5 }); both((s) => Ball(0, s * 2.24, -3.2, 1.2, PAL.brass)); });
       Muzzle = V(35, 0, 7.6); Support = V(20, 0, 2); Sight = 15;
@@ -1013,7 +1013,7 @@ function buildGunWith(vm, W, tier, PAL) {
       both((s) => { E(star(2, 7.2, 2.4), 0.3, hot, { y: s * 2.86, bevel: 0.04, glow: 0.6 }); Ty(13, 7.2, 5.4, 0.6, PAL.red, s * 2.9); Ty(13, 7.2, 3.4, 0.8, PAL.bone, s * 3); Ball(13, s * 3.3, 7.2, 1.8, lit, 1.6); Ty(21, 6.6, 3.6, 0.6, C(0x2A9AD8), s * 2.9); Ball(21, s * 3.2, 6.6, 1.3, lit, 1.6); });   // bumpers
       Hol(-4, 34, 4.8, 12.8, C(0xCFE6F2)); Ball(9, 0, 12.8, 3.7, PAL.steelL); Ring(34, 12.8, 5.6, 0.9, PAL.steelL); Ring(-4, 12.8, 5.6, 0.9, PAL.steelL);   // the launch lane and a ball in it
       hideAds(() => { T(-12, -4, 1.4, 12.8, PAL.steelL); Ball(-13, 0, 12.8, 3.4, PAL.black); for (let i = 0; i < 4; i++) Ring(-10.4 + i * 1.5, 12.8, 3, 0.5, PAL.steelL); });   // the plunger
-      E([[15, 3.8], [29, 1.2], [29.8, 2.6], [16, 5.4]], 2.6, PAL.red, { bevel: 0.7 }); Ty(16.4, 4.4, 2.2, 3.2, PAL.steelL);   // a flipper for a fore-grip
+      E([[15, 3.8], [29, 1.2], [29.8, 2.6], [16, 5.4]], 2.6, PAL.red, { bevel: 0.7, round: true, soft: 1.2 }); Ty(16.4, 4.4, 2.2, 3.2, PAL.steelL);   // a flipper for a fore-grip
       stock(-8, 10, C(0x1A1A44), 14, 4, 9, 4.4);
       grip(-2, 3.8, PAL.black, 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.steelL, 6.6, 4.4);
       vm.MagRoot = group(7, 0, 3.6); into(vm.MagRoot, () => { E(rect(-5, -4.6, 5, 0), 3.8, C(0x1A1A44), { bevel: 0.4 }); for (let i = 0; i < 3; i++) Ball(-3 + i * 3, 0, -5, 3, PAL.steelL); });
@@ -1115,7 +1115,7 @@ function buildGunWith(vm, W, tier, PAL) {
         Tz(1, 9.2, 9.9, 13.4, PAL.black); Tz(1, 9.9, 16, 8.8, PAL.black); Tz(1, 10, 11.6, 9.1, Accent, 0, 0.8); Tz(1, 15.8, 16.1, 7.6, silk);
         Ball(1, 0, 17.2, 5.4, fur); both((s) => { E([[-0.4, 19.4], [0.8, 26], [2.2, 19.4]], 1.1, fur, { y: s * 1.5, bevel: 0.3 }); E([[0.2, 20.2], [0.8, 24.6], [1.5, 20.2]], 0.3, C(0xF2A0B8), { y: s * 1.5 - 0.6, bevel: 0.05 }); Ball(-1, s * 1.6, 18, 0.9, PAL.black); }); Ball(-1.6, 0, 16.8, 1, C(0xF2A0B8));
       });
-      E([[-8, 8.4], [-8, 4.4], [-18, 4], [-20, 4.6], [-20, 7.8], [-18, 8.4]], 4, lac, { bevel: 1 });
+      E([[-8, 8.4], [-8, 4.4], [-18, 4], [-20, 4.6], [-20, 7.8], [-18, 8.4]], 4, lac, { bevel: 1, round: true, soft: 1.2 });
       grip(-2, 3.8, lac, 11, 14, 5.2, 4); guard(0.6, 3.6, gold, 6.4, 4.2);
       vm.MagRoot = group(5, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3, -5, 3, 0), 3, C(0xD03A6A), { bevel: 0.6 }); E(rect(-2, -7, 2, -5), 2.4, gold, { bevel: 0.5 }); });
       Muzzle = V(45, 0, 6.6); Support = V(-1, -4.5, -4); Sight = 11.6;
@@ -1195,7 +1195,7 @@ function buildGunWith(vm, W, tier, PAL) {
       hideAds(() => part('hammer', -6, 0, 12.2, () => { E([[-7, 11.6], [-5, 11.6], [-2.4, 19.4], [-4.6, 20]], 1.8, PAL.wood, { bevel: 0.6 }); Ty(-3.2, 20.4, 5.2, 7, head); both((s) => Ty(-3.2, 20.4, 5.6, 0.9, PAL.steelD, s * 3.1)); Ty(-6, 12.2, 1.6, 3.4, PAL.steelL); }));   // the mallet, cocked
       stock(-8, 9.2, PAL.woodD, 16, 4.5, 9.2, 4.2);
       grip(-2, 3.8, C(0x3A2214), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
-      E([[20, 4.8], [28, 5], [27.4, -1.6], [21.4, -1.6]], 3.4, PAL.woodD, { bevel: 0.9 });                                     // a fore-grip under the tower
+      E([[20, 4.8], [28, 5], [27.4, -1.6], [21.4, -1.6]], 3.4, PAL.woodD, { bevel: 0.9, round: true, soft: 1.2 });                                     // a fore-grip under the tower
       vm.MagRoot = group(3, 0, 3.6); into(vm.MagRoot, () => { E(rect(-3.4, -6, 3.4, 0), 4, paint, { bevel: 0.5 }); E(rect(-3.7, -1.4, 3.7, 0), 4.3, PAL.brass, { bevel: 0.2 }); });
       Muzzle = V(47, 0, 7.4); Support = V(24.4, 0, -0.4); Sight = 18.6;
       break;
@@ -1320,7 +1320,7 @@ function buildGunWith(vm, W, tier, PAL) {
       groove(-6.6, 15.6, 7, 4.22, S, 0.28);
       plate([[6.6, 4.4], [6.6, 6.8], [13.6, 6.8], [13.6, 4.4]], 4.2, S, 0.3);
       pinT(-4.6, 5.4, 4.2, 1); pinT(14.4, 6.4, 4.2, 1); both((s) => { B(-1.8, s * 2.16, 7.8, 1.6, 0.2, 0.5, SL); });
-      E([[-12, 8.6], [-24, 7.8], [-24, 9.6], [-13, 10.4]], 3.4, dk(Accent, 0.7), { bevel: 0.6 }); both((s) => Ty(-18, 8.6, 1, 0.3, SL, s * 1.75));   // adjustable cheek piece
+      E([[-12, 8.6], [-24, 7.8], [-24, 9.6], [-13, 10.4]], 3.4, dk(Accent, 0.7), { bevel: 0.6, round: true, soft: 0.6 }); both((s) => Ty(-18, 8.6, 1, 0.3, SL, s * 1.75));   // adjustable cheek piece
       rail(16.6, 32, 9.4, 2.2, dk(Accent, 0.6));
       into(vm.MagRoot, () => { for (const z of [-3, -6, -9]) both((s) => B(-0.6 + z * 0.07, s * 1.62, z, 4.4, 0.14, 0.4, SD)); });
       Ring(33.4, 7.4, 3.6, 0.6, SL); Ring(53.6, 7.4, 4, 0.4, SL);
@@ -1367,7 +1367,7 @@ function buildGunWith(vm, W, tier, PAL) {
       pinT(-5.6, 5, 5.6, 1.1); pinT(18, 5, 5.6, 1.1); both((s) => { B(-2.4, s * 2.86, 8, 1.8, 0.2, 0.5, BN); });
       both((s) => { for (let i = 0; i < 4; i++) B(-5.6 + i * 1.5, s * 2.84, 9.4, 0.4, 0.12, 2.4, BN); B(-3.4, s * 2.86, 9.4, 7, 0.12, 0.4, BN, R(-24, 0, 0)); });   // a tally of five scratched in the receiver
       slotsS(31.4, 39, 7.6, 4.22, 4, 1.2, 1); crown(40.3, 7.6, 4, SD); Ring(20.4, 7.6, 6.9, 0.6, SL); Ring(29.8, 7.6, 6.9, 0.5, SL);
-      both((s) => B(-16, s * 2.52, 7.2, 9, 0.14, 0.4, dk(Accent, 0.5))); E([[-10, 10.8], [-20, 10.6], [-20, 11.6], [-11, 11.8]], 4, BK, { bevel: 0.5 });   // cheek pad
+      both((s) => B(-16, s * 2.52, 7.2, 9, 0.14, 0.4, dk(Accent, 0.5))); E([[-10, 10.8], [-20, 10.6], [-20, 11.6], [-11, 11.8]], 4, BK, { bevel: 0.5, round: true, soft: 0.6 });   // cheek pad
       both((s) => { for (let i = 0; i < 3; i++) B(15.9 - i * 0.1, s * 1.72, 1.6 - i * 1.6, 3, 0.14, 0.35, SD); });
       break;
     }
