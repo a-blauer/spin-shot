@@ -112,8 +112,8 @@ export const gunFeel = (W) => {
 const METAL = { steel: 0.75, steelD: 0.6, steelL: 0.95, brass: 1, wood: 0.12, woodD: 0.12, woodL: 0.12, bone: 0.3, black: 0.35, red: 0.25, rubber: 0.05 };
 const tagPal = (P) => { for (const k in P) { P[k].metal = METAL[k] === undefined ? 0.3 : METAL[k]; P[k].grain = k.startsWith('wood'); } return P; };
 export const PAL = tagPal({
-  steel: C(0x4a5063), steelD: C(0x2c303c), steelL: C(0x8d94a6), wood: C(0x7a4528), woodD: C(0x55301c), woodL: C(0xa0643a),
-  brass: C(0xd9a03a), bone: C(0xe8dcc0), black: C(0x1d1c24), red: C(0xb0262c), rubber: C(0x2a2a30),
+  steel: C(0x4a4e5a), steelD: C(0x2c2e36), steelL: C(0x8f939e), wood: C(0x7a4528), woodD: C(0x55301c), woodL: C(0xa0643a),
+  brass: C(0xc9963e), bone: C(0xe2d6bc), black: C(0x1d1c22), red: C(0x9a2a28), rubber: C(0x2a2a30),
 });
 
 const rect = (x0, z0, x1, z1) => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
@@ -192,9 +192,9 @@ function sculptGeo(key, build) {
 }
 function buildGunWith(vm, W, tier, PAL) {
   const N = W.name;
-  const Accent = tier >= 4 ? C(W.color).lerp(new THREE.Color(0.5, 1, 1), 0.35) : tier >= 3 ? C(W.color).lerp(new THREE.Color(1, 1, 1), 0.25) : C(W.color);
+  const Accent = tier >= 4 ? C(W.color).lerp(new THREE.Color(0x2a7480), 0.3) : tier >= 3 ? C(W.color).lerp(new THREE.Color(1, 1, 1), 0.1) : C(W.color);
   Accent.metal = ['Energy', 'Wonder'].includes(W.cls) ? 0.5 : 0.4;
-  const Trim = tier > 0 ? C(0xF2C43A) : PAL.steelL;
+  const Trim = tier > 0 ? Object.assign(C(0xF2C43A), { metal: 1 }) : PAL.steelL;
   const TG = tier > 0 ? 0.6 + 0.25 * tier : 0;
   let cur = vm.gun, oy = 0, ox = 0, oz = 0, sfx = ''; vm.adsHide = null;
   // --- kit: every helper takes gun coordinates (x forward, y right, z up); ox/oy/oz move them into the current group ---

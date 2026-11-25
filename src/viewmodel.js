@@ -79,6 +79,29 @@ function softCorners(pts, r) {
   }
   return out;
 }
+// The gun grade: takes the toy-box edge off the paint. Strong colours keep their hue but are pulled toward what a real
+// finish would be (enamel, lacquer, dyed leather, case-hardened or blued steel); candy pastels are deepened; everything
+// gets a thin warm film of use. Gold and brass keep more of their colour so they still read as metal. Glowing parts are
+// left alone: they are light, not paint.
+const gradeCache = new Map(), _hsl = {};
+const GRIME = new THREE.Color(0x4a4238);
+function gunGrade(color, glow) {
+  if (glow > 0) return color;
+  const metal = color.metal === undefined ? 0.2 : color.metal, key = color.getHexString() + '|' + metal;
+  let g = gradeCache.get(key);
+  if (!g) {
+    color.getHSL(_hsl); let { h, s, l } = _hsl;
+    const gold = metal >= 0.6 && h > 0.07 && h < 0.17;
+    const keep = gold ? 0.72 : 0.42, knee = gold ? 0.35 : 0.24;
+    if (s > knee) s = knee + (s - knee) * keep;
+    if (!gold && _hsl.s > 0.3 && l > 0.5) l -= (l - 0.5) * 0.35;             // pastels and candy brights deepen
+    if (!gold && h > 0.8 && _hsl.s > 0.4) h = Math.min(0.985, h + 0.035);   // magentas lean toward rose
+    if (gold) { h += (0.118 - h) * 0.45; l = Math.min(l, 0.6); }   // warm, deep gold rather than lemon
+    g = new THREE.Color().setHSL(h, s, l).lerp(GRIME, gold ? 0 : 0.07);
+    gradeCache.set(key, g);
+  }
+  const out = g.clone(); out.metal = color.metal; out.grain = color.grain; return out;
+}
 function vmMat(color, glow) {
   const metal = color.metal === undefined ? 0.2 : color.metal;
   const grain = color.grain ? 1 : 0;
@@ -129,7 +152,7 @@ export class ViewModel {
 
   // ---------------------------------------------------------------- building
   Part(parent, meshId, loc, size, color, rot = null, glow = 0) {
-    const m = new THREE.Mesh(PRIM.GEOS[meshId], vmMat(color, glow > 0 ? Math.min(1.3, glow * 0.45) : 0));
+    const gl = glow > 0 ? Math.min(1.3, glow * 0.45) : 0, m = new THREE.Mesh(PRIM.GEOS[meshId], vmMat(this.grading ? gunGrade(color, gl) : color, gl));
     m.position.copy(P3(loc));
     if (rot) m.quaternion.copy(quatVM(rot));
     m.scale.set(size.Y, size.Z, size.X);
@@ -154,14 +177,14 @@ export class ViewModel {
       g = g.toNonIndexed(); g.computeVertexNormals();
       extCache.set(key, g);
     }
-    const m = new THREE.Mesh(g, vmMat(color, o.glow > 0 ? Math.min(1.3, o.glow * 0.45) : 0));
+    const gl = o.glow > 0 ? Math.min(1.3, o.glow * 0.45) : 0, m = new THREE.Mesh(g, vmMat(this.grading ? gunGrade(color, gl) : color, gl));
     m.position.set(o.y || 0, 0, 0);
     (o.parent || this.gun).add(m);
     this.parts.push(m);
     return m;
   }
   // A sculpted piece (its geometry already in viewmodel coordinates) placed at pos in the given parent.
-  Mesh(parent, geo, color, glow, pos) { const m = new THREE.Mesh(geo, vmMat(color, glow)); m.position.copy(pos); (parent || this.gun).add(m); this.parts.push(m); return m; }
+  Mesh(parent, geo, color, glow, pos) { const m = new THREE.Mesh(geo, vmMat(this.grading ? gunGrade(color, glow) : color, glow)); m.position.copy(pos); (parent || this.gun).add(m); this.parts.push(m); return m; }
   // Capsule between two points (fingers, wrists, sleeves).
   Cap(parent, a, b, r, color, r2 = r) {
     const A = P3(a), Bv = P3(b), d = Bv.clone().sub(A), len = d.length();
@@ -482,7 +505,7 @@ export class ViewModel {
     const TrimGlow = this.weaponTier > 0 ? 0.6 + 0.25 * this.weaponTier : 0;
     this.spinAxis = null;
     this.feel = gunFeel(W); this.cyc = 9; this.cylTarget = 0; this.cylAngle = 0; this.shots = 0; this.emitK = 1; this.reelSpin = 0; this.crankA = 0;
-    const spec = buildGun(this, W, this.weaponTier, Meta.gunLevel(W.name) >= 5);
+    this.grading = true; let spec; try { spec = buildGun(this, W, this.weaponTier, Meta.gunLevel(W.name) >= 5); } finally { this.grading = false; }
     const sk = Meta.skin();
     const Glove = hex(sk.glove), GloveLight = hex(sk.gloveL), Cuff = hex(sk.cuff), Sleeve = hex(sk.sleeve), SleeveStripe = hex(sk.stripe);
     const SightZ = spec.Sight, MuzzleAt = spec.Muzzle, EjectAt = spec.Eject, SupportRest = spec.Support;
