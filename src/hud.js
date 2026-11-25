@@ -14,7 +14,7 @@ import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONU
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
 import { Meta } from './meta.js';
-import { ROMAN, attuneOf, temperOf, ASC, DEEDS, deed } from './deeds.js';
+import { ROMAN, attuneOf, temperOf, ASC, MACHINES, machine } from './deeds.js';
 const WD = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
 const BONE = '#f2e8d5', GOLD = '#ffcd5a', BLOOD = '#e0342c', INK = '#140d12', PANEL = 'rgba(22,14,20,0.86)';
 const F_BIG = '"Big Shoulders Display", Impact, "Arial Narrow", sans-serif';
@@ -1137,9 +1137,9 @@ export class Hud {
     this.text('DAMAGE THIS RUN', W / 2, ty, 16 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.2); ty += 12 * S;
     for (const q of R.top) { const bw = 520 * S, bx = W / 2 - bw / 2; ty += 34 * S; g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(bx, ty - 16 * S, bw, 22 * S); g.fillStyle = q.name === R.asc ? EV : 'rgba(255,205,90,0.75)'; g.fillRect(bx, ty - 16 * S, bw * q.share, 22 * S); this.text(q.name.toUpperCase(), bx - 14 * S, ty + 2 * S, 18 * S, BONE, 'right', F_TXT, 700, 0.06); this.text(`${Math.round(q.share * 100)}%`, bx + bw + 14 * S, ty + 2 * S, 18 * S, BONE, 'left', F_TXT, 700, 0.06); }
     // deeds earned on the way
-    const nd = DEEDS.filter((d) => deed(d.id)).length; ty += 50 * S;
-    this.text(`DEEDS  ${nd} / ${DEEDS.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
-    const nx = DEEDS.find((d) => !deed(d.id)); if (nx) this.text(`Next: ${nx.name}  -  ${nx.need}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
+    const nd = MACHINES.filter((d) => machine(d.id)).length; ty += 50 * S;
+    this.text(`MACHINES  ${nd} / ${MACHINES.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
+    const nx = MACHINES.find((d) => !machine(d.id)); if (nx) this.text(`Next: ${nx.name}  -  rank ${Meta.machineRank(nx.id)}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
     this.hints('[Enter] Back to the menu', W / 2, ty + 78 * S, 24 * S);
   }
   drawPaused(W, H, S) {

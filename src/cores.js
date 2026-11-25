@@ -41,6 +41,33 @@ export const CORE_DEFS = [
   M('Second Wind', 'Epic', '#ffffff', '1UP', [['Revives', 1]], 'Get back up once when you would die', null, 2),
 ];
 
+// ---- the Compressor. Two of the same gun part pressed into one, half as strong again: its numbers, its chance, its text.
+// A count (pierce, bounce, projectiles) rounds up. Pressed parts never drop and cannot be pressed again.
+export const PRESS = 1.5;
+const INT = new Set(['Pierce', 'Multishot', 'Ricochet']);
+const scaleNum = (v, k) => { const x = Math.round(v * k * 100) / 100; return String(x); };
+const scaleText = (t, k) => t.replace(/(\d+(?:\.\d+)?)/g, (m) => scaleNum(parseFloat(m), k));
+const PRESSED_TEXT = { 'Piercing Tip': 'Shots pass through 2 more enemies', Ricochet: 'Shots bounce to 2 more enemies', 'Split Barrel': '+2 projectiles at half damage' };
+for (const d of CORE_DEFS.slice()) {
+  if (d.kind !== 'gun') continue;
+  const mods = d.mods.map(([k, v]) => [k, INT.has(k) ? Math.ceil(v * PRESS) : v * PRESS]);
+  const proc = d.trigger ? { trigger: d.trigger, fx: d.fx, chance: Math.min(1, d.chance * PRESS), mag: d.mag, cd: d.cd || 0 } : null;
+  CORE_DEFS.push(G('Pressed ' + d.name, d.rarity, d.hex, d.glyph, mods, PRESSED_TEXT[d.name] || scaleText(d.desc, PRESS), proc, d.look));
+  Object.assign(CORE_DEFS[CORE_DEFS.length - 1], { pressed: d.name, noDrop: true });
+}
+// ---- Compressor: Fusion. Two different elemental parts fused: both elements at once, and something neither does alone.
+export const ELEMENT = { Incendiary: 'fire', 'Cryo Cell': 'ice', Serrated: 'blood', 'Arc Coil': 'shock' };
+export const FUSIONS = [
+  { a: 'fire', b: 'ice', name: 'Steam Vent', hex: '#e8e4ff', glyph: 'STM', desc: '20% chance on hit: a cloud of scalding steam bursts from the target, burning and slowing everything in it for 3 seconds' },
+  { a: 'fire', b: 'shock', name: 'Plasma Arc', hex: '#ff9a3a', glyph: 'PLS', desc: '20% chance on hit: lightning leaps to 3 enemies nearby and sets each of them alight' },
+  { a: 'fire', b: 'blood', name: 'Boiling Blood', hex: '#ff4a2a', glyph: 'BOL', desc: '20% chance to burn and bleed the target. If it dies within 4 seconds it bursts, setting everything near it alight' },
+  { a: 'ice', b: 'shock', name: 'Storm Cloud', hex: '#8ab8ff', glyph: 'STR', desc: '20% chance on hit: a storm cloud hangs over the target for 4 seconds, chilling everything under it and striking it with lightning' },
+  { a: 'ice', b: 'blood', name: 'Black Ice', hex: '#9ad8e8', glyph: 'BLK', desc: '20% chance to bleed and chill the target. Chilled, it bleeds twice as fast, and when it dies it shatters and chills what is near' },
+  { a: 'shock', b: 'blood', name: 'Hemorrhage', hex: '#d0306a', glyph: 'HEM', desc: '20% chance on hit: lightning arcs to 2 enemies nearby, and everything it touches bleeds' },
+];
+for (const F of FUSIONS) { CORE_DEFS.push(G(F.name, 'Epic', F.hex, F.glyph, [], F.desc, P('OnHit', 'Fuse', 0.2, 0.5), 'fuse')); Object.assign(CORE_DEFS[CORE_DEFS.length - 1], { fuse: F.a + '+' + F.b, noDrop: true }); }
+export const fusionOf = (n1, n2) => { const base = (n) => n.replace(/^Pressed /, ''), a = ELEMENT[base(n1)], b = ELEMENT[base(n2)]; if (!a || !b || a === b) return null; return FUSIONS.find((F) => (F.a === a && F.b === b) || (F.a === b && F.b === a)) || null; };
+
 // One hand-drawn symbol per part, on a 24-unit square, in a single ink colour (`currentColor`); `var(--c)` is the part's own colour, for cut-outs.
 export const CORE_SYM = {
  "Heavy Rounds": "<path d=\"M8.5 21v-9.5C8.5 7 12 2.5 12 2.5S15.5 7 15.5 11.5V21z\"/><rect x=\"7\" y=\"18\" width=\"10\" height=\"3.4\" rx=\".6\"/>",
@@ -73,6 +100,9 @@ export const CORE_SYM = {
  "Spring Step": "<path d=\"M12 1.5l8 8h-5v3.5H9V9.5H4z\"/><path d=\"M12 11l8 8h-5v3.5H9V19H4z\" opacity=\".75\"/>",
  "Second Wind": "<path d=\"M12 3a9 9 0 1 0 8.5 6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\"/><path d=\"M12 .2l5.5 3-5.5 3.3z\"/><path d=\"M12 17.5s-5-3-5-6.3a2.7 2.7 0 0 1 5-1.3 2.7 2.7 0 0 1 5 1.3c0 3.3-5 6.3-5 6.3z\"/>"
 };
+for (const d of CORE_DEFS) if (d.pressed) CORE_SYM[d.name] = CORE_SYM[d.pressed] + '<path d="M2 23h20" stroke="currentColor" stroke-width="2.2"/><path d="M2 1h20" stroke="currentColor" stroke-width="2.2"/>';
+{ const E = { fire: 'Incendiary', ice: 'Cryo Cell', blood: 'Serrated', shock: 'Arc Coil' };
+  for (const F of FUSIONS) CORE_SYM[F.name] = `<g transform="translate(0 4) scale(.62)">${CORE_SYM[E[F.a]]}</g><g transform="translate(9.1 4) scale(.62)">${CORE_SYM[E[F.b]]}</g>`; }
 export const coreSvg = (d, ink = '#14100e') => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color:${ink};--c:${d.hex}">${CORE_SYM[d.name] || ''}</svg>`;
 export const CORE0 = DATA.upgrades.length;
 for (const d of CORE_DEFS) DATA.upgrades.push({ stacks: 99, trigger: null, fx: null, chance: 0, mag: 0, cd: 0, insp: '', suit: 'None', ...d, core: true, cut: true });
@@ -93,8 +123,11 @@ export const BLADE = {
   'Blast Cap': [[['MeleeKnock', 0.4]], '+40% knockback'], 'Ricochet': [[['MeleeCleave', 1]], 'Each swing hits 1 more enemy'],
   'Leech Rounds': [[['MeleeLifesteal', 0.02]], 'Heal for 2% of blade damage'], 'Whetstone': [[['BladeHone', 0.25]], 'The blade hones 25% faster'],
 };
+for (const d of CORE_DEFS) if (d.pressed && BLADE[d.pressed]) { const [m, t] = BLADE[d.pressed]; BLADE[d.name] = [m.map(([k, v]) => [k, v * PRESS]), scaleText(t, PRESS)]; }
+{ const E = { fire: 'Incendiary', ice: 'Cryo Cell', blood: 'Serrated', shock: 'Arc Coil' };
+  for (const F of FUSIONS) { const A = BLADE[E[F.a]], B = BLADE[E[F.b]]; BLADE[F.name] = [A[0].concat(B[0]), `${A[1]}; ${B[1].charAt(0).toLowerCase()}${B[1].slice(1)}`]; } }
 export function rollCoreAt(t, skip = null, have = null) {
-  for (; t >= 0; t--) { const pool = []; CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (TIER[d.rarity] === t && !(skip && skip.has(i)) && !(have && d.kind === 'me' && (have[i] || 0) >= DATA.upgrades[i].stacks)) pool.push(i); }); if (pool.length) return pool[Math.floor(Math.random() * pool.length)]; }
+  for (; t >= 0; t--) { const pool = []; CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (TIER[d.rarity] === t && !d.noDrop && !(skip && skip.has(i)) && !(have && d.kind === 'me' && (have[i] || 0) >= DATA.upgrades[i].stacks)) pool.push(i); }); if (pool.length) return pool[Math.floor(Math.random() * pool.length)]; }
   return CORE0;
 }
 export const coreTier = (i) => TIER[DATA.upgrades[i].rarity] || 0;
@@ -102,7 +135,7 @@ export function rollCore(cap, have = null, skip = null) {
   const W = [[100], [58, 42], [46, 36, 18], [40, 34, 20, 6]][Math.max(0, Math.min(3, cap))];
   let r = Math.random() * 100, t = 0; for (let q = 0; q < W.length; q++) { r -= W[q]; if (r <= 0) { t = q; break; } }
   for (; t >= 0; t--) {
-    const pool = []; CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (TIER[d.rarity] === t && !(skip && skip.has(i)) && !(have && d.kind === 'me' && (have[i] || 0) >= DATA.upgrades[i].stacks)) pool.push(i); });
+    const pool = []; CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (TIER[d.rarity] === t && !d.noDrop && !(skip && skip.has(i)) && !(have && d.kind === 'me' && (have[i] || 0) >= DATA.upgrades[i].stacks)) pool.push(i); });
     if (pool.length) return pool[Math.floor(Math.random() * pool.length)];
   }
   return CORE0;

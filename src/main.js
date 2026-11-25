@@ -14,7 +14,7 @@ import { setParts } from './puppet.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
-import { DEEDS, deed, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
+import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
 import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST } from './cores.js';
 import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES } from './meta.js';
 
@@ -156,7 +156,7 @@ async function boot() {
   setParts(await (await fetch('parts.json')).json());
   const img = new Image(); img.src = Atlas.blobUrl.fx; await img.decode().catch(() => {});
   hud.setAtlas(img, Atlas.meta);
-  const map0 = MAPS[URLMAP >= 0 ? URLMAP : Meta.map()] ? (URLMAP >= 0 ? URLMAP : Meta.map()) : 0;
+  const DESCENT_MAP = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')), map0 = MAPS[URLMAP >= 0 ? URLMAP : Meta.map()] ? (URLMAP >= 0 ? URLMAP : Meta.map()) : DESCENT_MAP;
   status(MAPS[map0].loading);
   await loadCreaturePack(MAPS[map0].pack);
   await new Promise((r) => setTimeout(r, 20));
@@ -230,6 +230,7 @@ const kindOf = (name) => { const u = game && game.data.upgrades.find((x) => x.na
 function rewardLine(R) {
   const out = [];
   if (R.starter) out.push(`${R.starter} as a starting gun`);
+  if (R.machine) out.push(`${(MACHINES.find((m) => m.id === R.machine) || {}).name} (machine)`);
   (R.guns || []).forEach((g) => out.push(`${g} (gun)`));
   (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
   (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
@@ -242,6 +243,7 @@ function rewardCards(M) {
   const R = M.reward, out = [], ups = game.data.upgrades, guns = game.data.weapons;
   const gun = (name, starter) => { const W = guns.find((w) => w.name === name) || {}; out.push({ img: modelThumb('gun', name), wide: true, name, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: starter ? 'Starting gun' : `${W.rarity || ''} ${(W.cls || 'gun').toLowerCase()}`, desc: (W.desc || '') + (starter ? ' Pick it as your starting gun in the lobby.' : ' Now in the weapon pool: the mystery box can roll it.') }); };
   if (R.starter) gun(R.starter, true);
+  if (R.machine) { const D = MACHINES.find((m) => m.id === R.machine) || {}; out.push({ name: D.name, col: '#9affc0', kind: 'Machine', desc: D.text }); }
   (R.guns || []).forEach((g) => gun(g, false));
   (R.blades || []).forEach((n) => { const W = MELEE.find((m) => m.name === n) || {}; out.push({ img: modelThumb('blade', n), wide: true, name: n, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: `${W.rarity || ''} blade`, desc: (W.desc || '') + ' Now in the mystery box.' }); });
   (R.upgrades || []).forEach((n) => { const i = ups.findIndex((u) => u.name === n), U = ups[i] || {}, k = kindOf(n); out.push({ img: iconURL('U_' + i), name: n, col: RARITY_HEX[U.rarity] || '#f2e8d5', kind: `${U.rarity || ''} ${k}`, desc: (U.desc || '') + (k === 'workbench modifier' ? ' Now turns up at the workbench.' : ' Now turns up in chests.') }); });
@@ -647,7 +649,7 @@ function renderLobby() {
     h += `<section><h3>CHARACTER</h3><div class="lbchar">${['hat', 'beard', 'nose', 'outfit'].map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><div class="lbbody">${bl.length ? bl.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span>An ordinary build.</span>'}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`; }
   h += '</aside><main>';
   const daily = !client && Meta.dailyOn();
-  const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : 0);
+  const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')));
   const curDf = client ? difficulty() : Meta.difficulty(), ups = game ? game.data.upgrades : [];
   // the run
   h += '<section><h3>THE RUN</h3>';
@@ -676,15 +678,13 @@ function renderLobby() {
   h += '</section>';
   // the Descent's own progression: what going down has earned, and what you take with you
   if (MAPS[curMap] && MAPS[curMap].mode === 'descent') {
-    const asc = Meta.ascended().sort(), marks = asc.reduce((a, n) => a + Meta.asc(n), 0), dia = (n) => '\u25C6'.repeat(n) + '\u25C7'.repeat(3 - n), nd = DEEDS.filter((D) => deed(D.id)).length;
+    const asc = Meta.ascended().sort(), marks = asc.reduce((a, n) => a + Meta.asc(n), 0), dia = (n) => '\u25C6'.repeat(n) + '\u25C7'.repeat(3 - n), nd = MACHINES.filter((D) => machine(D.id)).length;
     h += '<section><h3>THE DESCENT</h3>';
-    h += group('DEEDS', DEEDS.map((D) => { const ok = deed(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Earned' : 'Locked', `data-why="${esc2(D.need + ' ' + D.text)}" data-grp="d"`); }).join(''),
-      info('d') || (nd ? `<ul class="lbkit">${DEEDS.filter((D) => deed(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.text)}</li>`).join('')}</ul>` : 'Nothing is bought down there. Going deeper earns deeds: machines and favours that give you more say over the next run. Click one to see how it is earned.'), `${nd} of ${DEEDS.length}`);
+    h += group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineRank(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Running' : `Rank ${r}`, `data-why="${esc2(`Rank ${r}. ` + D.text)}" data-grp="d"`); }).join(''),
+      info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent once your rank opens them. Click one to see what it does and the rank that brings it.'), `${nd} of ${MACHINES.length}`);
     const cur = Meta.carry();
     h += group('CARRIED GUN', chip('data-carry=""', !cur, false, 'None', 'the usual start') + asc.map((n) => { const a = Meta.asc(n), T = temperOf(n), A = attuneOf(n); return chip(`data-carry="${esc2(n)}"`, cur === n, false, esc2(n), `${dia(a)}${T.id ? ' ' + T.name : ''}${A.id ? ' ' + A.name : ''}`); }).join(''),
       asc.length ? `An ascended gun can go down with you from the first room. <span class="dim2">${marks} mark${marks === 1 ? '' : 's'} on ${asc.length} gun${asc.length === 1 ? '' : 's'}. ${ROMAN[2]} lets you choose its temper and ${ROMAN[3]} its element, both at any workbench.</span>` : 'Finish a Descent and the gun that did the most damage ascends. A gun can ascend once on each difficulty, three times in all: I, it can start runs with you; II, you choose its temper; III, you bind it to an element.', asc.length ? '' : 'none ascended yet');
-    if (deed('keep')) { const k = Meta.keepsake(), kd = CORE_LIST.findIndex((d) => d.name === k), KU = kd >= 0 ? ups[CORE_0 + kd] : null;
-      h += group('KEEPSAKE', chip('data-keep=""', !k, false, 'None', '') + CORE_LIST.map((d, i) => chip(`data-keep="${esc2(d.name)}"`, k === d.name, false, `<em style="color:${ups[CORE_0 + i] ? ups[CORE_0 + i].hex : '#fff'}">${esc2(d.name)}</em>`, '')).join(''), KU ? `You start every Descent carrying it. ${esc2(KU.desc)}` : 'One part to start every Descent with.'); }
     h += '</section>';
   }
   // stakes
@@ -719,7 +719,6 @@ function renderLobby() {
   lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.h; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.w; Meta.setStarter(el.dataset.w); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-carry]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCarry(el.dataset.carry); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-keep]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setKeepsake(el.dataset.keep); renderLobby(); }; });
   if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 let beginning = false;
@@ -739,12 +738,14 @@ async function beginRun() {
     game.metaRun = true; Meta.beginRun();
     const hn = Meta.heirloom(), hi = hn ? game.data.upgrades.findIndex((u) => u.name === hn) : -1;
     if (hi >= 0 && !P.upgradeStacks[hi]) { P.addUpgrade(hi); game.hud.toast(`Heirloom: ${hn}`, '#ffd24d'); }
-    // the Descent: an ascended gun may go down with you, and so may a keepsake
+    // what each class carries in from the start: the sniper has a sniper rifle on the back as well as the starting gun,
+    // and the brawler brings a katana instead of a knife
+    if (P.cls.id === 'sniper') { const si = game.data.weapons.findIndex((w) => w.name === 'Widowmaker'), first = P.active; if (si > 0 && !P.weapons.some((S) => S.def === si)) { P.giveWeapon(si); P.switchTo(first); game.vm.setWeapon(P.weapons[first].def, 0, false); } }
+    if (P.cls.id === 'brawler') { const ki = MELEE.findIndex((m) => /katana/i.test(m.name)); if (ki >= 0) P.meleeDef = ki; }
+    // the Descent: an ascended gun may go down with you
     if (game.descent) {
       const cn = Meta.carry(), ci = cn ? game.data.weapons.findIndex((w) => w.name === cn && !w.cash) : -1;
       if (ci > 0) { P.weapons[0].def = ci; P.weapons[0].tier = 0; P.weapons[0].mods = []; P.weapons[0].evoK = 0; P.recompute(); P.refillAll(); game.vm.setWeapon(ci, 0, false); game.hud.toast(`Carried: ${cn}  -  ascended ${ROMAN[Meta.asc(cn)]}`, '#ff8cff'); }
-      const kn = deed('keep') ? Meta.keepsake() : '', ki = kn ? CORE_LIST.findIndex((d) => d.name === kn) : -1;
-      if (ki >= 0) P.gainCore(CORE_0 + ki);
     }
   }
   game.touch = TOUCH;
@@ -938,7 +939,7 @@ function frame(now) {
   let dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   tickLocker(dt); tickLobby(dt); craft.tick(dt);
-  if (game && !game.openCraft) game.openCraft = (blade) => craft.show(blade);
+  if (game && !game.openCraft) game.openCraft = (blade, mode) => craft.show(blade, mode);
   if (mode === 'craft' && (!game || game.player.dead || !game.descent)) craft.close();
   hud.needMouse = mode === 'play' && !TEST && !TOUCH && !lockFailed && !document.pointerLockElement;
   if (window.__dmhFixedDt) dt = window.__dmhFixedDt;

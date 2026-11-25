@@ -321,6 +321,11 @@ export const SIG = {
 };
 
 Object.assign(SIG, SIG2);   // the oddities: weapons that are not guns at all
+// A gun's favoured parts work harder on it, but only half as much harder as they first did: x2 is x1.5, x1.5 is x1.25.
+{ const half = (m) => 1 + (m - 1) * 0.5;
+  for (const k in SIG) { const S = SIG[k];
+    if (typeof S.proc === 'number') S.proc = half(S.proc); else if (S.proc) for (const f in S.proc) S.proc[f] = half(S.proc[f]);
+    if (S.aff) for (const f in S.aff) S.aff[f] = half(S.aff[f]); } }
 export const sigAmp = sig2Amp, sigAfter = sig2After;
 export const sigOf = (W) => (W && !globalThis.__nosig && SIG[W.name]) || null;   // __nosig: the test harness measures a gun with and without its rule
 // a gun's own running state lives on its slot and is thrown away when the slot holds a different gun

@@ -20,9 +20,9 @@ const SLOT_STRIP = [0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 4, 0, 1, 6, 2];
 import { gunSound } from './gunsound.js';
 import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
-import { Turret } from './turret.js';
-import { isCore, coreKind, rollCoreAt, coreTier, BLADE } from './cores.js';
-import { deed, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit } from './deeds.js';
+import { Turret, ShoulderTurret, turretStats } from './turret.js';
+import { isCore, coreKind, rollCoreAt, coreTier, BLADE, CORE0, fusionOf } from './cores.js';
+import { machine, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit } from './deeds.js';
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
@@ -919,6 +919,55 @@ export class Player {
       }
       if (Z.t <= 0) this.gzones.splice(i, 1);
     }
+    this.tickFuseZones(dt);
+  }
+  // ---- fused elemental parts (the Compressor's Fusion). d: the hit's worth for this part.
+  fuseProc(kind, d, T, alive, at) {
+    const G = this.game, near = (c, r, skip) => G.enemies.filter((E) => E !== skip && !E.dead && !E.emerging && E.pos.distanceTo(c) < r).sort((a, b) => a.pos.distanceTo(c) - b.pos.distanceTo(c));
+    const c = alive ? T.pos.clone() : at.clone(), zap = (from, E, col) => { G.fx.arc(from.clone().add(V3(0, 60, 0)), E.pos.clone().add(V3(0, 60, 0)), col); this.dealDamage(E, d * 0.6, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, col); };
+    (this.fzones || (this.fzones = []));
+    switch (kind) {
+      case 'fire+ice':   // Steam Vent
+        if (alive) { T.applyBurn(d, 3); T.applySlow(0.4, 2.5); }
+        this.fzones.push({ kind: 'steam', at: c, r: 240, t: 3, tick: 0, d });
+        G.fx.frostBurst(c, 240, [0.95, 0.95, 1]); this.play('S_Frost', 0.35, 0.7);
+        break;
+      case 'fire+shock': {   // Plasma Arc
+        const col = [1, 0.6, 0.25]; if (alive) T.applyBurn(d, 3);
+        let from = c; for (const E of near(c, 650, alive ? T : null).slice(0, 3)) { zap(from, E, col); E.applyBurn(d, 3); from = E.pos; }
+        this.play('S_Zap', 0.4, 1.2); break;
+      }
+      case 'fire+blood':   // Boiling Blood
+        if (alive) { T.applyBurn(d, 3); T.applyBleed(d); T.boilT = G.time + 4; T.boilD = d; }
+        break;
+      case 'ice+shock':   // Storm Cloud
+        if (alive) T.applySlow(0.35, 2);
+        this.fzones.push({ kind: 'cloud', at: c.clone().add(V3(0, 230, 0)), r: 260, t: 4, tick: 0, d });
+        this.play('S_Zap', 0.35, 0.8); break;
+      case 'ice+blood':   // Black Ice
+        if (alive) { T.applySlow(0.45, 3); T.applyBleed(d * 2); T.shatterT = G.time + 3; G.fx.frostBurst(T.pos, 90); }
+        break;
+      case 'shock+blood': {   // Hemorrhage
+        const col = [0.9, 0.25, 0.45]; if (alive) T.applyBleed(d);
+        let from = c; for (const E of near(c, 600, alive ? T : null).slice(0, 2)) { zap(from, E, col); E.applyBleed(d); from = E.pos; }
+        this.play('S_Zap', 0.4, 1.05); break;
+      }
+    }
+  }
+  tickFuseZones(dt) {
+    const G = this.game, Z0 = this.fzones; if (!Z0 || !Z0.length) return;
+    for (let i = Z0.length - 1; i >= 0; i--) {
+      const Z = Z0[i]; Z.t -= dt; Z.tick -= dt;
+      const under = () => G.enemies.filter((E) => !E.dead && !E.burrowed && Math.hypot(E.pos.x - Z.at.x, E.pos.z - Z.at.z) < Z.r && E.pos.y < Z.at.y + 120 && E.pos.y > Z.at.y - (Z.kind === 'cloud' ? 520 : 260));
+      if (Z.kind === 'steam') {
+        if (Math.random() < dt * 26) { const a = Math.random() * 6.28, r = Math.random() * Z.r; G.fx.add({ pos: V3(Z.at.x + Math.cos(a) * r, Z.at.y + 20, Z.at.z + Math.sin(a) * r), vel: V3(0, 90 + Math.random() * 60, 0), drag: 1.2, gravity: -40, life: 0.9, size0: 60, size1: 150, c0: [0.92, 0.92, 0.96, 0.4], c1: [0.92, 0.92, 0.96, 0], tex: 'FX_Puff' }); }
+        if (Z.tick <= 0) { Z.tick = 0.5; for (const E of under()) { this.dealDamage(E, Z.d * 0.25, E.pos, V3(0, 0, 0), false, 0, true, 0, Z.d * 0.15, 0, 0, [1, 0.9, 0.8]); E.applySlow(0.4, 1); } }
+      } else if (Z.kind === 'cloud') {
+        if (Math.random() < dt * 30) { const a = Math.random() * 6.28, r = Math.random() * Z.r * 0.9; G.fx.add({ pos: V3(Z.at.x + Math.cos(a) * r, Z.at.y + (Math.random() - 0.5) * 40, Z.at.z + Math.sin(a) * r), vel: V3((Math.random() - 0.5) * 30, 0, (Math.random() - 0.5) * 30), drag: 1, gravity: 0, life: 0.8, size0: 90, size1: 140, c0: [0.42, 0.47, 0.62, 0.55], c1: [0.42, 0.47, 0.62, 0], tex: 'FX_Puff' }); }
+        if (Z.tick <= 0) { Z.tick = 0.6; const L = under(); for (const E of L) E.applySlow(0.35, 1); L.sort(() => Math.random() - 0.5).slice(0, 2).forEach((E) => { G.fx.arc(Z.at.clone().add(V3((Math.random() - 0.5) * 80, -20, (Math.random() - 0.5) * 80)), E.pos.clone().add(V3(0, 60, 0)), [0.65, 0.8, 1]); this.dealDamage(E, Z.d * 0.5, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, [0.65, 0.8, 1]); }); if (L.length) this.play('S_Zap', 0.25, 1.3); }
+      }
+      if (Z.t <= 0) Z0.splice(i, 1);
+    }
   }
   meleeSwing(power = false, charge = 0) {
     const W = MELEE[this.meleeDef], sp = this.meleeSpeed();
@@ -1688,6 +1737,9 @@ export class Player {
     { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
     if (headshot && this.S.HeadCrit) this.headCritT = 3;
     buildKill(this, E);
+    // fused parts that wait for a death: Boiling Blood bursts into flame, Black Ice shatters
+    if (E.boilT > G.time && this.procDepth < 1) { this.procDepth++; const R = 300; G.fx.fireBurst(E.pos, R); this.play('S_Explode', 0.35, 1.2); for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < R) O.applyBurn(E.boilD || 20, 3); this.procDepth--; }
+    if (E.shatterT > G.time) { const R = 320; G.fx.frostBurst(E.pos, R); for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < R) O.applySlow(0.5, 2.5); }
     if (this.S.EliteBlast && E.elite && this.procDepth < 1) { this.procDepth++; this.explodeAt(E.pos, 440, this.power() * 2 * this.S.EliteBlast, 0, true, false, [1, 0.5, 0.2], E); this.procDepth--; }   // Rusty Shiv: an elite goes up when it goes down
     if (this.S.KillRush) { this.krN = Math.min(5, (this.krT > 0 ? this.krN || 0 : 0) + 1); this.krT = 5; }           // Energy Drink
     if (this.S.KillTempo) { this.ktN = Math.min(6, (this.ktT > 0 ? this.ktN || 0 : 0) + 1); this.ktT = 2; }        // Fanning Practice
@@ -1811,6 +1863,7 @@ export class Player {
         }
         break;
       }
+      case 'Fuse': this.fuseProc(U.fuse, mag * base, target, alive, at); break;
       case 'Bleed': if (alive) { target.applyBleed(mag * base); if (G.time - (target.blFx || -9) > 0.5) { target.blFx = G.time; for (let q = 0; q < 3; q++) G.fx.add({ mode: 'streak', pos: at.clone(), vel: V3((Math.random() - 0.5) * 300, 200 + Math.random() * 200, (Math.random() - 0.5) * 300), gravity: 1700, life: 0.8, size0: 10, size1: 8, stretch: 3, c0: [0.75, 0.05, 0.08, 1], fadeOut: 0.1, tex: 'FX_Drop' }); } } break;
       case 'Clover': this.addLuck(1); break;
       case 'Cooldown': this.abilityCd = Math.max(0, this.abilityCd - mag); break;
@@ -1884,13 +1937,14 @@ export class Player {
           if (this.spend(Math.floor(I.cost / 2))) { for (const S of this.weapons) if (S.def === I.weapon) { S.ammo = this.magSize(S); S.reserve = this.reserveSize(S); } this.toast('Ammo refilled', '#cce6ff'); }
         } else if (this.spend(I.cost)) { this.giveWeapon(I.weapon); const W = DATA.weapons[I.weapon]; this.toast(`Bought ${W.name}`, RARITY_HEX[W.rarity]); }
         break;
-      case 'AmmoCrate': if (this.spend(I.cost)) { this.refillAll(); this.toast('All ammo refilled', '#cce6ff'); } break;
+      case 'AmmoCrate': { const G = this.game; if (G.time < (this.ammoReady || 0)) { this.toast(`The ammo box is empty for another ${Math.ceil(this.ammoReady - G.time)}s`, '#cce6ff'); break; } if (this.spend(I.cost)) { this.refillAll(); this.ammoReady = G.time + 90; this.toast('All ammo refilled. The box refills in 1:30.', '#cce6ff'); } break; }
       case 'ExitBell': G.ringBell(); break;
       // the casino has no menus: every station is played or bought from in the world
       case 'ArmsRoulette': I.wheelUse(this); break;
       case 'Slots': I.slotUse(this); break;
       case 'Chest': this.openChest(I); break;
       case 'MysteryBox': I.boxUse(this); break;
+      case 'Compressor': if (this.game.openCraft) this.game.openCraft(false, 'press'); break;
       case 'HighRoller': if (this.game.descent && this.game.openCraft) this.game.openCraft(this.wield); else if (!this.wield) this.benchUpgrade(); break;
       case 'Turret': I.bind(this); break;
       default: this.openMenu(I); break;
@@ -2188,15 +2242,10 @@ export class Player {
       G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1100).add(V3(0, 280, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: GRENADES[5].radius, gtype: 5, gravity: 1, bounces: 2, bounceDamp: 0.35, fuse: 1.5, life: 4, kind: 'Grenade', radius: 18, color: GRENADES[5].color, procCoef: 0, fromProc: true });
       this.abilityCd = this.abilityMax(); this.play('S_Dash', 0.6, 0.9); if (G.vm.jolt) G.vm.jolt(1.6);
     } else if (id === 'engineer') {
-      // where you are looking, on the ground
-      const eye = G.camera.position.clone(), hit = G.phys.raycast(eye, dir, 750);
-      let at = hit ? hit.point.clone().addScaledVector(dir, hit.normal.y > 0.6 ? 0 : -70) : eye.clone().addScaledVector(dir, 420);
-      const down = G.phys.raycast(at.clone().add(V3(0, 60, 0)), V3(0, -1, 0), 1500); if (!down) { this.toast('No room for the turret there', '#ccc'); return; }
-      at = down.point;
-      const allowed = 1 + Math.round(this.stat('TurretCount'));
-      if (this.turrets.length < allowed) this.turrets.push(new Turret(G, at, this.turrets.length > 0));
-      else { const T = this.turrets[this.turretNext % this.turrets.length]; this.turretNext++; if (this.S.TurretBlast) this.explodeAt(T.pos.clone().add(V3(0, 60, 0)), 420, this.power() * 3 * this.S.TurretBlast, 0, true, false, lin(0.5, 0.8, 1), null); T.place(at); }
-      this.abilityCd = this.abilityMax(); this.play('S_MagIn', 0.9, 0.6);
+      // the shoulder turret comes out for a while and finds its own targets; the cooldown runs from now
+      if (!this.shoulder) this.shoulder = new ShoulderTurret(G);
+      this.shoulder.deploy(this); const ts = turretStats(this);
+      this.abilityCd = this.abilityMax() * ts.cdK; this.play('S_MagIn', 0.9, 0.6); this.toast(`${ts.T.name} turret: ${Math.round(ts.time)}s`, '#6ec8ff');
     }
     if (this.abilityCd > 0) this.runProcs('OnAbility', null, this.pos, 0, 1);
   }
@@ -2225,6 +2274,7 @@ export class Player {
     }
     // Engineer: standing by the turret
     this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;
+    if (this.shoulder) { this.shoulder.update(dt, this); if (this.shoulder.active) this.nearTurret = true; }
   }
   // ---------------------------------------------------------------- gun modifiers (workbench)
   altKind() { return null; }   // alternate fire was taken out: a gun does one thing
@@ -2276,21 +2326,45 @@ export class Player {
   // the Recycler: two parts you do not want become one you might; later it can turn one part into another, and strike a
   // kind of part from the run altogether
   takePart(u) { if (!(this.coreInv[u] > 0)) return false; this.coreInv[u]--; return true; }
-  recycle(a, b) {
-    if (!deed('recycle') || (a === b ? (this.coreInv[a] || 0) < 2 : !(this.coreInv[a] > 0 && this.coreInv[b] > 0))) return -1;
-    this.takePart(a); this.takePart(b);
-    const u = rollCoreAt(Math.min(coreTier(a), coreTier(b)), new Set([a, b, ...(this.banCores || [])]), this.upgradeStacks);
-    this.gainCore(u); return u;
+  // ---- the machines (see deeds.js). Parts in the pack are worth scrap by rarity; a pressed part is worth its two halves.
+  scrapOf(u) { const U = DATA.upgrades[u]; return U.fuse ? 12 : (U.pressed ? 2 : 1) * [1, 2, 4, 8][coreTier(u)]; }
+  makeCost(u) { return [4, 8, 16, 32][coreTier(u)]; }
+  // the Compressor: two of the same part become one pressed part; with Fusion, two different elements become one
+  compress(a, b) {
+    const A = DATA.upgrades[a], B = DATA.upgrades[b]; if (!A || !B || A.kind !== 'gun' || B.kind !== 'gun') return -1;
+    if (a === b ? (this.coreInv[a] || 0) < 2 : !(this.coreInv[a] > 0 && this.coreInv[b] > 0)) return -1;
+    let out = -1;
+    if (a === b && !A.pressed && !A.fuse) out = DATA.upgrades.findIndex((U) => U.pressed === A.name);
+    else if (a !== b && machine('fusion')) { const F = fusionOf(A.name, B.name); if (F) out = DATA.upgrades.findIndex((U) => U.name === F.name); }
+    if (out < 0) return -1;
+    this.takePart(a); this.takePart(b); this.coreInv[out] = (this.coreInv[out] || 0) + 1;
+    this.play('S_Upgrade', 0.9, 0.9); return out;
   }
-  rerollPart(a) {
-    if (!deed('reroll') || !(this.rerolls > 0) || !this.takePart(a)) return -1;
-    this.rerolls--; const u = rollCoreAt(coreTier(a), new Set([a, ...(this.banCores || [])]), this.upgradeStacks);
-    this.gainCore(u); return u;
+  // the Recycler: break parts down for scrap, and spend scrap on a part of your choosing
+  scrapPart(u, n = 1) { let got = 0; while (n-- > 0 && this.takePart(u)) got += this.scrapOf(u); this.scrap = (this.scrap || 0) + got; return got; }
+  makePart(u) {
+    const U = DATA.upgrades[u]; if (!machine('recycler') || !U || !U.core || U.noDrop) return false;
+    const c = this.makeCost(u); if ((this.scrap || 0) < c) return false;
+    if (U.kind === 'me' && this.upgradeStacks[u] >= U.stacks) return false;
+    this.scrap -= c; this.gainCore(u); return true;
   }
-  banishPart(a) {
-    if (!deed('banish') || (this.banishN || 0) >= 3 || !(this.coreInv[a] > 0)) return false;
-    this.coreInv[a] = 0; (this.banCores || (this.banCores = new Set())).add(a); this.banishN = (this.banishN || 0) + 1;
-    this.toast(`${DATA.upgrades[a].name} is struck from this run`, '#ff9a8a'); this.play('S_Deny', 0.6, 0.7); return true;
+  // the Fortune Teller: reroll a character buff once a room into another of its rarity; or two of a rarity for one better
+  dropBuffStack(u) { if (!(this.upgradeStacks[u] > 0)) return false; this.upgradeStacks[u]--; if (!this.upgradeStacks[u]) this.upgradeOrder = this.upgradeOrder.filter((x) => x !== u); const hp = this.health / Math.max(1, this.maxHealth); this.recompute(); this.health = Math.min(this.maxHealth, Math.max(1, Math.round(hp * this.maxHealth))); return true; }
+  rollPassive(tier, skip) { const L = []; for (let i = CORE0; i < DATA.upgrades.length; i++) { const U = DATA.upgrades[i]; if (U.core && U.kind === 'me' && coreTier(i) === tier && !(skip && skip.has(i)) && (this.upgradeStacks[i] || 0) < U.stacks) L.push(i); } return L.length ? L[Math.floor(Math.random() * L.length)] : -1; }
+  fortuneReroll(u) {
+    const U = DATA.upgrades[u]; this.fortuneUsed = this.fortuneUsed || {};
+    if (!machine('fortune') || !U || U.kind !== 'me' || !(this.upgradeStacks[u] > 0) || this.fortuneUsed[u]) return -1;
+    const v = this.rollPassive(coreTier(u), new Set([u])); if (v < 0) return -1;
+    this.dropBuffStack(u); this.addUpgrade(v); this.fortuneUsed[v] = true; if (!(this.upgradeStacks[u] > 0)) delete this.fortuneUsed[u]; else this.fortuneUsed[u] = true;
+    this.play('S_Upgrade', 0.8, 1.2); return v;
+  }
+  fortuneTrade(a, b) {
+    const A = DATA.upgrades[a], B = DATA.upgrades[b];
+    if (!machine('fortune') || !A || !B || A.kind !== 'me' || B.kind !== 'me' || coreTier(a) !== coreTier(b) || coreTier(a) >= 3) return -1;
+    if (a === b ? this.upgradeStacks[a] < 2 : !(this.upgradeStacks[a] > 0 && this.upgradeStacks[b] > 0)) return -1;
+    const v = this.rollPassive(coreTier(a) + 1, null); if (v < 0) return -1;
+    this.dropBuffStack(a); this.dropBuffStack(b); this.addUpgrade(v);
+    this.play('S_Upgrade', 0.9, 0.8); return v;
   }
 
   // ---------------------------------------------------------------- the Descent's parts
@@ -2306,8 +2380,9 @@ export class Player {
     if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), false);
   }
   // A gun has four part slots and one more each time it evolves; the blade has four and one more each time it is honed.
-  partSlots(S) { return S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0); }
+  partSlots(S) { return S && S.turret ? 4 : S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0); }
   fitCore(S, u) {
+    if (S.turret) { const U = DATA.upgrades[u]; if (!(this.coreInv[u] > 0) || U.kind !== 'gun') return false; const tc = this.turretCores || (this.turretCores = []); if (tc.length >= 4) { this.toast('The turret has four slots, and they are full', '#ffb057'); return false; } this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u]; tc.push(u); return true; }
     if (S.blade) return this.fitBlade(u);
     if (S.def < 0 || !(this.coreInv[u] > 0)) return false;
     if (S.cores.length >= this.partSlots(S)) { this.toast(`Every slot on this gun is full. It gets another each time it evolves.`, '#ffb057'); return false; }
@@ -2322,7 +2397,7 @@ export class Player {
     this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u]; this.bladeCores.push(u); this.recompute(); return true;
   }
   pullBlade(u) { const k = this.bladeCores.lastIndexOf(u); if (k < 0) return false; this.bladeCores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.recompute(); return true; }
-  pullCore(S, u) { if (S.blade) return this.pullBlade(u); const k = S.cores.lastIndexOf(u); if (k < 0) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
+  pullCore(S, u) { if (S.turret) { const tc = this.turretCores || [], k = tc.lastIndexOf(u); if (k < 0) return false; tc.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; return true; } if (S.blade) return this.pullBlade(u); const k = S.cores.lastIndexOf(u); if (k < 0) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
   returnCores(S) { if (!S.cores || !S.cores.length) return; for (const u of S.cores) this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${S.cores.length} part${S.cores.length > 1 ? 's' : ''} came back to your pack`, '#ffcd5a'); S.cores = []; }
   // the numbers on the bench card, for the gun in hand
   gunSheet() {

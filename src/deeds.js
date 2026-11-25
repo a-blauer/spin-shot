@@ -1,21 +1,19 @@
 // The Descent's own progression. Two things are earned by going down, and neither is raw power:
-//   deeds      account-wide machines and favours that give you more say over the next run
+//   machines   account-wide helpers opened by rank, that give you more say over the next run
 //   ascension  the gun that carried a winning run is marked, once per difficulty; each mark opens a choice for that gun
 import * as THREE from 'three';
 import { Meta } from './meta.js';
 
-const st = (k) => Meta.stat(k);
-export const DEEDS = [
-  { id: 'bless', name: 'Blessings', need: 'Clear room 5 of the Descent.', test: () => st('dRoom') >= 5, text: 'One cleared room in three ends with a blessing: a free part, of any rarity.' },
-  { id: 'roll2', name: 'Second Roll', need: 'Clear room 10 of the Descent.', test: () => st('dRoom') >= 10, text: 'The mystery box gives two free rolls in every room, not one.' },
-  { id: 'eye', name: "Scavenger's Eye", need: 'Clear room 15 of the Descent.', test: () => st('dRoom') >= 15, text: 'Parts that suit the gun in your hands turn up far more often.' },
-  { id: 'recycle', name: 'The Recycler', need: 'Finish the Descent.', test: () => st('dWins') >= 1, text: 'A machine at every workbench: give it two parts you do not want and it makes one new part, as rare as the lesser of the two.' },
-  { id: 'reroll', name: 'Recycler: Reroll', need: 'Finish the Descent on Hard or Nightmare.', test: () => st('dDiff') >= 2, text: 'Once a room, the Recycler turns a single part into a different part of the same rarity.' },
-  { id: 'banish', name: 'Banish', need: 'Ascend three weapons.', test: () => st('dAsc') >= 3, text: 'Strike a kind of part from the run at the workbench: it will not drop again. Three times a run.' },
-  { id: 'keep', name: 'Keepsake', need: 'Finish the Descent on Nightmare.', test: () => st('dDiff') >= 3, text: 'Begin every Descent already carrying one part of your choice.' },
+// Machines: account-wide helpers that appear in the Descent, opened by rank (see RANKS in meta.js). The old deeds are gone.
+export const MACHINES = [
+  { id: 'compressor', name: 'The Compressor', short: 'A second bench every third room: two of the same gun part become one, half as strong again.', text: 'Every third room a second bench stands by the workbench. Feed it two of the same gun part and it presses them into one that is half as strong again: two Incendiary (20%) make one at 30%. A pressed part cannot be pressed again.' },
+  { id: 'showcase', name: 'The Showcase', short: 'The mystery box shows two guns, and you take the one you want.', text: 'The mystery box turns up two guns instead of one, side by side, and you take the one you want.' },
+  { id: 'recycler', name: 'The Recycler', short: 'Break parts into scrap; spend scrap to make the part you want.', text: 'At every workbench: break gun parts you do not want down into scrap, and spend scrap on the gun part you do want. Rarer parts give more scrap and cost more to make.' },
+  { id: 'fortune', name: 'The Fortune Teller', short: 'Reroll your character buffs, or trade two for one of the next rarity.', text: 'At every workbench: each room, reroll any character buff you carry (once each) into another of the same rarity, or give up two of one rarity for one of the next rarity up.' },
+  { id: 'fusion', name: 'Compressor: Fusion', short: 'The Compressor fuses two different elemental parts into one with a new effect.', text: 'The Compressor can now fuse two different elemental parts (Incendiary, Cryo Cell, Serrated, Arc Coil) into one part that carries both, and does something neither does alone.' },
 ];
-export const deed = (id) => { const D = DEEDS.find((d) => d.id === id); return !!D && (Meta.allOn() || D.test()); };
-export const deedsHeld = () => DEEDS.filter((D) => deed(D.id)).map((D) => D.id);
+export const machine = (id) => Meta.machineOn(id);
+export const machinesHeld = () => MACHINES.filter((M) => machine(M.id)).map((M) => M.id);
 
 // a gun evolves by being used: kills with it, in this run
 export const EVO_NEED = [30, 90, 180, 300];

@@ -8,6 +8,7 @@ import { PRIM } from './world.js';
 import { ViewModel } from './viewmodel.js';
 import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollBoxRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
 import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee, HONE_MAX } from './melee.js';
+import { machine } from './deeds.js';
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 const matCache = new Map();
@@ -20,7 +21,7 @@ const lin = (r, g, b) => new THREE.Color(r, g, b).convertLinearToSRGB();
 export const RarityHex = [0xD8D8D8, 0x5BD65B, 0x4AA3FF, 0xB565F0, 0xFFB22E, 0xFF3B3B];
 
 const CASINO_ONLY = new Set(['Slots', 'ArmsRoulette', 'MoneyTable', 'UpgradeCounter', 'StatBooth', 'HighRoller', 'ExitBell']);
-export const STATION_NAMES = { Slots: 'Slots', ArmsRoulette: 'Weapon Roulette', MoneyTable: 'Blackjack', UpgradeCounter: 'Upgrades', StatBooth: 'Tonics', HighRoller: 'Workbench', ExitBell: 'Barricade', AmmoCrate: 'Ammo' };
+export const STATION_NAMES = { Slots: 'Slots', ArmsRoulette: 'Weapon Roulette', MoneyTable: 'Blackjack', UpgradeCounter: 'Upgrades', StatBooth: 'Tonics', HighRoller: 'Workbench', Compressor: 'Compressor', ExitBell: 'Barricade', AmmoCrate: 'Ammo' };
 
 export class Interactable {
   constructor(game, type, loc, yaw, cost, weapon, label, size) {
@@ -126,15 +127,20 @@ export class Interactable {
   }
   // the colour the first line of the prompt is written in: a gun on offer is named in the colour of its rarity
   promptHex() {
-    const st = this.box && this.box.state === 'offer' ? this.box.prize : this.wheel && this.wheel.state === 'prize' ? this.wheel.prize : null;
+    const st = this.box && this.box.state === 'offer' ? (this.box.prize2 >= 0 && this.box.pick === 1 ? this.box.prize2 : this.box.prize) : this.wheel && this.wheel.state === 'prize' ? this.wheel.prize : null;
     if (st === null || st === undefined || st < 0) return null;
     const D = isMelee(st) ? MELEE[st - MELEE_CODE] : this.game.data.weapons[st]; return D ? RARITY_HEX[D.rarity] || null : null;
   }
   setOpened(on) { this.opened = on; if (this.beam) this.beam.visible = !on; if (this.inside) this.inside.visible = on; }
   // ---- the mystery box ----
-  boxShow(def) {
+  boxShow(def, def2) {
     while (this.holder.children.length) this.holder.remove(this.holder.children[0]);
     if (def < 0) return;
+    if (def2 !== undefined && def2 >= 0) {   // the Showcase: two on offer, side by side along the box
+      this.holder.rotation.y = 0;
+      [def, def2].forEach((d, k) => { const sub = new THREE.Group(); sub.position.z = k ? 52 : -52; const keep = this.holder; this.holder = sub; this.boxShow(d); this.holder = keep; sub.userData.def = d; this.holder.add(sub); });
+      return;
+    }
     try {
       if (isMelee(def)) { const h = new THREE.Group(); h.rotation.z = -0.5; h.add(ViewModel.meleeDisplay(MELEE[def - MELEE_CODE], 105)); this.holder.add(h); }
       else { const gun = ViewModel.displayModel(this.game, def, 0); gun.scale.setScalar(1.5); const b = new THREE.Box3().setFromObject(gun), c = b.getCenter(new THREE.Vector3()); gun.position.sub(c); const h = new THREE.Group(); h.rotation.y = Math.PI / 2; h.add(gun); this.holder.add(h); }
@@ -143,8 +149,9 @@ export class Interactable {
   boxUse(P) {
     const B = this.box, G = this.game;
     if (B.state === 'offer') {
-      const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize];
-      P.giveWeapon(B.prize); P.toast(`Took ${D.name}`, RARITY_HEX[D.rarity]); P.play('S_Buy', 0.8);
+      const take = B.prize2 >= 0 && B.pick === 1 ? B.prize2 : B.prize;
+      const D = isMelee(take) ? MELEE[take - MELEE_CODE] : G.data.weapons[take];
+      P.giveWeapon(take); P.toast(`Took ${D.name}`, RARITY_HEX[D.rarity]); P.play('S_Buy', 0.8);
       B.state = 'closing'; B.t = 0; this.boxShow(-1); return;
     }
     if (B.state !== 'idle') return;
@@ -156,6 +163,11 @@ export class Interactable {
     let prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);
     if (G.descent) for (let k = 0; k < 12 && G.data.weapons[prize].cash; k++) prize = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def);   // nothing that is fed with money
     if (Math.random() < (P.cls.id === 'brawler' ? 0.35 : 0.1) && r >= 1) { const m = rollMelee(r, P.meleeDef); if (m >= 0 && MELEE[m]) prize = MELEE_CODE + m; }
+    B.prize2 = -1; B.pick = 0;
+    if (G.descent && machine('showcase')) {   // a second gun of the same rarity, not the first and not one you carry
+      let p2 = -1; for (let k = 0; k < 16; k++) { const c = rollWeaponOfRarity(r, P.weapons[0].def, P.weapons[1].def); if (c !== prize && !G.data.weapons[c].cash) { p2 = c; break; } }
+      B.prize2 = p2;
+    }
     B.prize = prize; B.state = 'rolling'; B.t = 0; B.flick = 0;
     G.audio.playAt('S_Door', this.pos, 0.8, 0.9);
   }
@@ -168,8 +180,14 @@ export class Interactable {
     if (B.state === 'rolling') {
       B.flick -= dt;
       if (B.flick <= 0) { B.flick = 0.09 + B.t * 0.06; const W = G.data.weapons; this.boxShow(1 + Math.floor(Math.random() * (W.length - 1))); G.audio.playAt('S_SlotTick', this.pos, 0.4, 1 + B.t * 0.15, 0.05); }
-      if (B.t > 2.8) { B.state = 'offer'; B.t = 0; this.boxShow(B.prize); const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; G.audio.playAt(rarityIndex(D.rarity) >= 4 ? 'S_Jackpot' : 'S_Win', this.pos, 0.9); }
-    } else if (B.state === 'offer') { this.holder.rotation.y += dt * 1.2; if (B.t > 12) { B.state = 'closing'; B.t = 0; this.boxShow(-1); } }
+      if (B.t > 2.8) { B.state = 'offer'; B.t = 0; this.boxShow(B.prize, B.prize2); const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; G.audio.playAt(rarityIndex(D.rarity) >= 4 ? 'S_Jackpot' : 'S_Win', this.pos, 0.9); }
+    } else if (B.state === 'offer') {
+      if (B.prize2 >= 0 && this.holder.children.length === 2 && P) {   // the one you are looking at is the one you take: it rises and turns
+        const cam = this.game.camera, f = new THREE.Vector3(); cam.getWorldDirection(f); let best = 0, bd = -2;
+        this.holder.children.forEach((c, k) => { const w = new THREE.Vector3(); c.getWorldPosition(w); const d = w.sub(cam.position).normalize().dot(f); if (d > bd) { bd = d; best = k; } });
+        B.pick = best; this.holder.children.forEach((c, k) => { c.position.y += ((k === best ? 14 : -6) - c.position.y) * Math.min(1, dt * 8); c.rotation.y += k === best ? dt * 1.6 : 0; c.scale.setScalar(c.scale.x + ((k === best ? 1.08 : 0.85) - c.scale.x) * Math.min(1, dt * 8)); });
+      } else this.holder.rotation.y += dt * 1.2;
+      if (B.t > (B.prize2 >= 0 ? 18 : 12)) { B.state = 'closing'; B.t = 0; this.boxShow(-1); } }
     else if (B.state === 'closing') { if (B.t > 0.5) B.state = 'idle'; }
     else if (B.state === 'leaving') {
       this.group.position.y = this.pos.y - Math.max(0, B.t - 0.6) * 160;
@@ -503,6 +521,25 @@ export class Interactable {
         this.glowAt = V(120, 0, 260); this.glowCol = [1, 0.7, 0.4];
         break;
       }
+      case 'Compressor': {
+        // THE COMPRESSOR: a hydraulic press. Two dishes on the platen take two parts; the ram comes down and one comes out.
+        const Steel = lin(0.5, 0.52, 0.58), SteelD = lin(0.17, 0.17, 0.2), Teal = lin(0.25, 0.85, 0.75), Brass = lin(1, 0.66, 0.22);
+        P(null, 0, V(70, 0, 10), V(170, 300, 20), SteelD);                                       // base plate
+        for (const y of [-120, 120]) { P(null, 1, V(70, y, 220), V(30, 30, 420), Steel); P(null, 1, V(70, y, 24), V(46, 46, 14), SteelD); P(null, 1, V(70, y, 420), V(46, 46, 14), SteelD); }   // columns
+        P(null, 0, V(70, 0, 440), V(110, 300, 50), SteelD); P(null, 0, V(70, 0, 468), V(116, 306, 6), Brass, null, 0.4);   // crosshead
+        P(null, 1, V(70, 0, 388), V(70, 70, 70), Steel); this.ram = new THREE.Group(); this.group.add(this.ram);
+        P(this.ram, 1, V(70, 0, 330), V(40, 40, 80), lin(0.8, 0.82, 0.86)); P(this.ram, 0, V(70, 0, 286), V(90, 200, 14), SteelD);   // ram and its die
+        P(null, 0, V(70, 0, 110), V(120, 240, 60), Steel); P(null, 0, V(70, 0, 144), V(124, 246, 8), SteelD);   // platen
+        for (const y of [-55, 55]) { P(null, 1, V(70, y, 152), V(64, 64, 8), Teal, null, 0.8); P(null, 1, V(70, y, 156), V(52, 52, 4), SteelD); }   // the two dishes
+        P(null, 1, V(132, 0, 120), V(40, 40, 8), lin(0.95, 0.92, 0.85), R(0, 0, 90)); P(null, 0, V(138, 0, 124), V(2, 3, 16), lin(0.8, 0.1, 0.1), R(30, 0, 0));   // pressure gauge
+        P(null, 1, V(20, 140, 260), V(14, 14, 380), Brass); P(null, 1, V(40, 140, 452), V(14, 14, 44), Brass, R(0, 90, 0));   // steam line
+        P(null, 0, V(4, 0, 250), V(10, 330, 500), DarkWood);
+        P(null, 0, V(8, 0, 560), V(12, 330, 80), Black); P(null, 0, V(10, 0, 602), V(14, 340, 6), Teal, null, 0.8);
+        this.text(null, V(16, -20, 572), 0, 40, 'COMPRESSOR', '#7fffe0');
+        this.text(null, V(16, -20, 536), 0, 18, 'TWO PARTS IN  -  ONE OUT', '#f2e8d5');
+        this.useRadius = 260;
+        break;
+      }
       case 'HighRoller': {
         // WORKBENCH: where guns get upgraded. A heavy bench against a pegboard of tools, a rifle clamped in a vise under a
         // work lamp, parts and oil to hand, and a sign with rising chevrons so it reads as "make this better" from across the room.
@@ -675,11 +712,12 @@ export class Interactable {
       }
       case 'MysteryBox': {
         const B = this.box;
-        if (B.state === 'offer') { const D = isMelee(B.prize) ? MELEE[B.prize - MELEE_CODE] : G.data.weapons[B.prize]; return `[E] Take ${D.name}\n${D.rarity}${isMelee(B.prize) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        if (B.state === 'offer') { const tk = B.prize2 >= 0 && B.pick === 1 ? B.prize2 : B.prize, D = isMelee(tk) ? MELEE[tk - MELEE_CODE] : G.data.weapons[tk]; return `${B.prize2 >= 0 ? 'Look at the one you want.  ' : ''}[E] Take ${D.name}\n${D.rarity}${isMelee(tk) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
         if (B.state !== 'idle') return '';
         if (G.descent) { const n = player ? player.boxRolls || 0 : 0; return n > 0 ? `[E] Mystery box  (free: ${n} roll${n > 1 ? 's' : ''} left in this room)\nA random weapon. Take it or leave it.` : 'The mystery box is spent for this room'; }
         return `[E] Mystery box  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nA random weapon. It moves on after a few uses.`;
       }
+      case 'Compressor': return `[E] The Compressor\nTwo of the same gun part become one, half as strong again.${machine('fusion') ? ' Or fuse two different elements.' : ''}`;
       case 'HighRoller': {
         if (player && player.wield) { const MW = MELEE[player.meleeDef || 0], mt = player.meleeTier || 0; return mt >= HONE_MAX ? `${MW.name} +${mt} is as sharp as it gets` : `[E] Hone ${MW.name}${mt ? ' +' + mt : ''}  $${cash(player.honeCost())}\n+30% damage, more reach and a faster swing (${mt} of ${HONE_MAX}). Honing stays with you if you change blades.`; }
         if (G.descent && player) { const n = Object.values(player.coreInv || {}).reduce((x, y) => x + y, 0); return `[E] Workbench\n${n ? `Fit your parts: ${n} waiting.` : 'Fit parts to your guns.'}`; }
@@ -690,7 +728,7 @@ export class Interactable {
         if (S.mods.length >= 4) return `${W.name} is fully tuned`;
         return `[E] Tune ${W.name}  $${cash(player.benchCost(S))}\nTune-up ${S.mods.length + 1} of 4: +20% damage, +15% magazine and reserve, +5% fire rate and reload on this gun.${G.descent ? '' : ' Takes 10 seconds, then claim it here.'} Draw your blade (X) to hone it instead.`;
       }
-      case 'AmmoCrate': return this.cost > 0 ? `[E] Refill ammo  $${cash(this.cost)}` : '[E] Refill ammo  (free)';
+      case 'AmmoCrate': { const w = player ? Math.ceil((player.ammoReady || 0) - G.time) : 0; if (w > 0) return `Ammo box ready in ${Math.floor(w / 60)}:${String(w % 60).padStart(2, '0')}`; return this.cost > 0 ? `[E] Refill ammo  $${cash(this.cost)}` : '[E] Refill ammo  (free)\nOnce every 1:30.'; }
       case 'ExitBell': return (this.game.barricadeT > 0 ? `[E] Lower the barricade  (${Math.ceil(this.game.barricadeT)}s left)` : this.game.barricadeCd > 0 ? `Barricade ready in ${Math.ceil(this.game.barricadeCd)}s` : '[E] Barricade the doors for 3 minutes');
       case 'Slots': return this.slot.busy ? '' : `[E] Pull the lever  $${cash(player ? player.slotPrice() : this.cost)}\nThree of a kind or a pair pays a better upgrade. Every pull pays something.`;
       case 'ArmsRoulette': {

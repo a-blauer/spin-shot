@@ -29,27 +29,42 @@ export const MEDAL_HEX = ['#c98a4a', '#cfd3da', '#ffcd5a'];
 export const DIFF_XP = [1, 1.5, 2];
 
 // ---- renown: rank n is RANKS[n - 1]
+// The Descent is the game: renown from it climbs these ranks, and each rank opens something new to go down with. The
+// thirty ordinary guns and every part and buff found today are there from the start; ranks add the oddities (the strange
+// guns, roughly commonest first) and the machines (account-wide helpers that appear in the Descent).
+export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Showcase', recycler: 'The Recycler', fortune: 'The Fortune Teller', fusion: 'Compressor: Fusion' };
 export const RANKS = [
   { name: 'Drifter' },
-  { name: 'Greenhorn', starter: 'Back-Alley' },
-  { name: 'Ranch Hand', upgrades: ['Time Dilator'] },
-  { name: 'Deputy', starter: 'Sawbuck' },
-  { name: 'Gunhand', upgrades: ['Twin Link'] },
-  { name: 'Trailblazer', starter: 'Quarter Horse' },
-  { name: 'Bounty Hunter', upgrades: ['Bloodlust Engine'] },
-  { name: 'Regulator', skin: 'rawhide' },
-  { name: 'Marshal', upgrades: ['Iron Will'] },
-  { name: 'Pathfinder', starter: 'Saloon Six' },
-  { name: 'Outrider', upgrades: ['Storm Anchor'] },
-  { name: 'Pistolero', upgrades: ['Feeding Frenzy'] },
-  { name: 'Vigilante', skin: 'gunmetal' },
-  { name: 'Desperado', upgrades: ['Headsman'] },
-  { name: 'Nightrider', upgrades: ['Curtain Call'] },
-  { name: 'Warden', starter: 'Homesteader' },
-  { name: 'Reaper', upgrades: ['Mirror Shard'] },
-  { name: 'Gravewalker', upgrades: ['Bottomless Chamber'] },
-  { name: 'Dead Shot', upgrades: ["Bulwark"] },
-  { name: 'Legend', skin: 'legend' },
+  { name: 'Greenhorn', machine: 'compressor' },
+  { name: 'Ranch Hand', guns: ['Bullwhip'] },
+  { name: 'Deputy', guns: ['Come-Back Kid'] },
+  { name: 'Gunhand', machine: 'showcase' },
+  { name: 'Trailblazer', guns: ['Bear Trap'] },
+  { name: 'Bounty Hunter', guns: ['Lariat'] },
+  { name: 'Regulator', guns: ['Tumbleweed'], skin: 'rawhide' },
+  { name: 'Marshal', machine: 'recycler' },
+  { name: 'Pathfinder', guns: ['Barn Door'] },
+  { name: 'Outrider', guns: ['Old Faithful'] },
+  { name: 'Pistolero', guns: ['Whaler'] },
+  { name: 'Vigilante', machine: 'fortune', skin: 'gunmetal' },
+  { name: 'Desperado', guns: ['Jack-in-the-Box'] },
+  { name: 'Nightrider', guns: ['William Tell'] },
+  { name: 'Warden', guns: ['Calliope'] },
+  { name: 'Reaper', machine: 'fusion' },
+  { name: 'Gravewalker', guns: ['Loaded Dice'] },
+  { name: 'Dead Shot', guns: ['Sawbones'] },
+  { name: 'Tunnel Rat', guns: ['Live Wire'] },
+  { name: 'Lamplighter', guns: ['Gusher'] },
+  { name: 'Gravedigger', guns: ['High Striker'] },
+  { name: 'Undertaker', guns: ['Wrecking Ball'] },
+  { name: 'Hellhound', guns: ['Hall of Mirrors'] },
+  { name: 'Bone Collector', guns: ['House Edge'] },
+  { name: 'Deep Walker', guns: ['Tilt'] },
+  { name: 'Abyss Walker', guns: ['Homing Pigeon'] },
+  { name: 'Iron Prophet', guns: ['One-Armed Bandit'] },
+  { name: 'Last Light', guns: ['Poltergeist'] },
+  { name: 'Underlord', guns: ['Hocus Pocus'] },
+  { name: 'Legend', guns: ["Dead Man's Hand"], skin: 'legend' },
 ];
 export const rankXp = (r) => (r <= 1 ? 0 : Math.round(250 * Math.pow(r - 1, 1.7) / 50) * 50);   // total XP needed to hold rank r
 export const rankOf = (xp) => { let r = 1; while (r < RANKS.length && xp >= rankXp(r + 1)) r++; return r; };
@@ -58,8 +73,7 @@ export const roundXp = (round, diff) => Math.round((30 + 12 * Math.max(1, round 
 export const bossXp = (final, diff) => Math.round((final ? 800 : 120) * (DIFF_XP[diff] || 1));
 
 // starting weapon choices for the lobby loadout
-export const STARTERS = [{ w: 'Tin Star' }, { w: 'Copperhead' }];
-RANKS.forEach((R, i) => { if (R.starter) STARTERS.push({ w: R.starter, rank: i + 1, key: 'r' + (i + 1), text: `Rank ${i + 1}  -  ${R.name}` }); });
+export const STARTERS = ['Tin Star', 'Copperhead', 'Back-Alley', 'Sawbuck', 'Quarter Horse', 'Saloon Six', 'Homesteader'].map((w) => ({ w }));
 
 // ---- class mastery: rounds cleared while playing the class
 export const CLASS_LEVELS = [8, 25, 60];
@@ -103,21 +117,21 @@ export const ACHIEVEMENTS = [
   { id: 'elite25', group: 0, name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, upgrades: ["Executioner's Hood"] },
   { id: 'melee1', group: 0, name: 'Close Work', desc: 'Get 400 melee kills', stat: 'meleeKills', need: 400, blades: ['Gunslinger Katana'] },
   { id: 'melee2', group: 0, name: 'Gravedigger', desc: 'Get 2,000 melee kills', stat: 'meleeKills', need: 2000, blades: ["Gravedigger's Shovel"] },
-  { id: 'round5', group: 1, name: 'Still Standing', desc: 'Reach round 3', stat: 'bestRound', need: 3, guns: ['Fireworks Finale'] },
-  { id: 'round10', group: 1, name: 'Dug In', desc: 'Reach round 6', stat: 'bestRound', need: 6, guns: ['Railroad Spike'], upgrades: ["Outlaw's Nerve"] },
-  { id: 'round15', group: 1, name: 'Hard to Kill', desc: 'Reach round 9', stat: 'bestRound', need: 9, guns: ['Black Cat'] },
-  { id: 'round20', group: 1, name: 'Last One Standing', desc: 'Reach round 12', stat: 'bestRound', need: 12, guns: ['Fan of Knives'], skin: 'gilded' },
-  { id: 'boss1', group: 1, name: 'Boss Killer', desc: 'Defeat 4 bosses', stat: 'bosses', need: 4, guns: ['Buzzsaw'] },
+  { id: 'round5', group: 1, name: 'Still Standing', desc: 'Reach round 3', stat: 'bestRound', need: 3 },
+  { id: 'round10', group: 1, name: 'Dug In', desc: 'Reach round 6', stat: 'bestRound', need: 6, upgrades: ["Outlaw's Nerve"] },
+  { id: 'round15', group: 1, name: 'Hard to Kill', desc: 'Reach round 9', stat: 'bestRound', need: 9 },
+  { id: 'round20', group: 1, name: 'Last One Standing', desc: 'Reach round 12', stat: 'bestRound', need: 12, skin: 'gilded' },
+  { id: 'boss1', group: 1, name: 'Boss Killer', desc: 'Defeat 4 bosses', stat: 'bosses', need: 4 },
   { id: 'boss3', group: 1, name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, upgrades: ['Phoenix Feather'] },
   { id: 'boss40', group: 1, name: 'Kingslayer', desc: 'Defeat 40 bosses', stat: 'bosses', need: 40, upgrades: ['Giant Slayer'] },
-  { id: 'slots25', group: 2, name: 'Treasure Seeker', desc: 'Open 75 chests', stat: 'chests', need: 75, guns: ['Gold Rush'], skin: 'dealer' },
+  { id: 'slots25', group: 2, name: 'Treasure Seeker', desc: 'Open 75 chests', stat: 'chests', need: 75, skin: 'dealer' },
   { id: 'money100k', group: 2, name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, upgrades: ['Midas Touch'] },
   { id: 'tier3', group: 2, name: 'Gunsmith', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, skin: 'pinstripe' },
   { id: 'bench40', group: 2, name: 'Tinkerer', desc: 'Fit 40 workbench modifiers', stat: 'mods', need: 40, upgrades: ["Storm Caller"] },
   { id: 'tonic60', group: 2, name: 'Snake Oil', desc: 'Drink 60 tonics', stat: 'tonics', need: 60, upgrades: ["Lich's Bargain"] },
   { id: 'master1', group: 2, name: 'Mastery', desc: 'Get two guns to level 5', stat: 'mastered', need: 2, skin: 'bone' },
   { id: 'master6', group: 2, name: 'Arsenal', desc: 'Get six guns to level 5', stat: 'mastered', need: 6, upgrades: ['Seventh Son'] },
-  { id: 'win', group: 3, name: 'Town Tamer', desc: 'Clear Deadwater Gulch', stat: 'clear_gulch', need: 1, guns: ['Thunderhead'] },
+  { id: 'win', group: 3, name: 'Town Tamer', desc: 'Clear Deadwater Gulch', stat: 'clear_gulch', need: 1 },
   { id: 'win_mine', group: 3, name: 'Struck Gold', desc: 'Clear Blackwater Mine', stat: 'clear_mine', need: 1, upgrades: ['Gold Fever'] },
   { id: 'win_frost', group: 3, name: 'End of the Line', desc: 'Clear Frostbite Junction', stat: 'clear_frost', need: 1, upgrades: ["Winter's Halo"] },
   { id: 'win_bayou', group: 3, name: 'Last Rites', desc: 'Clear Mourning Bayou', stat: 'clear_bayou', need: 1, upgrades: ["Guardian Angel"] },
@@ -144,6 +158,7 @@ const val = (k) => (DERIVED[k] ? DERIVED[k]() : S.stats[k] || 0);
 export function rewardText(A) {
   const out = [];
   if (A.starter) out.push(`${A.starter} as a starting gun`);
+  if (A.machine) out.push(`Machine: ${MACHINE_NAMES[A.machine]}`);
   if (A.guns) out.push(...A.guns);
   if (A.blades) out.push(...A.blades);
   if (A.upgrades) out.push(...A.upgrades);
@@ -308,11 +323,14 @@ export const Meta = {
   toggleMut(i) { S.muts = (S.muts | 0) ^ (1 << i); dirty = true; this.save(); },
   difficulty() { if (daily) return daily.diff; return S.diff === 1 || S.diff === 2 ? S.diff : 0; },
   setDifficulty(i) { S.diff = i; dirty = true; this.save(); },
-  map() { if (daily) return daily.map; return Number.isInteger(S.map) && S.map >= 0 ? S.map : 0; },
-  setMap(i) { S.map = i; dirty = true; this.save(); },
+  map() { if (daily) return daily.map; return Number.isInteger(S.map) && S.map >= 0 && S.mapPick2 ? S.map : -1; },   // -1: nothing chosen since the Descent became the game, so the lobby opens on it
+  setMap(i) { S.map = i; S.mapPick2 = 1; dirty = true; this.save(); },
   setStarter(w) { if (this.starterUnlocked(w)) { S.starter = w; dirty = true; this.save(); } },
   cosCount() { let n = 0, t = 0; for (const s of SLOTS) for (const I of COSMETICS[s]) { t++; if (this.cosUnlocked(s, I.id)) n++; } return [n, t]; },
   popEvents() { return events.splice(0, events.length); },
+  // a machine is running once the rank that brings it has been reached and its reward claimed
+  machineOn(id) { if (unlockAll) return true; const i = RANKS.findIndex((R) => R.machine === id); if (i < 0) return false; const M = BY_KEY.get('r' + (i + 1)); return !!M && stateOf(M) === 'claimed'; },
+  machineRank(id) { return RANKS.findIndex((R) => R.machine === id) + 1; },
   gunLocked(name) { return !unlockAll && lockedGuns.has(name); },
   upgradeLocked(name) { return !unlockAll && lockedUps.has(name); },
   bladeLocked(name) { return !unlockAll && lockedBlades.has(name); },

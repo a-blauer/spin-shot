@@ -24,7 +24,7 @@ export function buildBayou(M) {
   const { Box, BoxRot, Glow, Cyl, Ball, ConeShape, Ramp, Floor, Wall, Lamp, Sign, Barrel, Crate, Station, WallBuy, Door, SpawnAt, Pyramid, Oct, Ring, AddZone, DeadTree, Wagon, GM } = M;
   const K = mapKit(M);
   GM.navInit(-9900, -7700, 9900, 7700, 100);
-  const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), PLANK_D, false, false); { const t = [-n[1], n[0]]; for (const s of [-1, 1]) Box(V(x - n[0] * 16 + t[0] * s * 158, y - n[1] * 16 + t[1] * s * 158, 170), V(18, 18, 340), BARK_D, false, false); Box(V(x - n[0] * 16, y - n[1] * 16, 284), Math.abs(n[0]) > 0.5 ? V(22, 350, 16) : V(350, 22, 16), BARK_D, false, false); } WallBuy(name, V(x, y, 0), yaw); };
+  const wallbuy = (name, x, y, yaw) => { return;   /* wall guns are gone */ const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), PLANK_D, false, false); { const t = [-n[1], n[0]]; for (const s of [-1, 1]) Box(V(x - n[0] * 16 + t[0] * s * 158, y - n[1] * 16 + t[1] * s * 158, 170), V(18, 18, 340), BARK_D, false, false); Box(V(x - n[0] * 16, y - n[1] * 16, 284), Math.abs(n[0]) > 0.5 ? V(22, 350, 16) : V(350, 22, 16), BARK_D, false, false); } WallBuy(name, V(x, y, 0), yaw); };
   // a bald cypress: a flared, buttressed foot, knees round it, a flat crown hung with moss
   const cypress = (x, y, h, d, solid = true) => {
     Cyl(V(x, y, 40), d * 1.9, 80, BARK_D, solid, solid); Cyl(V(x, y, 120), d * 1.4, 100, BARK, solid, false); Cyl(V(x, y, h / 2), d, h, BARK, solid, false);

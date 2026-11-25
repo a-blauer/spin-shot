@@ -122,3 +122,113 @@ export class Turret {
   destroy() { this.game.scene.remove(this.group); const i = this.game.interactables.indexOf(this); if (i >= 0) this.game.interactables.splice(i, 1); }
 }
 function G_vm(P, S) { P.reloading = false; P.fireCd = 0.4; P.game.vm.setWeapon(S.def, Math.min(4, S.tier), true); }
+
+// ---- The Engineer's shoulder turret. It rides on your right shoulder, comes out for a while when you call it (F), finds
+// its own targets and fires on them, then folds away. Its type is chosen at the workbench, and gun parts fitted to it
+// there work on it: their numbers (damage, fire rate, crit; a bigger magazine keeps it out longer, faster reload brings
+// it back sooner, more projectiles add pellets) and their on-hit effects.
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+export const TURRET_TYPES = [
+  { id: 'sentry', name: 'Sentry', text: 'A quick hitscan gun that is good at any range.', rate: 3, dmg: 1, range: 2400, pellets: 1, spread: 1.2, col: 0x9ccbff, snd: 'Back-Alley' },
+  { id: 'scatter', name: 'Scattergun', text: 'Blasts of six pellets. Murderous up close, useless far off.', rate: 1.1, dmg: 0.5, range: 1000, pellets: 6, spread: 7, col: 0xffc070, snd: 'Sawbuck' },
+  { id: 'tesla', name: 'Tesla Coil', text: 'Lightning that jumps on to 3 more enemies and slows everything it touches.', rate: 0.9, dmg: 2.4, range: 1500, chains: 3, col: 0x9a8cff, snd: 'Tesla Coil' },
+  { id: 'flamer', name: 'Flamer', text: 'A short cone of fire that sets everything in it alight.', rate: 8, dmg: 0.13, range: 650, flame: true, col: 0xff7a1a, snd: 'Hellfire Hose' },
+];
+export const turretType = (id) => TURRET_TYPES.find((t) => t.id === id) || TURRET_TYPES[0];
+export const TURRET_TIME = 10;
+// what the fitted parts add up to
+export function turretStats(P) {
+  const m = {}, procs = [];
+  for (const u of P.turretCores || []) { const U = DATA.upgrades[u]; for (const [k, v] of U.mods || []) m[k] = (m[k] || 0) + v; if (U.trigger === 'OnHit' && U.fx) procs.push(u); }
+  const T = turretType(P.turretType), s = (k) => m[k] || 0;
+  return {
+    T, procs,
+    dmg: Math.max(0.1, 1 + s('Damage') + P.stat('TurretDamage')), rate: Math.max(0.2, 1 + s('FireRate') + P.stat('TurretRate')), crit: s('CritChance'),
+    time: TURRET_TIME * (1 + s('MagSize')), cdK: 1 / (1 + s('ReloadSpeed')), pellets: (T.pellets || 1) + Math.round(s('Multishot')) * (T.pellets > 1 ? 2 : 1),
+    chains: (T.chains || 0) + Math.round(s('Pierce') + s('Ricochet')), range: T.range * (1 + P.stat('TurretRange')), steal: s('Lifesteal'), burn: P.stat('TurretBurn'),
+  };
+}
+export class ShoulderTurret {
+  constructor(game) {
+    this.game = game; this.t = 0; this.out = 0; this.cd = 0; this.scan = 0; this.target = null; this.kick = 0; this.typeId = '';
+    this.group = new THREE.Group(); this.group.visible = false; game.scene.add(this.group);
+    this.arm = new THREE.Group(); this.group.add(this.arm);
+    box(this.arm, 0, -5, 0, 10, 4, 10, 0x2b2d33); box(this.arm, 0, -2, 0, 6, 3, 6, 0x4a4e58, 0, 1);
+    this.yawG = new THREE.Group(); this.arm.add(this.yawG);
+    box(this.yawG, -4.2, 1.5, 0, 1.2, 5, 6, 0x4a4e58); box(this.yawG, 4.2, 1.5, 0, 1.2, 5, 6, 0x4a4e58);
+    this.head = new THREE.Group(); this.head.position.y = 2.5; this.yawG.add(this.head);
+    box(this.head, 0, 0, 0.5, 7, 4.5, 9, 0x3a3d45); this.eyeM = box(this.head, 0, 2.8, -2, 1.6, 1.6, 1.6, 0x6ec8ff, 1.2, 2);
+    this.barrel = new THREE.Group(); this.barrel.rotation.y = Math.PI; this.head.add(this.barrel);   // built along +z, turned to face where the camera looks
+  }
+  dress(T) {
+    if (this.typeId === T.id) return; this.typeId = T.id;
+    while (this.barrel.children.length) this.barrel.remove(this.barrel.children[0]);
+    const B = this.barrel, c = T.col;
+    if (T.id === 'sentry') { box(B, 0, 0, 7.5, 1.6, 1.6, 8, 0x1d1c22, 0, 1).rotation.x = Math.PI / 2; box(B, 0, 0, 11.5, 2.2, 2.2, 1.2, c, 0.8, 1).rotation.x = Math.PI / 2; }
+    else if (T.id === 'scatter') { for (const x of [-1.3, 1.3]) { const b = box(B, x, 0, 7, 2.2, 2.2, 7, 0x1d1c22, 0, 1); b.rotation.x = Math.PI / 2; } box(B, 0, 0, 10.6, 5.6, 2.6, 0.8, c, 0.6); }
+    else if (T.id === 'tesla') { box(B, 0, 0, 5.5, 1.2, 1.2, 5, 0x6a5a3a, 0, 1).rotation.x = Math.PI / 2; for (let i = 0; i < 3; i++) box(B, 0, 0, 5 + i * 1.8, 3.4, 3.4, 0.6, 0xb08a3a, 0, 8); box(B, 0, 0, 9.6, 2.6, 2.6, 2.6, c, 1.4, 2); }
+    else { box(B, 0, 0, 7, 2.6, 2.6, 7, 0x3a2a22, 0, 1).rotation.x = Math.PI / 2; box(B, 0, -2.4, 4, 3, 3, 4, 0xa8281e, 0, 1); box(B, 0, 0, 10.8, 1.2, 1.2, 1.2, c, 2, 2); }
+  }
+  deploy(P) { const S = turretStats(P); this.t = S.time; this.cd = 0.3; this.dress(S.T); }
+  get active() { return this.t > 0; }
+  muzzle() { const v = new THREE.Vector3(0, 0, -12); return this.head.localToWorld(v); }
+  update(dt, P) {
+    const G = this.game; this.t = Math.max(0, this.t - dt); this.out += ((this.t > 0 ? 1 : 0) - this.out) * Math.min(1, dt * 9); this.kick = Math.max(0, this.kick - dt * 8);
+    this.group.visible = this.out > 0.02 && !P.dead;
+    if (!this.group.visible) return;
+    // on the right shoulder, just in view at the top right
+    const cam = G.camera, q = cam.quaternion, r = new THREE.Vector3(1, 0, 0).applyQuaternion(q), u = new THREE.Vector3(0, 1, 0).applyQuaternion(q), f = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    this.group.position.copy(cam.position).addScaledVector(r, 34).addScaledVector(u, -10 + 25 * this.out).addScaledVector(f, 52);
+    this.group.quaternion.copy(q); this.arm.scale.setScalar(Math.max(0.01, this.out * 0.55));
+    this.barrel.position.z = this.kick * 1.6;
+    if (this.t <= 0) return;
+    const S = turretStats(P), T = S.T; this.dress(T);
+    this.cd -= dt; this.scan -= dt;
+    const eye = cam.position.clone().addScaledVector(r, 30).addScaledVector(u, 8);
+    if (this.scan <= 0 || (this.target && (this.target.dead || this.target.burrowed))) {
+      this.scan = 0.2; let best = null, bd = S.range;
+      for (const E of G.enemies) { if (E.dead || E.burrowed || E.emerging) continue; const d = E.pos.distanceTo(eye); if (d >= bd || !G.phys.lineOfSight(eye, E.pos)) continue; bd = d; best = E; }
+      this.target = best;
+    }
+    const E = this.target;
+    // turn the head toward it (in the camera's frame)
+    if (E) { const aim = E.pos.clone(); aim.y += (E.hitH || 100) * 0.15; const loc = aim.clone().sub(this.group.position).applyQuaternion(q.clone().invert()); this.yawG.rotation.y += (Math.atan2(-loc.x, -loc.z) - this.yawG.rotation.y) * Math.min(1, dt * 14); this.head.rotation.x += (Math.atan2(loc.y, Math.hypot(loc.x, loc.z)) - this.head.rotation.x) * Math.min(1, dt * 14); if (this.cd <= 0) this.fire(E, aim, S, P); }
+    else { this.yawG.rotation.y *= 1 - Math.min(1, dt * 4); this.head.rotation.x *= 1 - Math.min(1, dt * 4); }
+    this.eyeM.material = mat(E ? 0xff5a3a : 0x6ec8ff, 1.2);
+  }
+  fire(E, aim, S, P) {
+    const G = this.game, T = S.T, rate = T.rate * S.rate; this.cd = 1 / rate; this.kick = 1;
+    const round = Math.max(1, G.round), base = 2 * Math.max(26 * (1 + 0.15 * (round - 1)), zombieHealth(round) * 0.12) * S.dmg * T.dmg;
+    const from = this.muzzle(), col = hexRGB(T.col);
+    if (!T.flame || Math.random() < 0.3) gunSound(G.audio, T.snd, T.flame ? 0.18 : 0.28, false);
+    const hit = (O, d, at, dir, coef) => {
+      P.dealDamage(O, d, at, dir, at.y > O.headY(), coef, false, S.crit, S.burn > 0 ? d * 0.3 * S.burn : 0, 0, 0);
+      if (S.steal > 0) P.combatHeal(d * S.steal);
+      for (const u of S.procs) { const U = DATA.upgrades[u]; if (Math.random() < U.chance * coef * (1 + P.stat('ProcChance'))) P.executeProc(U, 1, O, at, d, 'OnHit'); }
+    };
+    if (T.flame) {
+      const dir = aim.clone().sub(from).normalize();
+      for (let k = 0; k < 2; k++) G.fx.add({ pos: from.clone(), vel: dir.clone().multiplyScalar(900 + Math.random() * 300).add(V3((Math.random() - 0.5) * 160, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 160)), drag: 1.2, life: 0.45, size0: 14, size1: 70, c0: [1, 0.65, 0.2, 0.9], c1: [1, 0.25, 0.05, 0], tex: 'FX_Puff', glow: 1 });
+      for (const O of G.enemies) { if (O.dead || O.burrowed) continue; const v = O.pos.clone().sub(from), d = v.length(); if (d > S.range) continue; if (v.normalize().dot(dir) < 0.93) continue; hit(O, base, O.pos, dir, 0.15); O.applyBurn(base * 1.5, 3); }
+      return;
+    }
+    if (T.chains) {
+      let at = from, cur = E, k = 0; const done = new Set();
+      while (cur && k <= S.chains) {
+        done.add(cur); G.fx.arc(at, cur.pos.clone().add(V3(0, 60, 0)), col); hit(cur, base * Math.pow(0.7, k), cur.pos, cur.pos.clone().sub(at).normalize(), k ? 0.3 : 0.6); cur.applySlow(0.4, 1.5);
+        at = cur.pos.clone().add(V3(0, 60, 0)); let nx = null, nd = 560; for (const O of G.enemies) { if (O.dead || done.has(O) || O.burrowed) continue; const d = O.pos.distanceTo(cur.pos); if (d < nd) { nd = d; nx = O; } } cur = nx; k++;
+      }
+      G.audio.playAt('S_Zap', from, 0.3, 1.2); return;
+    }
+    G.fx.flash(from, [1, 0.85, 0.5], 30, 0.05, false);
+    const spread = (T.spread || 1) * 0.012;
+    for (let k = 0; k < S.pellets; k++) {
+      const dir = aim.clone().sub(from).normalize(); dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread; dir.normalize();
+      let bt = S.range, best = null; const wall = G.phys.raycast(from, dir, bt); if (wall) bt = wall.distance;
+      for (const O of G.enemies) { if (O.dead || O.burrowed) continue; const t = G.rayEnemy(from, dir, bt, O, 6); if (t !== null && t < bt) { bt = t; best = O; } }
+      const at = from.clone().addScaledVector(dir, bt); G.fx.tracer(from, at, col, 3, 0.05);
+      if (best) hit(best, base, at, dir, 0.5 / S.pellets);
+    }
+  }
+  destroy() { this.game.scene.remove(this.group); }
+}

@@ -3,7 +3,7 @@
 // are told the room, what it paid and what the doors offer, and build the same things on their own side.
 import * as THREE from 'three';
 import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, DIFFS } from './data.js';
-import { deed, deedsHeld, DEEDS, ASC } from './deeds.js';
+import { machine, ASC } from './deeds.js';
 import { sigOf } from './signatures.js';
 import { V, R } from './mapkit.js';
 import { Interactable } from './interact.js';
@@ -28,7 +28,7 @@ export class Descent {
     const o = [...Array(N_ROOMS).keys()]; for (let i = o.length - 1; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; }
     this.order = o.length >= 16 ? o.slice(0, 16) : o.concat(o).slice(0, 16);
     this.bossPick = this.pickBosses();
-    this.deeds0 = deedsHeld(); this.result = null;
+    this.result = null;
   }
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
@@ -108,7 +108,6 @@ export class Descent {
     g.hud.roundFlash = 1;
     if (room === 1) g.hud.toast('Clear the room. Enemies drop parts; a workbench to fit them and the way on open when it is empty.', '#ffd24d');
     this.station('AmmoCrate', S.ammo[0], S.ammo[1], S.ammoYaw, 0, -1, 'Ammo');
-    this.guns.forEach((wi, k) => { const w = DATA.weapons[wi]; if (!w) return; const [x, y, yaw] = S.guns[k]; this.station('WallBuy', x, y, yaw, 0, wi, w.name, 130); });
     if (started) { Meta.roundStarted(room, g.map.id); P.onRoundStarted(room); }
     g.navRebuild(P.pos);
   }
@@ -147,9 +146,14 @@ export class Descent {
   open() {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 0, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
-    { const P = g.player; P.boxRolls = deed('roll2') ? 2 : 1; P.rerolls = 1;   // the box is free, once a room (twice with the deed); the Recycler rerolls once
-      if (deed('bless') && Math.random() < 1 / 3) { const u = rollCore(3, P.upgradeStacks, P.banCores); g.banner('A BLESSING', lin(0.6, 1, 0.75), 2.4); P.gainCore(u); } }
+    { const P = g.player; P.boxRolls = 1; P.fortuneUsed = {}; }   // the box is free once a room; the Fortune Teller rerolls each buff once a room
     g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 0, -1, 'Mystery Box');
+    // the Compressor stands by the workbench every third room
+    if (machine('compressor') && this.room % 3 === 0) {
+      const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
+      const at = far(side(1)) >= far(side(-1)) ? side(1) : side(-1);
+      const C = this.station('Compressor', at[0], at[1], S.benchYaw, 0, -1, 'Compressor'); C.makeSolid(0, 150, -160, 160, 0, 470);
+    }
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));
     I.useRadius = 260; const f = this.flip;
@@ -207,8 +211,7 @@ export class Descent {
   dropBuff(E, at) {
     if (E.splitChild || E.noLoot || E.ai === 'Totem') return;
     const P = this.g.player, ban = P.banCores || null;
-    // Scavenger's Eye: four drops in ten are something the gun in your hands is glad of
-    const pick = (cap) => { if (deed('eye') && Math.random() < 0.4 && !P.wield && P.slot.def >= 0) { const sg = sigOf(DATA.weapons[P.slot.def]), L = []; if (sg && sg.fav) CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (sg.fav.includes(d.name) && coreTier(i) <= cap && !(ban && ban.has(i)) && !(d.kind === 'me' && (P.upgradeStacks[i] || 0) >= DATA.upgrades[i].stacks)) L.push(i); }); if (L.length) return L[randInt(0, L.length - 1)]; } return rollCore(cap, P.upgradeStacks, ban); };
+    const pick = (cap) => rollCore(cap, P.upgradeStacks, ban);
     const drop = (cap, off = 0) => this.g.pickups.spawn('Buff', at.clone().add(V3(Math.cos(off) * (off ? 90 : 0), 0, Math.sin(off) * (off ? 90 : 0)).add(V3(0, 0, 60))), pick(cap));
     // a boss leaves one good one and often a second, an elite leaves one about a third of the time, and the rank and file
     // leave them rarely: a room is worth one or two (the odds thin as the rooms fill up). Half what it was.
@@ -219,10 +222,9 @@ export class Descent {
   }
 
   // ------------------------------------------------------------------ what going down earns
-  // every room cleared is written down; a deed earned mid-run is yours from that moment
+  // every room cleared is written down
   progress() {
     Meta.best('dRoom', this.room);
-    for (const D of DEEDS) if (!this.deeds0.includes(D.id) && deed(D.id)) { this.deeds0.push(D.id); this.g.banner(`DEED EARNED  -  ${D.name.toUpperCase()}`, lin(0.6, 1, 0.75), 4); this.g.hud.toast(`${D.name}: ${D.text}`, '#9affc0'); this.g.audio.play('S_LevelUp', 0.7); }
   }
   // The run is won. The gun that did the most of it is marked for this difficulty, if it has not been already; if it
   // has, the mark goes to the next gun down that pulled its weight (a tenth of the run or more).

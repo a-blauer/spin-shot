@@ -704,6 +704,8 @@ export class World {
     return I;
   }
   WallBuy(name, loc, yaw) {
+    return;   // wall guns are gone: guns come from the box
+
     const i = this.game.data.weapons.findIndex((w) => w.name === name);
     if (i < 0) return;
     const w = this.game.data.weapons[i];
