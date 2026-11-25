@@ -143,6 +143,53 @@ export function buildGun(vm, W, tier, mastered = false) {
   return buildGunWith(vm, W, tier, PAL_T);
 }
 
+// ---- sculpted parts: a section swept along a part's own axis, for the things a hand holds or a cheek rests on --------
+const sculptCache = new Map();
+// A body swept down a centre line in the gun's side plane: c(t) -> [x, z]; sec(t, a) -> [half width across the gun, half
+// extent in the side plane] for the section angle a (0 across to the right, PI/2 toward the left of the line's direction).
+// n: how square the section is (2 an oval, higher squarer). Ends are closed flat. Positions are gun coordinates (x, y, z).
+function sweepSide(c, sec, n = 2.4, M = 32, S = 22, t0 = 0, t1 = 1) {
+  const pos = [], idx = [], ring = (t) => { const [x, z] = c(t), [x2, z2] = c(Math.min(1, t + 0.005)), [x1, z1] = c(Math.max(0, t - 0.005)); let tx = x2 - x1, tz = z2 - z1; const L = Math.hypot(tx, tz) || 1; tx /= L; tz /= L; return [x, z, -tz, tx]; };
+  const sp = (v) => Math.sign(v) * Math.pow(Math.abs(v), 2 / n);
+  for (let i = 0; i <= M; i++) { const t = t0 + ((t1 - t0) * i) / M, [x, z, nx, nz] = ring(t); for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2, [hy, hp] = sec(t, a), ca = sp(Math.cos(a)), sa = sp(Math.sin(a)); pos.push(x + nx * hp * sa, hy * ca, z + nz * hp * sa); } }
+  for (let i = 0; i < M; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S); idx.push(a, b, a + S, b, b + S, a + S); }
+  for (const [i, t] of [[0, t0], [M, t1]]) { const [x, z] = c(t), k = pos.length / 3; pos.push(x, 0, z); for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S); if (i === 0) idx.push(k, b, a); else idx.push(k, a, b); } }   // flat ends
+  return { pos, idx, check: () => { const m = Math.floor(M / 2) * S + 3, [cx, cz] = c(t0 + ((t1 - t0) * Math.floor(M / 2)) / M); return [m, [pos[m * 3] - cx, pos[m * 3 + 1], pos[m * 3 + 2] - cz]]; } };
+}
+// A round tube along a 3D path (a hose, a cable, a rope): r(t) its radius, ends closed round.
+function sweepPath(pts, r, S = 14, M = 0, flat = null) {   // flat(t) -> [scale across the first axis, scale across the second]: a flattened section
+  const curve = new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(q[0], q[1], q[2])), false, 'centripetal'), L = curve.getLength(); M = M || Math.max(8, Math.round(L / 0.8));
+  const pos = [], idx = []; let N = null;
+  for (let i = 0; i <= M; i++) {
+    const t = i / M, P = curve.getPointAt(t), T = curve.getTangentAt(t);
+    if (!N) { N = flat ? new THREE.Vector3(0, 0, 1) : Math.abs(T.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0); } N = N.clone().addScaledVector(T, -N.dot(T)).normalize(); const B = new THREE.Vector3().crossVectors(T, N);
+    const cap = Math.min(0.5, (r(t) * 1) / L), e = t < cap ? Math.sqrt(Math.max(0, 1 - ((cap - t) / cap) ** 2)) : t > 1 - cap ? Math.sqrt(Math.max(0, 1 - ((t - 1 + cap) / cap) ** 2)) : 1, rr = Math.max(0.02, r(t) * e);
+    const [fa, fb] = flat ? flat(t) : [1, 1]; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2, ca = Math.cos(a) * rr * fa, sa = Math.sin(a) * rr * fb; pos.push(P.x + N.x * ca + B.x * sa, P.y + N.y * ca + B.y * sa, P.z + N.z * ca + B.z * sa); }
+  }
+  for (let i = 0; i < M; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S); idx.push(a, b, a + S, b, b + S, a + S); }
+  const mid = curve.getPointAt(Math.floor(M / 2) / M);
+  return { pos, idx, check: () => { const m = Math.floor(M / 2) * S; return [m, [pos[m * 3] - mid.x, pos[m * 3 + 1] - mid.y, pos[m * 3 + 2] - mid.z]]; } };
+}
+// a smooth curve through [[t, value], ...] (cubic, no flat steps at the knots)
+function cprofG(P, t) {
+  if (!(t === t)) return P[0][1];
+  if (t <= P[0][0]) return P[0][1]; if (t >= P[P.length - 1][0]) return P[P.length - 1][1];
+  let i = 1; while (t > P[i][0]) i++;
+  const t0 = P[i - 1][0], h = P[i][0] - t0, f = (t - t0) / h, m = (k) => (k <= 0 ? (P[1][1] - P[0][1]) / (P[1][0] - P[0][0]) : k >= P.length - 1 ? (P[k][1] - P[k - 1][1]) / (P[k][0] - P[k - 1][0]) : (P[k + 1][1] - P[k - 1][1]) / (P[k + 1][0] - P[k - 1][0]));
+  const f2 = f * f, f3 = f2 * f; return (2 * f3 - 3 * f2 + 1) * P[i - 1][1] + (f3 - 2 * f2 + f) * h * m(i - 1) + (-2 * f3 + 3 * f2) * P[i][1] + (f3 - f2) * h * m(i);
+}
+// gun coordinates (x fwd, y right, z up) to the viewmodel's (right, up, back), wound to face out, normals smoothed
+function sculptGeo(key, build) {
+  let g = sculptCache.get(key); if (g) return g;
+  const { pos, idx, check } = build(), v = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length; i += 3) { v[i] = pos[i + 1]; v[i + 1] = pos[i + 2]; v[i + 2] = -pos[i]; }
+  g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals();
+  // face out: a vertex's smoothed normal at the middle should point away from the centre line
+  const [mi, o] = check(), ov = [o[1], o[2], -o[0]], nrm = g.attributes.normal;
+  const d = nrm.getX(mi) * ov[0] + nrm.getY(mi) * ov[1] + nrm.getZ(mi) * ov[2];
+  if (d < 0) { for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); }
+  g.userData.sculpt = key; sculptCache.set(key, g); return g;
+}
 function buildGunWith(vm, W, tier, PAL) {
   const N = W.name;
   const Accent = tier >= 4 ? C(W.color).lerp(new THREE.Color(0.5, 1, 1), 0.35) : tier >= 3 ? C(W.color).lerp(new THREE.Color(1, 1, 1), 0.25) : C(W.color);
@@ -184,14 +231,23 @@ function buildGunWith(vm, W, tier, PAL) {
   const crown = (x, z, d, col = PAL.steelL) => { T(x - 0.5, x + 0.1, d * 1.18, z, col); T(x, x + 0.25, d * 0.55, z, PAL.black); };   // muzzle crown and bore
   const swivel = (x, z, col = PAL.steelL) => { Tz(x, z - 1.2, z, 0.5, col); Ty(x, z - 1.7, 1.6, 0.4, col); };            // sling stud and loop
   const rivets = (x0, x1, z, w, n, d = 0.8, col = PAL.steelL) => both((s) => { for (let i = 0; i < n; i++) Ball(x0 + (x1 - x0) * (i + 0.5) / Math.max(1, n), s * (w / 2), z, d, col); });
-  const hose = (pts, d, col) => { for (let i = 0; i + 1 < pts.length; i++) vm.Cap(cur, V(pts[i][0] - ox, pts[i][1] + oy, pts[i][2] - oz), V(pts[i + 1][0] - ox, pts[i + 1][1] + oy, pts[i + 1][2] - oz), d / 2, col); };   // a pipe or cable through the given points
+  // sculpted: a piece of the gun made as one smooth swept body (see sweepSide / sweepPath)
+  const sculpt = (key, build, col, glow = 0) => vm.Mesh(cur, sculptGeo(key, build), col, glow > 0 ? Math.min(1.3, glow * 0.45) : 0, new THREE.Vector3(oy, -oz, ox));
+  const hose = (pts, d, col) => sculpt('hose' + JSON.stringify([pts, d]), () => sweepPath(pts, () => d / 2), col);   // a pipe, cable or rope through the given points, in one smooth run
   // --- shared furniture ---------------------------------------------------------------------------------------
+  // A pistol grip, sculpted: an oval down its rake that swells into the palm at the back, has three finger grooves down
+  // the front, flares a little at the bottom and ends in a darker cap.
   const grip = (x, z, col, len = 12, rake = 16, th = 5.6, w = 4.2) => {
-    const dx = Math.tan(d2r(rake)) * len;
-    E([[x + th / 2, z], [x - th / 2, z], [x - th / 2 - dx, z - len + 1.2], [x - th / 2 - dx + 1, z - len], [x + th / 2 - dx - 0.6, z - len], [x + th / 2 - dx, z - len + 1]], w, col, { bevel: 0.9 });
-    const g = dk(col, 0.7);
-    for (let i = 0; i < 4; i++) { const t = 0.28 + i * 0.15; both((s) => B(x - dx * t, s * (w / 2 - 0.02), z - len * t, th * 0.62, 0.12, 0.34, g)); }   // finger grooves
-    E([[x + th / 2 - dx - 0.4, z - len + 0.5], [x - th / 2 - dx + 0.6, z - len + 0.5], [x - th / 2 - dx + 0.8, z - len - 0.3], [x + th / 2 - dx - 0.7, z - len - 0.3]], w + 0.3, g, { bevel: 0.15 });   // butt cap
+    const dx = Math.tan(d2r(rake)) * len, X0 = x, Z0 = z + 0.8, X1 = x - dx, Z1 = z - len, K = [x, z, len, rake, th, w].join('/');
+    const c = (t) => [X0 + (X1 - X0) * t, Z0 + (Z1 - Z0) * t];
+    const sec = (t, a) => {
+      const g = t > 0.26 && t < 0.92 ? 0.5 - 0.5 * Math.cos(((t - 0.26) / 0.66) * Math.PI * 2 * 3) : 0, swell = Math.sin(Math.PI * Math.min(1, t * 1.05)), flare = t > 0.88 ? 1 + (0.07 * (t - 0.88)) / 0.12 : 1;
+      const tuck = 1 - 0.2 * Math.max(0, 1 - (z - (Z0 + (Z1 - Z0) * t)) / 1.2) * (t < 0.2 ? 1 : 0);   // where it goes up into the frame it tucks in, so it never shows beside a narrow frame
+      return [(w / 2) * flare * tuck, (th / 2) * (Math.sin(a) > 0 ? 1 - 0.1 * g : 1 + 0.12 * swell) * flare];   // the sides stay flat at the old width (grip panels and screws sit on them)
+    };
+    sculpt('grip' + K, () => sweepSide(c, sec, 3, 40, 26), col);
+    const L = Math.hypot(X1 - X0, Z1 - Z0), ux = (X1 - X0) / L, uz = (Z1 - Z0) / L;
+    sculpt('gcap' + K, () => sweepSide((t) => [X1 + ux * (t * 0.9 - 0.15), Z1 + uz * (t * 0.9 - 0.15)], (t, a) => { const [hy, hp] = sec(1, a); return [hy * 1.04, hp * 1.04]; }, 3, 2, 26), dk(col, 0.7));   // butt cap
   };
   const guard = (x, z, col = PAL.steelD, len = 7.5, h = 5) => {
     const o = [[x, z], [x + len, z], [x + len, z - h + 1.6], [x + len - 1.6, z - h], [x + 1.2, z - h], [x, z - h + 1.2]];
@@ -199,13 +255,25 @@ function buildGunWith(vm, W, tier, PAL) {
     E(o, 1.3, col, { holes: [i], bevel: 0.15 });
     E([[x + 2.6, z], [x + 3.8, z], [x + 3.4, z - 3.2], [x + 2.5, z - 2.9]], 0.9, PAL.steelL, { bevel: 0.1 });
   };
+  // A shoulder stock, sculpted: narrow and round at the wrist behind the receiver, sweeping back and down into a deep,
+  // flat-sided butt with rounded edges; a rubber pad and spacer on the end, a sling swivel underneath.
+  let lastStock = null;
   const stock = (x, zTop, col, len = 22, drop = 4, butt = 9.5, w = 4.6, wrist = 5.4) => {
-    E([[x, zTop], [x, zTop - wrist], [x - len * 0.42, zTop - wrist - 1 - drop * 0.6], [x - len, zTop - drop - butt], [x - len - 1.2, zTop - drop - butt + 0.6], [x - len - 1.2, zTop - drop - 0.6], [x - len, zTop - drop], [x - len * 0.38, zTop - 0.8]], w, col, { bevel: 1 });
-    E(rect(x - len - 2.2, zTop - drop - butt + 0.4, x - len - 0.8, zTop - drop - 0.2), w + 0.2, PAL.rubber, { bevel: 0.3 });
-    E(rect(x - len - 0.9, zTop - drop - butt + 0.2, x - len - 0.5, zTop - drop), w + 0.3, PAL.steelD, { bevel: 0.05 });                       // spacer between wood and pad
-    for (const f of [0.22, 0.78]) T(x - len - 2.4, x - len - 2.1, 0.9, zTop - drop - butt * f, PAL.steelL);                                   // butt-plate screws
-    swivel(x - len * 0.72, zTop - drop * 0.7 - butt * 0.8);
-    E([[x - 1, zTop - 1.6], [x - len * 0.36, zTop - 2.2], [x - len * 0.36, zTop - 2.6], [x - 1, zTop - 2]], w + 0.14, dk(col, 0.72), { bevel: 0.04 });   // a line cut along the comb
+    const K = [x, zTop, len, drop, butt, w, wrist].join('/');
+    const top = (u) => cprofG([[0, zTop], [0.38, zTop - 0.8], [1, zTop - drop]], u), bot = (u) => cprofG([[0, zTop - wrist], [0.42, zTop - wrist - 1 - drop * 0.6], [1, zTop - drop - butt]], u);
+    const c0 = (u) => [x - len * u, (top(u) + bot(u)) / 2];
+    const [ex, ez] = c0(1), [px, pz] = c0(0.97), el = Math.hypot(ex - px, ez - pz), tx = (ex - px) / el, tz = (ez - pz) / el;
+    const c = (u) => (u <= 1 ? c0(u) : [ex + tx * (u - 1) * len, ez + tz * (u - 1) * len]);   // carries straight on past the butt for the pad
+    const sec = (u, k = 1) => { const uu = Math.min(1, Math.max(0, u)), [x2, z2] = c(Math.min(1.2, uu + 0.01)), [x1, z1] = c(Math.max(0, uu - 0.01)), sl = (z2 - z1) / (x2 - x1 || -1);
+      return [(w / 2) * (uu < 0.12 ? 0.88 + uu : 1) * k, ((top(uu) - bot(uu)) / 2 / Math.sqrt(1 + sl * sl)) * k]; };   // flat sides at full width (inlays lie on them), easing in only at the wrist
+    sculpt('stk' + K, () => sweepSide(c, (u) => sec(u), 3.4, 40, 28, -0.04, 1), col);
+    sculpt('stks' + K, () => sweepSide(c, (u) => sec(1, 1.03), 3.4, 1, 28, 1, 1 + 0.4 / len), PAL.steelD);   // spacer
+    sculpt('stkp' + K, () => sweepSide(c, (u) => sec(1, 1.04), 3.4, 2, 28, 1 + 0.4 / len, 1 + 1.9 / len), PAL.rubber);   // recoil pad
+    // a plate on the very end, cut to the butt's own outline (a brass butt plate, say)
+    lastStock = { plate: (pc, th = 0.8) => sculpt('stkb' + K + th, () => sweepSide(c, (u) => sec(1, 1.05), 3.4, 1, 28, 1 + 1.9 / len, 1 + (1.9 + th) / len), pc) };
+    const [bx, bz] = c(1 + 1.9 / len);
+    for (const f of [-0.3, 0.3]) T(bx - 0.25, bx + 0.05, 0.9, bz + f * (top(1) - bot(1)), PAL.steelL);   // pad screws
+    swivel(x - len * 0.72, bot(0.72) + 0.3);
     E([[x + 0.3, zTop + 0.1], [x + 0.3, zTop - wrist - 0.1], [x - 0.7, zTop - wrist - 0.1], [x - 0.7, zTop + 0.1]], w + 0.5, PAL.steelD, { bevel: 0.15 });   // steel collar where it meets the receiver
   };
   const wireStock = (x, z, col = PAL.steelD, len = 18, h = 8) => {
@@ -766,7 +834,11 @@ function buildGunWith(vm, W, tier, PAL) {
       stock(-8, 8.4, PAL.woodD, 15, 3.5, 8.4, 4);
       grip(-2, 4.2, C(0x5a3a22), 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
       vm.MagRoot = group(22, 0, 9.4);
-      into(vm.MagRoot, () => { for (const s of [-1, 1]) { B(2, s * 5.6, 0, 17, 4.2, 1.1, wd, R(0, s * 32, 0)); B(8.4, s * 9.6, 0.05, 5, 4.4, 1.2, paint, R(0, s * 32, 0)); B(2, s * 5.6, 0.62, 12, 1, 0.2, wl, R(0, s * 32, 0)); } Tz(-4.6, -2.2, 0.9, 5.4, PAL.brass); Tz(-4.6, 0.9, 1.1, 2.4, paint); });
+      into(vm.MagRoot, () => {   // the boomerang in the cradle: one carved curve of wood, thin and wide like a wing, its tips painted
+        const arm = [[10.2, -10.4, 0], [3.4, -5.4, 0], [-3.6, -1.6, 0], [-5.6, 0, 0], [-3.6, 1.6, 0], [3.4, 5.4, 0], [10.2, 10.4, 0]], fl = (t) => [0.26, 1 + 0.25 * Math.sin(Math.PI * t)];
+        sculpt('boom', () => sweepPath(arm, () => 2.1, 18, 60, fl), wd);
+        for (const sg of [-1, 1]) sculpt('boomt' + sg, () => sweepPath([[10.4, sg * 10.6, 0], [7.4, sg * 8, 0], [5.2, sg * 6.4, 0]], (t) => 2.2 * (t < 0.5 ? 1 : 1 - (t - 0.5) * 0.6), 18, 16, () => [0.3, 1]), paint);
+        Tz(-4.6, -2.2, 0.9, 5.4, PAL.brass); Tz(-4.6, 0.9, 1.1, 2.4, paint); });
       Muzzle = V(36, 0, 9.4); Support = V(16, 0, 4.6); Sight = 12.8;
       break;
     }
@@ -884,7 +956,7 @@ function buildGunWith(vm, W, tier, PAL) {
       E([[-8, 4], [-8, 9.6], [12, 9.6], [14, 8], [14, 4]], 4.4, PAL.wood, { bevel: 0.9 });
       E(rect(-9, 9, 13, 10), 4.8, PAL.steelD, { bevel: 0.2 });
       T(14, 30, 2.6, 7.4, PAL.steelD); Ring(16, 7.4, 3.8, 0.7, PAL.brass); Ring(29.4, 7.4, 3.8, 0.7, PAL.brass);
-      hideAds(() => { T(-3, 8.6, 2.4, 13.2, PAL.woodD); for (let i = 0; i < 7; i++) Ring(-2.4 + i * 1.55, 13.2, 6.4 - (i % 2) * 0.5, 1.3, rope); both((s) => Ring(-3.2 + s * 0 + (s > 0 ? 11.6 : 0), 13.2, 7.4, 0.7, PAL.brass)); });   // the coil
+      hideAds(() => { T(-3, 8.6, 2.4, 13.2, PAL.woodD); { const P = []; for (let a = 0; a <= Math.PI * 2 * 7; a += 0.3) P.push([-2.4 + (a / (Math.PI * 2)) * 1.55, Math.cos(a) * 2.6, 13.2 + Math.sin(a) * 2.6]); hose(P, 1.3, rope); }   /* one rope wound round the spool */ both((s) => Ring(-3.2 + s * 0 + (s > 0 ? 11.6 : 0), 13.2, 7.4, 0.7, PAL.brass)); });   // the coil
       Ring(36, 7.4, 13.5, 1.1, rope); Ball(36, 0, 0.7, 2.2, rope); hose([[9, 0, 11.4], [20, 0, 9.4], [30, 0, 7.6], [36, 0, 1.4]], 0.9, rope);   // the loop, ready
       E([[-8, 9.2], [-8, 4.6], [-20, 3.4], [-22, 4], [-22, 8.6], [-20, 9.2]], 4.2, lea, { bevel: 1 }); for (let i = 0; i < 4; i++) both((s) => Ball(-11 - i * 2.6, s * 2.14, 6.6, 0.8, PAL.brass));
       grip(-2, 4.2, lea, 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
@@ -968,9 +1040,10 @@ function buildGunWith(vm, W, tier, PAL) {
       const hide = C(0x6A4226), dark = C(0x3A2214), fall = C(0x9A7A4A), stockC = C(0x5A3520);
       // the stock of the whip is what the fist is round: it runs up out of the hand, and the thong hangs coiled from the top of it
       grip(-2, 4.2, stockC, 11.4, 14, 4.6, 3.8);
-      E([[-4.3, 4.2], [0.3, 4.2], [3.2, 13.4], [0, 14.4]], 3.4, stockC, { bevel: 1.1 });
-      for (let i = 0; i < 6; i++) { const t = i / 5; B(-1.9 + 3.4 * t, 0, 5.2 + 7.6 * t, 4.9 - 1.2 * t, 3.7 - 0.5 * t, 0.5, dark, R(-17, 0, 0)); }   // plaiting bands
-      Ball(-5.4, 0, -8.6, 4.2, PAL.brass); B(1.7, 0, 13.9, 3.6, 3.3, 1.2, PAL.brass, R(-17, 0, 0));                           // pommel and ferrule
+      { const c = (t) => [-2 + 3.6 * t, 4 + 9.9 * t], sec = (t, k = 1) => [(1.75 - 0.25 * t) * k, (2.3 - 0.6 * t) * k];   // the handle: round, tapering up, plaited in bands
+        sculpt('whiph', () => sweepSide(c, (t) => sec(t), 2.2, 24, 20), stockC);
+        for (let i = 0; i < 6; i++) { const t = 0.1 + (i / 5) * 0.78; sculpt('whipb' + i, () => sweepSide(c, (u) => sec(u, 1.1), 2.2, 2, 20, t - 0.022, t + 0.022), dark); } }
+      Ball(-5.4, 0, -8.6, 4.2, PAL.brass); sculpt('whipf', () => sweepSide((t) => [-2 + 3.6 * t, 4 + 9.9 * t], (t) => [(1.75 - 0.25 * t) * 1.14, (2.3 - 0.6 * t) * 1.14], 2.2, 2, 20, 0.95, 1.03), PAL.brass);   // pommel and ferrule
       const loop = [[1.9, 0, 14.4], [6, 0, 17.4], [13, 0, 17.6]]; for (let a = 80; a >= -470; a -= 30) { const k = (80 - a) / 550, r = 7.6 - k * 2; loop.push([19 + Math.cos(d2r(a)) * r, -1.4 + k * 2.8, 10 + Math.sin(d2r(a)) * r]); }
       hose(loop, 1.5, hide); const L = loop[loop.length - 1]; hose([L, [L[0] + 3, L[1] + 0.3, L[2] - 4.6], [L[0] + 7, L[1] + 0.5, L[2] - 3]], 0.7, fall); Ball(L[0] + 7.4, L[1] + 0.5, L[2] - 2.8, 1.2, PAL.bone);   // the thong in coils, the fall and the cracker
       hose([[-5.4, 0, -10.2], [-8.4, 0, -13.6], [-4.4, 0, -15.4], [-3, 0, -10.6]], 0.6, fall);                                // wrist loop
@@ -1222,7 +1295,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(44, 45, 2.6, 5.2, SL); crown(48.3, 8, 2.8, SD);
       E([[5, 10.2], [8.6, 10.2], [9.4, 11.6], [8.6, 11.6], [8, 10.8], [6.4, 10.8], [5.8, 11.6], [5, 11.6]], 1.6, SD, { bevel: 0.1 });   // buckhorn rear sight
       both((s) => { Ty(-5.6, 8.4, 0.5, 0.3, SL, s * 2.2); }); E([[-6.6, 6.6], [-4.8, 6.6], [-4.8, 4.8], [-6.6, 4.8]], 0.4, SL, { y: -2.5, bevel: 0.1, holes: [rect(-6.2, 5.2, -5.2, 6.2)] });   // saddle ring
-      E(rect(-33.6, -5.2, -32.8, 4.6), 4.7, BR, { bevel: 0.2 });                                       // brass butt plate
+      if (lastStock) lastStock.plate(BR, 0.8);                                                         // brass butt plate, cut to the butt
       both((s) => { for (let i = 0; i < 4; i++) B(-12 - i * 1.3, s * 2.24, 5.4 - i * 0.5, 0.3, 0.12, 3.4, WD, R(0, 0, 0)); });   // chequering on the wrist
       E([[-7, 9.6], [-12, 9], [-12, 9.5], [-7, 10.2]], 1.6, S, { bevel: 0.1 });                         // upper tang
       groove(12, 26, 5, 4.42, WD, 0.24);

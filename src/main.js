@@ -519,7 +519,8 @@ window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   ensureLock(); lockR.setSize(cw, ch, false); const sc = new THREE.Scene();
   list.forEach((Q, i) => {
     const m = game.vm.constructor.displayModel(game, Q.def, Q.tier || 0, Q.cores || []), piv = new THREE.Group(); piv.add(m); sc.add(piv);
-    const b = new THREE.Box3().setFromObject(m), c = b.getCenter(new THREE.Vector3()); m.position.sub(c); piv.rotation.set(Q.pitch || 0, Q.yaw === undefined ? -Math.PI / 2 : Q.yaw, 0);
+    const b = new THREE.Box3().setFromObject(m); if (Q.rear) { b.min.z = b.max.z - (b.max.z - b.min.z) * Q.rear; }   // rear: frame only the back fraction of the gun (stock and grip)
+    const c = b.getCenter(new THREE.Vector3()); m.position.sub(c); piv.rotation.set(Q.pitch || 0, Q.yaw === undefined ? -Math.PI / 2 : Q.yaw, 0);
     const s = b.getSize(new THREE.Vector3()), r = Math.max(s.z, s.y * (cw / ch), s.x) * 0.56 + 1.5, cam = new THREE.OrthographicCamera(-r, r, r * ch / cw, -r * ch / cw, -500, 500); cam.position.set(0, 0, 100); cam.lookAt(0, 0, 0);
     lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(piv);
     g.fillStyle = '#ffcd5a'; g.font = '14px sans-serif'; g.fillText(Q.label || game.data.weapons[Q.def].name, (i % cols) * cw + 5, Math.floor(i / cols) * ch + 15);
@@ -530,6 +531,39 @@ window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
 // test hook: pieces of a gun model that touch nothing else (floating). Builds the model, reads every mesh as an oriented
 // box (from its geometry's bounds), joins any two whose boxes meet (with a small tolerance), and reports every mesh that
 // is not joined to the biggest group. [{ name, at: [x, y, z] in gun units, size, color }]
+window.__THREE = THREE;
+// test hook: things set against a sculpted stock or grip that do not touch its real surface (or are sunk out of sight in it).
+// For each sculpted piece, the widest it reaches either side at each (x, z), from its own vertices; every other piece within
+// its length and height whose inner face sits more than `gap` off that (over its whole footprint) is reported.
+window.__sculptGapScan = (def, tier = 0, gap = 0.25) => {
+  const VM = game.vm.constructor, vm = new VM(game); vm.weaponDef = def; vm.weaponTier = tier; vm.coresOverride = []; vm.noMerge = true; vm.build();
+  const G = vm.gun; G.updateWorldMatrix(true, true); const inv = new THREE.Matrix4().copy(G.matrixWorld).invert(), v = new THREE.Vector3(), M = new THREE.Matrix4(), out = [];
+  const shown = (o) => { for (let p = o; p && p !== G.parent; p = p.parent) if (!p.visible) return false; return true; };
+  const meshes = vm.parts.slice(0, vm.gunPartCount).filter((o) => o.isMesh && shown(o) && o.geometry);
+  const toGun = (o, x, y, z) => { M.multiplyMatrices(inv, o.matrixWorld); v.set(x, y, z).applyMatrix4(M); return [-v.z, v.x, v.y]; };
+  // every plain piece's box in gun units, to tell what is held on by something other than the sculpted piece
+  const boxOf = (O) => { if (!O.geometry.boundingBox) O.geometry.computeBoundingBox(); const bb = O.geometry.boundingBox, c = []; for (let i = 0; i < 8; i++) c.push(toGun(O, i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z)); return [0, 1, 2].map((k) => [Math.min(...c.map((q) => q[k])), Math.max(...c.map((q) => q[k]))]); };
+  const plain = meshes.filter((o) => !o.geometry.userData.sculpt), boxes = new Map(plain.map((o) => [o, boxOf(o)]));
+  const touchesOther = (O) => { const a = boxes.get(O); for (const [P, b] of boxes) { if (P === O) continue; if ([0, 1, 2].every((k) => a[k][0] <= b[k][1] + 0.08 && b[k][0] <= a[k][1] + 0.08)) return true; } return false; };
+  for (const S of meshes.filter((o) => /^(stk|grip)/.test(o.geometry.userData.sculpt || ''))) {
+    const P = S.geometry.attributes.position, bins = new Map(), B = 0.6; let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    for (let i = 0; i < P.count; i++) { const [x, y, z] = toGun(S, P.getX(i), P.getY(i), P.getZ(i)); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      const k = Math.round(x / B) + ',' + Math.round(z / B), e = bins.get(k) || [0, 0]; if (y > 0) e[0] = Math.max(e[0], y); else e[1] = Math.max(e[1], -y); bins.set(k, e); }
+    for (const O of meshes) {
+      if (O === S || O.geometry.userData.sculpt) continue;
+      if (!O.geometry.boundingBox) O.geometry.computeBoundingBox(); const bb = O.geometry.boundingBox, c = [];
+      for (let i = 0; i < 8; i++) c.push(toGun(O, i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z));
+      const ax = Math.min(...c.map((q) => q[0])), bx = Math.max(...c.map((q) => q[0])), ay = Math.min(...c.map((q) => q[1])), by = Math.max(...c.map((q) => q[1])), az = Math.min(...c.map((q) => q[2])), bz = Math.max(...c.map((q) => q[2]));
+      if (bx < x0 || ax > x1 || bz < z0 || az > z1 || (ay < 0.2 && by > -0.2)) continue;   // not alongside it, or through the middle of it
+      const side = ay > 0 ? 0 : 1, inner = side === 0 ? ay : -by, outer = side === 0 ? by : -ay; let best = 1e9, reach = 0;
+      for (let x = Math.max(ax, x0); x <= Math.min(bx, x1) + 1e-6; x += B / 2) for (let z = Math.max(az, z0); z <= Math.min(bz, z1) + 1e-6; z += B / 2) { const e = bins.get(Math.round(x / B) + ',' + Math.round(z / B)); if (!e) continue; reach = Math.max(reach, e[side]); best = Math.min(best, inner - e[side]); }
+      if (best === 1e9) continue;
+      if (best > gap && !touchesOther(O)) out.push({ what: 'floats ' + best.toFixed(2), on: S.geometry.userData.sculpt.slice(0, 4), at: [((ax + bx) / 2).toFixed(1), ((ay + by) / 2).toFixed(1), ((az + bz) / 2).toFixed(1)], size: [(bx - ax).toFixed(1), (by - ay).toFixed(1), (bz - az).toFixed(1)] });
+      else if (outer < reach - 0.05 && bx - ax < 30) out.push({ what: 'sunk', on: S.geometry.userData.sculpt.slice(0, 4), at: [((ax + bx) / 2).toFixed(1), ((ay + by) / 2).toFixed(1), ((az + bz) / 2).toFixed(1)] });
+    }
+  }
+  return out;
+};
 window.__floatScan = (def, tier = 0, tol = 0.35) => {
   const VM = game.vm.constructor, vm = new VM(game); vm.weaponDef = def; vm.weaponTier = tier; vm.coresOverride = []; vm.noMerge = true; vm.build();
   const g = vm.gun; g.updateWorldMatrix(true, true);

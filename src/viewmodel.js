@@ -42,7 +42,7 @@ function gunMaterial(color, glow, metal, grain = 0) {
     uniforms: { sunDir: vmSun, litTint: G.litTint, shadowTint: G.shadowTint, uColor: { value: color.clone() }, uGlow: { value: glow }, uMetal: { value: metal }, uGunInv: gunInv, uGrain: { value: grain } },
     vertexShader: /* glsl */`
       uniform mat4 uGunInv; varying vec3 vN; varying vec3 vW; varying vec3 vL;
-      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vL = (uGunInv * w).xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vL = (uGunInv * w).xyz; vN = normalize((vec4(normalMatrix * normal, 0.0) * viewMatrix).xyz); gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: /* glsl */`
       uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 uColor; uniform float uGlow; uniform float uMetal; uniform float uGrain;
       varying vec3 vN; varying vec3 vW; varying vec3 vL;
@@ -146,6 +146,8 @@ export class ViewModel {
     this.parts.push(m);
     return m;
   }
+  // A sculpted piece (its geometry already in viewmodel coordinates) placed at pos in the given parent.
+  Mesh(parent, geo, color, glow, pos) { const m = new THREE.Mesh(geo, vmMat(color, glow)); m.position.copy(pos); (parent || this.gun).add(m); this.parts.push(m); return m; }
   // Capsule between two points (fingers, wrists, sleeves).
   Cap(parent, a, b, r, color, r2 = r) {
     const A = P3(a), Bv = P3(b), d = Bv.clone().sub(A), len = d.length();
