@@ -59,7 +59,7 @@ export function makeVillageUI(H) {
     H.entered(); el.style.display = 'block'; render(); sound('S_UISelect', 0.7);
   }
   function close() { if (!open) return; open = false; el.style.display = 'none'; if (stage) stage.detach(); H.left(); }
-  const head = (title, line) => `<div class="vp-head"><div class="tt"><h2>${title}</h2><p>${line}</p></div><div class="vp-purse">${coin()}<b>${fmt(Meta.gold())}</b></div><button class="vp-x">DONE<kbd>E</kbd></button></div>`;
+  const head = (title, line) => `<div class="vp-head"><div class="tt"><h2>${title}</h2><p>${line}</p></div><div class="vp-purse">${coin()}<b>${fmt(Meta.gold())}</b></div><button class="vp-x">Done<kbd>E</kbd></button></div>`;
   function render() {
     let h = '';
     if (kind === 'shop') h = renderShop();
@@ -79,7 +79,7 @@ export function makeVillageUI(H) {
   }
   function renderShop() {
     const items = shopItems(tab); if (!pick || pick.tab !== tab) { const first = items.find((x) => x.state === 'buy') || items[0]; pick = first ? { tab, key: first.gun ? first.name : first.slot + ':' + first.I.id } : null; }
-    let h = head('BRAMBLE &amp; BOLT', 'Mossbottom’s counter: hats, clothes, trinkets, and guns to start your runs with');
+    let h = head('Bramble &amp; Bolt', 'Mossbottom’s counter: hats, clothes, trinkets, and guns to start your runs with');
     h += '<div class="vp-body"><div class="shop-left"><div class="shop-stage" id="sstage"></div><div class="shop-info" id="sinfo"></div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column">';
     h += `<div class="vp-tabs">${SHOP_TABS.map((T) => { const L = shopItems(T.id), n = L.filter((x) => x.state === 'owned').length; return `<div class="vp-tab ${T.id === tab ? 'on' : ''}" data-tab="${T.id}">${T.name}<i>${n}/${L.length}</i></div>`; }).join('')}</div><div class="vp-scroll"><div class="grid">`;
     if (tab === 'guns') {
@@ -109,17 +109,17 @@ export function makeVillageUI(H) {
       const W = x.w, st = Meta.starter() === x.name;
       h += `<span class="tag" style="color:${RARITY_HEX[W.rarity]}">${esc(W.rarity)}</span><span class="tag">${esc(W.cls || 'gun')}</span>${x.state === 'owned' ? '<span class="tag own">Owned</span>' : x.state === 'locked' ? '<span class="tag lock">Locked</span>' : ''}${st ? '<span class="tag start">Starting gun</span>' : ''}</div>`;
       h += `<div class="desc">${esc(W.desc || '')}</div><div class="stats"><div><span>DAMAGE</span><b>${Math.round(W.dmg * (W.pellets || 1))}</b></div><div><span>RATE</span><b>${(+W.rate || 0).toFixed(1)}/s</b></div><div><span>MAG</span><b>${W.mag}</b></div><div><span>RELOAD</span><b>${(+W.reload || 0).toFixed(1)}s</b></div></div>`;
-      if (x.state === 'owned') h += `<div class="row"><button class="vp-btn ${st ? 'alt' : 'blue'}" id="sact" ${st ? 'disabled' : ''}>${st ? 'YOUR STARTING GUN' : 'START RUNS WITH IT'}</button></div>`;
+      if (x.state === 'owned') h += `<div class="row"><button class="vp-btn ${st ? 'alt' : 'blue'}" id="sact" ${st ? 'disabled' : ''}>${st ? 'Your starting gun' : 'Start runs with it'}</button></div>`;
       else if (x.state === 'locked') h += `<div class="why">${esc(Meta.howToUnlock('guns', x.name) || 'Unlocked by progress, then sold here.')}</div>`;
-      else h += `<div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>BUY  ${coin()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.gold())} more gold. Runs pay it: a finished run pays most.</div>` : '<div class="desc">Bought once; choose it at the Way Down before any run.</div>'}`;
+      else h += `<div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>Buy  ${coin()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.gold())} more gold. Runs pay it: a finished run pays most.</div>` : '<div class="desc">Bought once; choose it at the Way Down before any run.</div>'}`;
       if (stage) stage.detach();
       if (stg) stg.innerHTML = `<img src="${H.thumb('gun', x.name)}" alt="">`;
     } else {
       const worn = Meta.look()[x.slot] === x.I.id;
       h += `<span class="tag">${esc(SLOT_NAMES[x.slot] || x.slot)}</span>${x.state === 'owned' ? '<span class="tag own">Owned</span>' : x.state === 'locked' ? '<span class="tag lock">Locked</span>' : ''}${worn ? '<span class="tag start">Wearing</span>' : ''}</div>`;
-      if (x.state === 'owned') h += `<div class="desc">${worn ? 'You have it on.' : 'Yours. Put it on here, or change at your wardrobe at home.'}</div><div class="row"><button class="vp-btn blue" id="swear" ${worn ? 'disabled' : ''}>${worn ? 'WEARING IT' : 'WEAR IT'}</button></div>`;
+      if (x.state === 'owned') h += `<div class="desc">${worn ? 'You have it on.' : 'Yours. Put it on here, or change at your wardrobe at home.'}</div><div class="row"><button class="vp-btn blue" id="swear" ${worn ? 'disabled' : ''}>${worn ? 'Wearing it' : 'Wear it'}</button></div>`;
       else if (x.state === 'locked') h += `<div class="why">Earned, not sold: ${esc(needText(x.I))}</div><div class="desc">Shown on you on the left, so you know what you are working toward.</div>`;
-      else h += `<div class="desc">Shown on you on the left.</div><div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>BUY  ${coin()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.gold())} more gold.</div>` : ''}`;
+      else h += `<div class="desc">Shown on you on the left.</div><div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>Buy  ${coin()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.gold())} more gold.</div>` : ''}`;
       if (stg && (!stage || !stg.contains(stage.canvas))) { stg.innerHTML = '<div class="hint">Drag to turn</div>'; stage = stage || makeStage(); stage.attach(stg); }
       if (stage) stage.dress(Object.assign(Meta.look(), { [x.slot]: x.I.id }), x.slot);
     }
@@ -166,7 +166,7 @@ export function makeVillageUI(H) {
   // ------------------------------------------------------------------ the challenge board
   function renderBoard() {
     const L = Meta.board(), cur = Meta.contract();
-    let h = head('CHALLENGE BOARD', 'Mayor Thistlewood’s contracts: six a day, the same for everyone. New ones at midnight UTC.');
+    let h = head('The Challenge Board', 'Mayor Thistlewood’s contracts: six a day, the same for everyone. New ones at midnight UTC.');
     h += `<div class="vp-body"><div class="board"><p class="lead">Take one contract and its rules are set at the Way Down: the mode, the difficulty and the modifiers. Win that run and the bonus is paid on top of what the run pays. Each contract pays once.</p><div class="notes">`;
     L.forEach((c, i) => {
       const mods = MUTATORS.filter((M, k) => (c.muts >> k) & 1), taken = cur && cur.id === c.id, where = c.mode === 'descent' ? 'The Descent' : `Survival: ${MAPS[c.map] ? MAPS[c.map].name : ''}`;
@@ -174,7 +174,7 @@ export function makeVillageUI(H) {
       h += `<div class="rules"><span>${esc(where)}</span><span class="d${c.diff}">${esc(DIFFS[c.diff].name)}</span>${mods.map((M) => `<span>${esc(M.name)}</span>`).join('')}</div>`;
       h += `<div class="mods">${mods.map((M) => `<b>${esc(M.name)}:</b> ${esc(M.desc)}`).join('<br>')}</div>`;
       h += `<div class="pay"><span class="gd">${coin()}${fmt(c.gold)}</span><span class="rn">+${fmt(c.renown)} renown</span></div>`;
-      h += c.done ? '' : taken ? `<button class="vp-btn alt" data-drop="1">DROP THIS CONTRACT</button>` : `<button class="vp-btn" data-take="${esc(c.id)}">TAKE CONTRACT</button>`;
+      h += c.done ? '' : taken ? `<button class="vp-btn alt" data-drop="1">Drop this contract</button>` : `<button class="vp-btn" data-take="${esc(c.id)}">Take contract</button>`;
       h += '</div>';
     });
     return h + '</div></div></div>';
@@ -185,25 +185,25 @@ export function makeVillageUI(H) {
   }
 
   // ------------------------------------------------------------------ the casino
-  const stakeRow = () => `<h4>YOUR STAKE</h4><div class="chips">${STAKES.map((v) => `<div class="chip ${v === stake ? 'on' : ''} ${Meta.gold() < v ? 'off' : ''}" data-stake="${v}" style="background:${CHIP_COL[v]}">${v >= 1000 ? '1K' : v}</div>`).join('')}</div>`;
+  const stakeRow = () => `<h4>Your stake</h4><div class="chips">${STAKES.map((v) => `<div class="chip ${v === stake ? 'on' : ''} ${Meta.gold() < v ? 'off' : ''}" data-stake="${v}" style="background:${CHIP_COL[v]}">${v >= 1000 ? '1K' : v}</div>`).join('')}</div>`;
   function renderCasino() {
-    const T = { slots: ['THE TOADSTOOL SLOTS', 'Three reels. Line up the first two, or all three.'], roulette: ['ROULETTE', 'Pip’s wheel: one zero, thirty-six numbers. Place chips, then spin.'], blackjack: ['BLACKJACK', 'Dame Fennel deals. Beat her hand without going over 21.'], dice: ['HIGH-LOW DICE', 'Clatterby rolls a hundred-sided die. Pick a line, pick a side.'] }[kind];
+    const T = { slots: ['The Toadstool Slots', 'Three reels. Line up the first two, or all three.'], roulette: ['Roulette', 'Pip’s wheel: one zero, thirty-six numbers. Place chips, then spin.'], blackjack: ['Blackjack', 'Dame Fennel deals. Beat her hand without going over 21.'], dice: ['High-Low Dice', 'Clatterby rolls a hundred-sided die. Pick a line, pick a side.'] }[kind];
     let h = head(T[0], T[1]) + '<div class="vp-body"><div class="cas">';
     if (kind === 'slots') {
-      h += `<div class="cas-main"><div class="slot-face"><div class="nm">★ LUCKY TOADSTOOL ★</div><div class="reels">${[0, 1, 2].map((i) => `<div class="reel"><div class="strip" id="r${i}">${reelStrip(C.slot.reels[i])}</div></div>`).join('')}</div></div><div class="msg ${msgCls}">${esc(msg)}</div><button class="vp-btn" id="spin" style="min-width:260px">SPIN  ${coin()} ${stake}</button></div>`;
-      h += `<div class="cas-side">${stakeRow()}<h4>PAYS (TIMES YOUR STAKE)</h4><div class="paytab">${Object.keys(PAY3).reverse().map((k) => `<div class="sy">${SYM[k]}${SYM[k]}${SYM[k]}</div><b>×${PAY3[k]}</b>`).join('')}${Object.keys(PAY2).reverse().map((k) => `<div class="sy">${SYM[k]}${SYM[k]}</div><b>×${PAY2[k]}</b>`).join('')}</div><p>Two alike means the first two reels. The machine returns about 97 of every 100 gold staked.</p></div>`;
+      h += `<div class="cas-main"><div class="slot-face"><div class="nm">★ Lucky Toadstool ★</div><div class="reels">${[0, 1, 2].map((i) => `<div class="reel"><div class="strip" id="r${i}">${reelStrip(C.slot.reels[i])}</div></div>`).join('')}</div></div><div class="msg ${msgCls}">${esc(msg)}</div><button class="vp-btn" id="spin" style="min-width:260px">Spin  ${coin()} ${stake}</button></div>`;
+      h += `<div class="cas-side">${stakeRow()}<h4>Pays (times your stake)</h4><div class="paytab">${Object.keys(PAY3).reverse().map((k) => `<div class="sy">${SYM[k]}${SYM[k]}${SYM[k]}</div><b>×${PAY3[k]}</b>`).join('')}${Object.keys(PAY2).reverse().map((k) => `<div class="sy">${SYM[k]}${SYM[k]}</div><b>×${PAY2[k]}</b>`).join('')}</div><p>Two alike means the first two reels. The machine returns about 97 of every 100 gold staked.</p></div>`;
     } else if (kind === 'roulette') {
       const R = C.rou, tot = Object.values(R.bets).reduce((a, b) => a + b, 0);
-      h += `<div class="cas-main"><div class="rou"><canvas id="wheel" width="600" height="600"></canvas><div class="layout">${layoutHtml()}</div></div><div class="msg ${msgCls}">${esc(msg)}</div><div class="acts"><button class="vp-btn" id="rspin" ${tot ? '' : 'disabled'}>SPIN  ${coin()} ${fmt(tot)}</button><button class="vp-btn alt" id="rclear" ${tot ? '' : 'disabled'}>CLEAR BETS</button></div></div>`;
-      h += `<div class="cas-side">${stakeRow()}<p>Click the layout to put a chip down; click again to add another. Red, black, odd, even, low and high pay 1 to 1, a dozen 2 to 1, a single number 35 to 1. Zero takes the rest.</p><h4>LAST NUMBERS</h4><div class="hist">${R.hist.map((n) => `<span style="background:${n === 0 ? '#2a8a3a' : RED.has(n) ? '#b82a2a' : '#1a1a1a'}">${n}</span>`).join('') || '<p>None yet.</p>'}</div></div>`;
+      h += `<div class="cas-main"><div class="rou"><canvas id="wheel" width="600" height="600"></canvas><div class="layout">${layoutHtml()}</div></div><div class="msg ${msgCls}">${esc(msg)}</div><div class="acts"><button class="vp-btn" id="rspin" ${tot ? '' : 'disabled'}>Spin  ${coin()} ${fmt(tot)}</button><button class="vp-btn alt" id="rclear" ${tot ? '' : 'disabled'}>Clear bets</button></div></div>`;
+      h += `<div class="cas-side">${stakeRow()}<p>Click the layout to put a chip down; click again to add another. Red, black, odd, even, low and high pay 1 to 1, a dozen 2 to 1, a single number 35 to 1. Zero takes the rest.</p><h4>Last numbers</h4><div class="hist">${R.hist.map((n) => `<span style="background:${n === 0 ? '#2a8a3a' : RED.has(n) ? '#b82a2a' : '#1a1a1a'}">${n}</span>`).join('') || '<p>None yet.</p>'}</div></div>`;
     } else if (kind === 'blackjack') {
       const B = C.bj, live = B && !B.done;
-      h += `<div class="cas-main"><div class="bj">${handHtml('Dame Fennel', B ? B.dealer : [], B && !B.done)}${handHtml('You', B ? B.you : [], false, B && B.doubled)}</div><div class="msg ${msgCls}">${esc(msg)}</div><div class="acts">${live ? `<button class="vp-btn" id="hit">HIT</button><button class="vp-btn alt" id="stand">STAND</button><button class="vp-btn blue" id="dbl" ${B.you.length === 2 && Meta.gold() >= B.bet ? '' : 'disabled'}>DOUBLE</button>` : `<button class="vp-btn" id="deal" style="min-width:240px">DEAL  ${coin()} ${stake}</button>`}</div></div>`;
+      h += `<div class="cas-main"><div class="bj">${handHtml('Dame Fennel', B ? B.dealer : [], B && !B.done)}${handHtml('You', B ? B.you : [], false, B && B.doubled)}</div><div class="msg ${msgCls}">${esc(msg)}</div><div class="acts">${live ? `<button class="vp-btn" id="hit">Hit</button><button class="vp-btn alt" id="stand">Stand</button><button class="vp-btn blue" id="dbl" ${B.you.length === 2 && Meta.gold() >= B.bet ? '' : 'disabled'}>Double</button>` : `<button class="vp-btn" id="deal" style="min-width:240px">Deal  ${coin()} ${stake}</button>`}</div></div>`;
       h += `<div class="cas-side">${stakeRow()}<p>Get closer to 21 than the dealer without going over. Picture cards count 10, aces 1 or 11. A natural 21 pays 3 to 2; a win pays 1 to 1; a tie gives your stake back. The dealer draws to 16 and stands on every 17. Double: one more card, twice the stake.</p></div>`;
     } else {
       const D = C.dice, p = D.over ? (100 - D.target) / 100 : (D.target - 1) / 100, mult = p > 0 ? 0.98 / p : 0;
       h += `<div class="cas-main"><div class="dice"><div class="roll" id="droll">${D.last === null ? '--' : D.last}</div><div class="bar"><i style="${D.over ? `left:${D.target}%;right:0` : `left:0;width:${D.target - 1}%`}"></i><em style="left:${D.last === null ? 50 : D.last}%"></em></div>`;
-      h += `<input type="range" min="5" max="95" value="${D.target}" id="dtarget"><div class="seg"><button data-side="under" class="${D.over ? '' : 'on'}">UNDER ${D.target}</button><button data-side="over" class="${D.over ? 'on' : ''}">OVER ${D.target}</button></div><div class="odds"><div>CHANCE<b>${Math.round(p * 100)}%</b></div><div>PAYS<b>×${mult.toFixed(2)}</b></div><div>WIN<b>${coin()} ${fmt(Math.floor(stake * mult))}</b></div></div></div><div class="msg ${msgCls}">${esc(msg)}</div><button class="vp-btn" id="droll2" style="min-width:260px">ROLL  ${coin()} ${stake}</button></div>`;
+      h += `<input type="range" min="5" max="95" value="${D.target}" id="dtarget"><div class="seg"><button data-side="under" class="${D.over ? '' : 'on'}">UNDER ${D.target}</button><button data-side="over" class="${D.over ? 'on' : ''}">OVER ${D.target}</button></div><div class="odds"><div>CHANCE<b>${Math.round(p * 100)}%</b></div><div>PAYS<b>×${mult.toFixed(2)}</b></div><div>WIN<b>${coin()} ${fmt(Math.floor(stake * mult))}</b></div></div></div><div class="msg ${msgCls}">${esc(msg)}</div><button class="vp-btn" id="droll2" style="min-width:260px">Roll  ${coin()} ${stake}</button></div>`;
       h += `<div class="cas-side">${stakeRow()}<p>The die rolls 1 to 100. Over wins on anything above your line, under on anything below it; the line itself loses. The longer the odds, the bigger the pay: the house keeps 2 in every 100.</p></div>`;
     }
     return h + '</div></div>';
@@ -273,7 +273,7 @@ export function makeVillageUI(H) {
     g.save(); g.translate(cx, cy); g.rotate(R.ang);
     g.fillStyle = '#5a3a22'; g.beginPath(); g.arc(0, 0, 292, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8962a'; g.beginPath(); g.arc(0, 0, 276, 0, Math.PI * 2); g.fill();
     const n = WHEEL.length, da = (Math.PI * 2) / n;
-    for (let i = 0; i < n; i++) { const v = WHEEL[i]; g.fillStyle = v === 0 ? '#2a8a3a' : RED.has(v) ? '#b82a2a' : '#1a1a1a'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 268, i * da - da / 2 - Math.PI / 2, i * da + da / 2 - Math.PI / 2); g.closePath(); g.fill(); g.save(); g.rotate(i * da); g.fillStyle = '#fff'; g.font = '700 22px "Big Shoulders Display", sans-serif'; g.textAlign = 'center'; g.fillText(String(v), 0, -238); g.restore(); }
+    for (let i = 0; i < n; i++) { const v = WHEEL[i]; g.fillStyle = v === 0 ? '#2a8a3a' : RED.has(v) ? '#b82a2a' : '#1a1a1a'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 268, i * da - da / 2 - Math.PI / 2, i * da + da / 2 - Math.PI / 2); g.closePath(); g.fill(); g.save(); g.rotate(i * da); g.fillStyle = '#fff'; g.font = '700 22px "Fraunces", Georgia, serif'; g.textAlign = 'center'; g.fillText(String(v), 0, -238); g.restore(); }
     g.fillStyle = '#3a2416'; g.beginPath(); g.arc(0, 0, 200, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#c8962a'; g.lineWidth = 6; g.stroke();
     for (let k = 0; k < 4; k++) { g.save(); g.rotate(k * Math.PI / 2); g.fillStyle = '#e8c060'; g.fillRect(-6, -150, 12, 300); g.restore(); }
     g.fillStyle = '#ffcd5a'; g.beginPath(); g.arc(0, 0, 34, 0, Math.PI * 2); g.fill();

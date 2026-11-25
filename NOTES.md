@@ -67,3 +67,9 @@
 - Casino edges: slots RTP 96.96% (REEL weights 7/6/5/4/3/2/1, PAY3/PAY2), roulette single zero, dice 0.98/p, blackjack 3:2, S17, no split.
 - Descent: no Mystery Box; The Showcase machine now = half the time the room chest is a grade better. restartRun() goes home to the village (keeps the party); restartRun('title') quits. Net presence 'run' flag drives hostStarted(); onState ignored while in the village.
 - /tmp/mach.json's box step is obsolete (no box in the Descent).
+
+## (20) Cosier Thimblewick
+- Village type: Fraunces (700/900/600i) + Nunito (700/800), OFL, embedded in index.html. Used by #vpanel, #lobby, #locker and the HUD while in the village (hud.vfont swaps F_BIG/F_TXT in text()). The run HUD and title keep Big Shoulders/Barlow.
+- Painted signs: village_signs.js (canvas boards: 'wood', 'marquee' with chasing bulbs, 'stone'); map pushes VSPOTS.signs, village.js hangs them after document.fonts load. VSPOTS.signs/smoke are reset at the start of buildVillage.
+- Way Down knoll: boulders sit wholly behind the arch (front > 60 behind the pillars) or wholly beside it (|x| > 340 + 1.2r); the slab behind is now an invisible Solid.
+- Golden hour palette; every cottage window lit; chimney smoke; fairy lights; campfire (VSPOTS.fire) with fx; lantern stakes; toadstool clusters; ~900 grass tufts.

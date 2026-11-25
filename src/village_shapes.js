@@ -15,13 +15,16 @@ export const VC = {
   moss: 0x6a8a3a, grass: 0x7fae4c, leaf: 0x5c8e3a, leaf2: 0x76a844, leaf3: 0x4a7a30, glass: 0xffd27a, brass: 0xc8a24a, iron: 0x3a3a40, felt: 0x2f7a4a, feltR: 0x8a2a2a, water: 0x4a8aa0,
 };
 
+// the cottage stem's profile, and its radius at a height (so windows, glows and pots sit on its skin)
+export const stemProfile = (h, r) => [[r * 1.08, 0], [r * 1.12, 18], [r * 1.02, 30], [r * 1.06, h * 0.25], [r * 1.1, h * 0.5], [r * 1.04, h * 0.78], [r * 0.95, h * 0.92], [r * 0.9, h]];
+export function stemR(h, r, z) { const P = stemProfile(h, r); for (let i = 1; i < P.length; i++) if (z <= P[i][1]) { const t = (z - P[i - 1][1]) / Math.max(1e-6, P[i][1] - P[i - 1][1]); return P[i - 1][0] + (P[i][0] - P[i - 1][0]) * t; } return P[P.length - 1][0]; }
 // ---- a mushroom cottage: a fat stem with a round door, windows and a flower box, under a spotted cap with a chimney
 export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
   h = q(h); r = q(r);
   return ['vshroomhouse|' + [h, r, hx(cap), hx(stem), seed % 7].join('|'), shape((G) => {
     const R = rng(seed * 97 + h);
     // the stem bulges a little and leans; stone footing ring
-    const prof = [[r * 1.08, 0], [r * 1.12, 18], [r * 1.02, 30], [r * 1.06, h * 0.25], [r * 1.1, h * 0.5], [r * 1.04, h * 0.78], [r * 0.95, h * 0.92], [r * 0.9, h]];
+    const prof = stemProfile(h, r);
     G.lathe([[r * 1.18, 0], [r * 1.2, 26], [r * 1.12, 34]], VC.stoneD, 20);
     G.lathe(prof, (k) => (k === 0 ? dark(stem, 0.85) : stem), 22);
     // the door, on the front (+X): a round-topped plank door in a stone frame, with a brass knob and a step
@@ -34,7 +37,7 @@ export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
     G.blob(fx + 40, 0, 6, 46, 80, 8, VC.stoneD, { e: 6 });
     // round windows round the stem, each with a frame, a cross and a glow behind; flower boxes under two of them
     for (const [a, z] of [[50, h * 0.42], [-50, h * 0.42], [130, h * 0.62], [-150, h * 0.3], [0, h * 0.78]]) {
-      const ar = (a * Math.PI) / 180, rr = r * 1.06, b = G.n, wr = 34;
+      const ar = (a * Math.PI) / 180, rr = stemR(h, r, z) + 1, b = G.n, wr = 34;
       G.surf((u, v) => { const t = u * Math.PI * 2, k = v * wr; return [0, Math.cos(t) * k, Math.sin(t) * k]; }, 0, 1, 14, 0, 1, 1, VC.glass);
       G.surf((u, v) => { const t = u * Math.PI * 2, k = wr + v * 10; return [2, Math.cos(t) * k, Math.sin(t) * k]; }, 0, 1, 14, 0, 1, 1, VC.woodD);
       G.blob(3, 0, 0, 2, wr, 3, VC.woodD, { e: 6, nu: 6, nv: 3 }); G.blob(3, 0, 0, 2, 3, wr, VC.woodD, { e: 6, nu: 6, nv: 3 });
@@ -328,5 +331,29 @@ export function hatStand() {
   return ['vhatstand', shape((G) => {
     G.tube([[0, 0, 0], [0, 0, 170]], 4, VC.woodD, { S: 6 }); G.lathe([[30, 0], [26, 6], [0, 8]], VC.woodD, 10);
     for (const [a, z, c] of [[0, 150, 0xc8392e], [120, 125, 0x3a6a8a], [240, 100, 0x6a8a3a]]) { const b = G.n; G.lathe([[22, 0], [22, 4], [12, 6], [9, 30], [2, 56], [0, 58]], c, 12); G.place(b, { x: Math.cos((a * Math.PI) / 180) * 20, y: Math.sin((a * Math.PI) / 180) * 20, z, pitch: 15 }); }
+  })];
+}
+
+// ---- a tuft of grass: a dozen blades leaning out and curling over, two greens and a sun-bleached tip
+export function grassTuft(h = 40, seed = 1) {
+  h = q(h, 5);
+  return ['vtuft|' + [h, seed % 6].join('|'), shape((G) => {
+    const R = rng(seed * 59 + h), n = 11;
+    for (let i = 0; i < n; i++) {
+      const a = R() * Math.PI * 2, lean = 0.25 + R() * 0.6, L = h * (0.6 + R() * 0.5), w0 = 2.6 + R() * 1.6, col = i % 3 ? 0x6e9c3c : 0x88b450, tip = mix(col, 0xd8d080, 0.45);
+      G.surf((u, v) => { const t = v, bend = lean * t * t, x = Math.cos(a) * (bend * L + R() * 0), y = Math.sin(a) * bend * L, z = L * t * (1 - lean * 0.35 * t), w = w0 * (1 - t), px = -Math.sin(a) * w * (u - 0.5) * 2, py = Math.cos(a) * w * (u - 0.5) * 2; return [x + px, y + py, z]; }, 0, 1, 1, 0, 1, 4, (u, v) => (v > 0.7 ? tip : col));
+    }
+  })];
+}
+// ---- a little ring of toadstools, three to five, for the foot of a tree or a wall
+export function toadstoolCluster(s = 1, cap = 0xc8392e, seed = 1) {
+  return ['vtcl|' + [Math.round(s * 10), hx(cap), seed % 6].join('|'), shape((G) => {
+    const R = rng(seed * 71 + 3), n = 3 + (seed % 3);
+    for (let i = 0; i < n; i++) {
+      const a = R() * 6.28, d = i ? 10 + R() * 16 : 0, h = (12 + R() * 16) * s * (i ? 0.8 : 1.2), w = h * (0.8 + R() * 0.4), x = Math.cos(a) * d * s, y = Math.sin(a) * d * s;
+      G.lathe([[w * 0.16, 0], [w * 0.14, h * 0.5], [w * 0.12, h]], VC.cream, 8, [x, y, 0]);
+      G.lathe([[w * 0.5, h - 2], [w * 0.52, h + 1], [w * 0.42, h + w * 0.22], [w * 0.2, h + w * 0.36], [0, h + w * 0.4]], cap, 12, [x, y, 0]);
+      for (let k = 0; k < 4; k++) { const b = R() * 6.28, r = w * 0.3; G.blob(x + Math.cos(b) * r, y + Math.sin(b) * r, h + w * 0.24, w * 0.06, w * 0.06, w * 0.03, VC.spot, { nu: 6, nv: 3 }); }
+    }
   })];
 }

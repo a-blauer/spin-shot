@@ -19,6 +19,8 @@ const WD = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
 const BONE = '#f2e8d5', GOLD = '#ffcd5a', BLOOD = '#e0342c', INK = '#140d12', PANEL = 'rgba(22,14,20,0.86)';
 const F_BIG = '"Big Shoulders Display", Impact, "Arial Narrow", sans-serif';
 const F_TXT = '"Barlow Condensed", "Arial Narrow", Arial, sans-serif';
+// the village's own type: a soft storybook serif and a rounded sans (every HUD line drawn there uses these instead)
+const F_VIL = '"Fraunces", Georgia, serif', F_VTXT = '"Nunito", Arial, sans-serif';
 const toCss = (c) => (typeof c === 'string' ? c : cssRGB(c));
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const _v = new THREE.Vector3();
@@ -112,6 +114,7 @@ export class Hud {
   fs(size) { return Math.max(size, this.minFs || 12); }
   text(str, x, y, size, color = BONE, align = 'left', font = F_TXT, weight = 700, outline = 0.18, alpha = 1) {
     const g = this.g;
+    if (this.vfont) { if (font === F_BIG) { font = F_VIL; weight = 900; size *= 0.8; } else if (font === F_TXT) { font = F_VTXT; weight = Math.max(700, weight); size *= 0.9; } outline *= 0.55; }
     size = this.fs(size);
     g.font = `${font === F_BIG ? '' : weight + ' '}${Math.round(size)}px ${font}`;
     g.textAlign = align; g.textBaseline = 'alphabetic';
@@ -250,7 +253,8 @@ export class Hud {
     if (mode === 'title' || !game || !game.player) return;
     const P = game.player;
 
-    if (game.village && game.village.on) { this.drawVillage(game, P, W, H, S, dt, mode); return; }
+    this.vfont = !!(game.village && game.village.on);
+    if (this.vfont) { this.drawVillage(game, P, W, H, S, dt, mode); this.vfont = false; return; }
     this.drawVignette(game, P);
     if (!P.dead) this.drawCornerShade(W, H, S);
     if (game.vm.scoped && !P.dead) this.drawScope(W, H, S);
@@ -293,19 +297,19 @@ export class Hud {
     if (this.needMouse) { g.fillStyle = 'rgba(20,10,16,0.75)'; g.fillRect(W / 2 - 250 * S, H * 0.62, 500 * S, 54 * S); this.text('CLICK TO LOOK AROUND', W / 2, H * 0.62 + 36 * S, 26 * S, '#ffcd5a', 'center', F_BIG, 400, 0.1); }
     if (game.net && game.net.active) this.drawTeam(game, W, H, S);
     if (!busy) {
-      this.text('THIMBLEWICK', 40 * S, 58 * S, 34 * S, BONE, 'left', F_BIG, 400, 0.14, 0.9);
-      this.text('the village above the Descent', 40 * S, 84 * S, 17 * S, 'rgba(242,232,213,0.6)', 'left', F_TXT, 700, 0.04);
+      this.text('Thimblewick', 40 * S, 62 * S, 44 * S, '#fff4dc', 'left', F_BIG, 400, 0.14, 0.95);
+      this.text('the village above the Descent', 42 * S, 90 * S, 18 * S, 'rgba(255,244,220,0.75)', 'left', F_TXT, 700, 0.1);
       // the purse
       const gold = Meta.gold().toLocaleString(), w = Math.max(190 * S, (gold.length * 22 + 110) * S), x = W - 40 * S - w;
       this.panel(x, 30 * S, w, 64 * S, 'rgba(255,205,90,0.55)', 'rgba(20,12,8,0.72)', 12 * S);
       g.fillStyle = '#ffcd5a'; g.beginPath(); g.arc(x + 36 * S, 62 * S, 15 * S, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8962a'; g.beginPath(); g.arc(x + 36 * S, 62 * S, 9 * S, 0, Math.PI * 2); g.fill();
       this.text(gold, x + w - 20 * S, 75 * S, 38 * S, '#ffcd5a', 'right', F_BIG, 400, 0.06);
       const c = Meta.contract();
-      if (c) this.text(`CONTRACT: ${c.title.toUpperCase()}`, W - 40 * S, 122 * S, 17 * S, '#9fe0ff', 'right', F_TXT, 700, 0.1);
+      if (c) this.text(`Contract: ${c.title}`, W - 40 * S, 124 * S, 18 * S, '#bfe8ff', 'right', F_TXT, 700, 0.1);
       // a small dot in the middle
       g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.arc(W / 2, H / 2, 3 * S, 0, Math.PI * 2); g.fill();
       this.drawPrompt(game, P, W, H, S);
-      this.text('WASD walk   SPACE jump   SHIFT dash   E use   ESC menu', W / 2, H - 30 * S, 16 * S, 'rgba(242,232,213,0.55)', 'center', F_TXT, 700, 0.14);
+      this.text('WASD walk  ·  Space jump  ·  Shift dash  ·  E use  ·  Esc menu', W / 2, H - 30 * S, 17 * S, 'rgba(255,244,220,0.7)', 'center', F_TXT, 700, 0.14);
     }
     this.drawTip(dt, W, H, S, busy);
     this.drawBanners(dt, W, H, S, busy, busy);

@@ -10,6 +10,7 @@ import { buildCharacter, animateCharacter } from './character.js';
 import { DEFAULT_LOOK, COSMETICS } from './cosmetics.js';
 import { buildPortal, tickPortal } from './portal.js';
 import { Meta } from './meta.js';
+import { makeSign, signFontsReady } from './village_signs.js';
 
 // the people of the village, dressed from the same wardrobe as you
 const look = (o) => { const L = Object.assign({}, DEFAULT_LOOK, o); for (const k of Object.keys(o)) if (COSMETICS[k] && !COSMETICS[k].some((I) => I.id === o[k])) L[k] = DEFAULT_LOOK[k]; return L; };
@@ -51,7 +52,7 @@ export class Village {
     for (const E of g.enemies) E.remove = true; g.hazards.clear();
     g.world.showChunk(VILLAGE_IDX);
     g.env.noSky = false;
-    for (const p of this.people) p.root.visible = true; for (const I of this.uses) { I.enabled = true; I.group.visible = true; }
+    for (const p of this.people) p.root.visible = true; for (const I of this.uses) { I.enabled = true; I.group.visible = true; } for (const M of this.signs || []) M.visible = true;
     this.spawn();
     g.vm.hidden = true;
     try { g.navRebuild(P.pos); } catch (e) { /* the village is off the rooms' walking grid: nothing walks here */ }
@@ -65,7 +66,7 @@ export class Village {
   // leaving for a run: the village stays built, its people and stations hidden
   leave() {
     const g = this.g; this.on = false; g.village = null; g.env.noSky = !!g.map.noSky;
-    for (const p of this.people) p.root.visible = false; for (const I of this.uses) { I.enabled = false; I.group.visible = false; }
+    for (const p of this.people) p.root.visible = false; for (const I of this.uses) { I.enabled = false; I.group.visible = false; } for (const M of this.signs || []) M.visible = false;
     g.vm.hidden = false;
   }
   // ---- the people and the things to use
@@ -96,7 +97,10 @@ export class Village {
     VSPOTS.casino.slots.forEach((s, i) => use('slots', s, () => '[E] Slot machine', i, 150));
     // the Way Down: the same arch as the rooms' doors, lit gold, its words over it
     const gate = use('gate', VSPOTS.gate.at, () => `[E] The Way Down\n${this.g.net.role === 'client' ? 'The host starts the run' : 'Choose your run and go down'}`, null, 330);
-    buildPortal(gate, 1, 0xffcd5a, false); gate.text(null, V(0, 20, 900), -90, 96, 'THE WAY DOWN', '#ffcd5a'); gate.text(null, V(0, 20, 840), -90, 40, 'twenty rooms, straight down', '#e8e0d0');
+    buildPortal(gate, 1, 0xffcd5a, false);
+    // the painted signs, once the village's lettering has loaded
+    this.signs = [];
+    signFontsReady().then(() => { for (const S of VSPOTS.signs) { const [x, y] = this.w(S.at[0], S.at[1]), M = makeSign(S.kind, S.o, new THREE.Vector3(x, S.at[2], y), new THREE.Vector3(S.face[0], 0, S.face[1]), S.h, S.glow || 0); M.visible = this.on; g.scene.add(M); this.signs.push(M); } });
     this.gate = gate;
     for (const I of this.uses) { I.enabled = false; I.group.visible = false; }
   }
@@ -122,6 +126,12 @@ export class Village {
       const a = Math.random() * 6.28, r = 300 + Math.random() * 2200, pos = new THREE.Vector3(P.pos.x + Math.cos(a) * r, 60 + Math.random() * 220, P.pos.z + Math.sin(a) * r);
       g.fx.add({ pos, vel: new THREE.Vector3((Math.random() - 0.5) * 40, (Math.random() - 0.3) * 20, (Math.random() - 0.5) * 40), drag: 0.1, life: 2.4 + Math.random() * 2, size0: 7, size1: 3, c0: [1, 0.92, 0.5, 0.9], c1: [1, 0.8, 0.3, 0], fadeIn: 0.5, tex: 'FX_Glow', kind: 'add', glow: 1.4 });
     }
+    for (const M of this.signs || []) if (M.userData.tick) M.userData.tick(dt);
+    // smoke curling up from the chimneys, and the campfire: flames, sparks, and its light breathing
+    this.sm = (this.sm || 0) + dt * 5;
+    while (this.sm >= 1) { this.sm -= 1; for (const [x0, y0, z] of VSPOTS.smoke) { if (Math.random() < 0.55) continue; const [x, y] = this.w(x0, y0); g.fx.add({ pos: new THREE.Vector3(x + (Math.random() - 0.5) * 20, z, y + (Math.random() - 0.5) * 20), vel: new THREE.Vector3(18 + Math.random() * 14, 55 + Math.random() * 25, 6), drag: 0.25, life: 4 + Math.random() * 2, size0: 36, size1: 150, c0: [0.86, 0.84, 0.82, 0.32], c1: [0.9, 0.88, 0.86, 0], tex: 'FX_Smoke', kind: 'fx' }); } }
+    { const [fx, fy] = this.w(VSPOTS.fire[0], VSPOTS.fire[1]); this.fl = (this.fl || 0) + dt * 30;
+      while (this.fl >= 1) { this.fl -= 1; const a = Math.random() * 6.28, r = Math.random() * 26; g.fx.add({ pos: new THREE.Vector3(fx + Math.cos(a) * r, 22, fy + Math.sin(a) * r), vel: new THREE.Vector3((Math.random() - 0.5) * 20, 90 + Math.random() * 70, (Math.random() - 0.5) * 20), drag: 0.6, life: 0.5 + Math.random() * 0.4, size0: 34 + Math.random() * 20, size1: 6, c0: [1, 0.72, 0.3, 0.95], c1: [1, 0.3, 0.08, 0], tex: 'FX_Flame', kind: 'add', glow: 1.6 }); if (Math.random() < 0.12) g.fx.add({ pos: new THREE.Vector3(fx, 40, fy), vel: new THREE.Vector3((Math.random() - 0.5) * 60, 150 + Math.random() * 120, (Math.random() - 0.5) * 60), drag: 0.3, life: 1.4, size0: 5, size1: 2, c0: [1, 0.8, 0.4, 1], c1: [1, 0.4, 0.1, 0], tex: 'FX_Glow', kind: 'add', glow: 2 }); } }
     // the casino hums when you are near it
     if (g.audio && g.audio.loop) { const [cx, cy] = this.w(VSPOTS.casino.c[0], VSPOTS.casino.c[1]), d = Math.hypot(P.pos.x - cx, P.pos.z - cy); g.audio.loop('S_AmbCasino', Math.max(0, Math.min(0.35, (2600 - d) / 3000))); }
   }
