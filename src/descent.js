@@ -10,6 +10,8 @@ import { Interactable } from './interact.js';
 import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
+// boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
+const BOSS_HP = [2.3, 2.5, 2.7, 2.9];
 
 export const ROOMS = 20;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -115,10 +117,13 @@ export class Descent {
     const g = this.g, A = this.A(), bi = this.bossPick[this.room / 5 - 1], B = DATA.bosses[bi];
     const at = V3(A.c[0], 260, A.c[1] + this.flip * A.hy * 0.3);
     g.bossSpawned = true;
-    g.boss = g.spawnEnemy(B.minion, at, false, bi, 1, 1.4 + 0.5 * (g.net.role === 'host' ? g.net.ghosts.size : 0), 0, false);   // it fights alone now, so there is more of it
-    if (B.mech === 'twin') { const T = g.spawnEnemy(B.minion, at.clone().add(V3(500, 0, 0)), false, bi, 1, 1, 0, false); T.twin = g.boss; g.boss.twin = T; }
-    g.banner(`${B.name.toUpperCase()}`, lin(1, 0.25, 0.15), 4); g.hud.toast(B.desc || B.title, '#ff9a8a');
-    g.audio.play('S_BossRoar', 1, 0.8);
+    // a boss is a fight, not a speed bump: deeper ones carry more, and each extra player adds most of another one
+    const hpK = BOSS_HP[(B.tier || 1) - 1] || BOSS_HP[0], more = g.net.role === 'host' ? g.net.ghosts.size : 0;
+    g.boss = g.spawnEnemy(B.minion, at, false, bi, 1, hpK * (1 + 0.6 * more), 0, false);
+    if (B.mech === 'twin') { const T = g.spawnEnemy(B.minion, at.clone().add(V3(500, 0, 0)), false, bi, 1, hpK * 0.72 * (1 + 0.6 * more), 0, false); T.twin = g.boss; g.boss.twin = T; }
+    // the entrance: the room holds its breath, the name goes up big, then it comes for you
+    g.hitstop = Math.max(g.hitstop || 0, 0.45); g.shakeAt(at, 1400); g.fx.flash(at, [1, 0.3, 0.2], 900, 0.6, true);
+    g.audio.play('S_BossRoar', 1, 0.8); g.audio.play('S_Phase', 0.8);
   }
   // the room is empty: the bench and the chest come up, and the way on opens
   clear() {

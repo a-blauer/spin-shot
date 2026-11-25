@@ -631,7 +631,10 @@ export class Game {
       if (!this.descent) this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bossKilled(!!E.boss.final, difficulty());
       if (E.boss.final) this.levelComplete();
-      this.banner(`${E.boss.name.toUpperCase()} DEFEATED`, lin(1, 0.8, 0.2), 4);
+      // its fall: the world slows, it comes apart in fire, and the name goes up one last time
+      this.hud.bossDown = { t: 0, name: E.boss.name }; this.hitstop = Math.max(this.hitstop || 0, 0.8); this.shakeAt(loc, 1600);
+      for (let i = 0; i < 5; i++) { const at = loc.clone().add(V3((Math.random() - 0.5) * 220 * E.bodyScale, (40 + Math.random() * 160) * E.bodyScale, (Math.random() - 0.5) * 220 * E.bodyScale)); this.fx.explosion(at, 260 + i * 60, lin(1, 0.55 + Math.random() * 0.3, 0.2)); }
+      this.audio.play('S_BossRoar', 0.8, 0.6);
     }
     // Supplies off the dead are budgeted per round, not per kill, so a horde of four hundred does not bury you in
     // them: `per` is the chance that spreads the round's allowance over the round's kills, and each kind has a cap.

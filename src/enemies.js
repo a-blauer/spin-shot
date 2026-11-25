@@ -631,7 +631,7 @@ export class Enemy {
     if (this.dead || amount <= 0 || this.burrowed) return 0;
     if (this.remote) return this.game.net.sendHit(this, amount, fromDir, headshot);
     if (this.finalInv > 0) return 0;
-    if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } return 0; }
+    if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } amount *= 0.3; }   // a ward blunts, it does not stop: the wisps are the fast way through
     if (!this.isBoss && !this.remote) amount = traitDamage(this, amount);
     if (this.isBoss && this.boss.tier && amount < 1e8) { amount = hitX(this, amount, fromDir, headshot); if (amount <= 0) return 0; }
     this.netKiller = this._netHit || null;

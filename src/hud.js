@@ -246,7 +246,7 @@ export class Hud {
     g.clearRect(0, 0, W, H);
     const S = Math.min(W / 1920, H / 1080) * 1.0;
     this.S = S; this.W = W; this.H = H; this.minFs = 13 * dpr; this.mode = mode;
-    this.time += dt;
+    this.time += dt; this.dtLast = dt;
     if (mode === 'title' || !game || !game.player) return;
     const P = game.player;
 
@@ -592,16 +592,87 @@ export class Hud {
     }
   }
   drawBoss(game, W, H, S) {
-    const B = game.boss;
-    if (!B || B.dead || B.emerging) return;
-    const w = 760 * S, x = (W - w) / 2, y = 54 * S;
-    this.text(B.displayName().toUpperCase(), W / 2, y - 10 * S, 30 * S, B.enraged ? '#ff5a3a' : BONE, 'center', F_BIG, 400, 0.14);
-    this.bar(x, y, w, 18 * S, B.health / B.maxHealth, B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b', 'rgba(40,8,12,0.8)', 10);
+    const B = game.boss, g = this.g, dt = this.dtLast || 0.016;
+    this.drawBossCards(W, H, S, dt);
+    if (!B || B.dead || B.emerging) { this.bossTrail = null; return; }
+    // a new boss: its name goes up big before the bar does
+    if (B !== this.introFor) { this.introFor = B; const D = B.boss || {}; this.bossIntro = { t: 0, name: D.name || B.displayName(), title: D.title || '', desc: D.desc || '' }; this.bossTrail = 1; this.barIn = 0; }
+    this.barIn = Math.min(1, (this.barIn || 0) + dt * 1.6);
+    const f = clamp(B.health / B.maxHealth, 0, 1);
+    // the chip trail: what you just took off it hangs on in pale for a moment, then drains
+    if (this.bossTrail == null || this.bossTrail < f) this.bossTrail = f;
+    if (B.sinceHit > 0.5) this.bossTrail = Math.max(f, this.bossTrail - dt * 0.45);
+    const k = 1 - Math.pow(1 - this.barIn, 3), w = 980 * S * k, x = (W - w) / 2, y = 70 * S, h = 22 * S, a = this.barIn;
+    const col = B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b';
+    // plate behind it all
+    g.globalAlpha = 0.85 * a; g.fillStyle = 'rgba(14,8,12,0.78)'; g.fillRect(x - 24 * S, y - 56 * S, w + 48 * S, h + 92 * S); g.globalAlpha = a;
+    g.fillStyle = INK; g.fillRect(x - 4 * S, y - 4 * S, w + 8 * S, h + 8 * S);
+    g.fillStyle = 'rgba(60,10,16,0.9)'; g.fillRect(x, y, w, h);
+    g.fillStyle = 'rgba(255,236,210,0.75)'; g.fillRect(x, y, w * this.bossTrail, h);
+    g.fillStyle = col; g.fillRect(x, y, w * f, h);
+    g.fillStyle = 'rgba(255,255,255,0.2)'; g.fillRect(x, y, w * f, Math.max(2, h * 0.3));
+    const fl = this.bossAct && this.bossAct.t < 0.35 ? 1 - this.bossAct.t / 0.35 : 0;   // the bar flashes when it changes act
+    if (fl > 0) { g.fillStyle = `rgba(255,255,255,${0.7 * fl})`; g.fillRect(x, y, w, h); }
+    g.strokeStyle = GOLD; g.lineWidth = 2 * S; g.strokeRect(x - 4 * S, y - 4 * S, w + 8 * S, h + 8 * S);
+    // three acts: notches where it changes, and which act this is
+    if (B.boss && B.boss.tier) {
+      for (const q of [1 / 3, 2 / 3]) { g.fillStyle = 'rgba(255,236,200,0.9)'; g.fillRect(x + w * q - 1.5 * S, y - 6 * S, 3 * S, h + 12 * S); }
+      const act = B.phase || 1; this.text(`ACT ${ROMAN[act] || act}`, x + w, y - 14 * S, 18 * S, GOLD, 'right', F_BIG, 400, 0.14, a);
+      const pn = B.phaseName ? B.phaseName() : ''; if (pn) this.text(pn, x + w - this.measure(`ACT ${ROMAN[act] || act}`, 18 * S, F_BIG) - 14 * S, y - 14 * S, 16 * S, 'rgba(242,232,213,0.7)', 'right', F_TXT, 700, 0.1, a);
+    }
+    this.text(((B.boss && B.boss.name) || B.displayName()).toUpperCase(), x, y - 14 * S, 32 * S, B.enraged ? '#ff5a3a' : BONE, 'left', F_BIG, 400, 0.14, a);
     // what it is doing, in words: a fight you can read is a fight you can answer
-    // a fight in three acts: the bar is notched where it changes, and the act it is in is named beside it
-    if (B.boss && B.boss.tier) { for (const f of [1 / 3, 2 / 3]) { this.g.fillStyle = "rgba(255,236,200,0.85)"; this.g.fillRect(x + w * f - 1.5 * S, y - 3 * S, 3 * S, 24 * S); } const pn = B.phaseName ? B.phaseName() : ''; if (pn) this.text(pn, x + w, y - 10 * S, 17 * S, '#ffcd5a', 'right', F_TXT, 700, 0.14); }
-    const say = B.phaseT > 0 ? 'IT IS CHANGING - IT CANNOT BE HURT' : B.ward > 0 ? 'WARDED - KILL THE WISPS' : B.exposedT > 0 ? 'STAGGERED - HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
-    if (say) this.text(say, W / 2, y + 44 * S, 20 * S, B.ward > 0 ? '#9fd0ff' : B.exposedT > 0 ? '#ffd24d' : '#ffb39a', 'center', F_TXT, 700, 0.14);
+    const say = B.phaseT > 0 ? 'IT ROARS  -  POUR IT ON' : B.ward > 0 ? 'WARDED  -  KILL THE WISPS TO BREAK IT' : B.exposedT > 0 ? 'STAGGERED  -  HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
+    if (say) this.text(say, W / 2, y + h + 26 * S, 20 * S, B.ward > 0 ? '#9fd0ff' : B.exposedT > 0 || B.phaseT > 0 ? '#ffd24d' : '#ffb39a', 'center', F_TXT, 700, 0.14, a);
+    g.globalAlpha = 1;
+  }
+  // the big moments of a boss fight, drawn across the screen: its entrance, each new act, its fall
+  drawBossCards(W, H, S, dt) {
+    const g = this.g;
+    // one big moment at a time: a later one cuts the earlier short, and the room title gives way to all of them
+    if (this.bossDown) { this.bossIntro = null; this.bossAct = null; }
+    if (this.bossAct && this.bossIntro) this.bossIntro = null;
+    if (this.bossIntro || this.bossAct || this.bossDown) this.roundBanner = null;
+    const I = this.bossIntro;
+    if (I) {
+      I.t += dt; const L = 4.2, t = I.t;
+      if (t > L) this.bossIntro = null;
+      else {
+        const a = clamp(Math.min(t / 0.35, (L - t) / 0.6), 0, 1), bar = clamp(Math.min(t / 0.4, (L - 0.3 - t) / 0.5), 0, 1);
+        // letterbox: the frame narrows for the entrance
+        g.fillStyle = '#000'; g.globalAlpha = 0.85; g.fillRect(0, 0, W, H * 0.085 * bar); g.fillRect(0, H - H * 0.085 * bar, W, H * 0.085 * bar); g.globalAlpha = 1;
+        const cy = H * 0.37, sc = 1 + Math.max(0, 0.25 - t) * 0.8;
+        g.globalAlpha = a * 0.8; const gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, 'rgba(10,4,6,0)'); gr.addColorStop(0.25, 'rgba(10,4,6,0.85)'); gr.addColorStop(0.75, 'rgba(10,4,6,0.85)'); gr.addColorStop(1, 'rgba(10,4,6,0)');
+        g.fillStyle = gr; g.fillRect(0, cy - 104 * S, W, 196 * S); g.globalAlpha = a;
+        const lw = W * 0.5 * clamp(t / 0.6, 0, 1); g.fillStyle = '#c8211b'; g.fillRect(W / 2 - lw / 2, cy - 100 * S, lw, 3 * S); g.fillRect(W / 2 - lw / 2, cy + 88 * S, lw, 3 * S);
+        this.text('BOSS', W / 2, cy - 66 * S, 22 * S, GOLD, 'center', F_BIG, 400, 0.4, a);
+        g.save(); g.translate(W / 2, cy + 14 * S); g.scale(sc, sc); this.text(I.name.toUpperCase(), 0, 0, 104 * S, '#e8231b', 'center', F_BIG, 400, 0.08, a); g.restore();
+        if (I.title) this.text(I.title.toUpperCase(), W / 2, cy + 62 * S, 26 * S, BONE, 'center', F_BIG, 400, 0.25, a);
+        if (I.desc && t > 0.8) this.text(I.desc, W / 2, cy + 128 * S, 21 * S, '#ffb39a', 'center', F_TXT, 700, 0.06, clamp((t - 0.8) * 3, 0, 1) * a);
+        g.globalAlpha = 1;
+      }
+    }
+    const A = this.bossAct;
+    if (A) {
+      A.t += dt; const L = 2.6, t = A.t;
+      if (t > L) this.bossAct = null;
+      else {
+        const a = clamp(Math.min(t / 0.2, (L - t) / 0.5), 0, 1), col = `rgb(${A.col.map((c) => Math.round(Math.min(1, c) * 255)).join(',')})`, cy = H * 0.36, sc = 1 + Math.max(0, 0.2 - t) * 1.5;
+        this.text(`ACT ${ROMAN[A.n] || A.n}`, W / 2, cy - 50 * S, 26 * S, GOLD, 'center', F_BIG, 400, 0.4, a);
+        g.save(); g.translate(W / 2, cy + 20 * S); g.scale(sc, sc); this.text(A.text, 0, 0, 72 * S, col, 'center', F_BIG, 400, 0.08, a); g.restore();
+      }
+    }
+    const D = this.bossDown;
+    if (D) {
+      D.t += dt; const L = 4, t = D.t;
+      if (t > L) this.bossDown = null;
+      else {
+        const a = clamp(Math.min(t / 0.3, (L - t) / 0.6), 0, 1), cy = H * 0.36;
+        g.globalAlpha = a * 0.25 * clamp(1 - t / 1.2, 0, 1); g.fillStyle = '#fff3d0'; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+        this.text(D.name.toUpperCase(), W / 2, cy - 40 * S, 30 * S, BONE, 'center', F_BIG, 400, 0.2, a);
+        this.text('DEFEATED', W / 2, cy + 50 * S, 120 * S, GOLD, 'center', F_BIG, 400, 0.08, a);
+      }
+    }
   }
   drawPowerups(game, W, H, S) {
     let x = W / 2 - 60 * S;

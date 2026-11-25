@@ -56,11 +56,15 @@ export function phaseX(E, dt, C) {
   if (want > E.phase && !(E.ward > 0) && !E.burrowed) {
     const add = (want >= 2 ? D.p2 : []).concat(want >= 3 ? D.p3 : []).map(C.idx).filter((i) => i >= 0);
     E.queue = (want >= 3 ? D.p3 : D.p2).map(C.idx).filter((i) => i >= 0);   // the new moves first, so you meet them
-    E.phase = want; E.phaseT = 2.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0; E.shellT = 0;
+    E.phase = want; E.phaseT = 1.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0; E.shellT = 0;
     E.attackMask = E.baseMask.concat(add.filter((i) => !E.baseMask.includes(i)));
-    G.banner(D.n[want - 2], lin(D.col[0], D.col[1], D.col[2]), 3); G.audio.play('S_Phase', 1); G.audio.playAt('S_BossRoar', E.pos, 0.9, want === 3 ? 0.75 : 0.9); G.shakeAt(E.pos, 900);
+    G.audio.play('S_Phase', 1); G.audio.playAt('S_BossRoar', E.pos, 0.9, want === 3 ? 0.75 : 0.9); G.shakeAt(E.pos, 900);
     G.hazards.ring(ground(E, E.pos), dmg * 0.5, 1000, Rm.r * 1.6, D.col); G.fx.flash(E.pos, D.col, 500, 0.5, true);
     E.puppet.setTint([1.5, 1.5, 1.5]);
+    // it gets bigger and meaner every act; the world stops for a beat so the moment lands
+    E.puppet.baseScale *= 1.07; E.bodyScale *= 1.07; E.baseSpeed *= 1.08;
+    G.hitstop = Math.max(G.hitstop || 0, 0.3); G.hud.bossAct = { t: 0, n: want, text: D.n[want - 2], col: D.col };
+    G.fx.explosion(E.pos, 520, lin(D.col[0], D.col[1], D.col[2]));
   }
   if (E.phaseT > 0) {
     E.phaseT -= dt; E.stop(); E.windup = Math.min(1, E.phaseT);
@@ -130,7 +134,6 @@ export function mechX(E, dt, C) {
 
 // ------------------------------------------------------------------ what a hit does to it
 export function hitX(E, dmg, fromDir, headshot) {
-  if (E.phaseT > 0) return 0;   // nothing gets through while it is changing
   const B = E.boss, G = E.game, M = E.mx || {};
   switch (B.mech) {
     case 'front':   // Old Ironhide: plate in front, hide behind
