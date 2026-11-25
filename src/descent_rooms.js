@@ -11,6 +11,7 @@
 //    (so nothing comes up out of the ground inside a platform).
 import { V, V2, R } from './mapkit.js';
 import { props } from './descent_props.js';
+import * as SH from './descent_shapes.js';
 import { ROOMS_A } from './descent_rooms_a.js';
 import { ROOMS_B } from './descent_rooms_b.js';
 import { ROOMS_C } from './descent_rooms_c.js';
@@ -79,13 +80,9 @@ function kit(K) {
       for (const e of [-1, 1]) { Box(V(x, y, z + s / 2 + e * (s / 2 - 8)), V(s + 6, s + 6, 12), band, false, false); }
       Box(V(x, y, z + s / 2), V(s + 4, 14, s - 28), band, false, false); Box(V(x, y, z + s / 2), V(14, s + 4, s - 28), band, false, false);
     },
-    barrel: (x, y, z = 0, col = 0x5a3e26, hoop = 0x2a2420) => {
-      Cyl(V(x, y, z + 55), 78, 110, col, true, false); Cyl(V(x, y, z + 55), 86, 70, col, false, false);
-      for (const e of [-1, 1]) Cyl(V(x, y, z + 55 + e * 34), 90, 8, hoop, false, false);
-      Cyl(V(x, y, z + 111), 70, 3, hoop, false, false);
-    },
+    barrel: (x, y, z = 0, col = 0x5a3e26, hoop = 0x2a2420) => { M.Solid(V(x, y, z + 55), V(80, 80, 110), false); const [key, b] = SH.barrel(col, hoop); M.Shape(key, b, V(x, y, z), R(0, (x * 3 + y) % 360, 0)); },
     candle: (x, y, z, h = 30) => { Cyl(V(x, y, z + h / 2), 10, h, 0xe8dcc0, false, false); Glow(V(x, y, z + h + 9), V(9, 9, 18), 0xffc86a, 3); },
-    chain: (x, y, z0, z1, col = 0x2a2e30) => { for (let z = z0; z < z1 - 20; z += 44) Box(V(x, y, z + 15), V(11, 11, 30), col, false, false, (z / 44 | 0) % 2 ? 45 : 0); },
+    chain: (x, y, z0, z1, col = 0x2a2e30) => { const [key, b] = SH.chain(z1 - z0 - 10, col); M.Shape(key, b, V(x, y, z1), R(0, (x + y) % 90, 0)); },
     skull: (x, y, z, s, yaw = 0, eye = T.glow) => {   // a carved skull, facing +Y before the turn
       const c = Math.cos(yaw * Math.PI / 180), n = Math.sin(yaw * Math.PI / 180), at = (fx, fy, fz) => V(x + (fx * c - fy * n) * s, y + (fx * n + fy * c) * s, z + fz * s);
       Ball(at(0, 0, 0.55), V(s, s * 1.05, s * 0.95), 0xd8cfb8); Box(at(0, 0.12, 0.08), V(s * 0.62, s * 0.6, s * 0.36), 0xc8bea4, false, false, yaw);

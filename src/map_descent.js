@@ -3,6 +3,7 @@
 // All twenty are built once, far apart on one grid, and the run moves the players between them.
 import { V, V2, R } from './mapkit.js';
 import { craftRoom, craftBoss, ROOM_DIMS, BOSS_DIMS, EXTRA } from './descent_rooms.js';
+import * as SH from './descent_shapes.js';
 
 // each theme: floor, inlay, wall, trim, glow, lamp colour, fog, shadow tint
 export const THEMES = [
@@ -146,7 +147,7 @@ export function buildDescent(M) {
           Floor(V2(Math.min(X(60), X(520)), y - 100), V2(Math.max(X(60), X(520)), y + 100), 2.1, T.floor2); break;
         case 'pipes': for (const d of [-90, 0, 90]) { Cyl(V(X(26), y + d, H / 2), 34, H - 40, d ? c2 : c1, false, false); for (const z of [150, 420, top + 60]) Cyl(V(X(26), y + d, z), 52, 18, 0x2a2e30, false, false); } for (const z of [260, top]) B(26, y, z, 270, 26, c1, 52); Cyl(V(X(64), y, 330), 76, 14, 0xa02a22, false, false, FL); Cyl(V(X(66), y, 330), 20, 22, 0x2a2e30, false, false, FL);
           Cyl(V(X(60), y - 90, 560), 70, 12, 0x2a2e30, false, false, FL); Cyl(V(X(66), y - 90, 560), 56, 6, 0xe8e0d0, false, false, FL); B(70, y - 90, 572, 4, 26, 0xa02a22, 4); Glow(V(X(62), y + 90, 560), V(8, 26, 26), gl, 2); break;
-        case 'banner': B(8, y, top + 30, 250, 14, 0x2a2018, 14); for (const d of [-125, 125]) Ball(V(X(8), y + d, top + 30), V(26, 26, 26), c1); B(6, y, top / 2 + 130, 200, top - 180, c2, 6); B(9, y, top / 2 + 130, 150, top - 230, T.wall, 4); B(11, y, top / 2 + 130, 110, 110, c1, 4); B(13, y, top / 2 + 130, 50, 50, c2, 4); for (const d of [-66, 0, 66]) Pyramid(V(X(6), y + d, 196), V(6, 66, 80), c2, R(180, 0, 0)); B(8, y, 232, 204, 10, c1, 8); break;
+        case 'banner': { const [k, b] = SH.banner(200, top - 200, c2, c1, { foot: 'tails', tip: 60, emblem: c1, finial: c1 }); M.Shape(k, b, V(X(24), y, top + 30), R(0, 90, 0)); break; }
         case 'shelf': for (let z = 150; z < top; z += 150) { B(36, y, z, 300, 12, c1, 70); for (let q = -2; q <= 2; q++) { const hh = 44 + ((q * q + z / 150) % 3) * 14, col = [c2, gl, 0x5a4630, c2, 0x3a3e46][(q + 2 + z / 150) % 5]; if ((q + z / 150) % 3 === 0) { Cyl(V(X(36), y + q * 56, z + 6 + hh / 2), 34, hh, col, false, false); Ball(V(X(36), y + q * 56, z + 10 + hh), V(26, 26, 20), c1); } else Box(V(X(36), y + q * 56, z + 6 + hh / 2), V(40, 36, hh), col, false, false); } } for (const d of [-156, 156]) B(36, y + d, top / 2 + 40, 12, top, c1, 70); B(36, y, top + 46, 330, 14, c1, 76); B(36, y, 60, 324, 120, c1, 70); for (const d of [-80, 80]) Ball(V(X(74), y + d, 76), V(14, 22, 14), 0xb8923a); break;
         case 'bars': B(4, y, top / 2 + 60, 300, top - 60, 0x08090a, 8); for (let d = -120; d <= 120; d += 40) Cyl(V(X(14), y + d, top / 2 + 60), 12, top - 60, c1, false, false); for (const z of [90, top / 2 + 60, top + 20]) B(14, y, z, 320, 20, c1, 16); B(16, y, top + 70, 110, 44, c2, 8); B(18, y, top + 70, 60, 8, c1, 6); B(22, y - 130, top / 2 + 40, 40, 60, 0x2a2e30, 14); break;
         case 'planks': for (let d = -140; d <= 140; d += 70) B(5, y + d, top / 2 + 60, 60, top - 20, d % 140 ? c2 : c1, 10); B(10, y, top + 40, 330, 26, c1, 12); BoxRot(V(X(12), y, top / 2 + 60), V(10, 26, Math.hypot(280, top - 60)), c1, R(0, 0, Math.atan2(280, top - 60) * 57.3), false); B(40, y, 440, 14, 14, 0x3a3e46, 80); B(76, y, 420, 26, 36, 0x3a3e46, 26); Glow(V(X(76), y, 420), V(20, 20, 28), gl, 0);
@@ -158,17 +159,17 @@ export function buildDescent(M) {
     }
     switch (W.hang) {
       case 'lamp': roofSpots(W.n || 10, (x, y) => { const Lh = drop(160, 360); hang(x, y, Lh, 0x2a2e30, 8); Cyl(V(x, y, H - Lh - 8), 120, 14, 0x2a2e30, false, false); Box(V(x, y, H - Lh - 40), V(50, 50, 50), 0x2a2e30, false, false); Glow(V(x, y, H - Lh - 44), V(34, 34, 40), gl, 0); }); break;
-      case 'chain': roofSpots(W.n || 12, (x, y) => { const Lh = drop(200, 520); for (let z = H - Lh; z < H - 20; z += 44) Box(V(x, y, z + 15), V(11, 11, 30), 0x3a3e46, false, false, (z / 44 | 0) % 2 ? 45 : 0); Box(V(x, y, H - Lh - 24), V(46, 14, 48), c1, false, false); Box(V(x + 18, y, H - Lh - 56), V(12, 14, 40), c1, false, false); }); break;
+      case 'chain': roofSpots(W.n || 12, (x, y) => { const Lh = drop(200, 520), [k, b] = SH.chain(Lh - 14, 0x3a3e46); M.Shape(k, b, V(x, y, H - 10), R(0, rr(0, 90), 0)); Box(V(x, y, H - Lh - 24), V(46, 14, 48), c1, false, false); Box(V(x + 18, y, H - Lh - 56), V(12, 14, 40), c1, false, false); }); break;
       case 'spike': roofSpots(W.n || 40, (x, y) => { const Lh = drop(120, 460); ConeShape(V(x, y, H - Lh / 2), V(rr(40, 100), rr(40, 100), Lh), rnd() < 0.3 ? c1 : c2, false, R(180, 0, 0)); }); break;
-      case 'vine': roofSpots(W.n || 46, (x, y) => { const Lh = drop(140, 600); hang(x, y, Lh, c2, rr(8, 20)); if (rnd() < 0.4) Glow(V(x, y, H - Lh - 12), V(24, 24, 24), gl, 2); }); break;
-      case 'cloth': roofSpots(W.n || 12, (x, y) => { const Lh = drop(200, 420), a = rnd() < 0.5, col = rnd() < 0.5 ? c1 : c2; Box(V(x, y, H - 8), a ? V(260, 10, 10) : V(10, 260, 10), 0x2a2018, false, false); Box(V(x, y, H - 14 - Lh / 2), a ? V(220, 5, Lh) : V(5, 220, Lh), col, false, false); Pyramid(V(x, y, H - 14 - Lh - 36), a ? V(220, 5, 72) : V(5, 220, 72), col, R(180, 0, 0)); }); break;
+      case 'vine': roofSpots(W.n || 46, (x, y) => { const Lh = drop(140, 600), sd = Math.round(rnd() * 5), base = Lh < 300 ? 240 : 480, [k, b] = SH.vine(base, c2, W.leaf || 0x3e5a2e, sd % 3); M.Shape(k, b, V(x, y, H), R(0, rr(0, 360), 0), 0xffffff, V(1, 1, Lh / base)); /* two lengths, stretched to fit */ if (rnd() < 0.4) Glow(V(x, y, H - Lh - 12), V(24, 24, 24), gl, 2); }); break;
+      case 'cloth': roofSpots(W.n || 12, (x, y) => { const Lh = drop(200, 420), a = rnd() < 0.5, col = rnd() < 0.5 ? c1 : c2, [k, b] = SH.banner(220, Lh, col, col === c1 ? c2 : c1, { tip: 72 }); M.Shape(k, b, V(x, y, H - 10), R(0, a ? 0 : 90, 0)); }); break;
       case 'star': roofSpots(W.n || 70, (x, y) => Glow(V(x, y, H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? gl : 0xffffff, 2)); break;
       default:
     }
     switch (W.corner) {
       case 'crates': corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 6), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, sz / 2), V(sz + 4, 14, sz - 28), 0x2a2420, false, false); } Box(V(x - 50, y - 20, 120 + 45), V(90, 90, 90), 0x5a4630, false, false, 20); });break;
       case 'rubble': corners((x, y) => { M.Solid(V(x, y, 90), V(380, 380, 180), true); for (let q = 0; q < 9; q++) { const s = rr(110, 240), a = q * 0.7, r = rr(0, 170); Box(V(x + Math.cos(a) * r, y + Math.sin(a) * r, s * 0.32 + (q > 5 ? 60 : 0)), V(s, s * 0.8, s * 0.64), q % 3 ? c2 : T.wall, false, false, q * 31); } });break;
-      case 'barrels': corners((x, y) => { for (const [dx, dy] of [[-90, -40], [60, -70], [10, 80]]) { Cyl(V(x + dx, y + dy, 55), 80, 110, 0x5a3e26, true, true); Cyl(V(x + dx, y + dy, 55), 88, 70, 0x5a3e26, false, false); for (const e of [-1, 1]) Cyl(V(x + dx, y + dy, 55 + e * 34), 92, 8, 0x2a2420, false, false); Cyl(V(x + dx, y + dy, 111), 70, 3, 0x2a2420, false, false); } });break;
+      case 'barrels': corners((x, y) => { for (const [dx, dy] of [[-90, -40], [60, -70], [10, 80]]) { M.Solid(V(x + dx, y + dy, 55), V(82, 82, 110), true); const [k, b] = SH.barrel(0x5a3e26, 0x2a2420); M.Shape(k, b, V(x + dx, y + dy, 0), R(0, dx * 3, 0)); } }); break;
       default:
     }
   };

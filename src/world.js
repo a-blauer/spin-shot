@@ -75,8 +75,21 @@ const COLGEOS = [
   ringGeo(0.1),
 ];
 export const PRIM = { GEOS };
+// Sculpted shapes (draped cloth, trees, cushions, barrels): built once in UE coordinates by build() -> { pos, col, idx }
+// (col: linear-free sRGB floats per vertex, the way every other colour here is authored), cached by key, and drawn like
+// any other primitive: one instanced batch per shape. They never collide; a prop that has a body adds its own.
+const SHAPES = new Map();
+export function shapeId(key, build) {
+  let id = SHAPES.get(key); if (id !== undefined) return id;
+  const { pos, col, idx } = build(), v = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length; i += 3) { v[i] = pos[i]; v[i + 1] = pos[i + 2]; v[i + 2] = pos[i + 1]; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(v, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); g.userData.shape = key;
+  id = GEOS.push(g) - 1; SHAPES.set(key, id); return id;
+}
 
 export class World {
+  static PRIM_GEOS = GEOS;
   constructor(scene, game) {
     this.scene = scene;
     this.game = game;
@@ -141,6 +154,8 @@ export class World {
   Pyramid(center, size, color, rot = null, collide = false) { this.AddInstance(6, center, size, rot || R(0, 0, 0), color, collide, false, false); }
   Oct(center, size, color, collide = true, nav = true, rot = null) { this.AddInstance(7, center, size, rot || R(0, 0, 0), color, collide, false, nav); }
   Ring(center, size, color, rot = null) { this.AddInstance(8, center, size, rot || R(0, 0, 0), color, false, false, false); }
+  // a sculpted shape (see shapeId) at `center`, turned by rot, scaled by s (a number or a UVec), tinted by color
+  Shape(key, build, center, rot = null, color = 0xffffff, s = 1, glow = false) { this.AddInstance(shapeId(key, build), center, typeof s === 'number' ? V(s, s, s) : s, rot || R(0, 0, 0), color, false, glow, false); }
   // local-frame helper: position from an object's base, yaw and a local offset
   L(base, yaw, x, y, z) { return base.add(R(0, yaw, 0).RotateVector(V(x, y, z))); }
   // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
@@ -706,7 +721,7 @@ export class World {
     const M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp',
       'Barrel', 'Crate', 'Cactus', 'PalmTree', 'DeadTree', 'Car', 'Wagon', 'Headstone', 'Boxcar', 'Mesa', 'JumpPad', 'Billboard', 'Station',
-      'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Mausoleum', 'Fountain', 'GasPump', 'BoxYaw']) {
+      'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'Mausoleum', 'Fountain', 'GasPump', 'BoxYaw']) {
       const f = this[k].bind(this);
       M[k] = (...args) => { const loc = args.find((x) => x && x.X !== undefined); if (loc && !['Box', 'AddInstance', 'Cyl', 'Ball', 'Glow', 'BoxRot', 'ConeShape', 'Blocker', 'Foliage', 'SurfaceDecal', 'Floor', 'Wall', 'Ramp'].includes(k)) this.debugLog.push({ k, x: loc.X, y: loc.Y, z: loc.Z, a: args.filter((x) => typeof x === 'string' || typeof x === 'number').slice(0, 3) }); return f(...args); };
     }
@@ -739,7 +754,7 @@ export class World {
   buildMap(MAP) {
     const GM = this.game, M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
-      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
+      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
     M.RotFromXY = RotFromXY; M.world = this; M.at = this.at.bind(this);
     // the map sees the game through a window that puts its nav boxes through the same transform as its geometry
     M.GM = new Proxy(GM, { get: (g, k) => (k === 'NavBlockBox' ? (b, d) => g.NavBlockBox(this.Tbox(b), d) : typeof g[k] === 'function' ? g[k].bind(g) : g[k]), set: (g, k, v) => { g[k] = v; return true; } });
@@ -807,7 +822,7 @@ export class World {
     // instanced render batches
     for (const [key, list] of this.inst) {
       const [meshId, glow, chunk] = key.split('|').map(Number);
-      const mesh = new THREE.InstancedMesh(GEOS[meshId], toonMaterial({ glow: glow ? 1.1 : 0 }), list.length);
+      const sh = !!GEOS[meshId].userData.shape, mesh = new THREE.InstancedMesh(GEOS[meshId], toonMaterial({ glow: glow ? 1.1 : 0, double: sh, vcol: sh }), list.length);
       list.forEach((it, i) => { mesh.setMatrixAt(i, it.m); mesh.setColorAt(i, it.c); });
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

@@ -1,6 +1,7 @@
 // Rooms 9 to 16 of the Descent: a clock's insides, a drowned library, a chapel of ash, a cold store, an orchard of
 // graves, a circus ring, a pump hall and a cave of crystal. Built to the rules at the top of descent_rooms.js.
 import { V, V2, R } from './mapkit.js';
+import * as SH from './descent_shapes.js';
 
 const TH = (name, floor, floor2, wall, trim, glow, lamp, fog, sh, title) => ({ name, title, floor, floor2, wall, trim, glow, lamp, fog, sh });
 const mk = (theme, dims, wall, fn) => ({ theme, dims, wall, build: (K, Q, P) => fn({ ...K, ...K.M, ...Q, P }) });
@@ -153,12 +154,16 @@ export const ROOMS_A = [
   // ------------------------------------------------------------------------------------------------ THE BIG TOP
   // The ring is one step up and thirty paces across, with the king pole in the middle; banked seats look down on it
   // from two sides, and the beasts' wagons and the props stand in the wings.
-  mk(TH('The Big Top', 0x2a1e1a, 0x3a2a22, 0x4a2422, 0xd8b04a, 0xffd86a, [1, 0.85, 0.5], 0x2a1612, [0.66, 0.5, 0.44]), [4600, 4600, 1700], { panel: 'banner', hang: 'cloth', corner: 'crates', c1: 0xd8b04a, c2: 0xa8281e, n: 14 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, ConeShape, slabs, tile, plat, solid, deco, hit, tall, L, crate, barrel, AX, AY, P }) => {
+  mk(TH('The Big Top', 0x2a1e1a, 0x3a2a22, 0x4a2422, 0xd8b04a, 0xffd86a, [1, 0.85, 0.5], 0x2a1612, [0.66, 0.5, 0.44]), [4600, 4600, 1700], { panel: 'banner', hang: 'none', corner: 'crates', c1: 0xd8b04a, c2: 0xa8281e, n: 14 },
+    ({ M, hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, ConeShape, slabs, tile, plat, solid, deco, hit, tall, L, crate, barrel, AX, AY, P }) => {
       const red = 0xa8281e, cream = 0xe8dcc0, gold = 0xd8b04a, saw = 0xa8925a, wood = 0x5a3e26;
       slabs(520, T.floor, T.floor2, 0x1a1210);
       Oct(V(0, 0, 22), V(2600, 2600, 44), red, true, false); Oct(V(0, 0, 23), V(2440, 2440, 44), saw, false, false); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283 + 0.39; Glow(V(Math.cos(a) * 1240, Math.sin(a) * 1240, 46), V(180, 24, 3), gold, 0, R(0, a * 57.3 + 90, 0)); }
       P.column(0, 0, 130, cream, gold, 'round'); for (let z = 150; z < H - 100; z += 300) Cyl(V(0, 0, z), 136, 60, red, false, false); L(0, 0, 700, T.lamp, 3000, 3);
+      // the canvas: striped from the king pole out to the eaves, and pennants strung from the pole to the four quarter poles
+      { const [k, b] = SH.canopy(90, 4300, 560, red, cream, 24); M.Shape(k, b, V(0, 0, H - 30), R(0, 7.5, 0)); }
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const [k, b] = SH.bunting([sx * 1700, sy * 1700, 0], 150, [red, gold, cream, 0x2a6a8a]); M.Shape(k, b, V(sx * 50, sy * 50, 1060), R(0, 0, 0)); }
+      for (const [ax, ay, bx, by] of [[1, 1, 1, -1], [1, -1, -1, -1], [-1, -1, -1, 1], [-1, 1, 1, 1]]) { const [k, b] = SH.bunting([(bx - ax) * 1750, (by - ay) * 1750, 0], 180, [gold, red, 0x2a6a8a, cream]); M.Shape(k, b, V(ax * 1750, ay * 1750, 980), R(0, 0, 0)); }
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { P.column(sx * 1750, sy * 1750, 90, cream, gold, 'round'); for (let z = 200; z < H - 100; z += 400) Cyl(V(sx * 1750, sy * 1750, z), 96, 50, red, false, false); }
       // banked seats: four tiers, on the two sides away from the doors
       for (const s of [-1, 1]) { plat(s * 3350, 0, 500, 2600, 160, wood, 0x3a2c20); for (let y = -1100; y <= 1100; y += 440) P.bench(s * 3400, y, false, 360, 0x6a4e30, 160); }

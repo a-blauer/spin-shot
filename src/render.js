@@ -28,8 +28,9 @@ const FOG = /* glsl */`
 `;
 
 // ------------------------------------------------------------------ toon (geometry)
-export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false } = {}) {
+export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false, double = false, vcol = false } = {}) {
   return new THREE.ShaderMaterial({
+    side: double ? THREE.DoubleSide : THREE.FrontSide, vertexColors: vcol,
     uniforms: {
       sunDir: G.sunDir, litTint: G.litTint, shadowTint: G.shadowTint, fogColor: G.fogColor, fogParams: G.fogParams,
       uColor: { value: hex(color) }, uGlow: { value: glow },
@@ -41,7 +42,9 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false } =
         vec3 n = normal;
         #ifdef USE_INSTANCING
           p = instanceMatrix * p;
-          n = mat3(instanceMatrix) * n;
+          // a stretched instance (a squashed ball, an oval column) keeps true normals: rotate, then divide by scale squared
+          mat3 im = mat3(instanceMatrix);
+          n = im * (n / vec3(dot(im[0], im[0]), dot(im[1], im[1]), dot(im[2], im[2])));
         #endif
         vec4 w = modelMatrix * p;
         vW = w.xyz;
@@ -68,6 +71,7 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false } =
       void main() {
         vec3 col = uColor * vCol;
         vec3 n = normalize(vN);
+        if (!gl_FrontFacing) n = -n;   // two-sided cloth, and sculpted shapes lit the same whichever way they are wound
         float ndl = dot(n, sunDir);
         float band = smoothstep(-0.03, 0.07, ndl);
         vec3 c = mix(col * shadowTint.rgb, col * litTint.rgb, band);

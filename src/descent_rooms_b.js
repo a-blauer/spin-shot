@@ -1,6 +1,7 @@
 // Rooms 17 to 24 of the Descent: a mushroom wood, a sewer crossing, a powder store, a bank vault, an opera house,
 // a cell block, a glasshouse and an observatory. Built to the rules at the top of descent_rooms.js.
 import { V, V2, R } from './mapkit.js';
+import * as SH from './descent_shapes.js';
 
 const TH = (name, floor, floor2, wall, trim, glow, lamp, fog, sh, title) => ({ name, title, floor, floor2, wall, trim, glow, lamp, fog, sh });
 const mk = (theme, dims, wall, fn) => ({ theme, dims, wall, build: (K, Q, P) => fn({ ...K, ...K.M, ...Q, P }) });
@@ -108,14 +109,14 @@ export const ROOMS_B = [
   // You fight across the stalls toward a stage. The stage is a platform at the middle with its proscenium over it, the
   // stalls slope away in rows either side, and the orchestra's chairs and stands are scattered below the footlights.
   mk(TH('Opera House', 0x2a1a1e, 0x3a2228, 0x4a2a30, 0xd8b04a, 0xffc86a, [1, 0.8, 0.5], 0x26141a, [0.66, 0.48, 0.5]), [4200, 5200, 1700], { panel: 'banner', hang: 'lamp', corner: 'crates', c1: 0xd8b04a, c2: 0x7a1c22, n: 5 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
+    ({ M, hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
       const red = 0x8a1c22, gold = 0xd8b04a, board = 0x6a4a2a, velvet = 0x5a1418;
       slabs(480, T.floor, T.floor2, 0x180e10, (x) => Math.abs(x) < 280);
       P.rug(0, 0, 520, hy * 2 - 900, red, gold);
       // the stage, across the room, with wings left open at each side
       plat(0, 0, 4200, 1300, 120, board, 0x3a2a1a, [[-1200, 0], [1200, 0]]);
-      for (const sx of [-1, 1]) { P.column(sx * 2300, 0, 300, 0xe8dcc0, gold, 'square'); deco(sx * 2300, 0, 300, 320, 320, 30, gold); for (const sy of [-1, 1]) { deco(sx * 2000, sy * 560, 120 + 900, 14, 40, H - 1020, velvet); Box(V(sx * 1750, sy * 560, 120 + 500 + (H - 620) / 2), V(500, 30, H - 620), red, false, false); } }
-      for (const sy of [-1, 1]) { Box(V(0, sy * 560, H - 260), V(4200, 40, 520), red, false, false); Box(V(0, sy * 560, H - 540), V(4200, 50, 40), gold, false, false); for (let x = -1900; x <= 1900; x += 380) Glow(V(x, sy * 700, 120 + 16), V(60, 30, 26), 0xfff0c0, 0); }
+      for (const sx of [-1, 1]) { P.column(sx * 2300, 0, 300, 0xe8dcc0, gold, 'square'); deco(sx * 2300, 0, 300, 320, 320, 30, gold); for (const sy of [-1, 1]) { deco(sx * 2000, sy * 560, 120 + 900, 14, 40, H - 1020, velvet); { const [k, b] = SH.curtain(520, H - 20 - 124, red, sx, 0.6); M.Shape(k, b, V(sx * 1750, sy * 560, H - 20), R(0, sy > 0 ? 0 : 180, 0)); } } }
+      for (const sy of [-1, 1]) { { const [k, b] = SH.valance(4200, 420, red, gold); M.Shape(k, b, V(0, sy * 560, H - 20), R(0, sy > 0 ? 0 : 180, 0)); } for (let x = -1900; x <= 1900; x += 380) Glow(V(x, sy * 700, 120 + 16), V(60, 30, 26), 0xfff0c0, 0); }
       // on the stage: a painted flat, a prop throne, the prompter's box
       solid(-900, 0, 120, 700, 40, 520, 0x3a5a6a, false); deco(-900, 0, 120, 720, 60, 30, board); for (let q = -2; q <= 2; q++) Box(V(-900 + q * 130, 0, 120 + 420), V(100, 46, 160 + (q * q % 3) * 40), 0x2a4a3a, false, false); tall(-900, 0, 500);
       P.throne(700, 0, 1, red, gold, 120); L(0, 0, 900, T.lamp, 3000, 3);

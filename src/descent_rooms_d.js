@@ -1,6 +1,7 @@
 // Rooms 33 to 40 of the Descent: a spiders' den, a scrapyard, a stable, a hall of statues, a cistern, a tomb under
 // the sand, a distillery and a toymaker's workshop. Built to the rules at the top of descent_rooms.js.
 import { V, V2, R } from './mapkit.js';
+import * as SH from './descent_shapes.js';
 
 const TH = (name, floor, floor2, wall, trim, glow, lamp, fog, sh, title) => ({ name, title, floor, floor2, wall, trim, glow, lamp, fog, sh });
 const mk = (theme, dims, wall, fn) => ({ theme, dims, wall, build: (K, Q, P) => fn({ ...K, ...K.M, ...Q, P }) });
@@ -10,7 +11,7 @@ export const ROOMS_D = [
   // Something spun this room shut. Web hangs in sheets between leaning posts and makes walls you can see through;
   // cocoons hang from the roof and lie in heaps, and the nest is a mound in the middle with eggs in it.
   mk(TH('Webbed Den', 0x1c1a1e, 0x28242a, 0x2e2a30, 0x6a6470, 0xe0d8ff, [0.85, 0.82, 1], 0x18161c, [0.54, 0.52, 0.6]), [4600, 4600, 1300], { panel: 'none', hang: 'vine', corner: 'rubble', c1: 0xc8c4d0, c2: 0xa8a4b0, glow: 0xe0d8ff, n: 40, rail: false },
-    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, platOct, tile, solid, deco, hit, tall, L, rr, P }) => {
+    ({ M, hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, platOct, tile, solid, deco, hit, tall, L, rr, P }) => {
       const silk = 0xd8d4e0, grey = 0xa8a4b0, wood = 0x3a2c24, egg = 0xe8e0c8;
       for (let i = 0; i < 80; i++) { const x = ((i * 859) % (hx * 2 - 300)) - hx + 150, y = ((i * 523) % (hy * 2 - 300)) - hy + 150, w = 200 + (i % 5) * 90; Oct(V(x, y, 1.2 + (i % 3) * 0.5), V(w * 2, w * 1.5, 2), i % 3 ? T.floor2 : 0x141216, false, false); }
       // the nest
@@ -19,9 +20,7 @@ export const ROOMS_D = [
       // a sheet of web between two posts: you cannot walk through it, and it does not stop the eye
       const web = (x, y, len, along) => {
         for (const e of [-1, 1]) { const px = x + (along ? e * len / 2 : 0), py = y + (along ? 0 : e * len / 2); BoxRot(V(px, py, 300), V(50, 50, 620), wood, R(along ? 0 : e * 5, 0, along ? e * 5 : 0), false); hit(px, py, 0, 70, 70, 560, true); }
-        for (const z of [90, 210, 330, 450]) Box(V(x, y, z), along ? V(len, 6, 8) : V(6, len, 8), silk, false, false);
-        for (let p = -len / 2 + 60; p < len / 2; p += 110) Box(V(x + (along ? p : 0), y + (along ? 0 : p), 280), along ? V(6, 6, 440) : V(6, 6, 440), silk, false, false);
-        for (const e of [-1, 1]) BoxRot(V(x + (along ? e * len / 4 : 0), y + (along ? 0 : e * len / 4), 280), along ? V(len / 2, 5, 6) : V(5, len / 2, 6), silk, along ? R(0, 0, e * 40) : R(e * 40, 0, 0), false);
+        { const [k, b] = SH.webSheet(len - 50, 50, 560, silk); M.Shape(k, b, V(x, y, 0), R(0, along ? 0 : 90, 0)); }
         hit(x, y, 0, along ? len - 60 : 30, along ? 30 : len - 60, 480, true);
       };
       for (const s of [-1, 1]) { web(s * 1900, s * 800, 1300, false); web(s * 800, -s * 1900, 1300, true); web(s * 2900, -s * 2200, 1100, true); web(-s * 2200, -s * 2900, 1100, false); web(s * 3500, s * 2600, 900, false); web(s * 900, s * 3300, 900, true); }

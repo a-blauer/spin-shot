@@ -512,6 +512,25 @@ window.__faceSheet = (list, cols = 6, cw = 260, ch = 260) => {
   lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.85);
 };
+// test hook: where sculpted shapes stand. prefix: the start of the shape key ('banner', 'tree'). -> [{ key, chunk, p: [x, y, z] }]
+window.__shapeSpots = (prefix) => {
+  const out = [], G = game.world.constructor.PRIM_GEOS;
+  for (const [key, list] of game.world.inst) { const [id, , ch] = key.split('|').map(Number), sk = G[id].userData.shape; if (!sk || !sk.startsWith(prefix)) continue; for (const it of list) { const v = new THREE.Vector3().setFromMatrixPosition(it.m); out.push({ key: sk, chunk: ch, p: [Math.round(v.x), Math.round(v.y), Math.round(v.z)] }); } }
+  return out;
+};
+// test hook: views of the world. list: [{ chunk, at: [x, y, z], look: [x, y, z], fov, label }] (three.js coordinates)
+window.__worldSheet = (list, cols = 2, cw = 640, ch = 400) => {
+  const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
+  const g = out.getContext('2d'); ensureLock(); lockR.setSize(cw, ch, false);
+  list.forEach((Q, i) => {
+    if (Q.chunk !== undefined && game.world.showChunk) game.world.showChunk(Q.chunk);
+    const cam = new THREE.PerspectiveCamera(Q.fov || 50, cw / ch, 5, 40000); cam.position.set(...Q.at); cam.lookAt(...Q.look);
+    lockR.render(game.scene, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch);
+    g.fillStyle = '#ffcd5a'; g.font = '15px sans-serif'; g.fillText(Q.label || '', (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
+  });
+  lockR.setSize(LW, LH, false);
+  return out.toDataURL('image/jpeg', 0.86);
+};
 // test hook: a sheet of guns as the workbench shows them, with parts fitted. list: [{ def, cores, yaw, pitch, label }]
 window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
