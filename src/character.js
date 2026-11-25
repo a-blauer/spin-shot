@@ -60,6 +60,56 @@ function shell(p, c, key, nu, nv, F) {
   }
   const g = geo.get(key), m = new THREE.Mesh(g, matV(c)); p.add(m); return g.userData.front;
 }
+// Soft cloth swept up a smooth spine: a hat's crown or a jester's horn. Round in section (a little narrower front to back),
+// closed round at the tip, open at the base (the brim or the head covers it). Colour is painted per vertex, with a pair of
+// rings at every colour edge so stripes and dipped tips are clean, and the cloth creases on the inside of every bend.
+function clothTube(p, key, spine, radAt, colAt, edges = []) {
+  if (!geo.has(key)) {
+    const curve = new THREE.CatmullRomCurve3(spine.map((q) => new THREE.Vector3(q[0], q[1], q[2])), false, 'centripetal'), L = curve.getLength(), S = 30;
+    const ss = []; for (let i = 0; i <= 80; i++) ss.push(i / 80); for (const e of edges) if (e > 0.01 && e < 0.99) ss.push(e - 0.0006, e + 0.0006); ss.sort((a, b) => a - b);
+    const F = ss.map((s) => ({ s, P: curve.getPointAt(s), T: curve.getTangentAt(s) }));
+    let N = new THREE.Vector3(1, 0, 0);
+    for (const f of F) { N = N.clone().addScaledVector(f.T, -N.dot(f.T)).normalize(); f.N = N; f.B = new THREE.Vector3().crossVectors(f.T, N); }
+    F.forEach((f, i) => { const a = F[Math.max(0, i - 2)], b = F[Math.min(F.length - 1, i + 2)]; f.K = new THREE.Vector3().subVectors(b.T, a.T).divideScalar(Math.max(1e-3, (b.s - a.s) * L)); });
+    const tipS = Math.min(0.3, (radAt(1) * 1.2) / L), pos = [], col = [], idx = [], C = new THREE.Color(), d = new THREE.Vector3();
+    for (const f of F) {
+      const e = f.s > 1 - tipS ? Math.sqrt(Math.max(0, 1 - ((f.s - 1 + tipS) / tipS) ** 2)) : 1, r = radAt(f.s) * e, k = f.K.length(), kn = k > 1e-4 ? f.K.clone().divideScalar(k) : null;
+      for (let j = 0; j < S; j++) {
+        const ph = (j / S) * Math.PI * 2, c = Math.cos(ph), sn = Math.sin(ph); d.copy(f.N).multiplyScalar(c).addScaledVector(f.B, sn);
+        const crease = Math.pow(kn ? Math.max(0, d.dot(kn)) : 0, 1.5) * Math.min(1, k * 22) * Math.pow(0.5 + 0.5 * Math.cos((f.s * L * Math.PI * 2) / 13 + 1), 2), rr = r * (1 - 0.09 * crease + 0.014 * Math.sin(4 * ph + f.s * 6));   // a few soft folds where it bends
+        pos.push(f.P.x + (f.N.x * c + f.B.x * sn * 0.92) * rr, f.P.y + (f.N.y * c + f.B.y * sn * 0.92) * rr, f.P.z + (f.N.z * c + f.B.z * sn * 0.92) * rr);
+        C.set(colAt(f.s)).multiplyScalar(1 - 0.28 * crease); col.push(C.r, C.g, C.b);
+      }
+    }
+    for (let i = 0; i < F.length - 1; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = a + S, dd = b + S; idx.push(a, b, c2, b, dd, c2); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+    // wind it to face out: check one face low on the crown against the way out from the spine
+    { const m = 6 * S, A = new THREE.Vector3().fromArray(pos, m * 3), Bv = new THREE.Vector3().fromArray(pos, (m + 1) * 3), Cv = new THREE.Vector3().fromArray(pos, (m + S) * 3);
+      if (new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A)).dot(new THREE.Vector3().subVectors(A, F[6].P)) < 0) for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } g.setIndex(idx); }
+    g.computeVertexNormals(); g.userData.F = F; g.userData.L = L; geo.set(key, g);
+  }
+  const g = geo.get(key), F = g.userData.F, L = g.userData.L; p.add(new THREE.Mesh(g, matV(0xffffff)));
+  // a point on the cloth at s up it, on the side facing `dir`, and the way out there: for things sewn or pinned onto it
+  const surf = (s, dir) => { let f = F[0]; for (const q of F) if (Math.abs(q.s - s) < Math.abs(f.s - s)) f = q; const ph = Math.atan2(f.B.dot(dir), f.N.dot(dir)), c = Math.cos(ph), sn = Math.sin(ph), r = radAt(f.s);
+    const o = f.N.clone().multiplyScalar(c).addScaledVector(f.B, sn * 0.92); const slope = (radAt(Math.min(1, f.s + 0.01)) - radAt(Math.max(0, f.s - 0.01))) / (0.02 * L);   // the crown narrows as it rises, so the cloth faces a little upward
+    return { p: f.P.clone().addScaledVector(o, r), n: f.N.clone().multiplyScalar(c).addScaledVector(f.B, sn / 0.92).normalize().addScaledVector(f.T, -slope).normalize() }; };
+  return { p: F[F.length - 1].P.clone(), surf };
+}
+// A ring of cloth turned round the hat's axis from a profile [[r, y], ...]: brims, cuffs, a beanie. closed: the profile is a
+// loop (a cuff with thickness); mod(t, ph) nudges [r, y] at each point (waves in a brim, knit ribs), colAt(t, ph) colours it.
+function clothRing(p, key, P, closed, colAt, mod = () => [0, 0]) {
+  if (!geo.has(key)) {
+    const S = 48, n = P.length, pos = [], col = [], idx = [], C = new THREE.Color();
+    for (let i = 0; i < n; i++) for (let j = 0; j < S; j++) { const ph = (j / S) * Math.PI * 2, t = i / (closed ? n : n - 1), [dr, dy] = mod(t, ph, i), r = P[i][0] + dr; pos.push(Math.sin(ph) * r, P[i][1] + dy, Math.cos(ph) * r * 0.92); C.set(colAt(t, ph, i)); col.push(C.r, C.g, C.b); }
+    for (let i = 0; i < (closed ? n : n - 1); i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = ((i + 1) % n) * S + j, d = ((i + 1) % n) * S + ((j + 1) % S); idx.push(a, b, c2, b, d, c2); }
+    // face out: the outermost ring's faces should point away from the axis
+    let im = 0; for (let i = 0; i < n; i++) if (P[i][0] > P[im][0]) im = i;
+    { const ia = closed ? im : Math.min(im, n - 2), a = ia * S, A = new THREE.Vector3().fromArray(pos, a * 3), Bv = new THREE.Vector3().fromArray(pos, (a + 1) * 3), Cv = new THREE.Vector3().fromArray(pos, (((ia + 1) % n) * S) * 3);
+      if (new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A)).dot(new THREE.Vector3(A.x, 0, A.z)) < 0) for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); geo.set(key, g);
+  }
+  p.add(new THREE.Mesh(geo.get(key), matV(0xffffff)));
+}
 // a profile [[t, value], ...] read at t, smoothly
 function prof(P, t) { t = Math.max(P[0][0], Math.min(P[P.length - 1][0], t)); for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const f = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0] || 1), k = f * f * (3 - 2 * f); return P[i - 1][1] + (P[i][1] - P[i - 1][1]) * k; } return P[P.length - 1][1]; }
 const sstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -416,37 +466,46 @@ export function buildCharacter(look) {
   const HA = HCI.c !== undefined ? HCI.c : H.a, HB = H.b, hat = R.hat = grp(head, 0, 21, 0);
   const hh = 1 + 0.4 * SV.hatH, flop = 1 + SV.hatF, brimW = 6 + 7 * (SV.brim + 1);
   const colOf = (i, n) => (HP === 'stripes' ? (i % 2 ? HB : HA) : HP === 'dip' && i >= n - 2 ? HB : HA);
-  // a soft cone built up a spine that leans as it rises: p0 is where it stands, bend(i) how much each length of it tips
-  const cone = (h, n, r0, r1, bend, p0 = [0, 0, 0], col = colOf) => {
-    const p = new THREE.Vector3(p0[0], p0[1], p0[2]), q = new THREE.Quaternion(), up = new THREE.Vector3(), L = h / n;
-    for (let i = 0; i < n; i++) {
-      const ra = r0 + (r1 - r0) * (i / n), rb = r0 + (r1 - r0) * ((i + 1) / n), b = bend(i);
-      q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(b[0], 0, b[1]))); up.set(0, 1, 0).applyQuaternion(q);
-      const m = new THREE.Mesh(taper(Math.round(((0.5 * rb) / ra) * 40) / 40, 0.5), mat(col(i, n))); m.scale.set(ra * 2, L * 1.14, ra * 1.84); m.position.copy(p).addScaledVector(up, L / 2); m.quaternion.copy(q); hat.add(m);
-      if (i) { const k = new THREE.Mesh(G.ball, mat(col(i, n))); k.scale.set(ra * 2, ra * 1.2, ra * 1.84); k.position.copy(p); k.quaternion.copy(q); hat.add(k); }
-      p.addScaledVector(up, L);
-    }
-    return { p, q };
+  // A soft crown swept up a spine that leans as it rises: p0 is where it stands, bend(i) how much each of n lengths of it
+  // tips. One smooth piece of cloth (clothTube), coloured per length so stripes and dipped tips keep their old layout.
+  const banded = HP === 'band' && ['gnome', 'straight', 'curl', 'stocking', 'wizard', 'halo'].includes(H.id);
+  const cone = (h, n, r0, r1, bend, p0 = [0, 0, 0], col = colOf, band = banded) => {
+    const p = new THREE.Vector3(p0[0], p0[1], p0[2]), q = new THREE.Quaternion(), up = new THREE.Vector3(), L = h / n, pts = [p.toArray()];
+    for (let i = 0; i < n; i++) { const b = bend(i); q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(b[0], 0, b[1]))); up.set(0, 1, 0).applyQuaternion(q); p.addScaledVector(up, L); pts.push(p.toArray()); }
+    const bs = [4.5 / h, 11.5 / h], inBand = (s) => band && s > bs[0] && s < bs[1];
+    const radAt = (s) => (r0 + (r1 - r0) * s) * (inBand(s) ? 1.035 : 1), colAt = (s) => (inBand(s) ? HB : col(Math.min(n - 1, Math.floor(s * n)), n));
+    const edges = []; for (let i = 1; i < n; i++) edges.push(i / n); if (band) edges.push(...bs);
+    const key = 'hat' + JSON.stringify([pts.map((v) => v.map((x) => Math.round(x * 10))), r0, r1, n, Array.from({ length: n }, (_, i) => col(i, n)), band && HB]);
+    const T = clothTube(hat, key, pts, radAt, colAt, edges);
+    if (band) { const B = T.surf(8 / h, new THREE.Vector3(0, 0, 1)), m = add(hat, G.box, 0xc9a43a, 8, 6, 2, B.p.x, B.p.y, B.p.z); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), B.n); }   // the buckle on the band
+    return T;
   };
-  const brim = (r0, e = brimW) => { add(hat, taper(Math.round(((0.5 * r0) / (r0 + e)) * 40) / 40, 0.5), HA, (r0 + e) * 2, 8, (r0 + e) * 1.84, 0, 0.5, 0); add(hat, G.tor, shade(HA, 0.86), (r0 + e) * 2, (r0 + e) * 1.84, 14, 0, -3, 0).rotation.x = PI / 2; };
-  const scatter = (h, r0, r1) => {   // spots, stars and patches on the lower hat
-    if (!['spots', 'stars', 'patches'].includes(HP)) return;
-    for (let k = 0; k < 11; k++) { const a = k * 2.4 + 0.4, y = 9 + ((k * 7) % 5) * h * 0.085, r = r0 + (r1 - r0) * (y / h) + 0.3, x = Math.sin(a) * r, z = Math.cos(a) * r * 0.92;
-      if (HP === 'spots') add(hat, G.ball, HB, 7, 7, 3, x, y, z).rotation.y = a;
-      else if (HP === 'stars') { const g = grp(hat, x, y, z); g.rotation.y = a; for (let j = 0; j < 5; j++) add(g, G.cone, 0xffcd5a, 2.6, 4.4, 1.2, Math.sin(j * 1.2566) * 2.4, Math.cos(j * 1.2566) * 2.4, 0.4).rotation.z = -j * 1.2566; }
-      else { const m = add(hat, G.box, k % 2 ? HB : shade(HA, 0.72), 9, 8, 1.6, x, y, z); m.rotation.y = a; m.rotation.z = (k % 3 - 1) * 0.3; } }
+  // a felt brim turned round the base, its edge rolled and gently waved
+  const brim = (r0, e = brimW) => { const R = r0, E = e;
+    clothRing(hat, 'brim' + [R, E, HA].join('/'), [[R - 3, 4.6], [R - 3, -1.6], [R + 0.6, -2.8], [R + E * 0.55, -2.4], [R + E - 0.6, -1.4], [R + E + 0.8, 0.2], [R + E + 0.4, 1.8], [R + E - 1, 2.2], [R + E * 0.5, 1.6], [R + 0.4, 2.8]], true,
+      (t, ph, i) => shade(HA, i >= 4 && i <= 6 ? 0.92 : 1), (t, ph, i) => [0, (i >= 3 && i <= 7 ? 1 : i >= 2 && i <= 8 ? 0.5 : 0) * 1.1 * Math.sin(5 * ph + 1)]); };
+  // spots, stars and patches sewn onto the lower crown, each laid flat on the cloth where it sits
+  const scatter = (T, sMax) => {
+    if (!['spots', 'stars', 'patches'].includes(HP) || !T.surf) return;
+    for (let k = 0; k < 11; k++) { const a = k * 2.4 + 0.4, S = T.surf(0.1 + (((k * 7) % 5) / 4) * (sMax - 0.1), new THREE.Vector3(Math.sin(a), 0, Math.cos(a))), g = grp(hat, S.p.x, S.p.y, S.p.z); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), S.n);   // laid flat on the cloth
+      if (HP === 'spots') add(g, G.cyl, HB, 7.4, 0.8, 7.4, 0, 0, 0).rotation.x = PI / 2;   // a flat disc (a squashed ball would shade like a bead)
+      else if (HP === 'stars') for (let j = 0; j < 5; j++) add(g, G.cone, 0xffcd5a, 2.6, 4.4, 1.2, Math.sin(j * 1.2566) * 2.4, Math.cos(j * 1.2566) * 2.4, 0.5).rotation.z = -j * 1.2566;
+      else { const m = rbox(g, k % 2 ? HB : shade(HA, 0.72), 7.4, 6.6, 1.4, 0, 0, -0.1, 0.6); m.rotation.z = (k % 3 - 1) * 0.3; } }
   };
   let tipAt = null;
   const R0 = 25.5;
-  if (HP === 'band' && !['mushroom', 'acorn', 'pot'].includes(H.id) && ['gnome', 'straight', 'curl', 'stocking', 'wizard', 'halo'].includes(H.id)) { add(hat, G.cyl, HB, R0 * 2 + 1.6, 7, (R0 * 2 + 1.6) * 0.92, 0, 8, 0); add(hat, G.box, 0xc9a43a, 8, 6, 2, 0, 8, R0 * 0.92 + 0.8); }
   switch (H.id) {
-    case 'gnome': brim(R0); for (const s of [-1, 1]) add(hat, G.cone, HA, 11, 17, 8, s * (R0 + brimW + 3), -1, 0).rotation.z = -s * 1.95; tipAt = cone(78 * hh, 7, R0, 2.4, (i) => [-0.03 * flop * i, 0.085 * flop * i]); scatter(78 * hh, R0, 2.4); break;
-    case 'halo': brim(R0); tipAt = cone(70 * hh, 6, R0, 2.4, (i) => [-0.03 * flop * i, 0.06 * flop * i]); scatter(70 * hh, R0, 2.4); { const m = add(hat, G.tor, HB, 40, 40, 26, tipAt.p.x, tipAt.p.y + 10, tipAt.p.z, 1.6); m.rotation.x = PI / 2; } break;
-    case 'straight': brim(R0, brimW * 0.6); tipAt = cone(84 * hh, 4, R0, 1.6, () => [0, 0]); scatter(84 * hh, R0, 1.6); break;
-    case 'curl': brim(R0, brimW * 0.7); tipAt = cone(74 * hh, 8, R0, 2.6, (i) => (i < 3 ? [0, 0] : [0.52 * flop, 0])); scatter(74 * hh * 0.5, R0, 14); break;
-    case 'stocking': add(hat, G.cyl, HB, R0 * 2 + 3, 9, (R0 * 2 + 3) * 0.92, 0, 3, 0); tipAt = cone(112 * hh, 9, R0, 3, (i) => (i < 1 ? [0, 0] : [-0.04, 0.34 * flop])); scatter(40, R0, 19); break;
-    case 'wizard': add(hat, G.cyl, HA, (R0 + 14 + brimW) * 2, 3, (R0 + 14 + brimW) * 1.84, 0, 1.5, 0); add(hat, G.tor, shade(HA, 0.86), (R0 + 14 + brimW) * 2, (R0 + 14 + brimW) * 1.84, 8, 0, 1.5, 0).rotation.x = PI / 2; tipAt = cone(76 * hh, 6, R0 - 1.5, 2.2, (i) => (i === 3 ? [-0.5 * flop, 0.2] : i > 3 ? [-0.12 * flop, 0.05] : [0, 0])); scatter(76 * hh, R0 - 1.5, 2.2); break;
-    case 'jester': add(hat, G.dome, HB, 53, 30, 49, 0, 0, 0); add(hat, G.cyl, HA, 54, 6, 50, 0, 3, 0); for (const s of [-1, 1]) { const t = cone(54 * hh, 6, 14, 2, (i) => [0, -s * (i === 0 ? 0.6 : 0.24 * flop)], [s * 8, 6, 0], () => (s > 0 ? HA : HB)); add(hat, G.ball, 0xffcd5a, 8, 8, 8, t.p.x, t.p.y, t.p.z); add(hat, G.ball, 0x3a2a22, 2.4, 2.4, 2.4, t.p.x, t.p.y - 3.4, t.p.z + 1.4); } break;
+    case 'gnome': brim(R0); tipAt = cone(78 * hh, 7, R0, 2.4, (i) => [-0.03 * flop * i, 0.085 * flop * i]); scatter(tipAt, 0.42); break;
+    case 'halo': brim(R0); tipAt = cone(70 * hh, 6, R0, 2.4, (i) => [-0.03 * flop * i, 0.06 * flop * i]); scatter(tipAt, 0.42); { const m = add(hat, G.tor, HB, 40, 40, 26, tipAt.p.x, tipAt.p.y + 10, tipAt.p.z, 1.6); m.rotation.x = PI / 2; } break;
+    case 'straight': brim(R0, brimW * 0.6); tipAt = cone(84 * hh, 4, R0, 1.6, () => [0, 0]); scatter(tipAt, 0.38); break;
+    case 'curl': brim(R0, brimW * 0.7); tipAt = cone(74 * hh, 8, R0, 2.6, (i) => (i < 3 ? [0, 0] : [0.52 * flop, 0])); scatter(tipAt, 0.25); break;
+    case 'stocking': tipAt = cone(112 * hh, 9, R0, 3, (i) => (i < 1 ? [0, 0] : [-0.04, 0.34 * Math.min(flop, 1.25 - 0.15 * SV.hatH)]), [0, 0, 0], colOf, false);   // however floppy, the tip hangs beside the head, never down over the face scatter(tipAt, 0.28);   // a ribbed knit cuff turned up round it
+      clothRing(hat, 'cuff' + HB, [[R0 - 2, 9], [R0 - 2, -1.4], [R0 + 1.6, -1.8], [R0 + 3.2, 0.6], [R0 + 3.6, 4], [R0 + 3.2, 7.6], [R0 + 1.4, 9.4]], true, (t, ph) => shade(HB, 0.84 + 0.16 * Math.cos(30 * ph)), (t, ph, i) => [i >= 2 && i <= 5 ? 0.45 * Math.cos(30 * ph) : 0, 0]); break;
+    case 'wizard': { const W = R0 + 14 + brimW;   // a wide soft brim that droops and waves toward its edge
+      clothRing(hat, 'wbrim' + [W, HA].join('/'), [[R0 - 4, 4], [R0 - 4, 0], [R0 + 2, -0.6], [W * 0.75, -1.2], [W - 0.6, -1.6], [W + 0.6, -0.4], [W - 0.2, 0.9], [W * 0.75, 0.6], [R0 + 2, 2.2]], true, (t, ph, i) => shade(HA, i >= 4 && i <= 6 ? 0.9 : 1),
+        (t, ph, i) => { const k = i >= 3 && i <= 7 ? (i === 3 || i === 7 ? 0.55 : 1) : 0; return [0, -k * (2.6 + 1.8 * Math.sin(3 * ph + 0.6))]; });
+      tipAt = cone(76 * hh, 6, R0 - 1.5, 2.2, (i) => (i === 3 ? [-0.5 * flop, 0.2] : i > 3 ? [-0.12 * flop, 0.05] : [0, 0])); scatter(tipAt, 0.4); break; }
+    case 'jester': add(hat, G.dome, HB, 53, 30, 49, 0, 0, 0); add(hat, G.cyl, HA, 54, 6, 50, 0, 3, 0); for (const s of [-1, 1]) { const t = cone(54 * hh, 6, 14, 2, (i) => [0, -s * (i === 0 ? 0.6 : 0.24 * flop)], [s * 8, 6, 0], () => (s > 0 ? HA : HB), false); add(hat, G.ball, 0xffcd5a, 8, 8, 8, t.p.x, t.p.y, t.p.z); add(hat, G.ball, 0x3a2a22, 2.4, 2.4, 2.4, t.p.x, t.p.y - 3.4, t.p.z + 1.4); } break;
     case 'mushroom': add(hat, G.dome, HA, 84, 50 * hh, 78, 0, 1, 0); add(hat, G.cyl, 0xf2e8d5, 82, 3.4, 76, 0, 1, 0); add(hat, G.tor, HA, 84, 78, 12, 0, 2, 0).rotation.x = PI / 2; for (let k = 0; k < 9; k++) { const a = k * 2.4, e = 0.35 + (k % 3) * 0.26; add(hat, G.ball, HB, 13 - (k % 3) * 2, 5, 13 - (k % 3) * 2, Math.sin(a) * 41 * Math.cos(e), 1 + 25 * hh * Math.sin(e) * 0.99, Math.cos(a) * 38 * Math.cos(e)); } break;
     case 'acorn': add(hat, G.dome, HA, 58, 44 * hh, 54, 0, 0, 0); add(hat, G.cyl, shade(HA, 0.8), 60, 5, 56, 0, 2.5, 0); for (let k = 1; k < 4; k++) { const e = k * 0.36, m = add(hat, G.tor, HB, 58 * Math.cos(e), 54 * Math.cos(e), 16, 0, 22 * hh * Math.sin(e), 0); m.rotation.x = PI / 2; } { const st = add(hat, G.cyl, HB, 5, 10, 5, 2, 22 * hh + 3, 0); st.rotation.z = -0.3; add(hat, G.ball, 0x4f8a3a, 14, 2.4, 8, 9, 22 * hh + 6, 0).rotation.z = 0.3; } break;
     case 'pot': add(hat, G.cyl, HA, 56, 34 * hh, 52, 0, 17 * hh, 0); add(hat, G.tor, HB, 57, 53, 16, 0, 1.5, 0).rotation.x = PI / 2; add(hat, G.cyl, shade(HA, 0.8), 57, 2.4, 53, 0, 34 * hh, 0); for (const s of [-1, 1]) add(hat, G.tor, HB, 15, 12, 30, s * 30, 22 * hh, 0); add(hat, G.ball, shade(HA, 0.7), 9, 7, 3, 14, 20 * hh, 24.6); break;
@@ -463,7 +522,10 @@ export function buildCharacter(look) {
       break; }
     case 'cap': add(hat, G.dome, HA, 54, 38, 49, 0, 0, 0); add(hat, G.cyl, shade(HA, 0.8), 54.6, 3, 49.6, 0, 1.5, 0); { const b = add(hat, G.cyl, HA, 42, 2.4, 34, 0, 1.6, 26); b.rotation.x = 0.1; } add(hat, G.dome, HB, 30, 28, 49.6, 0, 1, 0.6); add(hat, G.ball, HB, 5, 3, 5, 0, 19, 0); break;
     case 'bowler': add(hat, G.cyl, HA, 70, 3, 62, 0, 2, 0); add(hat, G.tor, HA, 69, 61, 16, 0, 2.6, 0).rotation.x = Math.PI / 2; add(hat, G.dome, HA, 52, 50, 47, 0, 3, 0); add(hat, G.cyl, HB, 53, 5, 48, 0, 6, 0); add(hat, G.box, shade(HB, 0.7), 2, 6, 6, 26.6, 6, 0); break;
-    case 'beanie': add(hat, G.dome, HA, 54.5, 48, 49, 0, 5, 0); add(hat, G.cyl, shade(HA, 0.75), 56, 9, 50.5, 0, 4.5, 0); for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; add(hat, G.box, shade(HA, 0.62), 1.4, 9.2, 1.4, Math.sin(a) * 28, 4.5, Math.cos(a) * 25.2); } add(hat, G.ball, HB, 13, 13, 13, 0, 31, 0); break;
+    case 'beanie':   // knitted: a soft crown ribbed all the way up, and a deeper-ribbed cuff folded up round the bottom
+      clothRing(hat, 'beanie' + HA, [[26.8, -1], [27.6, 10], [27.4, 14], [26.4, 19], [23.6, 24], [18.6, 28], [11.4, 30.6], [4, 31.6], [0, 31.8]], false, (t, ph, i) => shade(HA, 0.86 + 0.14 * Math.cos(36 * ph)), (t, ph, i) => [i < 7 ? 0.3 * Math.cos(36 * ph) : 0, 0]);
+      clothRing(hat, 'bcuff' + HA, [[26.4, 11], [26.4, -1.6], [28.4, -2], [29.4, 1], [29.6, 5], [29.2, 9], [28, 11.4]], true, (t, ph) => shade(HA, 0.72 + 0.2 * Math.cos(28 * ph)), (t, ph, i) => [i >= 2 && i <= 5 ? 0.55 * Math.cos(28 * ph) : 0, 0]);
+      add(hat, G.ball, HB, 14, 13, 14, 0, 34.6, 0); break;
     case 'tophat': add(hat, G.cyl, HA, 72, 4, 64, 0, 2, 0); add(hat, taper(0.52, 0.46), HA, 48, 50, 44, 0, 28, 0); add(hat, G.cyl, HB, 46, 8, 42, 0, 9, 0); break;
     case 'sombrero': add(hat, G.cyl, HA, 120, 5, 110, 0, 2, 0); add(hat, G.tor, HB, 118, 108, 30, 0, 5, 0).rotation.x = Math.PI / 2; add(hat, G.cone, HA, 46, 42, 42, 0, 24, 0); add(hat, G.cyl, HB, 44, 6, 40, 0, 7, 0); break;
     case 'miner': add(hat, G.dome, HA, 57, 46, 52, 0, 1, 0); add(hat, G.cyl, HA, 66, 3.4, 60, 0, 2, 0); add(hat, G.box, shade(HA, 0.8), 6, 3, 50, 0, 22.6, 0); add(hat, G.cyl, 0x3a3a40, 16, 8, 16, 0, 12, 25).rotation.x = Math.PI / 2; add(hat, G.cyl, HB, 12, 3, 12, 0, 12, 30, 1.8).rotation.x = Math.PI / 2; break;
