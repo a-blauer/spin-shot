@@ -505,7 +505,7 @@ window.__faceSheet = (list, cols = 6, cw = 260, ch = 260) => {
   list.forEach((Q, i) => {
     const look = Object.assign({}, Meta.look(), Q.look || {}); look.shape = Object.assign({}, DEFAULT_SHAPE, (Q.look || {}).shape);
     const c3 = buildCharacter(look); c3.rotation.y = Q.yaw || 0; animateCharacter(c3, 0, 0, { preview: true }); if (Q.noArms) { const R = c3.userData.rig; R.armL.visible = R.armR.visible = false; if (R.gun) R.gun.visible = false; } sc.add(c3);
-    const hy = (c3.userData.rig.headY || 130) + 6 + (Q.dy || 0), cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(0, hy + (Q.up || 0), Q.dist || 300); cam.lookAt(0, hy, 0);
+    const hy = (c3.userData.rig.headY || 130) + 6 + (Q.dy || 0), cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(Q.dx || 0, hy + (Q.up || 0), Q.dist || 300); cam.lookAt(Q.dx || 0, hy, 0);
     lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(c3);
     g.fillStyle = '#ffcd5a'; g.font = '15px sans-serif'; g.fillText(Q.label || '', (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
   });

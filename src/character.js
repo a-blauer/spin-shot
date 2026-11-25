@@ -452,20 +452,70 @@ export function buildCharacter(look) {
     add(sl, G.cyl, O.c, 18.5, 6, 18.5, 0, -40, 0);                              // cuff
     const bare = GL.id === 'bare', hc = bare ? (st === 'hazmat' || st === 'bones' ? O.b : tone) : GL.a, big = GL.style === 'big' ? 1.3 : 1, hk = Math.pow(ARMW, -0.5) * (1 - 0.06 * FM);
     const hand = grp(wr, 0, -50, 0); hand.scale.set(big * hk, big, big * hk);     // a thick arm does not mean a hand to match
-    rbox(hand, hc, 10, 14, 17, 0, 1, 0, 3.6);                                                                  // palm
-    for (let k = 0; k < 4; k++) { const f = rbox(hand, shade(hc, k % 2 ? 0.92 : 1), 9, 9, 3.8, 0, -8.5, -6.3 + k * 4.2, 1.6); f.rotation.z = s * 0.25; f.position.x = s * -1.2; }   // four fingers, curled in a little
-    { const t = rbox(hand, hc, 5, 9, 5, s * -5, 0, 9.5, 2); t.rotation.x = 0.5; }                              // thumb
-    if (!bare) { add(sl, G.cyl, GL.b, 20, 5, 20, 0, -42, 0); if (GL.style === 'long') add(sl, taper(0.5, 0.46), GL.a, 21.5, 16, 21.5, 0, -32, 0); if (GL.style === 'wrap') for (let i = 0; i < 3; i++) rbox(wr, GL.b, Math.round(11 * hk + 1), 2.2, Math.round(18 * hk + 1), 0, -46 - i * 3.6, 0, 1); }
+    // the hand: hangs down (y), palm facing in toward the body (-s across x), width front to back (z). A sculpted palm,
+    // four fingers curled in toward the palm and a thumb across the front: a loose fist, which also holds a gun.
+    const HKY = [GL.id, hc, s].join(':'), IN = -s;
+    if (GL.style === 'big') {   // a boxing glove: one padded mitt curled into a fist, a thumb lobe, laces and a white cuff
+      sweepAB(hand, 'mitt' + HKY, [[0, 8, 0], [0, -2, 0], [IN * 2.4, -10, 0], [IN * 6.6, -11.4, 0]], (t) => [cprof([[0, 5.4], [0.4, 7.4], [0.8, 7], [1, 5]], t), cprof([[0, 8.4], [0.4, 10.4], [0.8, 10], [1, 7.4]], t)], () => hc, -1e9, 1.2);
+      sweepAB(hand, 'mth' + HKY, [[IN * 3, 2, 5], [IN * 5.4, -3, 9.4], [IN * 5.4, -6.4, 9.4]], (t) => [cprof([[0, 3.6], [1, 3]], t), cprof([[0, 3.4], [1, 2.8]], t)], () => hc, -1e9, 1.2);
+      for (let k = 0; k < 3; k++) add(hand, G.box, GL.b, 1.2, 1.2, 8, s * 5.4, 4 - k * 2.6, 0).rotation.x = (k % 2 ? 0.3 : -0.3);
+    } else {
+      const sk = (k) => shade(hc, k);
+      sweepAB(hand, 'palm' + HKY, [[0, 8, 0], [0, 1, 0], [IN * 0.6, -6, 0]], (t) => [cprof([[0, 4.2], [0.5, 5], [1, 4.4]], t), cprof([[0, 6.6], [0.5, 8.6], [1, 8.4]], t)], () => hc, -1e9, 0.7);
+      for (let k = 0; k < 4; k++) { const z = -6 + k * 4, len = k === 0 || k === 3 ? 0.86 : 1;   // knuckle, down, curled under toward the palm
+        sweepAB(hand, 'fg' + k + HKY, [[s * 0.6, -4.6, z], [s * 0.8, -9.6 * len, z], [IN * 2.6, -12.6 * len, z * 0.96], [IN * 5, -10.8 * len, z * 0.94]], (t) => [cprof([[0, 2.3], [1, 2]], t), cprof([[0, 2.1], [1, 1.9]], t)], () => sk(k % 2 ? 0.94 : 1), -1e9, 1); }
+      sweepAB(hand, 'th' + HKY, [[IN * 2, 3, 5.4], [IN * 4.6, -1.6, 8.6], [IN * 5, -6.4, 9.2]], (t) => [cprof([[0, 3], [1, 2.3]], t), cprof([[0, 2.8], [1, 2.2]], t)], () => hc, -1e9, 1);
+    }
+    if (!bare) {
+      // the glove's cuff, flaring a little over the sleeve's cuff; a gauntlet runs up the forearm
+      clothTube(sl, 'gc' + GL.id + GL.b, [[0, -40.4, 0], [0, -44.4, 0]], (t) => 10 + 0.9 * t, () => GL.b, [], (t, ph) => 1 + 0.015 * Math.cos(ph * 6), false);
+      if (GL.style === 'long') { clothTube(sl, 'gl' + GL.id, [[0, -22, 0], [0, -40.6, 0]], (t) => cprof([[0, 11.6], [0.15, 11], [1, 10.2]], t), (t) => (t < 0.12 ? GL.b : GL.a), [0.12], (t, ph) => 1 - 0.03 * Math.exp(-(((t - 0.5) / 0.1) ** 2)) * (0.5 + 0.5 * Math.cos(ph * 4)), false); }
+      if (GL.style === 'wrap') { for (let i = 0; i < 3; i++) { const m = add(wr, G.cyl, GL.b, Math.round(10.6 * hk + 1), 2.2, Math.round(17.6 * hk + 1), 0, -46 - i * 3.6, 0); m.rotation.z = (i - 1) * 0.12; }   // wrapped round the wrist
+        for (const y of [-1, -4.4]) add(hand, G.cyl, GL.b, 10.6, 2, 18, 0, y, 0).rotation.x = 0.1; }   // and across the knuckles
+    }
     // shoulder piece (left shoulder for single items)
+    // shoulder pieces are moulded over the round of the shoulder (a ball 25 x 23 x 25), tilted out to cover its outside
+    const capG = () => { const g = grp(arm, s * 1.2, 0.4, 0); g.rotation.z = -s * 0.5; g.updateMatrix(); return g; };
+    const RX = (lift) => (12.6 + lift) / 0.92, RY = (lift) => 11.6 + lift;
+    const capP = (lift, e0) => { const P = []; for (let k = 0; k <= 12; k++) { const e = e0 + (k / 12) * (Math.PI / 2 - e0); P.push([k === 12 ? 0 : RX(lift) * Math.cos(e), RY(lift) * Math.sin(e)]); } return P; };
+    const capAt = (lift, e, ph) => { const p = new THREE.Vector3(RX(lift) * Math.cos(e) * Math.sin(ph), RY(lift) * Math.sin(e), RX(lift) * 0.92 * Math.cos(e) * Math.cos(ph)); return [p, new THREE.Vector3(p.x / RX(lift) ** 2, p.y / RY(lift) ** 2, p.z / (RX(lift) * 0.92) ** 2).normalize()]; };
+    const rim = (g, c, lift, e0, th = 3) => { const m = add(g, G.tor, c, RX(lift) * Math.cos(e0) * 2, RX(lift) * Math.cos(e0) * 2 * 0.92, th / 0.09 * 0.5, 0, RY(lift) * Math.sin(e0), 0); m.rotation.x = Math.PI / 2; return m; };
     switch (SH.id) {
-      case 'patch': add(arm, G.ball, SH.a, 28, 14, 28, 0, 8, 0); add(arm, G.cyl, SH.b, 29, 2, 29, 0, 4, 0); break;
-      case 'epaulette': add(arm, G.cyl, SH.a, 30, 4, 30, 0, 11, 0); for (let i = 0; i < 5; i++) add(arm, G.box, SH.a, 2, 9, 2, s * 13, 5, -10 + i * 5); add(arm, G.ball, SH.b, 8, 5, 8, 0, 14, 0); break;
-      case 'pauldron': if (s < 0) { add(arm, G.ball, SH.a, 36, 26, 34, -2, 8, 0); add(arm, G.ball, SH.b, 38, 6, 36, -2, 2, 0); add(arm, G.ball, SH.b, 6, 6, 6, -2, 20, 0); } break;
-      case 'spikes': add(arm, G.ball, SH.a, 30, 16, 30, 0, 9, 0); for (const z of [-8, 0, 8]) add(arm, G.cone, SH.b, 7, 16, 7, s * 6, 20, z).rotation.z = -s * 0.5; break;
-      case 'crow': case 'parrot': if (s < 0) { const b = grp(arm, -2, 16, 0); add(b, G.ball, SH.a, 14, 18, 16, 0, 8, 0); add(b, G.ball, SH.a, 11, 11, 11, 0, 20, 3); add(b, G.cone, SH.b, 5, 9, 5, 0, 19, 10).rotation.x = Math.PI / 2; add(b, G.box, SH.id === 'parrot' ? SH.b : SH.a, 6, 5, 18, 0, 4, -10); add(b, G.ball, 0x140d12, 2.5, 2.5, 2.5, -4, 22, 7); add(b, G.ball, 0x140d12, 2.5, 2.5, 2.5, 4, 22, 7); R.bird = b; } break;
-      case 'fur': add(arm, G.ball, SH.a, 36, 22, 36, 0, 8, 0); add(arm, G.ball, SH.b, 22, 12, 30, s * 6, 14, 0); break;
-      case 'roll': if (s < 0) { add(arm, G.cyl, SH.a, 20, 44, 20, 8, 14, 0).rotation.x = Math.PI / 2; for (const z of [-14, 14]) add(arm, G.cyl, SH.b, 21, 4, 21, 8, 14, z).rotation.x = Math.PI / 2; } break;
-      case 'lantern': if (s < 0) { add(arm, G.box, SH.a, 3, 14, 3, -4, 16, 0); add(arm, G.cyl, SH.a, 12, 3, 12, -4, 30, 0); add(arm, G.cyl, SH.b, 10, 12, 10, -4, 23, 0, 1.6); } break;
+      case 'patch': { const g = capG(); clothRing(g, 'shp' + SH.a, capP(1, -0.35), false, (t, ph) => shade(SH.a, 1 - 0.05 * Math.cos(ph * 7))); rim(g, SH.b, 1, -0.35, 1.6); break; }   // a moulded leather pad, stitched round its edge
+      case 'epaulette': { const g = capG();   // a stiff board lying on the shoulder, gold fringe hanging from its outer edge
+        clothRing(g, 'epa' + SH.a, [[0, 14.6], [12.6, 14.2], [15.6, 13], [16, 11.6], [14.4, 10.8], [0, 11.2]], true, () => SH.a);
+        add(g, G.cyl, SH.b, 7, 2, 7, 0, 15, 0); add(g, G.ball, shade(SH.b, 0.8), 3.6, 3.6, 3.6, 0, 16.2, 0);
+        for (let i = 0; i < 11; i++) { const a = -Math.PI / 2 + (i / 10) * Math.PI, p = new THREE.Vector3(s * Math.cos(a) * 15.4, 11.2, Math.sin(a) * 14.6).applyMatrix4(g.matrix);
+          add(arm, taper(0.5, 0.4), SH.a, 2, 8.4, 2, p.x, p.y - 4.4, p.z); add(arm, G.ball, SH.a, 2.6, 2.6, 2.6, p.x, p.y - 8.8, p.z); }
+        break; }
+      case 'pauldron': if (s < 0) { const g = capG();   // a steel plate over the shoulder and down its outside: a ridge over the top, a rolled edge, rivets
+        clothRing(g, 'pd' + SH.a, capP(2.6, -0.6), false, () => SH.a); rim(g, shade(SH.a, 0.85), 2.6, -0.6, 2.6);
+        { const r = add(g, G.tor, shade(SH.a, 0.9), RX(2.8) * 2, RY(2.8) * 2, 22, 0, 0, 0); r.rotation.y = Math.PI / 2; }
+        for (let k = 0; k < 8; k++) { const [p] = capAt(2.7, -0.42, (k / 8) * Math.PI * 2); add(g, G.ball, SH.b, 2.4, 2.4, 2.4, p.x, p.y, p.z); }
+        add(g, G.ball, SH.b, 4.4, 4.4, 4.4, 0, RY(2.6) + 0.6, 0); } break;
+      case 'spikes': { const g = capG(); clothRing(g, 'shs' + SH.a, capP(1.2, -0.3), false, () => SH.a); rim(g, shade(SH.a, 0.75), 1.2, -0.3, 1.8);   // a leather pad, spikes set in collars along its crown
+        for (const ph of [-0.7, 0, 0.7]) { const [p, n] = capAt(1.2, 0.95, Math.PI / 2 + ph * 1.4 - Math.PI / 2), h = grp(g, p.x, p.y, p.z); h.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); add(h, G.cone, SH.b, 6, 12, 6, 0, 5.6, 0); add(h, G.cyl, shade(SH.a, 0.65), 7.6, 1.6, 7.6, 0, 0, 0); }
+        break; }
+      case 'crow': case 'parrot': if (s < 0) {   // perched on the left shoulder, facing forward: an egg of a body, folded wings, a fanned tail, a head and a beak
+        const b = grp(arm, -2, 12, 0), wing = SH.id === 'parrot' ? SH.b : shade(SH.a, 0.85), BK = SH.id + SH.a + SH.b;
+        sweepAB(b, 'bdb' + BK, [[0, 13.6, 4.4], [0, 8.6, 1.6], [0, 4, -3.4], [0, 2.4, -7]], (t) => [cprof([[0, 5.4], [0.4, 6.6], [1, 3.4]], t), cprof([[0, 5.8], [0.4, 7.4], [1, 3.6]], t)], () => SH.a, -1e9, 1);
+        for (const sg of [-1, 1]) sweepAB(b, 'bdw' + sg + BK, [[sg * 5.6, 12, 2.6], [sg * 6.4, 7.4, -1.6], [sg * 5, 3.4, -8.4]], (t) => [cprof([[0, 1.5], [1, 0.8]], t), cprof([[0, 4.6], [0.5, 4.4], [1, 1.6]], t)], () => wing, -1e9, 0.6);
+        sweepAB(b, 'bdt' + BK, [[0, 3.4, -6], [0, 1.4, -11], [0, 0, -16]], (t) => [cprof([[0, 2.4], [1, 4.4]], t), 0.8], () => wing, -1e9, 0.6);
+        add(b, G.ball, SH.a, 10.4, 10.4, 10.4, 0, 18.4, 4.2);
+        sweepAB(b, 'bdk' + BK, [[0, 18.6, 8.4], [0, 18, 11.6], [0, 16.2, 13.6]], (t) => [cprof([[0, 2.2], [1, 0.6]], t), cprof([[0, 2.6], [1, 0.6]], t)], () => (SH.id === 'parrot' ? 0x2a2430 : SH.b), -1e9, 0.4);
+        for (const sg of [-1, 1]) { add(b, G.ball, 0x140d12, 2.2, 2.2, 2.2, sg * 4.4, 19.6, 6.6); add(b, G.cyl, 0x3a2a22, 1.4, 4, 1.4, sg * 2.4, 0.4, 1.4); }
+        R.bird = b; } break;
+      case 'fur': { const g = capG();   // a shaggy mantle over the shoulder, tufted round the hem, a pale ruff along its edge
+        clothRing(g, 'fur' + SH.a, capP(3.2, -0.45), false, (t, ph) => shade(SH.a, 0.9 + 0.1 * Math.cos(ph * 13 + t * 9)), (t, ph, i) => [(i < 4 ? 1.3 : 0.6) * Math.cos(ph * 13 + i), i === 0 ? -1.8 * (0.5 + 0.5 * Math.cos(ph * 13)) : 0]);
+        const E = -0.45, r = RX(3.4) * Math.cos(E), y = RY(3.4) * Math.sin(E);
+        clothRing(g, 'furr' + SH.b, [[r - 1.6, y + 1], [r + 1, y], [r + 2.2, y + 2.4], [r + 0.6, y + 4], [r - 1.4, y + 3]], true, (t, ph) => shade(SH.b, 0.88 + 0.12 * Math.cos(ph * 17)), (t, ph) => [0.9 * Math.cos(ph * 17), 0.6 * Math.sin(ph * 11)]); break; }
+      case 'roll': if (s < 0) { add(arm, G.cyl, SH.a, 20, 44, 20, 8, 14, 0).rotation.x = Math.PI / 2;   // a blanket rolled tight, the spiral showing at each end, two straps
+        for (const z of [-22.1, 22.1]) for (const r of [6.4, 13]) { const m = add(arm, G.tor, shade(SH.a, 0.72), r, r, 6, 8, 14, z); void m; }
+        for (const z of [-14, 14]) { const m = add(arm, G.tor, SH.b, 21.6, 21.6, 22, 8, 14, z); void m; } } break;
+      case 'lantern': if (s < 0) { const g = grp(arm, -4, 8, -2);   // a lantern on a short post: base, frame, glowing glass, a cap and a bail
+        add(g, G.cyl, SH.a, 10, 2, 10, 0, 1, 0); add(g, G.cyl, SH.a, 2.4, 6, 2.4, 0, 5, 0); add(g, G.cyl, SH.a, 11, 2, 11, 0, 9, 0);
+        add(g, G.cyl, SH.b, 8, 9, 8, 0, 14.4, 0, 1.6); for (let k = 0; k < 4; k++) { const a = (k + 0.5) * Math.PI / 2; add(g, G.box, SH.a, 1.2, 10, 1.2, Math.sin(a) * 4.6, 14.4, Math.cos(a) * 4.6); }
+        add(g, taper(0.22, 0.5), SH.a, 11.6, 4.4, 11.6, 0, 21.2, 0); add(g, G.cyl, SH.a, 3, 1.6, 3, 0, 24, 0); { const m = add(g, G.tor, SH.a, 12, 12, 10, 0, 25.4, 0); void m; } } break;
       default: break;
     }
   }
