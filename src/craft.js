@@ -16,14 +16,15 @@ const CSS = `
 #craft .cw { position:absolute; inset:3vh 3vw; display:grid; grid-template-rows:auto 1fr auto; gap:1.4vh; }
 #craft .ch { display:flex; align-items:baseline; gap:18px; border-bottom:2px solid rgba(255,205,90,0.35); padding-bottom:6px; }
 #craft .ch h1 { margin:0; font:400 44px "Big Shoulders Display"; letter-spacing:2px; color:#ffcd5a; }
-#craft .ch .sub { font-size:19px; color:#b9ad98; flex:1; }
+#craft .ch .sub { font-size:18px; color:#a99e8b; flex:1; line-height:1.3; }
+#craft kbd { font:700 14px "Barlow Condensed"; letter-spacing:.5px; color:#140d12; background:#e9dfc8; padding:1px 6px; border-radius:4px; box-shadow:0 2px 0 #000; margin:0 2px; }
 #craft .ch .cash { font:400 30px "Big Shoulders Display"; color:#ffd23a; }
-#craft .ch button { font:400 22px "Big Shoulders Display"; letter-spacing:1px; background:#2a1a14; color:#f2e8d5; border:2px solid #ffcd5a; padding:6px 18px; cursor:pointer; }
-#craft .ch button:hover { background:#ffcd5a; color:#1a0f0c; }
+#craft .ch button { font:400 22px "Big Shoulders Display"; letter-spacing:1px; background:#ffcd5a; color:#140d12; border:0; border-radius:6px; box-shadow:0 3px 0 #000; padding:7px 20px; cursor:pointer; align-self:center; }
+#craft .ch button:hover { filter:brightness(1.08); }
 #craft .cb { display:grid; grid-template-columns:minmax(250px,23vw) 1fr minmax(250px,23vw); gap:1.6vw; min-height:0; }
 #craft h2 { margin:0 0 8px; font:400 24px "Big Shoulders Display"; letter-spacing:1.5px; color:#ffcd5a; display:flex; justify-content:space-between; }
 #craft h2 i { font:600 17px "Barlow Condensed"; color:#b9ad98; font-style:normal; }
-#craft .col { background:rgba(0,0,0,0.32); border:1px solid rgba(255,205,90,0.22); padding:12px 12px; display:flex; flex-direction:column; min-height:0; }
+#craft .col { background:rgba(0,0,0,0.38); border:1px solid rgba(255,205,90,0.18); border-radius:8px; padding:12px 12px; display:flex; flex-direction:column; min-height:0; }
 #craft .list { overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:4px; }
 #craft .chip { display:grid; grid-template-columns:46px 1fr auto; gap:10px; align-items:center; background:linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.14);
   border-left:4px solid var(--c); padding:6px 8px; cursor:grab; transition:transform .08s, background .12s; }
@@ -37,10 +38,11 @@ const CSS = `
 #craft .empty { color:#9a8f7c; font-size:18px; line-height:1.3; padding:10px 4px; }
 #craft .mid { display:flex; flex-direction:column; min-height:0; }
 #craft .tabs { display:flex; gap:8px; }
-#craft .tab { flex:1; padding:7px 10px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.16); border-bottom:3px solid transparent; cursor:pointer; font:400 22px "Big Shoulders Display"; letter-spacing:1px; color:#b9ad98; text-align:center; }
+#craft .tab { flex:1; padding:7px 10px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12); border-radius:6px 6px 0 0; border-bottom:3px solid transparent; cursor:pointer; font:400 22px "Big Shoulders Display"; letter-spacing:1px; color:#b9ad98; text-align:center; }
+#craft .tab:hover:not(.on) { color:#e9dfc8; background:rgba(255,255,255,0.05); }
 #craft .tab.on { color:var(--c); border-bottom-color:var(--c); background:rgba(255,255,255,0.08); }
 #craft .tab small { display:block; font:600 14px "Barlow Condensed"; color:#9a8f7c; letter-spacing:0; }
-#craft .table { position:relative; flex:1; min-height:160px; margin-top:8px; border:1px solid rgba(255,205,90,0.22);
+#craft .table { position:relative; flex:1; min-height:160px; margin-top:8px; border:1px solid rgba(255,205,90,0.22); border-radius:6px;
   background:radial-gradient(ellipse at 50% 60%, rgba(255,190,110,0.20), rgba(0,0,0,0) 62%), linear-gradient(#1b120e, #2c1c13 58%, #4a3020 58%, #37241a); overflow:hidden; }
 #craft .table.over { border-color:#7dff8a; box-shadow:inset 0 0 60px rgba(125,255,138,0.25); }
 #craft .table canvas { position:absolute; inset:0; width:100%; height:100%; cursor:grab; }
@@ -61,7 +63,8 @@ const CSS = `
 #craft .evo { margin-top:10px; }
 #craft .evo .eb { height:10px; background:rgba(255,255,255,.1); border:1px solid rgba(255,140,255,.5); }
 #craft .evo .eb i { display:block; height:100%; background:#ff8cff; }
-#craft .evo .et { display:flex; justify-content:space-between; font-size:17px; color:#b9ad98; margin-top:4px; }
+#craft .evo .et { display:flex; gap:14px; align-items:baseline; font-size:17px; color:#b9ad98; margin-top:6px; line-height:1.25; }
+#craft .evo .et b { white-space:nowrap; flex:none; }
 #craft .evo .et b { font:400 21px "Big Shoulders Display"; letter-spacing:1px; color:#ff8cff; }
 #craft .asc { margin-top:8px; padding:8px 10px; border:1px solid rgba(255,140,255,.35); background:rgba(40,16,40,.45); font-size:16px; color:#b9ad98; line-height:1.2; }
 #craft .asc h4 { margin:0 0 4px; font:400 20px "Big Shoulders Display"; letter-spacing:1px; color:#ff8cff; }
@@ -74,7 +77,7 @@ const CSS = `
 #craft .asc .lk { opacity:.55; }
 #craft .asc .ar em { font-style:normal; color:#b9ad98; font-size:15px; margin-left:6px; }
 #craft .mid { overflow-y:auto; }
-#craft .rec { margin-top:8px; padding:7px 10px; flex:none; border:2px solid #9affc0; background:rgba(14,40,28,.55); }
+#craft .rec { margin-top:10px; padding:9px 12px; flex:none; border:1px solid rgba(154,255,192,.28); border-left:4px solid #9affc0; border-radius:6px; background:rgba(14,40,28,.35); }
 #craft .rec.over { background:rgba(40,90,60,.7); }
 #craft .rec.locked { border-color:rgba(255,255,255,.2); background:rgba(0,0,0,.25); }
 #craft .rec h3 { margin:0 0 6px; font:400 22px "Big Shoulders Display"; letter-spacing:1px; color:#9affc0; }
@@ -87,8 +90,8 @@ const CSS = `
 #craft .rec .hs svg { width:36px; height:36px; }
 #craft .rec .hop b { font:400 24px "Big Shoulders Display"; color:#9affc0; }
 #craft .rec .rb { display:flex; flex-wrap:wrap; gap:6px; }
-#craft .rec button { font:400 17px "Big Shoulders Display"; letter-spacing:1px; padding:5px 10px; background:#12281c; color:#9affc0; border:2px solid #9affc0; cursor:pointer; }
-#craft .rec button:hover:not(:disabled) { background:#9affc0; color:#0c1a12; }
+#craft .rec button { font:400 17px "Big Shoulders Display"; letter-spacing:1px; padding:5px 12px; background:#9affc0; color:#0c1a12; border:0; border-radius:4px; cursor:pointer; }
+#craft .rec button:hover:not(:disabled) { filter:brightness(1.1); }
 #craft .rec button:disabled { opacity:.35; cursor:default; }
 #craft .rec button.bn { color:#ff9a8a; border-color:#ff9a8a; background:#2a1412; }
 #craft .rec button.bn:hover:not(:disabled) { background:#ff9a8a; color:#1a0c0a; }
@@ -112,20 +115,21 @@ const CSS = `
 #craft .sig em { display:block; margin-top:5px; font-style:normal; font-weight:700; color:#7dff8a; }
 #craft .chip.suit { border-color:rgba(125,255,138,0.55); box-shadow:inset 3px 0 0 #7dff8a; }
 #craft .chip span u { text-decoration:none; font-weight:700; color:#7dff8a; }
-#craft .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-height:44px; background:rgba(0,0,0,0.32); border:1px solid rgba(255,205,90,0.22); padding:6px 12px; }
+#craft .cf { display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-height:44px; background:rgba(0,0,0,0.38); border:1px solid rgba(255,205,90,0.18); border-radius:8px; padding:6px 12px; }
 #craft .cf h3 { margin:0 8px 0 0; font:400 21px "Big Shoulders Display"; letter-spacing:1px; color:#ffcd5a; }
 #craft .pas { display:flex; align-items:center; gap:6px; padding:3px 9px 3px 4px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); font-size:16px; }
 #craft .pas .gly { width:28px; height:28px; font-size:12px; } #craft .pas b { color:var(--c); font-size:17px; } #craft .pas em { font:400 19px "Big Shoulders Display"; font-style:normal; }
-#craft .rec select { font:600 16px "Barlow Condensed"; background:#0c1a12; color:#e9dfc8; border:1px solid #9affc0; padding:4px; max-width:100%; flex:1; min-width:0; }
+#craft .rec select { font:600 16px "Barlow Condensed"; background:#0c1a12; color:#e9dfc8; border:1px solid rgba(154,255,192,.45); border-radius:4px; padding:5px 6px; max-width:100%; flex:1; min-width:0; }
 #craft .rec .scrap { font:400 24px "Big Shoulders Display"; color:#e9dfc8; margin-left:auto; }
-#craft .rec .drop { border:2px dashed rgba(154,255,192,.5); padding:8px; text-align:center; color:#b9ad98; font-size:15px; margin:4px 0 6px; }
+#craft .rec .drop { border:2px dashed rgba(154,255,192,.35); border-radius:6px; padding:8px; text-align:center; color:#d8cdb8; font-size:16px; margin:4px 0 8px; line-height:1.3; }
+#craft .rec .drop small { font-size:14px; color:#9a8f7c; }
 #craft .pas { cursor:pointer; position:relative; } #craft .pas.sel { outline:2px solid #ff8cff; background:rgba(255,140,255,.12); }
 #craft .pas button { font:400 15px "Big Shoulders Display"; padding:2px 6px; margin-left:4px; background:#2a1630; color:#ff8cff; border:1px solid #ff8cff; cursor:pointer; }
 #craft .pas button:disabled { opacity:.35; cursor:default; }
 #craft .ft { font:400 21px "Big Shoulders Display"; letter-spacing:1px; color:#ff8cff; margin-left:auto; display:flex; align-items:center; gap:8px; }
 #craft .ft button { font:400 17px "Big Shoulders Display"; padding:4px 10px; background:#2a1630; color:#ff8cff; border:2px solid #ff8cff; cursor:pointer; }
 #craft .ft button:disabled { opacity:.35; cursor:default; }
-#craft .press { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; border:2px solid #7fffe0; background:rgba(10,40,36,.45); padding:20px; }
+#craft .press { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; border:1px solid rgba(127,255,224,.28); border-radius:8px; background:radial-gradient(ellipse at 50% 40%, rgba(20,70,62,.45), rgba(0,0,0,.35) 70%); padding:20px; }
 #craft .press.over { background:rgba(20,80,70,.6); }
 #craft .press .dishes { display:flex; gap:26px; align-items:center; }
 #craft .press .dish { width:120px; height:120px; border:3px dashed rgba(127,255,224,.55); border-radius:50%; display:flex; align-items:center; justify-content:center; color:rgba(127,255,224,.6); font:400 40px "Big Shoulders Display"; }
@@ -135,8 +139,8 @@ const CSS = `
 #craft .press .res { min-height:120px; display:flex; gap:14px; align-items:center; max-width:560px; }
 #craft .press .res .dish { border-style:solid; }
 #craft .press .res b { display:block; font:400 30px "Big Shoulders Display"; color:var(--c); } #craft .press .res span { font-size:18px; color:#e6dcc8; }
-#craft .press button { font:400 30px "Big Shoulders Display"; letter-spacing:2px; padding:8px 34px; background:#0c2a26; color:#7fffe0; border:3px solid #7fffe0; cursor:pointer; }
-#craft .press button:hover:not(:disabled) { background:#7fffe0; color:#0a1a18; } #craft .press button:disabled { opacity:.35; cursor:default; }
+#craft .press button { font:400 30px "Big Shoulders Display"; letter-spacing:2px; padding:8px 40px; background:#7fffe0; color:#0a1a18; border:0; border-radius:6px; box-shadow:0 4px 0 #000; cursor:pointer; }
+#craft .press button:hover:not(:disabled) { filter:brightness(1.1); } #craft .press button:disabled { background:#1d3a36; color:#5e8f86; box-shadow:none; cursor:default; }
 #craft .press p { margin:0; font-size:17px; color:#b9ad98; text-align:center; max-width:560px; line-height:1.25; }
 #cghost { position:fixed; z-index:10; pointer-events:none; transform:translate(-50%,-50%) rotate(-6deg) scale(1.15); filter:drop-shadow(0 8px 14px rgba(0,0,0,0.7)); }
 #cghost .gly { width:60px; height:60px; display:flex; align-items:center; justify-content:center; font:400 24px "Big Shoulders Display"; color:#14100e; background:var(--c); clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
@@ -278,14 +282,14 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
       if (a === b) { if (A.pressed) why = 'A pressed part cannot be pressed again.'; else out = DATA.upgrades.findIndex((x) => x.pressed === A.name); }
       else { const F = fusionOf(A.name, B.name); if (F && fus) out = DATA.upgrades.findIndex((x) => x.name === F.name); else why = F ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : fus ? 'Two of the same part, or two different elements (Incendiary, Cryo Cell, Serrated, Arc Coil).' : 'Two of the same part.'; }
     }
-    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">Drag two of the same gun part onto the dishes (or click them) and press: out comes one part half as strong again.${fus ? ' Two different elemental parts fuse into one that carries both.' : ''} Click a dish to take its part back.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">Two of the same part press into one, half as strong again.${fus ? ' Two different elements fuse into one.' : ''} <kbd>Click</kbd> a part or a dish to move it.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>GUN PARTS <i>${inv.reduce((s2, u) => s2 + p.coreInv[u], 0)} carried</i></h2><div class="list">`;
     if (!inv.length) h += '<div class="empty">You are not carrying any gun parts.</div>';
     for (const u of inv) h += `<div class="chip" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}</span></div><em>x${p.coreInv[u]}</em></div>`;
     h += '</div></div><div class="mid"><div class="press" id="cpress"><div class="dishes">';
     for (let i = 0; i < 2; i++) h += press[i] !== undefined ? `<div class="dish f" data-d="${i}" style="--c:${U(press[i]).hex}" title="${esc(U(press[i]).name)}">${gly(press[i])}</div>` : '<div class="dish">+</div>';
     h += '</div><div class="eq">=</div><div class="res">';
-    h += out >= 0 ? `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>` : `<p>${press.length < 2 ? 'Two parts in.' : esc(why)}</p>`;
+    h += out >= 0 ? `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>` : `<p>${press.length < 2 ? (press.length ? 'One more part.' : 'Put two parts on the dishes.') : esc(why)}</p>`;
     h += `</div><button id="cpgo" ${out >= 0 ? '' : 'disabled'}>PRESS</button></div></div>`;
     h += '<div class="col"><h2>WHAT IT MAKES</h2><div style="overflow-y:auto;font-size:16px;color:#d8cdb8;line-height:1.3">';
     h += '<p><b style="color:#7fffe0">Two of a kind:</b> one pressed part, every number half again: two Incendiary (20%) make one at 30%. A count (pierce, bounce, projectiles) rounds up to 2. Fits in one slot.</p>';
@@ -302,7 +306,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (press.mode) { renderPress(); return; }
     const p = P(), S = sel(), G = guns(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0).sort((a, b) => a - b);
     const total = inv.reduce((s, u) => s + p.coreInv[u], 0);
-    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun or the blade to fit it, or off it to take it back. Four slots to start, and one more each time it evolves (a blade: each time it is honed). Hold Shift to move every copy at once.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub"><kbd>Drag</kbd> a part onto the gun to fit it, off to take it back. <kbd>Shift</kbd> moves every copy. Each evolve adds a slot.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>PARTS <i>${total} carried</i></h2><div class="list">`;
     if (!inv.length) h += `<div class="empty">You are not carrying any parts.<br><br>They drop from what you kill: the stranger the enemy, the better the part. Bosses always leave one.</div>`;
     const sg = onBlade ? null : sigOf(DATA.weapons[S.def]);
@@ -366,7 +370,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k, d = CORE_DEFS[k]; if (d.noDrop || Meta.upgradeLocked(d.name)) continue; const full = d.kind === 'me' && p.upgradeStacks[u] >= U(u).stacks; opts.push([coreTier(u), `<option value="${u}" ${p.makeCost(u) > sc || full ? 'disabled' : ''}>${['Common', 'Uncommon', 'Rare', 'Epic'][coreTier(u)]}  -  ${esc(d.name)}${d.kind === 'me' ? ' (on you)' : ''}  -  ${p.makeCost(u)} scrap</option>`]); }
     opts.sort((a, b) => a[0] - b[0]);
     let h = `<div class="rec" id="crec"><h3>THE RECYCLER<span class="scrap" style="float:right">${sc} scrap</span></h3>`;
-    h += `<div class="drop">Drag a part here to break it down. Common 1, Uncommon 2, Rare 4, Epic 8 scrap. Shift: every copy.</div>`;
+    h += `<div class="drop">Drop a part here to scrap it<br><small>Common 1 · Uncommon 2 · Rare 4 · Epic 8</small></div>`;
     h += `<div class="rb"><select id="rmk">${opts.map((o) => o[1]).join('')}</select><button id="rmake">MAKE</button></div><div class="out">${recOut}</div></div>`;
     return h;
   }

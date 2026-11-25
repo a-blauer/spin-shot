@@ -277,7 +277,13 @@ function showClaim(list) {
   claimEl.querySelectorAll('.cequip').forEach((el) => { el.onclick = () => { Meta.setSkin(el.dataset.skin); if (game) game.vm.setWeapon(game.vm.weaponDef, game.vm.weaponTier, false); el.textContent = 'EQUIPPED'; el.disabled = true; renderProgress(); }; });
 }
 // the count on the title's PROGRESS button
-function progBadge() { const n = Meta.claimable().length, b = document.getElementById('progbtn'); if (b) b.innerHTML = n ? `PROGRESS<i class="badge">${n}</i>` : 'PROGRESS'; }
+function progBadge() {
+  const n = Meta.claimable().length, b = document.getElementById('progbtn'); if (b) b.innerHTML = n ? `PROGRESS<i class="badge">${n}</i>` : 'PROGRESS';
+  // the title card's footer: where you stand, at a glance
+  let f = document.querySelector('#title .tfoot'); const T = document.getElementById('title');
+  if (!f && T) { f = document.createElement('div'); f.className = 'tfoot'; T.appendChild(f); }
+  if (f) { const I = Meta.rankInfo(); f.innerHTML = `<b>RANK ${I.rank}  ${esc(I.name.toUpperCase())}</b>${I.max ? 'top rank' : `${I.into.toLocaleString()} / ${I.span.toLocaleString()} renown to the next`}`; }
+}
 
 // ---- the Progress screen: a rank banner, anything waiting to be claimed, then one tab at a time
 const PTABS = [['renown', 'RENOWN'], ['maps', 'MAPS'], ['classes', 'CLASSES'], ['challenges', 'CHALLENGES'], ['arsenal', 'ARSENAL'], ['hands', 'HANDS'], ['record', 'RECORD']];
@@ -285,13 +291,14 @@ let progTab = 'renown';
 const MAP_CLEAR = (m) => ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id);
 const tabOf = (key) => (key[0] === 'r' ? 'renown' : key[0] === 'c' ? 'classes' : key[0] === 'h' ? 'maps' : ACHIEVEMENTS.some((A) => 'a:' + A.id === key && /^clear_/.test(A.stat)) ? 'maps' : 'challenges');
 let progArm = false;
+const rewardTags = (line) => String(line || '').split(/,\s+/).filter(Boolean).map((t) => { const m = /^(.*?)\s*\(([a-z ]+)\)$/i.exec(t); return m ? `<s class="tg k-${m[2].split(' ')[0].toLowerCase()}">${esc(m[1])}<i>${esc(m[2])}</i></s>` : `<s class="tg">${esc(t)}</s>`; }).join('');
 function renderProgress() {
   const weapons = game ? game.data.weapons : [];
   const bar = (v, n) => `<div class="bar"><i style="width:${Math.max(0, Math.min(1, n > 0 ? v / n : 1)) * 100}%"></i></div>`;
   // one reward: what it is, and whether it is locked, waiting or claimed
   const rw = (key, lead) => {
     const M = Meta.milestone(key); if (!M) return ''; const st = Meta.stateOf(key);
-    return `<div class="prw ${st}"><span>${lead ? `<u>${esc(lead)}</u> ` : ''}${esc(rewardLine(M.reward))}</span>${st === 'ready' ? `<button class="pclaim" data-claim="${esc(key)}">CLAIM</button>` : `<em>${st === 'claimed' ? 'Claimed' : 'Locked'}</em>`}</div>`;
+    return `<div class="prw ${st}"><span>${lead ? `<u>${esc(lead)}</u> ` : ''}${rewardTags(rewardLine(M.reward))}</span>${st === 'ready' ? `<button class="pclaim" data-claim="${esc(key)}">CLAIM</button>` : st === 'claimed' ? '<em>\u2713 Claimed</em>' : ''}</div>`;
   };
   const I = Meta.rankInfo(), ready = Meta.claimable(), per = {}; for (const M of ready) per[tabOf(M.key)] = (per[tabOf(M.key)] || 0) + 1;
   let h = `<div class="ph"><h2>PROGRESS</h2><span style="flex:1"></span><button id="preset" style="margin-right:10px;background:#2a1820;color:#ff9a8a;border:1px solid #ff9a8a;box-shadow:none">${progArm ? 'PRESS AGAIN: THIS ERASES EVERYTHING' : 'RESET PROGRESS'}</button><button id="pclose">CLOSE</button></div>`;
@@ -304,7 +311,7 @@ function renderProgress() {
     RANKS.forEach((R, i) => {
       if (i === 0) return;
       const st = Meta.stateOf('r' + (i + 1));
-      h += `<div class="pc ${st}"><div class="pt"><b><i class="num">${i + 1}</i>${esc(R.name)}</b><span>${rankXp(i + 1).toLocaleString()} renown</span></div>${rw('r' + (i + 1))}</div>`;
+      h += `<div class="pc ${st}${i + 1 === I.rank + 1 ? ' next' : ''}"><div class="pt"><b><i class="num">${i + 1}</i>${esc(R.name)}</b><span>${rankXp(i + 1).toLocaleString()} renown</span></div>${rw('r' + (i + 1))}</div>`;
     });
     h += '</div>';
   } else if (progTab === 'maps') {
@@ -660,7 +667,7 @@ function renderLobby() {
     h += group('DIFFICULTY', chip('', true, false, 'Host\u2019s choice', ''), 'You will see it when the run starts.');
   } else {
     const dsc = MAPS.findIndex((M) => M.mode === 'descent'), isD = curMap === dsc; if (!isD) window.__survMap = curMap;
-    h += group('GAME TYPE', chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'one map, endless rounds') + chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`),
+    h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'side mode: one map, endless rounds'),
       isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by today’s challenge' : '');
     if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
       `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by today’s challenge' : '');
@@ -813,11 +820,14 @@ function setPaused(p) {
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
 const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
-pauseEl.innerHTML = '<div class="pbox"><h2>PAUSED</h2>' + SLIDERS.map(([k, label, mn, mx, st]) => `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`).join('') + '<div class="pradio"><div class="prh"><b>RADIO</b><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>Left arrow starts the song again, right arrow skips to the next. Songs stay in this browser and are not uploaded. In co-op only the host needs songs: the host\u2019s radio plays for everyone, and is sent to the other players as it plays.</p></div>' + `<div class="pfs"><button id="pmenu">MENU SONG</button><button id="pmenuclr">CLEAR</button><span id="pmenun"></span><input id="pmenufile" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div><div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div>` + '<div class="pbtns"><button id="presume">RESUME</button><div id="pdmg"></div><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+const SET_GROUPS = [['CONTROLS', ['sens', 'fov']], ['AUDIO', ['volume', 'sfx', 'music']], ['FEEL', ['shake']]];
+const fmtSet = (k, v) => { v = parseFloat(v); return k === 'fov' ? `${Math.round(v)}°` : k === 'sens' ? (v * 100).toFixed(0) : `${Math.round(v * 100)}%`; };
+const sliderHtml = (k) => { const [, label, mn, mx, st] = SLIDERS.find((s) => s[0] === k); return `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`; };
+pauseEl.innerHTML = '<div class="pbox"><div class="phd"><h2>PAUSED</h2></div><div class="pcols"><div class="pcol">' + SET_GROUPS.map(([t, ks]) => `<h3 class="psec">${t}</h3>` + ks.map(sliderHtml).join('')).join('') + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div><div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div></div><div class="pcol"><div id="pdmg"></div>` + '<div class="pradio"><div class="prh"><h3 class="psec">RADIO</h3><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>← restarts the song, → skips. Songs stay in this browser and are never uploaded. In co-op only the host needs songs: everyone hears the host’s radio.</p></div>' + `<h3 class="psec">MENU SONG</h3><div class="pfs"><button id="pmenu">CHOOSE FILE</button><button id="pmenuclr">CLEAR</button><span id="pmenun"></span><input id="pmenufile" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div></div></div>` + '<div class="pbtns"><button id="presume">RESUME</button><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
 pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
-  el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = el.value;
-  el.oninput = () => { settings[el.dataset.k] = parseFloat(el.value); el.nextElementSibling.textContent = el.value; applySettings(); saveSettings(); };
+  el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = fmtSet(el.dataset.k, el.value);
+  el.oninput = () => { settings[el.dataset.k] = parseFloat(el.value); el.nextElementSibling.textContent = fmtSet(el.dataset.k, el.value); applySettings(); saveSettings(); };
 });
 { // the radio's shelf
   const R = audio.radio, n = pauseEl.querySelector('#prn'), list = pauseEl.querySelector('#prlist'), file = pauseEl.querySelector('#prfile');
