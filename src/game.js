@@ -5,7 +5,7 @@ import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
 import { Meta } from './meta.js';
-import { diff, difficulty, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
+import { diff, difficulty, mutators, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
 import { World } from './world.js';
 import { Environment, base as envBase } from './env.js';
@@ -18,6 +18,7 @@ import { Net } from './net.js';
 import { VAULT } from './mapzones.js';
 import { MAPS } from './maps.js';
 import { Descent } from './descent.js';
+import { Village } from './village.js';
 import { Quest } from './quest.js';
 import { Mech } from './mech.js';
 import { Projectiles, Hazards, Pickups } from './entities.js';
@@ -64,7 +65,7 @@ export class Game {
     this.player = new Player(this);
     this.vm.setWeapon(0, 0, false);
     this.quest = new Quest(this); this.mech = new Mech(this);
-    if (this.map.mode === 'descent') this.descent = new Descent(this);
+    if (this.map.mode === 'descent') { this.descent = new Descent(this); this.villageRT = new Village(this); }
     this.unlockZone(0, true);
     this.player.pos.copy(this.playerSpawn).add(V3(0, 0, 0));
     // UE yaw 60 -> forward (cos60, sin60) in UE XY -> three (x, z)
@@ -89,7 +90,7 @@ export class Game {
   tips(dt) {
     const P = this.player, F = P.focus; if (P.dead) return;
     this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
-    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom3', 'Nothing is bought down here. The ammo box is free once every minute and a half, and a gun evolves on its own as you kill with it: watch the bar under your ammo.'); if (this.descent.cleared) this.tip('ddoor3', 'The room is clear. By the far door: a workbench to fit the parts you picked up, and a Mystery Box with one free roll. The lit door leads on.'); }
+    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom3', 'Nothing is bought down here. The ammo box is free once every minute and a half, and a gun evolves on its own as you kill with it: watch the bar under your ammo.'); if (this.descent.cleared) this.tip('ddoor3', 'The room is clear. By the far door: a workbench to fit the parts you picked up, and a chest. The lit arch leads on.'); }
     else if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
     if (this.round >= 2 && this.quest.def) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
     if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');
@@ -362,7 +363,7 @@ export class Game {
     const F = this.final; if (F) { F.active = false; F.done = true; F.beam = null; F.safeR = 0; }
     for (const E of this.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); }
     this.hazards.list.forEach((H) => { H.life = Math.min(H.life, H.age + 0.1); });
-    this.victory = true; this.levelDone = true; Meta.won(this.map.id, difficulty()); Meta.dailyRound(this.round, true);
+    this.victory = true; this.levelDone = true; Meta.won(this.map.id, difficulty()); Meta.dailyRound(this.round, true); Meta.runWon(this.descent ? 'descent' : 'survival', this.mapId, difficulty(), mutators());
     this.audio.play('S_LevelUp', 1); this.player.addShake(2.5); this.hitstop = 0.4;
   }
   tickFinal(dt) {
@@ -719,6 +720,9 @@ export class Game {
     // a third of a second so the game never sits in slow motion; the big ones (a boss's entrance, act, fall) run out
     if (this.hitstop > 0) { this.hsRun = (this.hsRun || 0) + dt; if (this.hsRun > 0.3 && this.hitstop < 0.25) this.hitstop = 0; } else this.hsRun = Math.max(0, (this.hsRun || 0) - dt * 2);
     if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
+    // in the village nothing is fought: no shooting, no aiming, no blades, grenades or class abilities, only walking about
+    if (this.village && this.village.on) { input = Object.assign({}, input, { fire: false, aim: false, firePressed: 0, reload: 0, melee: 0, wield: 0, grenade: 0, barricade: 0, grapple: 0, next: 0, prev: 0, back: 0, choice: [0, 0, 0, 0] }); this.village.tick(dt); }
+    if (this.village && this.village.on) this.audio.music(this.village.nearCasino() ? 'casino' : 'village'); else
     this.audio.music(this.phase === 'GameOver' ? 'off' : this.final && this.final.active ? 'boss' : this.phase === 'Round' ? (this.boss && !this.boss.dead ? 'boss' : 'fight') : 'calm');
     this.tickCasino(dt);
     if (this.phase !== 'GameOver') this.update(dt);

@@ -267,6 +267,147 @@ body:not(.ready) #title .tfoot { display: none; }
 * { scrollbar-width: thin; scrollbar-color: rgba(255,205,90,0.35) transparent; }
 ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: rgba(255,205,90,0.3); border-radius: 4px; } ::-webkit-scrollbar-track { background: transparent; }
 @media (prefers-reduced-motion: reduce) { button, #title .menu button { transition: none; } #title .go, #lobby .lbstart.wait { animation: none; } }
+/* ---- the village's windows: the shop, the challenge board and the casino games. Clean cards on a dim backdrop. */
+#vpanel { display: none; position: fixed; inset: 0; z-index: 6; align-items: center; justify-content: center; background: rgba(12,7,10,0.55); backdrop-filter: blur(2px); cursor: default; color: #f2e8d5; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 600; }
+#vpanel[style*="block"] { display: flex !important; }
+#vpanel * { box-sizing: border-box; }
+#vpanel .vp-card { width: min(1240px, 95vw); height: min(800px, 92vh); display: flex; flex-direction: column; background: linear-gradient(180deg, #23161f 0%, #1a1016 100%); border: 1px solid rgba(255,205,90,0.28); border-radius: 18px; box-shadow: 0 30px 90px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05); overflow: hidden; }
+#vpanel .vp-head { display: flex; align-items: center; gap: 18px; padding: 18px 26px 16px; border-bottom: 1px solid rgba(255,205,90,0.14); background: linear-gradient(180deg, rgba(255,205,90,0.06), rgba(255,205,90,0)); }
+#vpanel .vp-head .tt { flex: 1; min-width: 0; }
+#vpanel .vp-head h2 { margin: 0; font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 400; font-size: 36px; letter-spacing: 3px; color: #ffcd5a; line-height: 1; }
+#vpanel .vp-head p { margin: 5px 0 0; font-size: 17px; color: #b8aa9a; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#vpanel .vp-purse { display: flex; align-items: center; gap: 10px; padding: 8px 18px 8px 12px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,205,90,0.35); }
+#vpanel .vp-purse b { font-family: "Big Shoulders Display"; font-weight: 400; font-size: 28px; color: #ffcd5a; letter-spacing: 1px; line-height: 1; }
+#vpanel .coin { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #ffe9a0 0 22%, #ffcd5a 23% 55%, #c8962a 56%); box-shadow: 0 1px 0 rgba(0,0,0,0.5); vertical-align: -3px; flex: none; }
+#vpanel .coin.s { width: 13px; height: 13px; vertical-align: -1px; }
+#vpanel .vp-x { font-family: "Big Shoulders Display"; font-size: 19px; letter-spacing: 2px; color: #f2e8d5; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 9px 18px; cursor: pointer; }
+#vpanel .vp-x:hover { background: rgba(255,255,255,0.12); }
+#vpanel .vp-x kbd { font-family: inherit; font-size: 14px; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #f2e8d5; color: #140d12; }
+#vpanel .vp-body { flex: 1; min-height: 0; display: flex; }
+#vpanel .vp-btn { font-family: "Big Shoulders Display"; font-size: 22px; letter-spacing: 2px; border: 0; border-radius: 12px; padding: 12px 18px; cursor: pointer; color: #140d12; background: #ffcd5a; box-shadow: 0 4px 0 #a8781e; transition: transform 0.06s, filter 0.1s; }
+#vpanel .vp-btn:hover { filter: brightness(1.08); }
+#vpanel .vp-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a8781e; }
+#vpanel .vp-btn.alt { background: rgba(255,255,255,0.08); color: #f2e8d5; box-shadow: none; border: 1px solid rgba(255,255,255,0.2); }
+#vpanel .vp-btn.blue { background: #9fe0ff; box-shadow: 0 4px 0 #4a8aa8; }
+#vpanel .vp-btn.green { background: #8fe08a; box-shadow: 0 4px 0 #4a8a46; }
+#vpanel .vp-btn[disabled] { opacity: 0.4; cursor: default; filter: grayscale(0.6); transform: none; }
+#vpanel .vp-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 18px 10px; }
+#vpanel .vp-tab { font-family: "Big Shoulders Display"; font-size: 18px; letter-spacing: 2px; color: #c9bba9; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid transparent; cursor: pointer; }
+#vpanel .vp-tab:hover { color: #f2e8d5; background: rgba(255,255,255,0.09); }
+#vpanel .vp-tab.on { color: #140d12; background: #ffcd5a; }
+#vpanel .vp-tab i { font-style: normal; font-family: "Barlow Condensed"; font-size: 14px; margin-left: 6px; opacity: 0.7; }
+#vpanel .vp-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 22px; scrollbar-width: thin; scrollbar-color: rgba(255,205,90,0.35) transparent; }
+/* shop */
+#vpanel .shop-left { width: 400px; flex: none; display: flex; flex-direction: column; border-right: 1px solid rgba(255,205,90,0.12); background: radial-gradient(ellipse at 50% 30%, rgba(255,205,90,0.08), rgba(0,0,0,0) 65%); }
+#vpanel .shop-stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+#vpanel .shop-stage canvas { position: static !important; inset: auto !important; width: 100% !important; height: 100% !important; object-fit: contain; }
+#vpanel .shop-stage img { max-width: 92%; max-height: 78%; filter: drop-shadow(0 12px 18px rgba(0,0,0,0.5)); }
+#vpanel .shop-stage .hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 14px; color: #8a7e72; }
+#vpanel .shop-info { padding: 18px 22px 22px; border-top: 1px solid rgba(255,205,90,0.12); display: flex; flex-direction: column; gap: 8px; }
+#vpanel .shop-info h3 { margin: 0; font-family: "Big Shoulders Display"; font-weight: 400; font-size: 32px; letter-spacing: 1px; line-height: 1; }
+#vpanel .shop-info .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+#vpanel .tag { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,0.08); color: #c9bba9; }
+#vpanel .tag.own { background: rgba(143,224,138,0.18); color: #8fe08a; } .tag.lock { background: rgba(255,255,255,0.06); color: #9a8f86; } .tag.start { background: rgba(159,224,255,0.18); color: #9fe0ff; }
+#vpanel .shop-info .desc { font-size: 16px; color: #b8aa9a; line-height: 1.25; min-height: 40px; }
+#vpanel .shop-info .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+#vpanel .shop-info .stats div { background: rgba(0,0,0,0.25); border-radius: 8px; padding: 6px 8px; } .shop-info .stats span { display: block; font-size: 12px; color: #8a7e72; letter-spacing: 1px; } .shop-info .stats b { font-size: 18px; }
+#vpanel .shop-info .row { display: flex; gap: 8px; } .shop-info .row .vp-btn { flex: 1; }
+#vpanel .shop-info .why { font-size: 15px; color: #ffb07a; }
+#vpanel .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 10px; }
+#vpanel .grid h4 { grid-column: 1 / -1; margin: 12px 0 0; font-family: "Big Shoulders Display"; font-weight: 400; font-size: 18px; letter-spacing: 3px; color: #ffcd5a; opacity: 0.85; }
+#vpanel .it { position: relative; border-radius: 12px; padding: 11px 12px 10px; background: #2b1d26; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; min-height: 84px; display: flex; flex-direction: column; gap: 6px; transition: transform 0.08s, border-color 0.1s, background 0.1s; }
+#vpanel .it:hover { transform: translateY(-2px); background: #33232d; }
+#vpanel .it.sel { border-color: #ffcd5a; box-shadow: 0 0 0 1px #ffcd5a inset; }
+#vpanel .it b { font-size: 17px; line-height: 1.1; }
+#vpanel .it .pr { margin-top: auto; display: flex; align-items: center; gap: 6px; font-family: "Big Shoulders Display"; font-size: 19px; color: #ffcd5a; }
+#vpanel .it .pr.poor { color: #c98a6a; }
+#vpanel .it .ok { margin-top: auto; font-size: 13px; letter-spacing: 1px; color: #8fe08a; }
+#vpanel .it.lock { background: #221820; } .it.lock b { color: #8f8379; }
+#vpanel .it.lock .nd { margin-top: auto; font-size: 13px; color: #8a7e72; line-height: 1.15; }
+#vpanel .it.lock::after { content: ""; position: absolute; top: 10px; right: 10px; width: 10px; height: 8px; border-radius: 2px; background: #6f655c; box-shadow: 0 -6px 0 -2px transparent; }
+#vpanel .it.lock::before { content: ""; position: absolute; top: 3px; right: 11px; width: 6px; height: 7px; border: 2px solid #6f655c; border-bottom: 0; border-radius: 5px 5px 0 0; }
+#vpanel .it.gun { padding: 0; overflow: hidden; border-left: 4px solid var(--rc, #888); }
+#vpanel .it.gun img { width: 100%; aspect-ratio: 420 / 230; object-fit: contain; background: rgba(0,0,0,0.2); display: block; }
+#vpanel .it.gun .gi { padding: 7px 10px 9px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+#vpanel .it.gun .gi span { font-size: 13px; color: #9a8f86; letter-spacing: 1px; text-transform: uppercase; }
+#vpanel .it .star { position: absolute; top: 8px; right: 8px; font-size: 12px; letter-spacing: 1px; padding: 2px 7px; border-radius: 999px; background: #9fe0ff; color: #140d12; }
+/* the board */
+#vpanel .board { flex: 1; overflow-y: auto; padding: 22px 26px 26px; background: radial-gradient(ellipse at 50% 0%, rgba(160,110,60,0.18), rgba(0,0,0,0) 60%); }
+#vpanel .board .lead { font-size: 17px; color: #b8aa9a; margin: 0 0 16px; max-width: 900px; }
+#vpanel .notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
+#vpanel .note { position: relative; background: #f1e6cf; color: #2a1c14; border-radius: 6px; padding: 22px 20px 18px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); transform: rotate(var(--r, 0deg)); display: flex; flex-direction: column; gap: 9px; }
+#vpanel .note::before { content: ""; position: absolute; top: 8px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a7a, #b8281e); box-shadow: 0 2px 2px rgba(0,0,0,0.4); }
+#vpanel .note h3 { margin: 4px 0 0; font-family: "Big Shoulders Display"; font-weight: 400; font-size: 28px; line-height: 1; letter-spacing: 0.5px; }
+#vpanel .note .fl { font-style: italic; font-size: 16px; color: #6a5440; }
+#vpanel .note .rules { display: flex; gap: 6px; flex-wrap: wrap; }
+#vpanel .note .rules span { font-size: 14px; padding: 3px 9px; border-radius: 999px; background: #2a1c14; color: #f1e6cf; }
+#vpanel .note .rules span.d0 { background: #3a6a3a; } .note .rules span.d1 { background: #a8661e; } .note .rules span.d2 { background: #8a1e1e; }
+#vpanel .note .mods { font-size: 15px; color: #4a3a2c; line-height: 1.25; } .note .mods b { color: #2a1c14; }
+#vpanel .note .pay { display: flex; gap: 16px; align-items: center; font-family: "Big Shoulders Display"; font-size: 24px; margin-top: 2px; }
+#vpanel .note .pay .rn { color: #6a3aa8; } .note .pay .gd { color: #a8781e; display: flex; gap: 6px; align-items: center; }
+#vpanel .note .vp-btn { margin-top: 4px; }
+#vpanel .note.taken { box-shadow: 0 0 0 3px #9fe0ff, 0 10px 24px rgba(0,0,0,0.45); }
+#vpanel .note .stamp { position: absolute; top: 18px; right: 14px; transform: rotate(10deg); font-family: "Big Shoulders Display"; font-size: 26px; letter-spacing: 3px; padding: 2px 10px; border: 3px solid; border-radius: 6px; opacity: 0.85; }
+#vpanel .note .stamp.t { color: #2a7aa8; } .note .stamp.p { color: #2a8a3a; }
+#vpanel .note.done { opacity: 0.75; }
+/* the casino */
+#vpanel .cas { flex: 1; display: flex; gap: 0; min-height: 0; }
+#vpanel .cas-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 22px; background: radial-gradient(ellipse at 50% 45%, #1f4a33 0%, #143022 55%, #0f2219 100%); position: relative; }
+#vpanel .cas-side { width: 300px; flex: none; padding: 20px 22px; border-left: 1px solid rgba(255,205,90,0.12); display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+#vpanel .cas-side h4 { margin: 0; font-family: "Big Shoulders Display"; font-weight: 400; font-size: 18px; letter-spacing: 3px; color: #ffcd5a; }
+#vpanel .cas-side p { margin: 0; font-size: 15px; color: #b8aa9a; line-height: 1.25; }
+#vpanel .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#vpanel .chip { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: "Big Shoulders Display"; font-size: 17px; color: #fff; cursor: pointer; border: 4px dashed rgba(255,255,255,0.75); box-shadow: 0 3px 0 rgba(0,0,0,0.4); transition: transform 0.08s; }
+#vpanel .chip:hover { transform: translateY(-2px); }
+#vpanel .chip.on { outline: 3px solid #ffcd5a; outline-offset: 2px; }
+#vpanel .chip.off { opacity: 0.3; cursor: default; }
+#vpanel .msg { min-height: 34px; font-family: "Big Shoulders Display"; font-size: 30px; letter-spacing: 2px; text-align: center; color: #f2e8d5; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
+#vpanel .msg.win { color: #ffcd5a; } .msg.lose { color: #ff9a8a; }
+#vpanel .paytab { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: 16px; }
+#vpanel .paytab .sy { display: flex; gap: 2px; } .paytab .sy svg { width: 22px; height: 22px; } .paytab b { color: #ffcd5a; font-family: "Big Shoulders Display"; font-size: 18px; text-align: right; }
+#vpanel .hist { display: flex; gap: 5px; flex-wrap: wrap; } .hist span { min-width: 30px; text-align: center; padding: 3px 6px; border-radius: 6px; font-family: "Big Shoulders Display"; font-size: 17px; }
+/* slots */
+#vpanel .slot-face { padding: 22px 26px; border-radius: 22px; background: linear-gradient(180deg, #c8392e, #8a1e1a); box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.2); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#vpanel .slot-face .nm { font-family: "Big Shoulders Display"; font-size: 26px; letter-spacing: 4px; color: #ffe9a0; text-shadow: 0 2px 0 #5a0e0a; }
+#vpanel .reels { display: flex; gap: 12px; padding: 14px; border-radius: 14px; background: #2a0e0c; box-shadow: inset 0 4px 12px rgba(0,0,0,0.7); }
+#vpanel .reel { width: 120px; height: 300px; overflow: hidden; border-radius: 10px; background: linear-gradient(180deg, #d8ccb0 0%, #fbf4e6 30%, #fbf4e6 70%, #d8ccb0 100%); position: relative; }
+#vpanel .reel::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(200,57,46,0.5); }
+#vpanel .strip { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+#vpanel .strip div { height: 100px; display: flex; align-items: center; justify-content: center; } .strip svg { width: 70px; height: 70px; }
+/* roulette */
+#vpanel .rou { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; justify-content: center; }
+#vpanel .rou canvas { position: static !important; width: 300px !important; height: 300px !important; inset: auto !important; }
+#vpanel .layout { display: grid; grid-template-columns: 46px repeat(12, 40px); grid-template-rows: repeat(3, 40px) 36px 36px; gap: 3px; }
+#vpanel .layout div { display: flex; align-items: center; justify-content: center; border-radius: 6px; font-family: "Big Shoulders Display"; font-size: 18px; color: #fff; cursor: pointer; position: relative; border: 1px solid rgba(255,255,255,0.15); }
+#vpanel .layout div:hover { filter: brightness(1.25); }
+#vpanel .layout .r { background: #b82a2a; } .layout .k { background: #1a1a1a; } .layout .z { background: #2a8a3a; grid-row: 1 / 4; } .layout .o { background: rgba(255,255,255,0.08); font-size: 15px; letter-spacing: 1px; }
+#vpanel .layout .bet::after { content: attr(data-b); position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 11px; background: #ffcd5a; color: #140d12; font-size: 13px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+#vpanel .layout .hit { outline: 3px solid #ffcd5a; z-index: 2; }
+/* blackjack */
+#vpanel .bj { display: flex; flex-direction: column; gap: 18px; align-items: center; width: 100%; }
+#vpanel .hand { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 160px; }
+#vpanel .hand .lb { font-size: 15px; letter-spacing: 2px; color: #cfe8d8; text-transform: uppercase; }
+#vpanel .hand .lb b { font-family: "Big Shoulders Display"; font-size: 22px; color: #fff; margin-left: 6px; }
+#vpanel .cards { display: flex; gap: 8px; }
+#vpanel .card { width: 82px; height: 116px; border-radius: 9px; background: #fbf8f0; color: #1a1a1a; box-shadow: 0 6px 14px rgba(0,0,0,0.45); position: relative; font-family: "Big Shoulders Display"; animation: deal 0.25s ease-out; }
+#vpanel .card.red { color: #c8281e; }
+#vpanel .card .c1 { position: absolute; top: 6px; left: 8px; font-size: 24px; line-height: 0.9; text-align: center; } .card .c2 { position: absolute; bottom: 6px; right: 8px; font-size: 24px; line-height: 0.9; transform: rotate(180deg); text-align: center; }
+#vpanel .card .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 44px; }
+#vpanel .card.back { background: repeating-linear-gradient(45deg, #8a1e1a 0 8px, #b8392e 8px 16px); border: 5px solid #fbf8f0; }
+@keyframes deal { from { transform: translateY(-30px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+#vpanel .acts { display: flex; gap: 10px; }
+/* dice */
+#vpanel .dice { display: flex; flex-direction: column; align-items: center; gap: 16px; width: min(560px, 100%); }
+#vpanel .roll { font-family: "Big Shoulders Display"; font-size: 120px; line-height: 1; color: #fff; text-shadow: 0 6px 0 rgba(0,0,0,0.45); min-height: 120px; }
+#vpanel .bar { position: relative; width: 100%; height: 22px; border-radius: 11px; background: #8a1e1a; overflow: hidden; }
+#vpanel .bar i { position: absolute; top: 0; bottom: 0; background: #3a9a4a; }
+#vpanel .bar em { position: absolute; top: -6px; width: 4px; height: 34px; background: #fff; border-radius: 2px; margin-left: -2px; transition: left 0.5s cubic-bezier(.2,.9,.3,1.2); }
+#vpanel .dice input[type=range] { width: 100%; accent-color: #ffcd5a; }
+#vpanel .seg { display: flex; border-radius: 999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.25); }
+#vpanel .seg button { font-family: "Big Shoulders Display"; font-size: 20px; letter-spacing: 2px; padding: 8px 22px; border: 0; background: transparent; color: #f2e8d5; cursor: pointer; }
+#vpanel .seg button.on { background: #ffcd5a; color: #140d12; }
+#vpanel .odds { display: flex; gap: 26px; font-size: 16px; color: #cfe8d8; } .odds b { font-family: "Big Shoulders Display"; font-size: 26px; color: #fff; display: block; }
+@media (max-width: 900px) { #vpanel .shop-left { width: 300px; } #vpanel .cas-side { width: 240px; } }
 </style>
 </head>
 <body>
@@ -280,6 +421,7 @@ body:not(.ready) #title .tfoot { display: none; }
 <div id="progress"></div>
 <div id="lobby"></div>
 <div id="locker"></div>
+<div id="vpanel"></div>
 <div id="pause"></div>
 <div id="touch"></div>
 <script src="game.js"></script>

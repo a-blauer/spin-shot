@@ -172,7 +172,7 @@ export const Net = {
     if (this.tp <= 0) {
       this.tp = 0.1;
       this.started = true;
-      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, dn: P.downed ? 1 : null, bl: P.downed ? Math.round(P.bleed) : null, rp: P.downed ? Math.round((P.reviveP || 0) * 100) / 100 : null, rv: this.rvPeer || null, sh: P.shotSeq || 0, pt: Math.round(P.pitch * 100) / 100, w: P.wield ? -1 : P.slot.def, pg: g.myPing || null, name: this.name, look: Meta.lookStr(), kl: P.kills | 0, dm: Math.round(Object.values(P.runDmg || {}).reduce((a, b) => a + b, 0)) }).catch(() => {});
+      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, run: g.metaRun && !(g.village && g.village.on) && g.phase !== 'GameOver' && !g.victory ? 1 : 0, map: this.role === 'host' ? g.mapId : undefined, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, dn: P.downed ? 1 : null, bl: P.downed ? Math.round(P.bleed) : null, rp: P.downed ? Math.round((P.reviveP || 0) * 100) / 100 : null, rv: this.rvPeer || null, sh: P.shotSeq || 0, pt: Math.round(P.pitch * 100) / 100, w: P.wield ? -1 : P.slot.def, pg: g.myPing || null, name: this.name, look: Meta.lookStr(), kl: P.kills | 0, dm: Math.round(Object.values(P.runDmg || {}).reduce((a, b) => a + b, 0)) }).catch(() => {});
       if (this.role === 'client' && this.hits.size) { this.emit('h', { l: [...this.hits.entries()].slice(0, 80).map(([id, h]) => [id, Math.round(h.a), h.hs, Math.round(h.x * 100) / 100, Math.round(h.z * 100) / 100]) }); this.hits.clear(); }
     }
     if (this.role === 'host') {
@@ -282,6 +282,7 @@ export const Net = {
   },
   onState(d) {
     const g = this.game; if (!g) return;
+    if (g.village && g.village.on) return;   // up in the village there is no run to follow
     if (g.audio.radio) g.audio.radio.sync(d.rd);
     if (d.df != null && (d.df | 0) !== difficulty()) setDifficulty(num(d.df, 0, 2) | 0);
     if (d.mu != null && (d.mu | 0) !== mutators()) { setMutators(num(d.mu, 0, 4095) | 0, !!d.dy); g.player.recompute(); }   // the host's difficulty is everyone's
@@ -299,7 +300,7 @@ export const Net = {
       const f = d.fin, F = g.final || (g.final = { gate: null, active: false, done: false, beam: null, safeR: 0, t: 0 });
       F.gate = Array.isArray(f.g) ? new THREE.Vector3(num(f.g[0]), num(f.g[1]), num(f.g[2])) : null; F.active = !!f.a; F.safeR = num(f.r, 0, 3000);
       if (Array.isArray(f.b)) { const b = f.b, old = F.beam; F.beam = { x: num(b[0]), y: num(b[1]), z: num(b[2]), ang: old && Math.abs(old.ang - num(b[3], -1e4, 1e4)) < 0.6 && old.spd === num(b[4], -3, 3) ? old.ang : num(b[3], -1e4, 1e4), spd: num(b[4], -3, 3), n: Math.max(1, Math.min(6, num(b[5], 1, 6) | 0)), dmg: num(b[6], 0, 300), t: num(b[7], 0, 60) }; } else F.beam = null;
-      if (f.d && !F.done) { F.done = true; g.victory = true; g.levelDone = true; Meta.won(g.map.id, difficulty()); g.audio.play('S_Jackpot', 1); }
+      if (f.d && !F.done) { F.done = true; g.victory = true; g.levelDone = true; Meta.won(g.map.id, difficulty()); Meta.runWon('survival', g.mapId, difficulty(), mutators()); g.audio.play('S_Jackpot', 1); }
     }
     if (Array.isArray(d.doors)) for (const i of d.doors.slice(0, 64)) this.openDoorIdx(num(i, 0, 999));
     if (Array.isArray(d.ch)) for (const r of d.ch.slice(0, 40)) this.onChest(r);
@@ -349,7 +350,7 @@ export const Net = {
   // lobby (before the run starts): who is here, and has the host started
   lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe, look: p.isMe ? Meta.lookStr() : String((p.presence || {}).look || '').slice(0, 240) })); },
   hostHere() { return this.role !== 'client' || (this.room && this.room.peers().some((p) => p.peer === this.hostPeer)); },
-  hostStarted() { if (this.role !== 'client' || !this.room) return false; const h = this.room.peers().find((p) => p.peer === this.hostPeer); return !!(h && h.presence && h.presence.started); },
+  hostStarted() { if (this.role !== 'client' || !this.room) return false; const h = this.room.peers().find((p) => p.peer === this.hostPeer); return !!(h && h.presence && h.presence.run); },   // the host is on a run (not up in the village)
   setMap(i) { if (this.role === 'host' && this.room) this.room.presence({ map: i }).catch(() => {}); },
   hostMap() { if (this.role !== 'client' || !this.room) return -1; const h = this.room.peers().find((p) => p.peer === this.hostPeer); const m = h && h.presence ? h.presence.map : -1; return Number.isInteger(m) ? m : -1; },
   refreshPresence() { if (this.room) this.room.presence({ name: this.name, look: Meta.lookStr() }).catch(() => {}); },

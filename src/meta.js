@@ -7,7 +7,7 @@
 //   * per-gun XP that unlocks permanent traits for that gun.
 // A reward is EARNED when its goal is met and UNLOCKED when the player claims it on the Progress screen.
 // Everything is a pure function of the lifetime stats, so nothing can be lost by a change to the numbers.
-import { MUTATORS, mutXp } from './data.js';
+import { MUTATORS, mutXp, DATA, DIFFS } from './data.js';
 import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString, SHAPES, DEFAULT_SHAPE, shapeOf } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
 
@@ -198,6 +198,44 @@ function recompute() {
   }
 }
 
+// ---- GOLD: the village's money. Every run pays some (rooms, rounds and bosses), a finished run pays a lot more, and a
+// contract from the challenge board pays a bonus on top. It buys cosmetics and guns at the shopkeeper's, and is staked in
+// the Lucky Toadstool. Gold is paid the moment it is earned, so a run that ends badly still keeps what it made.
+export const GOLD_START = 300;
+const DIFF_GOLD = [1, 1.5, 2];
+export const GOLD_RATES = { room: 12, round: 8, boss: 40, finalBoss: 150, win: 250 };
+// a gun to start runs with: bought once, chosen at the gate before any run
+export const GUN_PRICE = { Common: 300, Uncommon: 600, Rare: 1100, Epic: 1800, Legendary: 2800 };
+export const shopGuns = () => DATA.weapons.filter((w) => !w.cash);
+// cosmetics: the gnome's own face and colouring are free to change; what they wear is bought, earned, or in the starter kit
+export const BODY_SLOTS = ['hair', 'haircol', 'tone', 'nose', 'blush', 'beard', 'stache', 'hatcol', 'hatpat'];
+export const STARTER_COS = { hat: ['gnome', 'stocking'], hattip: ['none', 'pompom'], outfit: ['drifter'], legs: ['denim'], boots: ['work'], gloves: ['bare'], neck: ['none'], shoulder: ['none'], waist: ['belt'], face: ['none'], back: ['none'] };
+const COS_BASE = { hat: 260, hattip: 120, outfit: 520, legs: 260, boots: 220, gloves: 180, neck: 160, shoulder: 240, waist: 200, face: 200, back: 320 };
+// ---- THE CHALLENGE BOARD: six contracts a day, the same for everyone. Each is a run with its rules set: the mode, the
+// difficulty and the modifiers. Win it with the contract taken and it pays its bonus, once.
+const CONTRACT_NAMES = [
+  ['Mushroom Patrol', 'The cellar folk want the way kept clear.'], ['A Hat Full of Trouble', 'Someone dropped the mayor’s hat down the hole. Bring back the honour.'],
+  ['Root and Branch', 'Dig out the rot, all of it.'], ['The Long Dig', 'Go all the way down and come back with a story.'], ['Toadstool Tithe', 'The council pays well for brave beards.'],
+  ['Lantern Duty', 'Carry the light where nobody else will.'], ['Cobble Breaker', 'Something under the square keeps knocking.'], ['The Beekeeper’s Bet', 'He says you won’t. Prove him wrong.'],
+  ['Moss and Mettle', 'Old gnomes did it in worse boots.'], ['Thimble Rigged', 'Odds stacked, pockets light. Win anyway.'], ['Pickle Barrel Run', 'Grandma’s pickles are down there. Do not ask.'], ['Brass Buttons', 'A soldier’s errand for a tinker’s pay.'],
+];
+const hashStr = (k) => { let h = 2166136261; for (let i = 0; i < k.length; i++) { h ^= k.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; };
+function boardFor(key) {
+  let h = hashStr('board|' + key); const rnd = () => { h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0; h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+  const n = MUTATORS.length, out = [], used = new Set();
+  // three Descent contracts, one at each difficulty, and three on the Survival maps
+  const plan = [['descent', 0, 1], ['descent', 1, 1], ['descent', 2, 2], ['survival', 0, 1], ['survival', 1, 2], ['descent', 1, 3]];
+  plan.forEach(([mode, diff, nm], i) => {
+    let mask = 0; while (bits(mask) < nm) mask |= 1 << Math.floor(rnd() * n);
+    let ni = Math.floor(rnd() * CONTRACT_NAMES.length); while (used.has(ni)) ni = (ni + 1) % CONTRACT_NAMES.length; used.add(ni);
+    const k = 1 + 0.3 * nm + (mode === 'survival' ? -0.15 : 0), gold = Math.round(([280, 520, 880][diff] * k) / 10) * 10, renown = Math.round(([500, 950, 1600][diff] * k) / 50) * 50;
+    out.push({ id: key + '#' + i, title: CONTRACT_NAMES[ni][0], flavor: CONTRACT_NAMES[ni][1], mode, map: mode === 'survival' ? Math.floor(rnd() * 6) : -1, diff, muts: mask, gold, renown });
+  });
+  return out;
+}
+const bits = (m) => { let c = 0; while (m) { c += m & 1; m >>= 1; } return c; };
+const dayKey = () => { const d = new Date(); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; };
+
 export const Meta = {
   load() {
     let old = false, preClaim = false;
@@ -207,6 +245,15 @@ export const Meta = {
     if (!S.stats || typeof S.stats !== 'object') S.stats = {};
     if (!S.cos || typeof S.cos !== 'object') S.cos = {};
     if (!S.gunXp || typeof S.gunXp !== 'object') S.gunXp = {};
+    // the village came: a purse to start with, the starter gun you had chosen, and whatever you were already wearing
+    if (typeof S.gold !== 'number') { S.gold = GOLD_START; dirty = true; }
+    if (!S.owned || typeof S.owned !== 'object') {
+      S.owned = { guns: {}, cos: {} };
+      if (S.starter && S.starter !== 'Tin Star') S.owned.guns[S.starter] = 1;
+      for (const sl of SLOTS) { const id = (S.look || {})[sl], I = id !== undefined && COSMETICS[sl] && COSMETICS[sl].find((i) => i.id === id); if (I && !I.need) S.owned.cos[sl + ':' + I.id] = 1; }
+      dirty = true;
+    }
+    S.owned.guns = S.owned.guns || {}; S.owned.cos = S.owned.cos || {};
     const st = S.stats;
     if (old) {
       // A save from before maps, ranks and medals. Every win so far was in Deadwater Gulch, and what was done is worth renown.
@@ -279,11 +326,11 @@ export const Meta = {
   },
   addXp(n) { n = Math.max(0, Math.round(n * mutXp())); if (!n) return; S.stats.xp = (S.stats.xp || 0) + n; run.xp += n; dirty = true; this.check(); },
   // ---- what a run reports
-  beginRun() { run = { xp: 0, xp0: this.xp(), unlocked: [] }; },
-  runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo() }; },
+  beginRun() { run = { xp: 0, xp0: this.xp(), unlocked: [], gold: 0, goldWhy: {}, contract: this.contract(), contractPaid: null }; },
+  runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo(), gold: run.gold || 0, contract: run.contractPaid || null }; },
   roundStarted(round, mapId) { this.best('bestRound', round); if (mapId) this.best('best_' + mapId, round); },
-  roundCleared(round, mapId, clsId, diff) { if (clsId) this.bump('cls_' + clsId); this.bump('rounds'); this.addXp(roundXp(round, diff)); },
-  bossKilled(final, diff) { this.bump('bosses'); this.addXp(bossXp(final, diff)); },
+  roundCleared(round, mapId, clsId, diff) { if (clsId) this.bump('cls_' + clsId); this.bump('rounds'); this.addXp(roundXp(round, diff)); this.addGold((mapId === 'descent' ? GOLD_RATES.room : GOLD_RATES.round) * (DIFF_GOLD[diff] || 1), 'rooms'); this.save(); },
+  bossKilled(final, diff) { this.bump('bosses'); this.addXp(bossXp(final, diff)); this.addGold((final ? GOLD_RATES.finalBoss : GOLD_RATES.boss) * (DIFF_GOLD[diff] || 1), 'bosses'); },
   won(mapId, diff) { this.bump('wins'); if (mapId) { this.bump('wins_' + mapId); this.best('clear_' + mapId, diff + 1); } this.save(); },
   // ---- maps
   medal(mapId) { return Math.min(3, S.stats['clear_' + mapId] || 0); },
@@ -298,7 +345,43 @@ export const Meta = {
   // ---- lookups
   howToUnlock(kind, name) { for (const M of MILESTONES) { const R = M.reward; if ((kind === 'skin' ? R.skin === name : (R[kind] || []).includes(name)) && M.how) return M.how; } return ''; },
   challengeDone(id) { const A = ACHIEVEMENTS.find((a) => a.id === id); return !!A && val(A.stat) >= A.need; },
-  cosUnlocked(slot, id) { const I = cosItem(slot, id); return unlockAll || !I.need || !!S.cos[slot + ':' + I.id]; },
+  // earned: a cosmetic whose goal is met (or one with no goal). Owned: earned and either free, in the starter kit, earned
+  // by a goal, or bought. Only what is owned can be worn.
+  cosEarned(slot, id) { const I = cosItem(slot, id); return unlockAll || !I.need || !!S.cos[slot + ':' + I.id]; },
+  cosPrice(slot, id) { const I = cosItem(slot, id); if (BODY_SLOTS.includes(slot) || I.need || (STARTER_COS[slot] || []).includes(I.id)) return 0; const k = COSMETICS[slot].indexOf(I); return (COS_BASE[slot] || 200) + 40 * (k % 4); },
+  cosOwned(slot, id) { const I = cosItem(slot, id); if (unlockAll || BODY_SLOTS.includes(slot) || (STARTER_COS[slot] || []).includes(I.id)) return true; if (I.need) return !!S.cos[slot + ':' + I.id]; return !!(S.owned && S.owned.cos[slot + ':' + I.id]); },
+  cosUnlocked(slot, id) { return this.cosOwned(slot, id); },
+  buyCos(slot, id) { const I = cosItem(slot, id), p = this.cosPrice(slot, id); if (this.cosOwned(slot, id) || I.need || !p || !this.spend(p)) return false; S.owned.cos[slot + ':' + I.id] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
+  // gold
+  gold() { return S.gold | 0; },
+  addGold(n, why = '') { n = Math.max(0, Math.round(n)); if (!n) return 0; S.gold = (S.gold | 0) + n; run.gold = (run.gold || 0) + n; if (why) (run.goldWhy = run.goldWhy || {})[why] = (run.goldWhy[why] || 0) + n; this.bump('goldEarned', n); dirty = true; return n; },
+  spend(n) { n = Math.round(n); if (n < 0 || (S.gold | 0) < n) return false; S.gold -= n; dirty = true; this.save(); return true; },
+  // the casino: a stake comes off when you bet and the winnings go on when it pays; both are saved at once
+  stake(n) { return this.spend(n); },
+  payout(n) { n = Math.max(0, Math.round(n)); if (n) { S.gold = (S.gold | 0) + n; dirty = true; this.save(); } },
+  // guns to start a run with
+  gunPrice(name) { const W = DATA.weapons.find((w) => w.name === name); return W ? GUN_PRICE[W.rarity] || 1000 : 0; },
+  ownsGun(name) { return unlockAll || name === 'Tin Star' || !!(S.owned && S.owned.guns[name]); },
+  gunState(name) { return this.ownsGun(name) ? 'owned' : this.gunLocked(name) ? 'locked' : 'buy'; },
+  buyGun(name) { if (this.gunState(name) !== 'buy' || !this.spend(this.gunPrice(name))) return false; S.owned.guns[name] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
+  ownedGuns() { return shopGuns().map((w) => w.name).filter((n) => this.ownsGun(n) && !this.gunLocked(n)); },
+  // the challenge board
+  board() { const key = dayKey(); if (!S.board || S.board.key !== key) S.board = { key, done: {} }; return boardFor(key).map((c) => Object.assign(c, { done: !!S.board.done[c.id] })); },
+  contract() { const id = S.contract; if (!id) return null; const c = this.board().find((q) => q.id === id); return c && !c.done ? c : null; },
+  takeContract(id) { S.contract = id || ''; dirty = true; this.save(); },
+  // what a contract asks of the run being started: the mode, map, difficulty and modifiers it fixes
+  contractRules() { const c = this.contract(); return c ? { mode: c.mode, map: c.map, diff: c.diff, muts: c.muts } : null; },
+  // a run was won: pay for it, and the contract's bonus if this was its run
+  runWon(mode, mapIndex, diff, muts) {
+    if (run.wonPaid) return run.contractPaid; run.wonPaid = true;
+    this.addGold(GOLD_RATES.win * (DIFF_GOLD[diff] || 1), 'won');
+    const c = run.contract; let paid = null;
+    if (c && !S.board.done[c.id] && c.mode === mode && c.diff === diff && (c.muts & muts) === c.muts && (c.mode !== 'survival' || c.map === mapIndex)) {
+      S.board.done[c.id] = 1; this.addGold(c.gold, 'contract'); S.stats.xp = (S.stats.xp || 0) + c.renown; run.xp += c.renown; paid = c; S.contract = ''; this.bump('contracts');
+    }
+    run.contractPaid = paid; dirty = true; this.check(); this.save(); return paid;
+  },
+
   look() {
     const L = {}, K = S.look || {};
     for (const s of SLOTS) { const id = K[s]; L[s] = id !== undefined && COSMETICS[s].some((I) => I.id === id) && this.cosUnlocked(s, id) ? id : DEFAULT_LOOK[s]; }
@@ -313,7 +396,7 @@ export const Meta = {
   setLooks(o) { const L = this.look(); delete L.shape; for (const k of SLOTS) if (o[k] !== undefined && this.cosUnlocked(k, o[k])) L[k] = cosItem(k, o[k]).id; S.look = L; dirty = true; this.save(); },
   lookStr() { return lookString(this.look()); },
   setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; const L = this.look(); delete L.shape; L[slot] = cosItem(slot, id).id; S.look = L; dirty = true; this.save(); },
-  starterUnlocked(w) { const T = STARTERS.find((t) => t.w === w); return !!T && (unlockAll || !T.rank || (this.rank() >= T.rank && !!S.claimed['r' + T.rank])); },
+  starterUnlocked(w) { return this.ownsGun(w) && !this.gunLocked(w) && DATA.weapons.some((q) => q.name === w && !q.cash); },
   starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
   cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },
   setCls(id) { S.cls = id; dirty = true; this.save(); },

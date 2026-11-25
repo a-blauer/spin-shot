@@ -135,6 +135,8 @@ export const MAPS = [
   { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down, drawn from forty: no two runs go the same way. Clear a room, fit what you found at its workbench, and go on down. A boss holds every fifth room.',
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
+      // the village: a warm late afternoon, blue overhead and a golden haze on the hills
+      if (zone === 'village') { P.sky = C(0x5c9ad6); P.fog = C(0xf0d4a8); P.fogStart = 2600; P.fogDensity = 0.000055; P.fogMax = 0.78; P.sun = sun(-0.55, -0.45, 0.62); P.lit.set(1.1, 1.03, 0.9, 1.06); P.shadow.set(0.6, 0.62, 0.8, 0.86); P.sprite.setRGB(1.04, 1.0, 0.94); return P; }
       const z = typeof zone === 'number' ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, 7][(z - N_ROOMS) % 2] : z] || THEMES[0];
       P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
       P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);

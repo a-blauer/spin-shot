@@ -250,6 +250,7 @@ export class Hud {
     if (mode === 'title' || !game || !game.player) return;
     const P = game.player;
 
+    if (game.village && game.village.on) { this.drawVillage(game, P, W, H, S, dt, mode); return; }
     this.drawVignette(game, P);
     if (!P.dead) this.drawCornerShade(W, H, S);
     if (game.vm.scoped && !P.dead) this.drawScope(W, H, S);
@@ -283,6 +284,33 @@ export class Hud {
     else if (game.victory) this.drawVictory(game, P, W, H, S);
     if (mode === 'paused' && !P.dead) { this.g.fillStyle = 'rgba(10,6,10,0.62)'; this.g.fillRect(0, 0, W, H); }
     if (this.showFps) this.text(`${this.fps.toFixed(0)} fps`, W - 12 * S, 28 * S, 22 * S, '#9f9', 'right');
+  }
+
+  // ---- the village: no fight here. Where you are, your purse, the contract you have taken, a dot to aim with and the
+  // prompt for whatever you are standing at
+  drawVillage(game, P, W, H, S, dt, mode) {
+    const g = this.g, busy = mode === 'craft' || mode === 'paused';
+    if (this.needMouse) { g.fillStyle = 'rgba(20,10,16,0.75)'; g.fillRect(W / 2 - 250 * S, H * 0.62, 500 * S, 54 * S); this.text('CLICK TO LOOK AROUND', W / 2, H * 0.62 + 36 * S, 26 * S, '#ffcd5a', 'center', F_BIG, 400, 0.1); }
+    if (game.net && game.net.active) this.drawTeam(game, W, H, S);
+    if (!busy) {
+      this.text('THIMBLEWICK', 40 * S, 58 * S, 34 * S, BONE, 'left', F_BIG, 400, 0.14, 0.9);
+      this.text('the village above the Descent', 40 * S, 84 * S, 17 * S, 'rgba(242,232,213,0.6)', 'left', F_TXT, 700, 0.04);
+      // the purse
+      const gold = Meta.gold().toLocaleString(), w = Math.max(190 * S, (gold.length * 22 + 110) * S), x = W - 40 * S - w;
+      this.panel(x, 30 * S, w, 64 * S, 'rgba(255,205,90,0.55)', 'rgba(20,12,8,0.72)', 12 * S);
+      g.fillStyle = '#ffcd5a'; g.beginPath(); g.arc(x + 36 * S, 62 * S, 15 * S, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8962a'; g.beginPath(); g.arc(x + 36 * S, 62 * S, 9 * S, 0, Math.PI * 2); g.fill();
+      this.text(gold, x + w - 20 * S, 75 * S, 38 * S, '#ffcd5a', 'right', F_BIG, 400, 0.06);
+      const c = Meta.contract();
+      if (c) this.text(`CONTRACT: ${c.title.toUpperCase()}`, W - 40 * S, 122 * S, 17 * S, '#9fe0ff', 'right', F_TXT, 700, 0.1);
+      // a small dot in the middle
+      g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.arc(W / 2, H / 2, 3 * S, 0, Math.PI * 2); g.fill();
+      this.drawPrompt(game, P, W, H, S);
+      this.text('WASD walk   SPACE jump   SHIFT dash   E use   ESC menu', W / 2, H - 30 * S, 16 * S, 'rgba(242,232,213,0.55)', 'center', F_TXT, 700, 0.14);
+    }
+    this.drawTip(dt, W, H, S, busy);
+    this.drawBanners(dt, W, H, S, busy, busy);
+    this.drawToasts(dt, W, H, S, busy);
+    if (mode === 'paused') { g.fillStyle = 'rgba(10,6,10,0.62)'; g.fillRect(0, 0, W, H); }
   }
 
   drawVignette(game, P) {
@@ -1183,7 +1211,7 @@ export class Hud {
     this.drawRenown(W, S, cy + 250 * S, a);
     if (t > 2) {
       g.globalAlpha = 0.6 + 0.4 * Math.sin(this.time * 4);
-      this.hints('[Enter] Restart', W / 2, cy + 388 * S, 24 * S);
+      this.hints('[Enter] Back to the village', W / 2, cy + 388 * S, 24 * S);
       g.globalAlpha = 1;
     }
   }
@@ -1191,7 +1219,8 @@ export class Hud {
   drawRenown(W, S, y, a = 1) {
     const g = this.g, R = Meta.runSummary(), I = R.info, bw = 520 * S, x0 = W / 2 - bw / 2;
     const up = I.rank > R.rank0;
-    this.text(`RENOWN  +${R.xp.toLocaleString()}`, W / 2, y, 30 * S, GOLD, 'center', F_BIG, 400, 0.1, a);
+    this.text(`RENOWN  +${R.xp.toLocaleString()}      GOLD  +${(R.gold || 0).toLocaleString()}`, W / 2, y, 30 * S, GOLD, 'center', F_BIG, 400, 0.1, a);
+    if (R.contract) this.text(`CONTRACT PAID: ${R.contract.title.toUpperCase()}  (+${R.contract.gold.toLocaleString()} gold, +${R.contract.renown.toLocaleString()} renown)`, W / 2, y - 34 * S, 19 * S, '#9fe0ff', 'center', F_TXT, 700, 0.1, a);
     this.text(`RANK ${I.rank}  -  ${I.name.toUpperCase()}`, x0, y + 34 * S, 19 * S, up ? '#7dff8a' : BONE, 'left', F_BIG, 400, 0.1, a);
     this.text(I.max ? 'TOP RANK' : `${I.into.toLocaleString()} / ${I.span.toLocaleString()}`, x0 + bw, y + 34 * S, 17 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.1, a);
     g.globalAlpha = a; g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x0, y + 44 * S, bw, 10 * S); g.fillStyle = up ? '#7dff8a' : '#ffcd5a'; g.fillRect(x0, y + 44 * S, bw * (I.max ? 1 : clamp(I.into / Math.max(1, I.span), 0, 1)), 10 * S); g.globalAlpha = 1;
@@ -1212,7 +1241,7 @@ export class Hud {
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });
     this.drawRenown(W, S, cy + 250 * S, 1);
-    this.hints('[Enter] Back to the menu', W / 2, cy + 388 * S, 24 * S);
+    this.hints('[Enter] Back to the village', W / 2, cy + 388 * S, 24 * S);
   }
   // The Descent, won: who carried it, and which gun was marked for it
   drawDescentWon(game, P, W, H, S) {
@@ -1243,7 +1272,7 @@ export class Hud {
     const nd = MACHINES.filter((d) => machine(d.id)).length; ty += 50 * S;
     this.text(`MACHINES  ${nd} / ${MACHINES.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
     const nx = MACHINES.find((d) => !machine(d.id)); if (nx) this.text(`Next: ${nx.name}  -  rank ${Meta.machineRank(nx.id)}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
-    this.hints('[Enter] Back to the menu', W / 2, ty + 78 * S, 24 * S);
+    this.hints('[Enter] Back to the village', W / 2, ty + 78 * S, 24 * S);
   }
   drawPaused(W, H, S) {
     const g = this.g;

@@ -3,7 +3,7 @@
 // are told the room, what it paid and what the doors offer, and build the same things on their own side.
 import * as THREE from 'three';
 import { buildPortal, tickPortal, W as PW, SPRING as PSPRING, PORTAL_Y } from './portal.js';
-import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, DIFFS } from './data.js';
+import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, mutators, DIFFS } from './data.js';
 import { machine, ASC } from './deeds.js';
 import { sigOf } from './signatures.js';
 import { V, R } from './mapkit.js';
@@ -47,6 +47,7 @@ export class Descent {
   tick(dt) {
     const g = this.g;
     this.tickFx(dt);
+    if (g.phase === 'Village') return;   // up in the village: nothing happens down here until the run starts
     if (!this.host) return;
     this.contain(dt);
     if (this.cleared && this.rdy.size) { const N = this.need(); this.rdyN = [N.filter((k) => this.rdy.has(k)).length, N.length]; if (N.length && this.rdyN[0] >= N.length) { this.next(); return; } } else this.rdyN = [0, this.need().length];
@@ -93,7 +94,7 @@ export class Descent {
     const RAR = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'], want = (room < 6 ? [0, 1] : room < 11 ? [1, 2] : room < 16 ? [2, 3] : [3, 4]).map((k) => RAR[k]);
     const pool = DATA.weapons.map((w, i) => i).filter((i) => i > 0 && !DATA.weapons[i].cash), pick = [];   // nothing that runs on money: there is none down here
     for (let k = 0; k < 2; k++) { const L = pool.filter((i) => !pick.includes(i) && want.includes(DATA.weapons[i].rarity)), L2 = L.length ? L : pool.filter((i) => !pick.includes(i)); pick.push(L2[randInt(0, L2.length - 1)]); }
-    this.guns = pick; this.tier = Math.min(3, chestTier(room) + (boss ? 1 : 0));
+    this.guns = pick; this.tier = Math.min(3, chestTier(room) + (boss ? 1 : 0) + (machine('showcase') && Math.random() < 0.5 ? 1 : 0));   // the Showcase: half the time, the chest is a grade better
     this.arrive(true);
     if (g.net.role === 'host' && g.player.dead) g.player.revive();
   }
@@ -152,8 +153,7 @@ export class Descent {
   open() {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 0, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
-    { const P = g.player; P.boxRolls = 1; P.fortuneUsed = {}; }   // the box is free once a room; the Fortune Teller rerolls each buff once a room
-    g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 0, -1, 'Mystery Box');
+    { const P = g.player; P.fortuneUsed = {}; }   // the Fortune Teller rerolls each buff once a room (guns to start with are bought in the village now: no box down here)
     // the Compressor stands by the workbench every third room
     if (machine('compressor') && this.room % 3 === 0) {
       const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
@@ -245,7 +245,7 @@ export class Descent {
     const W = L.find((q) => q.share >= 0.1 && !Meta.ascHas(q.name, df));
     if (W) { Meta.ascend(W.name, df); res.asc = W.name; res.level = Meta.asc(W.name); }
     else if (L.length) res.already = true;
-    this.progress(); Meta.save();
+    this.progress(); Meta.runWon('descent', this.g.mapId, df, mutators()); Meta.save();
   }
 
   // ------------------------------------------------------------------ co-op

@@ -59,3 +59,11 @@
 - Turret: turret.js turretBody()/dressTurret()/turretModel() shared by the shoulder turret and the workbench (craft.js shows it at x2.4). The old barrels were flat discs (cylinder scaled on the wrong axis).
 - Square on barrels: the Distillery wash tubs had a full-bright box (meshId 0) as liquid, wider than the round tub. Now round discs. Audit: world.js logs every piece in ?scan=1 (scanAll); /tmp/sq*.json finds flat boxes on round tops. Only other hit: wharf relic cap (now an Oct). Frost turntable deck overhang is intended.
 - Portals: portal.js (arch, whirl shader, floor runes, motes, open-out). Stands PORTAL_Y in front of the room's doorway; pillars and crown are solid (I.solids, cleared in wipe).
+
+## (19) Thimblewick: the village lobby
+- PLAY puts you in Thimblewick, a playable village built as chunk VILLAGE_IDX (= N_ROOMS+2) of the Descent map (map_village.js, shapes in village_shapes.js). Runtime: village.js (Village: enter/leave/tick, NPCs via buildCharacter, Quest interactables that call game.onVillage(kind)). Palette zone 'village' in maps.js; env.noSky off in the village. game.step strips combat input while village.on; Descent.tick idles in phase 'Village'.
+- Windows: village_ui.js (#vpanel, scoped CSS) for shop / board / slots / roulette / blackjack / dice; the Way Down reuses #lobby (renderLobby: contract fixes mode/diff/muts, starting gun = owned guns); the wardrobe is #locker showing owned items only.
+- Economy (meta.js): S.gold (start 300), S.owned {guns, cos}. Gold per room 12 / round 8 / boss 40 / final 150 / win 250, x[1,1.5,2] by difficulty. Gun prices by rarity; cosmetics: BODY_SLOTS free, STARTER_COS free, need-gated earned free, rest priced. Contracts: boardFor(dayKey) six a day; runWon() pays once (idempotent per run).
+- Casino edges: slots RTP 96.96% (REEL weights 7/6/5/4/3/2/1, PAY3/PAY2), roulette single zero, dice 0.98/p, blackjack 3:2, S17, no split.
+- Descent: no Mystery Box; The Showcase machine now = half the time the room chest is a grade better. restartRun() goes home to the village (keeps the party); restartRun('title') quits. Net presence 'run' flag drives hostStarted(); onState ignored while in the village.
+- /tmp/mach.json's box step is obsolete (no box in the Descent).

@@ -2,6 +2,7 @@
 // room you are in, take what it pays, and pick the next door by what is behind it. Every fifth room is a boss's.
 // All twenty are built once, far apart on one grid, and the run moves the players between them.
 import { V, V2, R } from './mapkit.js';
+import { buildVillage, VSIZE } from './map_village.js';
 import { craftRoom, craftBoss, ROOM_DIMS, BOSS_DIMS, EXTRA } from './descent_rooms.js';
 import * as SH from './descent_shapes.js';
 
@@ -29,6 +30,7 @@ const SP = 13200, COLS = 7;
 export const N_ROOMS = ROOM_DIMS.length;
 // filled in as the arenas are built: { c: [x, y], hx, hy, H, zone, theme, boss, plinths }
 export const ARENAS = [];
+export const VILLAGE_IDX = N_ROOMS + 2;   // the village's chunk, after the rooms and the two boss arenas
 // Where things stand in a room, given which end you came in by (s = 1: in at the south, out at the north; -1 the other way).
 export function spots(A, s) {
   const [cx, cy] = A.c, hy = A.hy, hx = A.hx;
@@ -299,5 +301,12 @@ export function buildDescent(M) {
   };
   ARENAS.length = 0;
   for (let i = 0; i < N_ROOMS + 2; i++) one(i, (i % COLS) * SP, Math.floor(i / COLS) * SP, i >= N_ROOMS);
+  // the village, past the last row of rooms: its own chunk, open to the sky
+  { const VI = VILLAGE_IDX, vc = [3 * SP, rowsN * SP + 2600];
+    M.world.chunk = VI; M.world.recordProps = true;
+    const zone = AddZone('Thimblewick', V2(vc[0] - VSIZE, vc[1] - VSIZE), V2(vc[0] + VSIZE, vc[1] + VSIZE), false); GM.zones[zone].group = 'village';
+    buildVillage(M, vc[0], vc[1]);
+    ARENAS[VI] = { c: vc, hx: VSIZE, hy: VSIZE, H: 1e6, zone, village: true, theme: 0, boss: false, plinths: [], spawns: 0 };
+    M.world.solidify(VI); M.world.chunk = null; }
   const S0 = spots(ARENAS[0], 1); M.Spawn(V(S0.spawn[0], S0.spawn[1], 100));
 }

@@ -51,18 +51,19 @@ export class Audio {
     const kick = (t) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.2); };
     const hat = (t, v) => { const s = ctx.createBufferSource(), g = ctx.createGain(), hp = ctx.createBiquadFilter(); s.buffer = noise; hp.type = 'highpass'; hp.frequency.value = 6000; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); s.connect(hp); hp.connect(g); g.connect(out); s.start(t); s.stop(t + 0.06); };
     const hz = (n) => 55 * Math.pow(2, n / 12);
-    const prog = { calm: [0, 0, 5, 7], fight: [0, 0, 5, 7], boss: [0, 1, 0, 6], casino: [3, 8, 5, 10] };   // roots, semitones above A
+    const prog = { calm: [0, 0, 5, 7], fight: [0, 0, 5, 7], boss: [0, 1, 0, 6], casino: [3, 8, 5, 10], village: [3, 10, 8, 10] };   // roots, semitones above A (the village sits in C major)
     const arp = [0, 7, 12, 15, 12, 7, 19, 15];
     let step = 0, next = 0;
     this._mus = setInterval(() => {
       if (ctx.state !== 'running') return;
       if (next < ctx.currentTime) next = ctx.currentTime + 0.05;
       while (next < ctx.currentTime + 0.25) {
-        const m = this.musicMode, bpm = m === 'boss' ? 132 : m === 'fight' ? 116 : m === 'casino' ? 104 : 84, sd = 60 / bpm / 4;
+        const m = this.musicMode, bpm = m === 'boss' ? 132 : m === 'fight' ? 116 : m === 'casino' ? 104 : m === 'village' ? 92 : 84, sd = 60 / bpm / 4;
         if (m && m !== 'off') {
-          const bar = Math.floor(step / 16) % 4, s = step % 16, root = (prog[m] || prog.calm)[bar], major = m === 'casino';
-          if (s % 8 === 0 || (m !== 'calm' && s % 8 === 6)) tone(next, hz(root), sd * 3.5, 'sawtooth', 0.16, 320);
-          if (m !== 'calm' ? s % 2 === 0 : s % 4 === 0) { let n = arp[(s / 2) % 8 | 0]; if (major && n === 15) n = 16; tone(next, hz(root + 24 + n), sd * 1.6, 'triangle', m === 'calm' ? 0.05 : 0.07, 2400); }
+          const bar = Math.floor(step / 16) % 4, s = step % 16, root = (prog[m] || prog.calm)[bar], major = m === 'casino' || m === 'village';
+          if (m === 'village') { if (s % 8 === 0) tone(next, hz(root + 12), sd * 6, 'triangle', 0.12, 900); if (s % 2 === 0) { const vn = [0, 4, 7, 12, 7, 4, 9, 7][(s / 2) % 8 | 0]; tone(next, hz(root + 24 + vn), sd * 2.4, 'triangle', s % 4 ? 0.035 : 0.05, 2000); } if (s === 6 || s === 14) hat(next, 0.025); }
+          else if (s % 8 === 0 || (m !== 'calm' && s % 8 === 6)) tone(next, hz(root), sd * 3.5, 'sawtooth', 0.16, 320);
+          if (m !== 'village' && (m !== 'calm' ? s % 2 === 0 : s % 4 === 0)) { let n = arp[(s / 2) % 8 | 0]; if (major && n === 15) n = 16; tone(next, hz(root + 24 + n), sd * 1.6, 'triangle', m === 'calm' ? 0.05 : 0.07, 2400); }
           if (m === 'fight' || m === 'boss') { if (s % 4 === 0 || (m === 'boss' && s === 14)) kick(next); if (s % 2 === 1) hat(next, 0.05); if (s === 4 || s === 12) hat(next, 0.14); }
           if (m === 'casino' && (s % 4 === 2)) hat(next, 0.06);
         }

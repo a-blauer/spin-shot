@@ -6,6 +6,7 @@ import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText, PAGES, SHAPES, bodyStatLines, DEFAULT_SHAPE, FACE_PRESETS, parseLook } from './cosmetics.js';
 import { Net } from './net.js';
+import { makeVillageUI } from './village_ui.js';
 import { makeCraft } from './craft.js';
 import * as THREE from 'three';
 import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
@@ -16,7 +17,7 @@ import { Hud } from './hud.js';
 import { Game } from './game.js';
 import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
 import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg } from './cores.js';
-import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES } from './meta.js';
+import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES, shopGuns } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
 const params = new URLSearchParams(location.search);
@@ -407,7 +408,7 @@ function lockerStats() {
 }
 function renderLocker() {
   const [have, total] = Meta.cosCount(), look = Meta.look(), sh = look.shape;
-  let h = `<div class="ph"><h2>CHARACTER</h2><span class="lcount">${have} / ${total} pieces unlocked</span><button id="lrand" class="alt">RANDOM LOOK</button><button id="lclose">DONE</button></div><div class="lwrap"><div class="lleft"><canvas id="lcanvas" width="${LW}" height="${LH}"></canvas><div class="lhint">Drag to turn</div><div class="lstats"><h4>WHAT THIS BODY DOES</h4><div id="lstats"></div></div></div><div class="lside"><div class="ltabs">`;
+  let h = `<div class="ph"><h2>WARDROBE</h2><span class="lcount">${have} of ${total} pieces owned  -  Mossbottom sells the rest</span><button id="lrand" class="alt">RANDOM LOOK</button><button id="lclose">DONE</button></div><div class="lwrap"><div class="lleft"><canvas id="lcanvas" width="${LW}" height="${LH}"></canvas><div class="lhint">Drag to turn</div><div class="lstats"><h4>WHAT THIS BODY DOES</h4><div id="lstats"></div></div></div><div class="lside"><div class="ltabs">`;
   for (const P of PAGES) h += `<button class="ltab ${P.id === lockPage ? 'on' : ''}" data-page="${P.id}">${P.name}</button>`;
   h += '</div><div class="lscroll">';
   const page = PAGES.find((P) => P.id === lockPage) || PAGES[0];
@@ -417,7 +418,8 @@ function renderLocker() {
     const cur = look[slot];
     h += `<div class="lsec"><h3>${SLOT_NAMES[slot]}</h3><div class="lgrid${COSMETICS[slot].every((I) => I.c !== undefined && I.a === undefined) ? ' sw' : ''}">`;
     for (const I of COSMETICS[slot]) {
-      const ok = Meta.cosUnlocked(slot, I.id), c1 = I.c ?? I.a, c2 = I.b ?? I.c ?? I.a;
+      if (!Meta.cosOwned(slot, I.id)) continue;   // the wardrobe holds what you own; the shop shows the rest
+      const ok = true, c1 = I.c ?? I.a, c2 = I.b ?? I.c ?? I.a;
       h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''}" data-slot="${slot}" data-id="${I.id}"><div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx6(c1)}"></i><i style="background:${hx6(c2)}"></i>`}</div><b>${I.name}</b>${ok ? '' : `<span>${needText(I)}</span>`}</div>`;
     }
     h += '</div></div>';
@@ -430,7 +432,7 @@ function renderLocker() {
   locker.innerHTML = h;
   { const sc = locker.querySelector('.lscroll'); if (sc) sc.scrollTop = top0; }
   lockerStats();
-  locker.querySelector('#lclose').onclick = (e) => { e.stopPropagation(); locker.style.display = 'none'; Net.refreshPresence(); if (game && game.round === 0) game.player.setBody(Meta.look()); renderLobby(); };
+  locker.querySelector('#lclose').onclick = (e) => { e.stopPropagation(); locker.style.display = 'none'; Net.refreshPresence(); if (game && game.round === 0) game.player.setBody(Meta.look()); renderLobby(); if (vmode === 'wardrobe') { vmode = ''; panelOut(); } };
   locker.querySelectorAll('.ltab').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); lockPage = el.dataset.page; const sc = locker.querySelector('.lscroll'); if (sc) sc.scrollTop = 0; renderLocker(); }; });
   locker.querySelectorAll('.litem').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; if (el.dataset.face !== undefined) Meta.setLooks(FACE_PRESETS[+el.dataset.face].set); else Meta.setLook(el.dataset.slot, el.dataset.id); lockerRebuild(); renderLocker(); }; });
   locker.querySelectorAll('input[data-shape]').forEach((el) => {
@@ -624,7 +626,7 @@ const esc2 = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&
 function myName() { let v = 'Player'; try { v = localStorage.getItem('dmh-name') || 'Player'; } catch (e) { /* private mode */ } return v; }
 function openLobby() { title.style.display = 'none'; lobby.style.display = 'block'; lobbyMsg = ''; renderLobby(); }
 const lobbyInfo = {};   // why a locked choice is locked, shown on the line under its group after you click it
-function closeLobby() { if (Net.active) Net.leave(); lobby.style.display = 'none'; title.style.display = 'flex'; progBadge(); }
+function closeLobby() { lobby.style.display = 'none'; if (vmode === 'gate') { vmode = ''; panelOut(); } else { if (Net.active) Net.leave(); title.style.display = 'flex'; progBadge(); } }
 function renderLobby() {
   if (lobby.style.display !== 'block') return;
   const nmEl = lobby.querySelector('#lname'), cdEl = lobby.querySelector('#lcode'), focus = document.activeElement && document.activeElement.id;
@@ -636,7 +638,7 @@ function renderLobby() {
   const chip = (attr, sel, locked, name, sub, extra = '') => `<div class="lbpick chip ${sel ? 'sel' : ''} ${locked ? 'locked' : ''}" ${attr} ${extra}><b>${name}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
   const group = (label, body, detail, note = '') => `<div class="lbg"><div class="lbgl">${label}${note ? `<i>${note}</i>` : ''}</div><div class="lbgc"><div class="chips">${body}</div>${detail ? `<div class="lbdesc">${detail}</div>` : ''}</div></div>`;
   const info = (k) => (lobbyInfo[k] ? `<span class="warn">${esc2(lobbyInfo[k])}</span>` : '');
-  let h = `<div class="lbh"><h2>LOBBY</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK</button></div><div class="lbwrap"><aside>`;
+  let h = `<div class="lbh"><h2>THE WAY DOWN</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK TO THE VILLAGE</button></div><div class="lbwrap"><aside>`;
   // party
   h += '<section><h3>PARTY</h3><canvas id="lbline" width="536" height="400"></canvas>';
   const list = Net.active ? Net.lobbyList() : [{ name: nameV, host: true, me: true }];
@@ -648,13 +650,10 @@ function renderLobby() {
   } else if (hosting) h += `<div class="lbcode"><span>LOBBY CODE</span><b>${esc2(Net.code)}</b></div><p class="dim">Friends pick PLAY, type this code and press JOIN.</p><button id="lbleave" class="wide alt">CLOSE LOBBY</button>`;
   else h += `<div class="lbcode"><span>LOBBY CODE</span><b>${esc2(Net.code)}</b></div><button id="lbleave" class="wide alt">LEAVE LOBBY</button>`;
   h += `<p class="msg">${esc2(lobbyMsg)}</p></section>`;
-  // character
-  { const BL = bodyStatLines(L), bl = [...BL.arms, ...BL.legs, ...BL.weight];
-    h += `<section><h3>CHARACTER</h3><div class="lbchar">${['hat', 'beard', 'nose', 'outfit'].map((sl) => `<div><span>${SLOT_NAMES[sl]}</span><b>${esc2(COSMETICS[sl].find((I) => I.id === L[sl]).name)}</b></div>`).join('')}</div><div class="lbbody">${bl.length ? bl.map(([t, ok]) => `<span class="${ok ? 'up' : 'dn'}">${t}</span>`).join('') : '<span>An ordinary build.</span>'}</div><button id="lbcustom" class="wide">CUSTOMIZE</button></section>`; }
   h += '</aside><main>';
-  const daily = !client && Meta.dailyOn();
-  const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : (MAPS[Meta.map()] ? Meta.map() : Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')));
-  const curDf = client ? difficulty() : Meta.difficulty(), ups = game ? game.data.upgrades : [];
+  const Kr = client ? null : Meta.contractRules(), Kc = client ? null : Meta.contract(), daily = !!Kr, dsc0 = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));   // a contract sets the run
+  const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : Kr ? (Kr.mode === 'descent' ? dsc0 : Kr.map) : (MAPS[Meta.map()] ? Meta.map() : Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')));
+  const curDf = client ? difficulty() : Kr ? Kr.diff : Meta.difficulty(), ups = game ? game.data.upgrades : [];
   // the run
   h += '<section><h3>THE RUN</h3>';
   if (client) {
@@ -663,10 +662,10 @@ function renderLobby() {
   } else {
     const dsc = MAPS.findIndex((M) => M.mode === 'descent'), isD = curMap === dsc; if (!isD) window.__survMap = curMap;
     h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'side mode: one map, endless rounds'),
-      isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by today’s challenge' : '');
+      isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by your contract' : '');
     if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
-      `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by today’s challenge' : '');
-    h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by today’s challenge' : '');
+      `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by your contract' : '');
+    h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by your contract' : '');
   }
   h += '</section>';
   // you
@@ -675,7 +674,7 @@ function renderLobby() {
     h += group('CLASS', CLASSES.map((K) => { const l = Meta.clsLevel(K.id); return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, l ? CLASS_LEVEL_NAMES[l - 1] : 'Novice'); }).join(''),
       `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`); }
   { const curW = Meta.starter();
-    h += group('STARTING GUN', STARTERS.map((T) => { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; return chip(`data-w="${esc2(T.w)}"`, curW === T.w, !ok, esc2(T.w), ok ? (W ? W.cls : '') : 'Locked', `data-why="${esc2(Meta.stateOf(T.key) === 'ready' ? 'Earned: claim it in Progress.' : T.text)}" data-grp="w"`); }).join(''), info('w')); }
+    { const own = Meta.ownedGuns(); h += group('STARTING GUN', own.map((n) => { const W = game ? game.data.weapons.find((w) => w.name === n) : null; return chip(`data-w="${esc2(n)}"`, curW === n, false, esc2(n), W ? `<em style="color:${RARITY_HEX[W.rarity] || '#ccc'}">${W.rarity}</em> ${W.cls || ''}` : ''); }).join(''), `${own.length} gun${own.length === 1 ? '' : 's'} of ${shopGuns().length}. Buy more at Bramble &amp; Bolt in the square, for gold.`); } }
   h += '</section>';
   // the Descent's own progression: what going down has earned, and what you take with you
   if (MAPS[curMap] && MAPS[curMap].mode === 'descent') {
@@ -688,19 +687,15 @@ function renderLobby() {
       asc.length ? `An ascended gun can go down with you from the first room. <span class="dim2">${marks} mark${marks === 1 ? '' : 's'} on ${asc.length} gun${asc.length === 1 ? '' : 's'}. ${ROMAN[2]} lets you choose its temper and ${ROMAN[3]} its element, both at any workbench.</span>` : 'Finish a Descent and the gun that did the most damage ascends. A gun can ascend once on each difficulty, three times in all: I, it can start runs with you; II, you choose its temper; III, you bind it to an element.', asc.length ? '' : 'none ascended yet');
     h += '</section>';
   }
-  // stakes
+  // the contract, if one was taken at the challenge board
   if (!client) {
-    const mu = Meta.mutators(), T = Meta.today(), B = Meta.dailyBest(), bonus = Math.round((MUTATORS.reduce((a, M, i) => a + ((mu >> i) & 1 ? M.xp : 0), 0) + (daily ? 0.5 : 0)) * 100);
-    const onM = MUTATORS.filter((M, i) => (mu >> i) & 1);
-    h += '<section><h3>STAKES</h3>';
-    h += group('MODIFIERS', MUTATORS.map((M, i) => chip(`data-mu="${i}"`, (mu >> i) & 1, daily, M.name, `+${Math.round(M.xp * 100)}%`)).join(''),
-      onM.length ? onM.map((M) => `<b>${M.name}:</b> ${M.desc}`).join(' &nbsp; ') : 'Optional handicaps. Each one you switch on pays more renown.', daily ? 'set by today’s challenge' : '');
-    h += group('TODAY', chip('data-daily="1"', daily, false, `${esc2(MAPS[T.map] ? MAPS[T.map].name : '')}  -  Hard`, esc2(T.names.join(' + '))),
-      `The same run for everyone today; it changes at midnight UTC. Pays +50% renown on top. <span class="dim2">${B.won ? 'Beaten today.' : B.best ? `Your best today: round ${B.best}.` : 'Not tried today.'} ${Meta.dailyWins()} beaten in all.</span>`);
+    h += '<section><h3>CONTRACT</h3>';
+    if (Kc) { const mods = MUTATORS.filter((M, i) => (Kc.muts >> i) & 1); h += group(esc2(Kc.title.toUpperCase()), mods.map((M) => chip('', true, true, M.name, '')).join('') + chip('data-drop="1"', false, false, 'Drop it', 'play a plain run'), `${esc2(Kc.flavor)} <span class="dim2">${mods.map((M) => `${M.name}: ${M.desc}`).join(' ')} Win it for <b class="gold">${Kc.gold.toLocaleString()} gold</b> and <b class="gold">${Kc.renown.toLocaleString()} renown</b> on top of the run's pay.</span>`); }
+    else h += group('NONE TAKEN', chip('', true, false, 'A plain run', 'no modifiers'), 'The challenge board in the square posts six contracts a day: runs with set rules that pay bonus gold and renown when won.');
     h += '</section>';
     const W0 = Meta.starter(), C0 = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0];
-    h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span><span>${C0.name}</span><span>${esc2(W0)}</span>${bonus ? `<span class="gold">+${bonus}% renown</span>` : ''}</div><button id="lbstart" class="lbstart">${daily ? 'START TODAY’S CHALLENGE' : 'START GAME'}</button></div>`;
-  } else h += '</main></div><div class="lbfoot"><div class="lbstart wait">WAITING FOR THE HOST TO START</div></div>';
+    h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span><span>${C0.name}</span><span>${esc2(W0)}</span>${Kc ? `<span class="gold">contract: +${Kc.gold.toLocaleString()} gold</span>` : ''}</div><button id="lbstart" class="lbstart">${Kc ? 'GO DOWN ON CONTRACT' : 'GO DOWN'}</button></div>`;
+  } else h += '</main></div><div class="lbfoot"><div class="lbstart wait">THE HOST CHOOSES THE RUN AND STARTS IT</div></div>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
   q('#lbback').onclick = (e) => { e.stopPropagation(); closeLobby(); };
@@ -710,7 +705,8 @@ function renderLobby() {
   if (q('#lbinvite')) q('#lbinvite').onclick = async (e) => { e.stopPropagation(); if (lobbyBusy) return; lobbyBusy = true; lobbyMsg = 'Opening your lobby...'; const n = saveName(); renderLobby(); try { await Net.host(n); lobbyMsg = ''; } catch (err) { lobbyMsg = 'Could not open a lobby right now.'; } lobbyBusy = false; renderLobby(); };
   if (q('#lbjoin')) q('#lbjoin').onclick = async (e) => { e.stopPropagation(); if (lobbyBusy) return; lobbyBusy = true; const n = saveName(), code = q('#lcode').value; lobbyMsg = 'Joining...'; renderLobby(); try { await Net.join(code, n); lobbyMsg = ''; } catch (err) { lobbyMsg = err && err.message === 'code' ? 'Enter the lobby code your friend sees.' : 'No lobby found with that code.'; } lobbyBusy = false; renderLobby(); };
   if (q('#lbleave')) q('#lbleave').onclick = (e) => { e.stopPropagation(); Net.leave(); lobbyMsg = ''; renderLobby(); };
-  q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
+  if (q('#lbcustom')) q('#lbcustom').onclick = (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); };
+  lobby.querySelectorAll('.lbpick[data-drop]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.takeContract(''); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-cls]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCls(el.dataset.cls); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-map]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setMap(+el.dataset.map); Net.setMap(+el.dataset.map); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick.locked[data-why]').forEach((el) => { el.addEventListener('click', (e) => { e.stopPropagation(); lobbyInfo[el.dataset.grp] = `${el.querySelector('b').textContent}: ${el.dataset.why}`; renderLobby(); }, true); });
@@ -726,9 +722,13 @@ let beginning = false;
 async function beginRun() {
   if (beginning) return;
   // the map is chosen in the lobby (the host's choice in co-op); if it is not the one standing, build it now
-  const hm = Net.role === 'client' ? Net.hostMap() : Meta.map(), want = MAPS[hm] ? hm : game.mapId;
+  const K = Net.role !== 'client' ? Meta.contractRules() : null, DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));
+  const hm = Net.role === 'client' ? Net.hostMap() : K ? (K.mode === 'descent' ? DSC : K.map) : Meta.map(), want = MAPS[hm] ? hm : DSC;
+  vui.close(); vmode = ''; if (game.village) game.village.leave();
   if (want !== game.mapId && game.round === 0) { beginning = true; lobby.style.display = 'none'; await rebuildGame(want); beginning = false; }
-  if (Net.role !== 'client') { setDifficulty(Meta.difficulty()); setMutators(Meta.mutators(), Meta.dailyOn()); }
+  if (Net.role !== 'client') { setDifficulty(K ? K.diff : Meta.difficulty()); setMutators(K ? K.muts : 0, 0); }
+  // the Descent: through the Way Down and straight into the first room (a guest follows the host down)
+  if (game.descent && (game.phase === 'Village' || game.phase === 'PreGame') && Net.role !== 'client') { game.phase = 'PreGame'; game.phaseTimer = 0.01; }
   if (game.round === 0) { game.player.setBody(Meta.look()); game.player.setClass(Meta.cls()); }
   lobby.style.display = 'none'; locker.style.display = 'none';
   // apply the chosen starting weapon to a fresh run
@@ -796,7 +796,7 @@ function tickLobby(dt) {
 }
 lobby.addEventListener('click', (e) => e.stopPropagation());
 Net.init().then(() => { Net.tried = true; });
-document.getElementById('playbtn').addEventListener('click', (e) => { e.stopPropagation(); if (game) openLobby(); });
+document.getElementById('playbtn').addEventListener('click', (e) => { e.stopPropagation(); if (game) goVillage(); });
 document.getElementById('setbtn').addEventListener('click', (e) => { e.stopPropagation(); pauseEl.classList.add('menu'); pauseEl.querySelector('h2').textContent = 'SETTINGS'; pauseEl.querySelector('#presume').textContent = 'DONE'; pauseEl.style.display = 'flex'; });
 document.getElementById('charbtn').addEventListener('click', (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); });   // the same character screen the lobby opens
 document.getElementById('progbtn').addEventListener('click', (e) => { e.stopPropagation(); if (Meta.claimable().length) progTab = tabOf(Meta.claimable()[0].key); renderProgress(); prog.style.display = 'block'; prog.scrollTop = 0; });
@@ -847,7 +847,7 @@ const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', '
 const SET_GROUPS = [['CONTROLS', ['sens', 'fov']], ['AUDIO', ['volume', 'sfx', 'music']], ['FEEL', ['shake']]];
 const fmtSet = (k, v) => { v = parseFloat(v); return k === 'fov' ? `${Math.round(v)}°` : k === 'sens' ? (v * 100).toFixed(0) : `${Math.round(v * 100)}%`; };
 const sliderHtml = (k) => { const [, label, mn, mx, st] = SLIDERS.find((s) => s[0] === k); return `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`; };
-pauseEl.innerHTML = '<div class="pbox"><div class="phd"><h2>PAUSED</h2></div><div class="pcols"><div class="pcol">' + SET_GROUPS.map(([t, ks]) => `<h3 class="psec">${t}</h3>` + ks.map(sliderHtml).join('')).join('') + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div><div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div></div><div class="pcol"><div id="pdmg"></div>` + '<div class="pradio"><div class="prh"><h3 class="psec">RADIO</h3><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>← restarts the song, → skips. Songs stay in this browser and are never uploaded. In co-op only the host needs songs: everyone hears the host’s radio.</p></div>' + `<h3 class="psec">MENU SONG</h3><div class="pfs"><button id="pmenu">CHOOSE FILE</button><button id="pmenuclr">CLEAR</button><span id="pmenun"></span><input id="pmenufile" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div></div></div>` + '<div class="pbtns"><button id="presume">RESUME</button><button id="prestart">RESTART RUN</button><button id="pquit">QUIT TO MENU</button></div></div>';
+pauseEl.innerHTML = '<div class="pbox"><div class="phd"><h2>PAUSED</h2></div><div class="pcols"><div class="pcol">' + SET_GROUPS.map(([t, ks]) => `<h3 class="psec">${t}</h3>` + ks.map(sliderHtml).join('')).join('') + `<div class="pfs"><button id="pfull">FULLSCREEN: OFF</button><span>${canHoldKeys() ? 'In fullscreen the game also holds Ctrl+W, Ctrl+Tab and Ctrl+T, so sliding on Ctrl cannot close or switch the tab.' : 'This browser cannot stop Ctrl+W closing the tab: slide with C rather than Ctrl.'}</span></div><div class="pfs"><button id="ptips">SHOW TIPS AGAIN</button><span>Tips explain each thing once, the first time you meet it.</span></div></div><div class="pcol"><div id="pdmg"></div>` + '<div class="pradio"><div class="prh"><h3 class="psec">RADIO</h3><span id="prn"></span><button id="pradd">ADD SONGS</button><button id="prclr">CLEAR</button><input id="prfile" type="file" multiple accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div><div id="prlist"></div><p>← restarts the song, → skips. Songs stay in this browser and are never uploaded. In co-op only the host needs songs: everyone hears the host’s radio.</p></div>' + `<h3 class="psec">MENU SONG</h3><div class="pfs"><button id="pmenu">CHOOSE FILE</button><button id="pmenuclr">CLEAR</button><span id="pmenun"></span><input id="pmenufile" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac" hidden></div></div></div>` + '<div class="pbtns"><button id="presume">RESUME</button><button id="prestart">BACK TO THE VILLAGE</button><button id="pquit">QUIT TO TITLE</button></div></div>';
 pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const def = SLIDERS.find((s) => s[0] === el.dataset.k)[5];
   el.value = settings[el.dataset.k] ?? def; el.nextElementSibling.textContent = fmtSet(el.dataset.k, el.value);
@@ -890,8 +890,8 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
 pauseEl.querySelector('#ptips').onclick = (e) => { Meta.tipsReset(); Meta.save(); e.target.textContent = 'TIPS WILL SHOW AGAIN'; };
 pauseEl.querySelector('#presume').onclick = () => { if (pauseEl.classList.contains('menu')) { pauseEl.classList.remove('menu'); pauseEl.style.display = 'none'; } else setPaused(false); };
 pauseEl.querySelector('#pfull').onclick = () => { const on = !fsOn(); settings.fullscreen = on; saveSettings(); setFullscreen(on); };
-pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'; restartRun(true); };
-pauseEl.querySelector('#prestart').onclick = () => { pauseEl.style.display = 'none'; restartRun(); };
+pauseEl.querySelector('#pquit').onclick = () => { pauseEl.style.display = 'none'; restartRun('title'); };
+pauseEl.querySelector('#prestart').onclick = () => { pauseEl.style.display = 'none'; restartRun(); };   // home to the village
 addEventListener('keydown', (e) => { if (e.code === 'KeyP' && game && mode === 'play' && !game.player.dead) { if (document.pointerLockElement) document.exitPointerLock(); setPaused(true); } });
 
 // ---- a fresh game on the same renderer, audio and assets (a restart, or a different map)
@@ -909,17 +909,41 @@ async function rebuildGame(mapId) {
 let restarting = false;
 async function restartRun(toMenu) {
   if (restarting) return; restarting = true;
-  if (Net.active) Net.leave();
-  mode = 'title'; title.style.display = 'flex'; progBadge(); document.body.classList.remove('ready'); status('Dealing a new hand...');
+  if (toMenu === 'title' && Net.active) Net.leave();   // home to the village keeps the party together; the title ends it
+  vui.close(); vmode = ''; locker.style.display = 'none'; lobby.style.display = 'none';
+  mode = 'title'; title.style.display = 'flex'; progBadge(); document.body.classList.remove('ready'); status(toMenu === 'title' ? 'Dealing a new hand...' : 'Walking home to Thimblewick...');
   await new Promise((r) => setTimeout(r, 30));
   hud.toasts = []; hud.banners = []; hud.floaters = []; hud.roundBanner = null; hud.helpT = 99;
-  game = new Game(renderer, audio, hud, game.mapId);
+  const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));
+  if (MAPS[DSC].pack) await loadCreaturePack(MAPS[DSC].pack);
+  game = new Game(renderer, audio, hud, DSC);
   game.settings = Object.assign(game.settings, settings);
   await game.build();
   window.__dmh = game;
   status(''); document.body.classList.add('ready'); restarting = false;
-  if (toMenu === true) { if (TOUCH) document.getElementById('touch').style.display = 'none'; if (document.pointerLockElement) document.exitPointerLock(); audio.music('off'); return; }
-  beginRun();
+  if (toMenu === 'title') { if (TOUCH) document.getElementById('touch').style.display = 'none'; if (document.pointerLockElement) document.exitPointerLock(); audio.music('off'); return; }
+  enterVillage();
+}
+// ---- Thimblewick: PLAY puts you in the village (built into the Descent's map); runs start at the Way Down
+let vmode = '';   // which village window has the mouse: 'gate', 'wardrobe', or '' (the shop, board and casino are vui's)
+function panelIn() { mode = 'craft'; keys.clear(); mouseL = mouseR = false; stick.x = stick.y = 0; touchFire = false; if (document.pointerLockElement) document.exitPointerLock(); }
+function panelOut() { if (mode === 'craft') { mode = 'play'; keys.clear(); mouseL = mouseR = false; requestLock(); } }
+function enterVillage() {
+  if (!game || !game.villageRT) return;
+  game.player.setBody(Meta.look()); game.player.setClass(Meta.cls());
+  game.villageRT.enter(); title.style.display = 'none'; lobby.style.display = 'none'; locker.style.display = 'none';
+  start(); game.vm.hidden = true;
+  if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: the shop on the square, your wardrobe at home, the challenge board, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
+}
+async function goVillage() {
+  const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));
+  if (!game || game.mapId !== DSC || game.metaRun || game.round > 0 || game.phase === 'GameOver') { await restartRun(false); return; }
+  enterVillage();
+}
+function onVillage(kind, arg) {
+  if (kind === 'wardrobe') { vmode = 'wardrobe'; panelIn(); locker.style.display = 'block'; renderLocker(); }
+  else if (kind === 'gate') { vmode = 'gate'; panelIn(); lobbyMsg = ''; lobby.style.display = 'block'; renderLobby(); }
+  else vui.show(kind, arg);
 }
 
 // ---- touch controls: left thumb moves, right thumb looks, buttons for everything else
@@ -969,14 +993,22 @@ const craft = makeCraft({
   left: () => { if (mode === 'craft') { mode = 'play'; keys.clear(); mouseL = mouseR = false; requestLock(); } },
 });
 window.__craft = craft;
-let last = performance.now(), fpsAcc = 0, fpsN = 0;
+const vui = makeVillageUI({
+  audio, preview: () => { ensureLock(); return lockR ? { R: lockR, canvas: lockCanvas } : null; }, thumb: (k, n) => modelThumb(k, n),
+  entered: panelIn, left: panelOut, toast: (t, c) => hud.toast(t, c), looked: () => { Net.refreshPresence(); if (game) game.player.setBody(Meta.look()); },
+});
+window.__vui = vui; window.__metaOff = () => Meta.setUnlockAll(false); window.__Meta = Meta; window.__village = { onVillage, enterVillage, goVillage };
+let last = performance.now(), fpsAcc = 0, fpsN = 0, villT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  tickLocker(dt); tickLobby(dt); craft.tick(dt);
+  tickLocker(dt); tickLobby(dt); craft.tick(dt); vui.tick(dt);
   if (game && !game.openCraft) game.openCraft = (blade, mode) => craft.show(blade, mode);
-  if (mode === 'craft' && (!game || game.player.dead || !game.descent)) craft.close();
+  if (game && !game.onVillage) game.onVillage = onVillage;
+  // a guest in the village goes down when the host does
+  if (game && game.village && game.village.on && Net.role === 'client' && !beginning) { villT = (villT || 0) - dt; if (villT <= 0) { villT = 0.4; if (Net.hostStarted()) beginRun(); } }
+  if (mode === 'craft' && craft.isOpen() && (!game || game.player.dead || !game.descent)) craft.close();
   hud.needMouse = mode === 'play' && !TEST && !TOUCH && !lockFailed && !document.pointerLockElement;
   if (window.__dmhFixedDt) dt = window.__dmhFixedDt;
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { hud.fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
