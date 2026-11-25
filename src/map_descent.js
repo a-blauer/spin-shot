@@ -175,7 +175,7 @@ export function buildDescent(M) {
   };
   const one = (i, cx, cy, boss) => {
     const T = THEMES[boss ? [0, 7][i - N_ROOMS] : i], kind = boss ? -1 : i;
-    M.world.chunk = i;
+    M.world.chunk = i; M.world.recordProps = true;
     const [hx, hy, H] = boss ? BOSS_DIMS : ROOM_DIMS[i], bs = hx / 4000;
     const zone = AddZone(boss ? BOSS_NAMES[i - N_ROOMS] : T.title || T.name, V2(cx - hx, cy - hy), V2(cx + hx, cy + hy));
     GM.zones[zone].group = zone;
@@ -225,6 +225,7 @@ export function buildDescent(M) {
       } else C = craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
       if (!C.noCorners) for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 260), sy * (hy - 260), T);
       dress(T.name === 'Ossuary' ? 0 : THEMES.indexOf(T), hx, hy, H, T, boss, C);
+      A.solidified = M.world.solidify(i); (M.world.roomNames || (M.world.roomNames = []))[i] = T.name;   // what looks solid is solid
       // where they come up: on open ground all over the room, never inside anything, on a platform, or by a doorway
       const free = (x, y) => { const [ix, iy] = GM.cellOf(cx + x, cy + y); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (!GM.navFree(ix + a, iy + b)) return false; return !C.raised.some((r) => x > r[0] - 60 && x < r[2] + 60 && y > r[1] - 60 && y < r[3] + 60); };
       let made = 0;

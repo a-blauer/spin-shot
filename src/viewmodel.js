@@ -1166,7 +1166,7 @@ export class ViewModel {
     }
     this.gun.updateMatrixWorld(true); gunInv.value.copy(this.gun.matrixWorld).invert();
     this.tickFlyers(dt);
-
+    if (this.adsHide) this.adsHide.visible = this.aimA < 0.8;   // a scope's body and an iron sight's ears drop away once the eye is behind them
     this.root.visible = !this.scoped && !this.hidden && !this.wield;
     this.tickMelee(dt);
   }

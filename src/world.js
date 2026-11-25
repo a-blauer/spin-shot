@@ -75,6 +75,8 @@ const COLGEOS = [
   ringGeo(0.1),
 ];
 export const PRIM = { GEOS };
+// test builds can ask for every drawn piece and every collision body to be recorded (?scan=1), to find things you walk through
+const SCAN = typeof location !== 'undefined' && /[?&]scan=1/.test(location.search);
 // Sculpted shapes (draped cloth, trees, cushions, barrels): built once in UE coordinates by build() -> { pos, col, idx }
 // (col: linear-free sRGB floats per vertex, the way every other colour here is authored), cached by key, and drawn like
 // any other primitive: one instanced batch per shape. They never collide; a prop that has a body adds its own.
@@ -134,9 +136,11 @@ export class World {
     const key = meshId + '|' + (glow ? 1 : 0) + '|' + (this.chunk === undefined || this.chunk === null ? -1 : this.chunk);   // a map can build in chunks, and show one at a time
     if (!this.inst.has(key)) this.inst.set(key, []);
     this.inst.get(key).push({ m, c: hex(color) });
+    if ((SCAN || this.recordProps) && !glow) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanDraw || (this.scanDraw = [])).push({ id: meshId, ch: this.chunk, b: gg.boundingBox.clone().applyMatrix4(m), fill: (() => { const u = gg.boundingBox, uv = (u.max.x - u.min.x) * (u.max.y - u.min.y) * (u.max.z - u.min.z), w = gg.boundingBox.clone().applyMatrix4(m), wv = (w.max.x - w.min.x) * (w.max.y - w.min.y) * (w.max.z - w.min.z); return wv > 0 ? (Math.abs(m.determinant()) * uv) / wv : 0; })(), collide: !!collide, shape: gg.userData.shape || '' }); }
     if (collide) {
       const g = COLGEOS[meshId].clone().applyMatrix4(m);
       this.colSolid.push(g);
+      if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
       if (nav) {
         const b = new THREE.Box3().setFromBufferAttribute(g.attributes.position);
         this.game.navBlockBox3(b, 1);
@@ -161,7 +165,32 @@ export class World {
   // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
   Solid(center, size, nav = true, yaw = 0) {
     const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null)); this.colSolid.push(g);
+    if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
     if (nav) this.game.navBlockBox3(new THREE.Box3().setFromBufferAttribute(g.attributes.position), 1);
+  }
+  // Anything drawn in this chunk that is chunky enough to look solid where a body walks (a column, a boulder, a lamp post,
+  // a cask), and that nothing solid already fills, is made solid: you should never walk through what looks like a thing.
+  // Sculpted shapes are left out (cloth hangs, webs and vines part, and the solid ones carry bodies fitted to them).
+  // Needs recordProps on while the chunk was built. Returns how many bodies it added.
+  solidify(ch) {
+    const D = (this.scanDraw || []).filter((d) => d.ch === ch && !d.collide && !d.shape && d.id !== 8), L = (this.scanCol || []).filter((c) => c.ch === ch).map((c) => c.b);
+    const inside = (x, y, z) => L.some((q) => x >= q.min.x - 4 && x <= q.max.x + 4 && z >= q.min.z - 4 && z <= q.max.z + 4 && y >= q.min.y - 4 && y <= q.max.y + 4);
+    const add = [];
+    for (const d of D) {
+      const b = d.b, sx = b.max.x - b.min.x, sz = b.max.z - b.min.z, sy = b.max.y - b.min.y;
+      if (sy < 40 || Math.min(sx, sz) < 40 || Math.max(sx, sz) > 1600 || d.fill < 0.45) continue;   // a beam or strand laid on a slant fills little of its box
+      const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2; let floor = -1e9;
+      for (const q of L) if (cx >= q.min.x && cx <= q.max.x && cz >= q.min.z && cz <= q.max.z && q.max.y <= b.min.y + 12 && q.max.y > floor) floor = q.max.y;
+      if (floor < -1e8 || b.min.y - floor > 150) continue;
+      const y0 = Math.max(b.min.y, floor + 20), y1 = Math.min(b.max.y, floor + 170); if (y1 - y0 < 30) continue;
+      let k = 0; const N = 5; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (inside(b.min.x + (sx * (i + 0.5)) / N, (y0 + y1) / 2, b.min.z + (sz * (j + 0.5)) / N)) k++;
+      if (k / (N * N) >= 0.6) continue;
+      add.push(b);
+    }
+    for (const b of add) { const c = new THREE.Vector3(); b.getCenter(c); const pc = this.chunk; this.chunk = ch; this.Solid(V(c.x, c.z, c.y), V(b.max.x - b.min.x, b.max.z - b.min.z, b.max.y - b.min.y), true); this.chunk = pc; }
+    if (!SCAN) { this.scanDraw = (this.scanDraw || []).filter((d) => d.ch !== ch); this.scanCol = (this.scanCol || []).filter((c) => c.ch !== ch); }
+    (this.solidified || (this.solidified = [])).push(...add.map((b) => [ch, Math.round(b.max.x - b.min.x), Math.round(b.max.z - b.min.z), Math.round(b.max.y - b.min.y), Math.round((b.min.x + b.max.x) / 2), Math.round((b.min.z + b.max.z) / 2), Math.round(b.min.y)]));
+    return add.length;
   }
   Blocker(center, size) {
     const m = this._matrix(center, size, null);

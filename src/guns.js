@@ -1629,7 +1629,7 @@ function buildGunWith(vm, W, tier, PAL) {
         break;
       case "Dragon's Breath":
         both((s) => E([[36, 10], [42, 15], [38, 10]], 0.6, PAL.bone, { y: s * 3, bevel: 0.1 }));                        // I horns
-        if (t2) both((s) => E([[-2, 9], [10, 12], [2, 18], [0, 13], [-8, 15], [-6, 10]], 0.4, C(0xB0302A), { y: s * 3.2, bevel: 0.08 }));   // II wings
+        if (t2) { T(29, 37.2, 0.9, 3.7, PAL.brass); Ring(31, 8.4, 4.3, 0.5, PAL.brass); Ring(35.4, 8.4, 4.3, 0.5, PAL.brass); T(37.2, 38.2, 1.25, 3.7, PAL.steelD); Ball(38.9, 0, 3.7, 0.85, C(0x7ac4ff), 3); }   // II pilot light: a brass feed under the barrel, clamped on, burning blue behind the muzzle
         if (t3) { both((s) => Ball(34, s * 2.6, 10.4, 1.6, C(0xFFE060), 3)); for (let i = 0; i < 5; i++) Spike(-4 + i * 4, 0, 10.8, 2.4 - Math.abs(i - 2) * 0.4, C(0xFF7A1A), 2); }   // III eyes and a spine of fire
         break;
       case 'Iron Mule':

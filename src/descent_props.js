@@ -142,7 +142,7 @@ export function props(K, Q) {
   };
   P.mushroom = (x, y, h, cap, glow, stem = 0xd8cfa8) => {
     const w = h * 0.95, seed = Math.abs(Math.round(x * 0.13 + y * 0.07));
-    hit(x, y, 0, h * 0.16, h * 0.16, h, false); sh(S.mushroom(200, 190, cap, stem, glow ? cap : 0xf0e8d8, seed % 3), x, y, 0, (seed * 37) % 360, 0xffffff, null, h / 200);   // one shape per kind, sized per instance
+    if (h < 260) hit(x, y, 0, w * 0.8, w * 0.8, h + w * 0.42, true); else hit(x, y, 0, h * 0.16, h * 0.16, h, false); sh(S.mushroom(200, 190, cap, stem, glow ? cap : 0xf0e8d8, seed % 3), x, y, 0, (seed * 37) % 360, 0xffffff, null, h / 200);   // one shape per kind, sized per instance
     if (glow) { Glow(V(x, y, h * 0.93 - 4), V(w * 0.7, w * 0.7, 4), glow, 1); for (let i = 0; i < 6; i++) { const a = i * 1.05 + h, k = 0.25 + (i % 3) * 0.18, r = (w / 2) * Math.sin(k * Math.PI / 2) * 0.97, z = h + w * 0.42 * Math.cos(k * Math.PI / 2) * 0.98; Glow(V(x + Math.cos(a) * r, y + Math.sin(a) * r, z), V(w * 0.09, w * 0.09, w * 0.05), glow, 2); } }
     if (h > 420) tall(x, y, w / 2 + 120);
   };
