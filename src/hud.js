@@ -1055,11 +1055,37 @@ export class Hud {
     g.fillStyle = 'rgba(200,33,27,0.85)';
     g.fillRect(cx - total / 2 - 18 * S, cy - 1.5 * S, 14 * S, 3 * S); g.fillRect(cx + total / 2 + 4 * S, cy - 1.5 * S, 14 * S, 3 * S);
   }
+  // who is doing the work this run: kills and damage for everyone in the game, the best first
+  drawLeaderboard(game, P, x, y, w, S) {
+    const g = this.g, me = { name: (game.net && game.net.name) || 'You', kills: P.kills | 0, dmg: Object.values(P.runDmg || {}).reduce((a, b) => a + b, 0), me: true, dead: P.dead };
+    const rows = [me]; if (game.net && game.net.ghosts) for (const G of game.net.ghosts.values()) if (G.fresh) rows.push({ name: G.name || 'Player', kills: G.kills | 0, dmg: G.dmg || 0, dead: G.dead });
+    rows.sort((a, b) => b.dmg - a.dmg || b.kills - a.kills);
+    const rh = 46 * S, h = 86 * S + rows.length * rh + 14 * S, top = rows[0].dmg || 1;
+    this.panel(x, y, w, h, GOLD, 'rgba(20,10,16,0.95)', 14 * S);
+    const px = x + 20 * S, rx = x + w - 20 * S;
+    this.text('THIS RUN', px, y + 40 * S, 26 * S, GOLD, 'left', F_BIG, 400, 0.12);
+    this.text('KILLS', rx - 96 * S, y + 68 * S, 13 * S, 'rgba(242,232,213,0.6)', 'right', F_TXT, 700, 0.08);
+    this.text('DAMAGE', rx, y + 68 * S, 13 * S, 'rgba(242,232,213,0.6)', 'right', F_TXT, 700, 0.08);
+    g.fillStyle = GOLD; g.fillRect(px, y + 76 * S, w - 40 * S, 2 * S);
+    const fmt = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? Math.round(n / 1000) + 'k' : Math.round(n).toLocaleString();
+    rows.forEach((r, i) => {
+      const ry = y + 86 * S + i * rh;
+      if (r.me) { g.fillStyle = 'rgba(255,205,90,0.1)'; g.fillRect(px - 8 * S, ry, w - 24 * S, rh - 4 * S); }
+      g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(px, ry + rh - 10 * S, (w - 40 * S), 3 * S);
+      g.fillStyle = r.me ? GOLD : 'rgba(242,232,213,0.6)'; g.fillRect(px, ry + rh - 10 * S, (w - 40 * S) * clamp(r.dmg / top, 0, 1), 3 * S);   // share of the top damage
+      this.text(`${i + 1}`, px, ry + 26 * S, 18 * S, 'rgba(242,232,213,0.5)', 'left', F_BIG, 400, 0.1);
+      let nm = String(r.name).toUpperCase(); while (nm.length > 3 && this.measure(nm, 20 * S, F_BIG) > w - 210 * S) nm = nm.slice(0, -1);
+      this.text(nm, px + 24 * S, ry + 26 * S, 20 * S, r.dead ? 'rgba(242,232,213,0.4)' : r.me ? GOLD : BONE, 'left', F_BIG, 400, 0.1);
+      this.text(`${r.kills}`, rx - 96 * S, ry + 26 * S, 20 * S, BONE, 'right', F_BIG, 400, 0.1);
+      this.text(fmt(r.dmg), rx, ry + 26 * S, 20 * S, BONE, 'right', F_BIG, 400, 0.1);
+    });
+  }
   drawInventory(game, P, W, H, S) {
     const g = this.g;
-    const wAll = Math.min(1640 * S, W - 40 * S), xAll = (W - wAll) / 2, y = 90 * S, h = H - 200 * S, pad = 30 * S, lw = 400 * S;
+    const LB = 300 * S, gap = 16 * S, wAll = Math.min(1400 * S, W - 60 * S - LB - gap), xAll = (W - wAll - LB - gap) / 2, y = 90 * S, h = H - 200 * S, pad = 30 * S, lw = 400 * S;
     g.fillStyle = 'rgba(8,4,8,0.4)'; g.fillRect(0, 0, W, H);
     this.panel(xAll, y, wAll, h, GOLD, 'rgba(20,10,16,0.95)', 18 * S);
+    this.drawLeaderboard(game, P, xAll + wAll + gap, y, LB, S);
     // left column: who you are and what you are carrying
     { const lx = xAll + pad, rx = lx + lw - 20 * S; let ly = y + 62 * S;
       this.text(P.cls.name.toUpperCase(), lx, ly, 40 * S, GOLD, 'left', F_BIG, 400, 0.08); ly += 22 * S;

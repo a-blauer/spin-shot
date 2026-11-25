@@ -131,8 +131,23 @@ export class World {
     const q = rot ? rot.quat3() : new THREE.Quaternion();
     return new THREE.Matrix4().compose(center.to3(), q, new THREE.Vector3(size.X, size.Z, size.Y));
   }
+  // is this world-space box (x, z) in any carved wall? walls are rectangles {x, z, hw, hd, c, s} (c, s: their turn)
+  carved(minX, minZ, maxX, maxZ, pad = 8) {
+    if (!this.carve) return false;
+    for (const W of this.carve) {
+      // separating axes: the box's two and the wall's two
+      const bx = (minX + maxX) / 2, bz = (minZ + maxZ) / 2, ex = (maxX - minX) / 2, ez = (maxZ - minZ) / 2, dx = bx - W.x, dz = bz - W.z;
+      const rx = W.hw * Math.abs(W.c) + W.hd * Math.abs(W.s), rz = W.hw * Math.abs(W.s) + W.hd * Math.abs(W.c);
+      if (Math.abs(dx) >= ex + rx - pad || Math.abs(dz) >= ez + rz - pad) continue;
+      const pu = Math.abs(dx * W.c + dz * W.s), pv = Math.abs(-dx * W.s + dz * W.c);
+      if (pu >= W.hw + ex * Math.abs(W.c) + ez * Math.abs(W.s) - pad || pv >= W.hd + ex * Math.abs(W.s) + ez * Math.abs(W.c) - pad) continue;
+      return true;
+    }
+    return false;
+  }
   AddInstance(meshId, center, size, rot, color, collide, glow, nav) {
     const m = this._matrix(center, size, rot);
+    if (this.carve) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); const b = gg.boundingBox.clone().applyMatrix4(m); if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) return; }
     const key = meshId + '|' + (glow ? 1 : 0) + '|' + (this.chunk === undefined || this.chunk === null ? -1 : this.chunk);   // a map can build in chunks, and show one at a time
     if (!this.inst.has(key)) this.inst.set(key, []);
     this.inst.get(key).push({ m, c: hex(color) });
@@ -164,7 +179,9 @@ export class World {
   L(base, yaw, x, y, z) { return base.add(R(0, yaw, 0).RotateVector(V(x, y, z))); }
   // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
   Solid(center, size, nav = true, yaw = 0) {
-    const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null)); this.colSolid.push(g);
+    const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null));
+    if (this.carve) { g.computeBoundingBox(); const b = g.boundingBox; if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) return; }
+    this.colSolid.push(g);
     if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
     if (nav) this.game.navBlockBox3(new THREE.Box3().setFromBufferAttribute(g.attributes.position), 1);
   }
@@ -181,13 +198,15 @@ export class World {
       if (sy < 40 || Math.min(sx, sz) < 40 || Math.max(sx, sz) > 1600 || d.fill < 0.45) continue;   // a beam or strand laid on a slant fills little of its box
       const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2; let floor = -1e9;
       for (const q of L) if (cx >= q.min.x && cx <= q.max.x && cz >= q.min.z && cz <= q.max.z && q.max.y <= b.min.y + 12 && q.max.y > floor) floor = q.max.y;
-      if (floor < -1e8 || b.min.y - floor > 150) continue;
-      const y0 = Math.max(b.min.y, floor + 20), y1 = Math.min(b.max.y, floor + 170); if (y1 - y0 < 30) continue;
+      if (floor < -1e8) continue;
+      // something hung overhead (a lantern, a cage, a beam's weight) is a thing to grapple to and bump your head on, not to walk round
+      const hung = b.min.y - floor > 150; if (hung && Math.min(sx, sz, sy) < 60) continue;
+      const y0 = hung ? b.min.y : Math.max(b.min.y, floor + 20), y1 = hung ? b.max.y : Math.min(b.max.y, floor + 170); if (y1 - y0 < 30) continue;
       let k = 0; const N = 5; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (inside(b.min.x + (sx * (i + 0.5)) / N, (y0 + y1) / 2, b.min.z + (sz * (j + 0.5)) / N)) k++;
       if (k / (N * N) >= 0.6) continue;
-      add.push(b);
+      add.push(b); b.hung = hung;
     }
-    for (const b of add) { const c = new THREE.Vector3(); b.getCenter(c); const pc = this.chunk; this.chunk = ch; this.Solid(V(c.x, c.z, c.y), V(b.max.x - b.min.x, b.max.z - b.min.z, b.max.y - b.min.y), true); this.chunk = pc; }
+    for (const b of add) { const c = new THREE.Vector3(); b.getCenter(c); const pc = this.chunk; this.chunk = ch; this.Solid(V(c.x, c.z, c.y), V(b.max.x - b.min.x, b.max.z - b.min.z, b.max.y - b.min.y), !b.hung); this.chunk = pc; }
     if (!SCAN) { this.scanDraw = (this.scanDraw || []).filter((d) => d.ch !== ch); this.scanCol = (this.scanCol || []).filter((c) => c.ch !== ch); }
     (this.solidified || (this.solidified = [])).push(...add.map((b) => [ch, Math.round(b.max.x - b.min.x), Math.round(b.max.z - b.min.z), Math.round(b.max.y - b.min.y), Math.round((b.min.x + b.max.x) / 2), Math.round((b.min.z + b.max.z) / 2), Math.round(b.min.y)]));
     return add.length;
@@ -298,6 +317,7 @@ export class World {
     return { p: new UVec(hit.point.x, hit.point.z, hit.point.y), n: new UVec(hit.normal.x, hit.normal.z, hit.normal.y) };
   }
   Lamp(loc, color, intensity, radius, bulb) {
+    if (this.carve) { const q = this.T(loc).to3(); if (this.carved(q.x - 20, q.z - 20, q.x + 20, q.z + 20)) return; }
     if (bulb) this.AddInstance(2, loc, V(30), R(0, 0, 0), Pal.Bulb, false, true, false);
     const c = lin(color);
     this.pendingLamps.push({ loc: this.T(loc), c, radius });

@@ -712,7 +712,7 @@ export class Interactable {
       }
       case 'MysteryBox': {
         const B = this.box;
-        if (B.state === 'offer') { const tk = B.prize2 >= 0 && B.pick === 1 ? B.prize2 : B.prize, D = isMelee(tk) ? MELEE[tk - MELEE_CODE] : G.data.weapons[tk]; return `${B.prize2 >= 0 ? 'Look at the one you want.  ' : ''}[E] Take ${D.name}\n${D.rarity}${isMelee(tk) ? ` melee weapon.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
+        if (B.state === 'offer') { const tk = B.prize2 >= 0 && B.pick === 1 ? B.prize2 : B.prize, D = isMelee(tk) ? MELEE[tk - MELEE_CODE] : G.data.weapons[tk]; return `${B.prize2 >= 0 ? 'Look at the one you want.  ' : ''}[E] Take ${D.name}${isMelee(tk) ? `  (replaces your ${MELEE[player.meleeDef || 0].name})` : ''}\n${D.rarity}${isMelee(tk) ? ` melee weapon, for your melee slot.  Damage ${D.dmg}, ${(D.range / 100).toFixed(1)} m reach` : ' ' + (D.cls === 'Wonder' ? 'wonder weapon' : D.cls.toLowerCase()) + `.  Damage ${D.dmg}${D.pellets > 1 ? ' x' + D.pellets : ''}, ${D.rate.toFixed(1)}/s, mag ${D.mag}`}.  ${D.desc}`; }
         if (B.state !== 'idle') return '';
         if (G.descent) { const n = player ? player.boxRolls || 0 : 0; return n > 0 ? `[E] Mystery box  (free: ${n} roll${n > 1 ? 's' : ''} left in this room)\nA random weapon. Take it or leave it.` : 'The mystery box is spent for this room'; }
         return `[E] Mystery box  $${cash(Math.round(950 * (player ? player.priceMult() : 1)))}\nA random weapon. It moves on after a few uses.`;

@@ -102,6 +102,18 @@ function gunGrade(color, glow) {
   }
   const out = g.clone(); out.metal = color.metal; out.grain = color.grain; return out;
 }
+const ATK = {
+  lash: [[0, 0, 0, 0, 0, 0, 0], [0.08, -2, 1, 2.5, 20, -6, 10], [0.17, 6, -1, -3, -30, 5, -6], [0.3, 2, 0, -1, -8, 1, -2], [0.45, 0, 0, 0, 0, 0, 0]],
+  smash: [[0, 0, 0, 0, 0, 0, 0], [0.13, -3, 0, 8, 48, 0, 4], [0.23, 5, 0, -7, -42, 0, -2], [0.34, 4, 0, -6, -36, 0, 0], [0.6, 0, 0, 0, 0, 0, 0]],
+  throw: [[0, 0, 0, 0, 0, 0, 0], [0.08, -6, 2.5, 3, 22, -10, 6], [0.17, 9, -1.5, 1, -14, 8, -4], [0.42, 0, 0, 0, 0, 0, 0]],
+  flick: [[0, 0, 0, 0, 0, 0, 0], [0.06, -1.5, 0, 1.5, 12, -12, -14], [0.13, 3, 0, -1, -16, 10, 16], [0.32, 0, 0, 0, 0, 0, 0]],
+};
+function atkPose(k, t) {
+  const K = ATK[k]; if (!K || t >= K[K.length - 1][0]) return null;
+  let i = 1; while (K[i][0] < t) i++;
+  const a = K[i - 1], b = K[i], u = (t - a[0]) / (b[0] - a[0]), q = u * u * (3 - 2 * u);
+  return [1, 2, 3, 4, 5, 6].map((j) => a[j] + (b[j] - a[j]) * q);
+}
 function vmMat(color, glow) {
   const metal = color.metal === undefined ? 0.2 : color.metal;
   const grain = color.grain ? 1 : 0;
@@ -209,7 +221,7 @@ export class ViewModel {
   clear() {
     for (const p of this.parts) { p.removeFromParent(); if (p.userData.merged) p.geometry.dispose(); }
     this.parts = [];
-    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = this.hand = null;
+    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = this.hand = null; this.WhipCoil = null; this.whipPts = null;
     this.A = {};   // named moving parts: slide, hammer, bolt, lever, barrels, cover, charge, crank, emit, mag, pump, cyl...
     this.Cards = null; this.cardT = 9;
     for (const f of this.flyers || []) f.m.removeFromParent(); this.flyers = [];
@@ -643,6 +655,60 @@ export class ViewModel {
 
   // ---------------------------------------------------------------- events
   twinLeft(n) { return !!this.feel.twin && n % 2 === 0; }
+  // The whip's thong. At rest it is the coil on the model. On a lash the coil is hidden and one tapering tube takes its
+  // place: it starts in the coil's exact shape, unrolls from the handle outward with a wave running down it, snaps
+  // straight at the crack, then falls and rolls back into the coil.
+  whipThong(t) {
+    const pts = this.whipPts, coil = this.WhipCoil;
+    if (!pts || !coil) { if (this.thong) this.thong.visible = false; return; }
+    const on = t >= 0 && t < 0.46;
+    coil.visible = !on; if (this.thong) this.thong.visible = on;
+    if (!on) return;
+    const N = 44, SIDES = 7;
+    if (!this.thong) {
+      const g = new THREE.BufferGeometry(), idx = [];
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * SIDES * 3), 3));
+      for (let i = 0; i < N - 1; i++) for (let j = 0; j < SIDES; j++) { const a = i * SIDES + j, b2 = i * SIDES + (j + 1) % SIDES, c = a + SIDES, d = b2 + SIDES; idx.push(a, b2, c, b2, d, c); }
+      g.setIndex(idx);
+      this.thong = new THREE.Mesh(g, vmMat(new THREE.Color(0x6A4226))); this.thong.frustumCulled = false; this.root.add(this.thong);
+      this.thongTip = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), vmMat(new THREE.Color(0xE2D6BC))); this.thongTip.frustumCulled = false; this.root.add(this.thongTip);
+    }
+    // wear the coil's own (graded) leather and the cracker's bone, so the thong is the same rope that was hanging there
+    { const M = []; coil.traverse((o) => { if (o.isMesh) M.push(o.material); }); if (M[0]) this.thong.material = M[0]; if (M[2]) this.thongTip.material = M[2]; }
+    this.gun.updateMatrix();
+    // the coil, resampled evenly along its length, in the space the thong is drawn in
+    if (!this.whipRest || this.whipRest.src !== pts) {
+      const P = pts.map((q) => P3(V(q[0], q[1], q[2]))), cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + P[i].distanceTo(P[i - 1]));
+      const tot = cum[cum.length - 1], out = [];
+      for (let i = 0; i < N; i++) { const s = (i / (N - 1)) * tot; let k = 1; while (k < cum.length - 1 && cum[k] < s) k++; const f = (s - cum[k - 1]) / Math.max(1e-6, cum[k] - cum[k - 1]); out.push(P[k - 1].clone().lerp(P[k], f)); }
+      this.whipRest = { src: pts, P: out, len: tot };
+    }
+    const C = this.whipRest.P.map((p) => p.clone().applyMatrix4(this.gun.matrix));
+    const A = C[0], L = 190;
+    // out: the unroll front runs from the handle to the tip; back: the thong drops and rolls home
+    const front = sstep(0.05, 0.2, t) * 1.3, back = sstep(0.25, 0.45, t), wave = 1 - sstep(0.14, 0.22, t);
+    const crack = t > 0.19 && t < 0.25 ? Math.sin((t - 0.19) / 0.06 * Math.PI) : 0;
+    const Q = [];
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1);
+      // straight out ahead and a little up, with a rolling S that travels down it while it unrolls
+      const ph = u * Math.PI * 2.2 - t * 46, amp = 13 * u * wave;
+      const E = new THREE.Vector3(A.x + Math.sin(ph) * amp * 0.7, A.y + Math.sin(u * Math.PI) * 16 * (1 - back) + Math.cos(ph) * amp - back * 30 * u * u, A.z - L * u * (1 - back * 0.55));
+      if (crack > 0 && u > 0.86) { const k = (u - 0.86) / 0.14; E.y += Math.sin(k * Math.PI) * 6 * crack; E.x -= k * k * 5 * crack; }   // the cracker flicks over at the end
+      const w = sstep(0, 1, (front - u) / 0.28) * (1 - sstep(0, 1, (back * 1.35 - (1 - u)) / 0.35));
+      Q.push(C[i].clone().lerp(E, w));
+    }
+    // a tube round those points, thickest at the handle
+    const pos = this.thong.geometry.attributes.position, T = new THREE.Vector3(), Nn = new THREE.Vector3(), B = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1), r = 0.95 * (1 - u) + 0.32;
+      T.copy(Q[Math.min(N - 1, i + 1)]).sub(Q[Math.max(0, i - 1)]).normalize();
+      Nn.crossVectors(T, Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : up).normalize(); B.crossVectors(T, Nn);
+      for (let j = 0; j < SIDES; j++) { const a = (j / SIDES) * Math.PI * 2, c = Math.cos(a) * r, s2 = Math.sin(a) * r; pos.setXYZ(i * SIDES + j, Q[i].x + Nn.x * c + B.x * s2, Q[i].y + Nn.y * c + B.y * s2, Q[i].z + Nn.z * c + B.z * s2); }
+    }
+    pos.needsUpdate = true; this.thong.geometry.computeVertexNormals(); this.thong.geometry.computeBoundingSphere();
+    this.thongTip.position.copy(Q[N - 1]); this.thongTip.scale.setScalar(1.1 + crack * 0.8);
+  }
   fire(kick, continuous) {
     const K = Math.min(3, Math.max(0.05, kick));
     const ads = 1 - this.aimA * 0.82;   // aiming steadies the gun: the sights stay close to the target
@@ -659,6 +725,10 @@ export class ViewModel {
     } else {
       this.recoilPosVel.add(new THREE.Vector3(rx * 1.4, 22 * K * f.rise, 100 * K * f.pos).multiplyScalar(ads));
       this.recoilRotVel.add(new THREE.Vector3(240 * K * f.rise, (Math.random() * 110 - 55) * K * f.side, (f.twin ? 90 * K : (Math.random() * 260 - 130) * K * f.side)).multiplyScalar(ads));
+    }
+    if (f.atk && !continuous) {
+      const K = ATK[f.atk], dur = K ? K[K.length - 1][0] : 0.4, P = this.game.player, rate = P && P.W ? P.W.rate * Math.max(0.2, 1 + P.stat('FireRate')) : 2;
+      this.atk = { k: f.atk, t: 0, spd: Math.max(1, dur * rate / 0.9) };
     }
     if (f.shake > 0 && !continuous) this.game.player.addShake(f.shake);
     if (!continuous) { this.cyc = 0; this.cycDur = Math.max(0.03, f.cycle); this.cycSnd = false; this.cycShell = !f.shell; }
@@ -1110,6 +1180,13 @@ export class ViewModel {
       supPos.lerp(arm, In.reloading ? sstep(0.7, 0.78, RT) : 1);
     }
 
+    // a weapon that is swung or thrown goes through its move: wound back, sent forward, brought home
+    if (this.atk) {
+      this.atk.t += dt * this.atk.spd; const o = atkPose(this.atk.k, this.atk.t);
+      if (!o) this.atk = null;
+      else { const s = 1 - this.aimA * 0.4; pos.X += o[0] * s; pos.Y += o[1] * s; pos.Z += o[2] * s; rot.P += o[3] * s; rot.Y += o[4] * s; rot.R += o[5] * s; }
+    }
+    this.whipThong(this.atk && this.atk.k === 'lash' ? this.atk.t : -1);
     // How much the gun moves about in the hand: sway, the walk, a shot and a landing, all at half what they were.
     const MOVE = 0.5;
     const p3 = P3(pos).addScaledVector(this.swayPos, still * MOVE).addScaledVector(bob, MOVE).addScaledVector(this.recoilPos, MOVE).add(new THREE.Vector3(0, this.landZ * (1 - this.aimA * 0.8) * MOVE, 0));

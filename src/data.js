@@ -47,7 +47,8 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   // the Descent's unlockable parts: status riders, handling, two-gun play, and body buffs that work with statuses and movement
   'StatusTime', 'Accelerant', 'BrittleCrit', 'WoundStagger', 'Contagion', 'Shatter', 'Conductor', 'BlastStun', 'HolsterReload', 'BankShot', 'Lodestone', 'Tether',
   'HeatSink', 'Splitter', 'Catalyst', 'Salvage', 'ChillGuard', 'BloodBank', 'HeatShield', 'GroundRod', 'FrostWake', 'EmberDash', 'SmokeStep', 'StaticLand',
-  'RoomReserve', 'ReloadGuard', 'ScrapPick', 'ExtraSlot', 'Backlash', 'Decoy', 'KineticPlate', 'WallGuard', 'SwapGuard', 'LastStand', 'PartAmmo', 'Lantern'];
+  'RoomReserve', 'ReloadGuard', 'ScrapPick', 'ExtraSlot', 'Backlash', 'Decoy', 'KineticPlate', 'WallGuard', 'SwapGuard', 'LastStand', 'PartAmmo', 'Lantern',
+  'Grapeshot', 'PinBolt', 'EchoHit', 'MarkHit', 'HollowCharge', 'StaticBuild'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);

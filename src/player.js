@@ -138,7 +138,8 @@ export class Player {
   }
   hasWeapon(def) { for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def === def) return true; return false; }
   giveWeapon(def) {
-    if (isMelee(def)) { this.meleeDef = def - MELEE_CODE; this.meleeCd = 0.3; this.game.vm.meleeShow(MELEE[this.meleeDef]); this.play('S_Switch', 0.8); if (this.meleeTier > 0) this.toast(`Your honing carries over: ${MELEE[this.meleeDef].name} +${this.meleeTier}`, '#ffcd5a'); return; }
+    // a melee weapon only ever goes in the melee slot: it replaces the blade you had, never a gun
+    if (isMelee(def)) { const was = MELEE[this.meleeDef || 0]; this.meleeDef = def - MELEE_CODE; this.meleeCd = 0.3; this.game.vm.meleeShow(MELEE[this.meleeDef]); this.play('S_Switch', 0.8); if (was && was !== MELEE[this.meleeDef]) this.toast(`Melee slot: ${MELEE[this.meleeDef].name} replaces ${was.name}`, RARITY_HEX[MELEE[this.meleeDef].rarity] || '#ffcd5a'); if (this.meleeTier > 0) this.toast(`Your honing carries over: ${MELEE[this.meleeDef].name} +${this.meleeTier}`, '#ffcd5a'); return; }
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def === def) { const S = this.weapons[i]; S.ammo = this.magSize(S); S.reserve = this.reserveSize(S); this.switchTo(i); return; }
     let target = this.active;
     for (let i = 0; i < this.maxSlots; i++) if (this.weapons[i].def < 0) { target = i; break; }
@@ -590,7 +591,9 @@ export class Player {
       const hit = G.phys.raycast(this.pos, this.wallNormal.clone().negate(), 90);
       const still = hit && Math.abs(hit.normal.y) < 0.3;
       const stalled = this.maxWallRun() - this.wallLeft > 0.25 && Math.hypot(this.vel.x, this.vel.z) < 250;
-      if (!still || this.wallLeft <= 0 || this.grounded || this.inFwd < 0.1 || stalled) this.endWallRun();
+      // holding Space keeps the run going on its own, whatever way you look: turn round and shoot behind you
+      const freeLook = !!(this.input && this.input.jumpHeld);
+      if (!still || this.wallLeft <= 0 || this.grounded || (this.inFwd < 0.1 && !freeLook) || stalled) this.endWallRun();
       else {
         this.wallNormal.copy(hit.normal);
         let along = new THREE.Vector3().crossVectors(this.wallNormal, UP).normalize();
@@ -976,6 +979,28 @@ export class Player {
     if (S.HeatSink && gunStatus && !fromProc) this.heatSink();
     if (S.Accelerant && E.burnT > 0 && G.time - (E.accAt || -9) > 0.3) { E.accAt = G.time; for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < 200) O.applyBurn(Math.max(E.burnDps * 0.5, dealt * 0.15), 2); }
     if (killed || fromProc) return;
+    // ---- the challenge parts
+    if (S.PinBolt && !E.isBoss && !(E.pinT > G.time)) {   // a wall right behind it: pinned
+      const back = E.pos.clone().sub(this.pos).setY(0); if (back.lengthSq() > 1) { back.normalize(); const w = G.phys.raycast(E.pos.clone().add(V3(0, 40, 0)), back, 150 + (E.radius || 30)); if (w && Math.abs(w.normal.y) < 0.4) { E.pinT = G.time + 0.8; this.stun(E, 0.8); G.fx.sparks(w.point, w.normal, [0.85, 0.9, 1], 6); G.hud.floater(at.clone().add(V3(0, 40, 0)), 'PINNED', [0.8, 0.85, 0.95], 0.7); } }
+    }
+    if (S.HollowCharge && (E.staggerT > 0 || E.pinT > G.time) && G.time - (E.hcAt || -9) > 0.5 && this.procDepth < 1) {   // hit them while they cannot move
+      E.hcAt = G.time; this.procDepth++; this.explodeAt(E.pos.clone().add(V3(0, 40, 0)), 160 * (1 + this.stat('ExplosionRadius')), dealt * S.HollowCharge, 0.4, true, false, [1, 0.6, 0.25], null); this.procDepth--;
+    }
+    if (S.Grapeshot && this.procDepth < 1 && Math.random() < S.Grapeshot) {   // the round comes apart in them
+      const T = G.enemies.filter((O) => O !== E && !O.dead && !O.burrowed && O.pos.distanceTo(E.pos) < 380).sort((a, b) => a.pos.distanceTo(E.pos) - b.pos.distanceTo(E.pos)).slice(0, 3);
+      this.procDepth++; for (const O of T) { G.fx.tracer(E.pos.clone().add(V3(0, 50, 0)), O.pos.clone().add(V3(0, 50, 0)), [0.85, 0.75, 0.55], 2, 0.1); this.dealDamage(O, dealt * 0.3, O.pos, O.pos.clone().sub(E.pos).normalize(), false, 0.3, true); } this.procDepth--;
+    }
+    if (S.EchoHit) {   // every sixth hit rings again
+      E.echoN = (E.echoN || 0) + 1;
+      if (E.echoN >= 6) { E.echoN = 0; const amt = dealt * S.EchoHit; setTimeout(() => { if (!E.dead && !this.dead) { this.dealDamage(E, amt, E.pos, V3(0, 0, 0), false, 0.5, true, 0, 0, 0, 0, [0.6, 0.85, 1]); G.fx.ring(E.feet ? E.feet() : E.pos, 90, [0.56, 0.82, 1], 0.25); } }, 400); }
+    }
+    if (S.MarkHit && !(E.markUntil > G.time) && Math.random() < S.MarkHit) { E.markAmt = Math.max(E.markAmt || 0, 0.25); E.markUntil = G.time + 4; G.hud.floater(at.clone().add(V3(0, 50, 0)), 'MARKED', [1, 0.3, 0.42], 0.9); G.fx.ring(E.feet ? E.feet() : E.pos, 70, [1, 0.3, 0.42], 0.4); }
+    if (S.StaticBuild && this.procDepth < 1) {   // eight hits and it lets go
+      E.statN = (E.statN || 0) + 1;
+      if (E.statN >= 8) { E.statN = 0; this.procDepth++; let from = E, hitSet = new Set([E]), dmg = dealt * 0.6 * S.StaticBuild;
+        for (let j = 0; j < 3; j++) { let O = null, od = 520; for (const K of G.enemies) { if (hitSet.has(K) || K.dead || K.burrowed) continue; const d = K.pos.distanceTo(from.pos); if (d < od) { od = d; O = K; } } if (!O) break; hitSet.add(O); G.fx.tracer(from.pos.clone().add(V3(0, 60, 0)), O.pos.clone().add(V3(0, 60, 0)), [0.72, 0.66, 1], 3, 0.15); this.dealDamage(O, dmg, O.pos, V3(0, 0, 0), false, 0.3, true); O.shockT = G.time + 1.2; from = O; }
+        this.procDepth--; }
+    }
     if (S.WoundStagger && E.bleedT > 0 && !E.isBoss && G.time - (E.woundT || -9) > 2) { E.woundT = G.time; this.stun(E, 0.35); G.hud.floater(at.clone().add(V3(0, 40, 0)), 'STAGGER', [1, 0.4, 0.45], 0.7); }
     if (S.Lodestone && this.procDepth < 1) {   // Lodestone: four charges and they go off
       E.lode = (E.lode || 0) + 1; G.fx.sparks(at, UP, [0.7, 0.7, 0.85], 2);
@@ -1508,7 +1533,7 @@ export class Player {
     switch (W.cls) {
       case 'Shotgun': kick = 1.6; break; case 'Sniper': kick = 2.2; break; case 'Launcher': kick = 1.4; break;
       case 'Pistol': kick = W.auto ? 0.3 : 0.8; break; case 'Rifle': kick = W.auto ? 0.35 : 0.7; break; case 'LMG': kick = 0.45; break;
-      case 'Energy': kick = continuous ? 0.04 : 0.4; break; default: kick = 0.3;
+      case 'Energy': kick = continuous ? 0.04 : 0.4; break; default: kick = continuous || W.auto ? 0.3 : 0.75;   // a single heavy shot from an oddity is felt
     }
     this.bloom = Math.min(this.bloom + (continuous ? 0.02 : 0.15), 1.5);
     this.fireFeedback(W, echo ? kick * 0.5 : kick, continuous, echo ? 0.5 : 1);
@@ -1844,7 +1869,7 @@ export class Player {
     const G = this.game;
     sigDeath(this, E, headshot);
     this.kills++; if (headshot) this.headshots++;
-    Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills');
+    Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills'); if (this.wallRunning) Meta.bump('wallKills');
     Meta.addGunKill(this.W.name);
     const pay = E.money + (headshot ? Math.round(38 * Math.min(1, payScale(G.round))) : 0);   // the bonus shrinks with kill pay as the horde grows
     this.addMoney(pay, true);
@@ -2474,15 +2499,15 @@ export class Player {
     else if (a !== b && machine('fusion')) { const F = fusionOf(A.name, B.name); if (F) out = DATA.upgrades.findIndex((U) => U.name === F.name); }
     if (out < 0) return -1;
     this.takePart(a); this.takePart(b); this.coreInv[out] = (this.coreInv[out] || 0) + 1;
-    this.play('S_Upgrade', 0.9, 0.9); return out;
+    Meta.bump(a === b ? 'pressed' : 'fused'); this.play('S_Upgrade', 0.9, 0.9); return out;
   }
   // the Recycler: break parts down for scrap, and spend scrap on a part of your choosing
-  scrapPart(u, n = 1) { let got = 0; while (n-- > 0 && this.takePart(u)) got += this.scrapOf(u); this.scrap = (this.scrap || 0) + got; return got; }
+  scrapPart(u, n = 1) { let got = 0, k = 0; while (n-- > 0 && this.takePart(u)) { got += this.scrapOf(u); k++; } this.scrap = (this.scrap || 0) + got; for (let i = 0; i < k; i++) Meta.bump('scrapped'); return got; }
   makePart(u) {
     const U = DATA.upgrades[u]; if (!machine('recycler') || !U || !U.core || U.noDrop || Meta.upgradeLocked(U.name)) return false;
     const c = this.makeCost(u); if ((this.scrap || 0) < c) return false;
     if (U.kind === 'me' && this.upgradeStacks[u] >= U.stacks) return false;
-    this.scrap -= c; this.gainCore(u); return true;
+    this.scrap -= c; this.gainCore(u); Meta.bump('made'); return true;
   }
   // the Fortune Teller: reroll a character buff once a room into another of its rarity; or two of a rarity for one better
   dropBuffStack(u) { if (!(this.upgradeStacks[u] > 0)) return false; this.upgradeStacks[u]--; if (!this.upgradeStacks[u]) this.upgradeOrder = this.upgradeOrder.filter((x) => x !== u); const hp = this.health / Math.max(1, this.maxHealth); this.recompute(); this.health = Math.min(this.maxHealth, Math.max(1, Math.round(hp * this.maxHealth))); return true; }
@@ -2491,7 +2516,7 @@ export class Player {
     const U = DATA.upgrades[u]; this.fortuneUsed = this.fortuneUsed || {};
     if (!machine('fortune') || !U || U.kind !== 'me' || !(this.upgradeStacks[u] > 0) || this.fortuneUsed[u]) return -1;
     const v = this.rollPassive(coreTier(u), new Set([u])); if (v < 0) return -1;
-    this.dropBuffStack(u); this.addUpgrade(v); this.fortuneUsed[v] = true; if (!(this.upgradeStacks[u] > 0)) delete this.fortuneUsed[u]; else this.fortuneUsed[u] = true;
+    Meta.bump('fortune'); this.dropBuffStack(u); this.addUpgrade(v); this.fortuneUsed[v] = true; if (!(this.upgradeStacks[u] > 0)) delete this.fortuneUsed[u]; else this.fortuneUsed[u] = true;
     this.play('S_Upgrade', 0.8, 1.2); return v;
   }
   fortuneTrade(a, b) {
@@ -2499,7 +2524,7 @@ export class Player {
     if (!machine('fortune') || !A || !B || A.kind !== 'me' || B.kind !== 'me' || coreTier(a) !== coreTier(b) || coreTier(a) >= 3) return -1;
     if (a === b ? this.upgradeStacks[a] < 2 : !(this.upgradeStacks[a] > 0 && this.upgradeStacks[b] > 0)) return -1;
     const v = this.rollPassive(coreTier(a) + 1, null); if (v < 0) return -1;
-    this.dropBuffStack(a); this.dropBuffStack(b); this.addUpgrade(v);
+    this.dropBuffStack(a); this.dropBuffStack(b); this.addUpgrade(v); Meta.bump('fortune');
     this.play('S_Upgrade', 0.9, 0.8); return v;
   }
 
@@ -2524,7 +2549,7 @@ export class Player {
     if (S.def < 0 || !(this.coreInv[u] > 0)) return false;
     if (S.cores.length >= this.partSlots(S)) { this.toast(`Every slot on this gun is full. It gets another each time it evolves.`, '#ffb057'); return false; }
     this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u];
-    const mag0 = this.magSize(S); S.cores.push(u); this.refit(S); if (this.magSize(S) > mag0) S.ammo = Math.min(this.magSize(S), S.ammo + this.magSize(S) - mag0);
+    Meta.bump('fits'); const mag0 = this.magSize(S); S.cores.push(u); this.refit(S); if (this.magSize(S) > mag0) S.ammo = Math.min(this.magSize(S), S.ammo + this.magSize(S) - mag0);
     return true;
   }
   // the blade's parts: the same parts, read as what they would do to an edge (cores.js BLADE)

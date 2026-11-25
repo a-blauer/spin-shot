@@ -33,10 +33,40 @@ export const ARENAS = [];
 export function spots(A, s) {
   const [cx, cy] = A.c, hy = A.hy, hx = A.hx;
   return { spawn: [cx, cy - s * (hy - 320)], yaw: s > 0 ? Math.PI : 0, exit: [cx, cy + s * (hy - 110)], textYaw: s > 0 ? -90 : 90,
-    box: [cx + 2300, cy + s * (hy - 170)], bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + 760, cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
+    box: [cx + Math.min(2300, (A.E || 1e9) - 450), cy + s * (hy - 170)], bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + Math.min(760, (A.E || 1e9) - 1050), cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
     ammo: [cx + 700, cy - s * (hy - 110)], ammoYaw: s > 0 ? 90 : -90, guns: [[cx - hx + 8, cy - s * 500, 0], [cx + hx - 8, cy + s * 500, 180]] };
 }
 
+// ---- the shape of a room. Every room starts as a box; its plan cuts that into a real floor: a cross, an octagon, an
+// hourglass, an L, a ring round a core, a serpent of baffles, a T, a long hexagon, a diamond island. The plan's walls go
+// in first, whole and solid from floor to roof (runnable, and a grapple anchor anywhere on them), dressed like the outer
+// walls; then the world builder is told to leave out anything of the room's furniture that would stand in them, so nothing
+// is ever cut in half by a wall. Both doorways and the bench end stay open: x within E of the middle, 1500 from each end.
+// A wall is [x0, y0, x1, y1] (square to the room) or { x, y, w, d, yaw } (turned, in degrees).
+function chamfer(hx, hy, sx, sy, Lx, Ly) {   // cut the corner (sx, sy) on a line Lx along the end wall and Ly up the side wall
+  const L = Math.hypot(Lx, Ly), dist = (Lx * Ly) / L, yaw = (Math.atan2(sy * Ly, -sx * Lx) * 180) / Math.PI;
+  return { x: sx * hx, y: sy * hy, w: 2 * L + 200, d: 2 * dist, yaw };
+}
+const PLAN_NAMES = ['cross', 'octagon', 'hourglass', 'ell', 'ring', 'serpent', 'tee', 'hex', 'diamond', 'ell2'];
+function roomPlan(i, hx, hy) {
+  const E = Math.max(1700, hx * 0.36), name = PLAN_NAMES[(i * 7 + 3) % PLAN_NAMES.length], W = [];
+  const cut = (Lx, Ly) => { for (const sx of [-1, 1]) for (const sy of [-1, 1]) W.push(chamfer(hx, hy, sx, sy, Lx, Ly)); };
+  const room = Math.min(hx - E, hy * 0.55);
+  switch (name) {
+    case 'cross': for (const sx of [-1, 1]) for (const sy of [-1, 1]) W.push(sx < 0 ? [-hx, sy < 0 ? -hy : hy * 0.3, -E, sy < 0 ? -hy * 0.3 : hy] : [E, sy < 0 ? -hy : hy * 0.3, hx, sy < 0 ? -hy * 0.3 : hy]); break;
+    case 'octagon': cut(room, room); break;
+    case 'hourglass': W.push([-hx, -hy * 0.2, -hx * 0.36, hy * 0.2], [hx * 0.36, -hy * 0.2, hx, hy * 0.2]); cut(room * 0.6, room * 0.6); break;
+    case 'ell': W.push([hx * 0.12, -hy * 0.12, hx, hy - 1500]); W.push(chamfer(hx, hy, -1, -1, room * 0.7, room * 0.7)); break;
+    case 'ell2': W.push([-hx, -hy + 1500, -hx * 0.12, hy * 0.12]); W.push(chamfer(hx, hy, 1, 1, room * 0.7, room * 0.7)); break;
+    case 'ring': W.push([-hx * 0.28, -hy * 0.26, hx * 0.28, hy * 0.26]); cut(room * 0.5, room * 0.5); break;
+    case 'serpent': W.push([-hx, -hy * 0.38, hx * 0.3, -hy * 0.2], [-hx * 0.3, hy * 0.2, hx, hy * 0.38]); break;
+    case 'tee': for (const sx of [-1, 1]) W.push(sx < 0 ? [-hx, hy * 0.24, -E, hy] : [E, hy * 0.24, hx, hy]); cut(room * 0.5, room * 0.5); W.splice(-2); break;   // the far end opens wide, the near end narrows
+    case 'hex': cut(Math.min(hx - E, hx * 0.5), hy * 0.5); break;
+    case 'diamond': { const sd = Math.min(hx, hy) * 0.5; W.push({ x: 0, y: 0, w: sd, d: sd, yaw: 45 }); cut(room * 0.45, room * 0.45); break; }
+    default: break;
+  }
+  return { name, E, walls: W };
+}
 export function buildDescent(M) {
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Ring, Floor, Lamp, SpawnAt, AddZone, GM } = M;
   const rowsN = Math.ceil((N_ROOMS + 2) / COLS);
@@ -46,14 +76,15 @@ export function buildDescent(M) {
   // the floor or heaped in the corners, clear of the doors, the wall guns and the bench end of the room.
   let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, rr = (a, b) => a + rnd() * (b - a);
     const dress = (th, hx, hy, H, T, boss, C) => {
-    const k = hx / 3400, flat = R(90, 0, 0), ys = [0];
-    for (let y = 1150; y < hy - 420; y += 560) ys.push(y, -y);   // bays along the side walls, clear of the two wall guns
+    const k = hx / 3400, flat = R(90, 0, 0), ys0 = [0];
+    for (let y = 1150; y < hy - 420; y += 560) ys0.push(y, -y);   // bays along the side walls, clear of the two wall guns
+    const wallY = (y) => !(C.masses || []).some((r) => (r[0] <= -hx + 1 || r[2] >= hx - 1) && y > r[1] - 420 && y < r[3] + 420), ys = ys0.filter(wallY);   // none where a new wall meets the side wall
     const clear = (x, y, pad = 160) => !(C.avoid && C.avoid(x, y)) && !C.tall.some((t) => Math.hypot(x - t[0], y - t[1]) < t[2] + pad);
-    const corners = (fn) => { if (C.noCorners) return; for (const sx of [-1, 1]) for (const sy of [-1, 1]) fn(sx * (hx - 520), sy * (hy - 620), sx, sy); };
+    const corners = (fn) => { if (C.noCorners) return; for (const sx of [-1, 1]) for (const sy of [-1, 1]) if (!(C.avoid && C.avoid(sx * (hx - 520), sy * (hy - 620), 420))) fn(sx * (hx - 520), sy * (hy - 620), sx, sy); };
     const hang = (x, y, len, col, d = 10) => Cyl(V(x, y, H - len / 2), d, len, col, false, false), drop = (a, b) => Math.min(rr(a, b), H * 0.42);
     const roofSpots = (n, fn) => { n = Math.round(n * (hx * hy) / (3400 * 3000)); for (let i = 0; i < n; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 700, hy - 700); if (clear(x, y)) fn(x, y); } };
     if ([1, 2, 6, 7].includes(th)) corners((x, y) => M.Solid(V(x, y, [140, 260, 110, 300][[1, 2, 6, 7].indexOf(th)]), V(th === 7 ? 300 : 460, th === 7 ? 300 : 460, [280, 520, 220, 600][[1, 2, 6, 7].indexOf(th)]), true));
-        if (th >= 8) { dressWall(EXTRA[th - 8].wall || {}, { hx, hy, H, T, ys, corners, roofSpots, hang, drop }); return; }
+        if (th >= 8) { dressWall(EXTRA[th - 8].wall || {}, { hx, hy, H, T, ys, corners, roofSpots, hang, drop, masses: C.masses }); return; }
     switch (th) {
       case 0: {   // OSSUARY: walls of skulls, bone heaps, coffins, cages on chains, candles
         const bone = 0xd8cfb8, dark = 0x0e1214;
@@ -134,6 +165,7 @@ export function buildDescent(M) {
       if (W.rail !== false) for (const z of [W.railZ || 200, top + 40]) Box(V(X(6), 0, z), V(12, hy * 2 - 200, 30), c1, false, false);
       // between the bays: a pilaster with a cap and a sconce (rooms cut from the rock get buttresses of it instead)
       const mids = []; for (let y = 870; y < hy - 300; y += 560) mids.push(y, -y);
+      const midsK = mids.filter((y) => !(D.masses || []).some((r) => (sx < 0 ? r[0] <= -hx + 1 : r[2] >= hx - 1) && y > r[1] - 300 && y < r[3] + 300)); mids.length = 0; mids.push(...midsK);
       for (const y of mids) {
         if (cave) { const h = rr(260, 560), w = rr(260, 420); Oct(V(X(40), y, h / 2), V(150, w, h), c2, false, false); Oct(V(X(30), y + rr(-120, 120), h * 0.3), V(190, w * 0.7, h * 0.6), c1, false, false); ConeShape(V(X(70), y + rr(-160, 160), rr(80, 150)), V(90, 90, rr(180, 320)), c2); if (rnd() < 0.5) Glow(V(X(96), y, rr(120, 300)), V(16, 16, 22), gl, 2); continue; }
         B(9, y, (top + 80) / 2, 70, top + 80, T.floor2); B(13, y, 50, 96, 100, c1); B(13, y, top + 96, 96, 34, c1); B(20, y, top + 60, 40, 16, c1, 40); B(26, y, 470, 20, 40, 0x2a2e30, 52); Glow(V(X(50), y, 500), V(22, 22, 34), gl, 2);
@@ -186,6 +218,26 @@ export function buildDescent(M) {
       Box(V(0, 0, -60), V(hx * 2 + 400, hy * 2 + 400, 120), T.floor, true, false);
       Box(V(0, 0, H + 60), V(hx * 2 + 400, hy * 2 + 400, 120), T.roof, true, false);
       for (const s of [-1, 1]) { Box(V(0, s * (hy + 100), H / 2), V(hx * 2 + 400, 200, H), T.wall, true, true); Box(V(s * (hx + 100), 0, H / 2), V(200, hy * 2 + 400, H), T.wall, true, true); }
+      // the room's plan: its inner walls, then a carve round them for everything that comes after
+      if (!boss) {
+        const P = roomPlan(i, hx, hy); A.shape = P.name; A.E = P.E; A.masses = [];
+        const carve = [];
+        for (const w of P.walls) {
+          const r = Array.isArray(w) ? { x: (w[0] + w[2]) / 2, y: (w[1] + w[3]) / 2, w: w[2] - w[0], d: w[3] - w[1], yaw: 0 } : w;
+          // whole and solid, floor to roof; a turned wall marks the walking grid itself, cell by cell, so its box does not over-block
+          Box(V(r.x, r.y, H / 2), V(r.w, r.d, H), T.wall, true, !r.yaw, r.yaw);
+          if (r.yaw) { const a = (r.yaw * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a); for (let gx = -r.w / 2; gx <= r.w / 2; gx += 80) for (let gy = -r.d / 2; gy <= r.d / 2; gy += 80) { const X = cx + r.x + gx * c - gy * sn, Z = cy + r.y + gx * sn + gy * c; if (Math.abs(X - cx) < hx && Math.abs(Z - cy) < hy) GM._navBlock(X - 40, Z - 40, 0, X + 40, Z + 40, H, 1); } }
+          // dressed like the outer walls: skirting, a band of light, a dark frieze under the roof
+          Box(V(r.x, r.y, 40), V(r.w + 8, r.d + 8, 80), T.trim, false, false, r.yaw); Glow(V(r.x, r.y, H * 0.56), V(r.w + 6, r.d + 6, 14), T.glow, 0, R(0, r.yaw, 0)); Box(V(r.x, r.y, H - 90), V(r.w + 6, r.d + 6, 180), T.roof, false, false, r.yaw);
+          if (!r.yaw) { const x0 = r.x - r.w / 2, x1 = r.x + r.w / 2, y0 = r.y - r.d / 2, y1 = r.y + r.d / 2;
+            for (let px = x0 + 400; px < x1 - 200; px += 800) for (const e of [y0, y1]) if (Math.abs(e) < hy - 2 && Math.abs(px) < hx - 10) Box(V(px, e, H * 0.5), V(26, 6, H - 180), T.floor2, false, false);
+            for (let py = y0 + 400; py < y1 - 200; py += 800) for (const e of [x0, x1]) if (Math.abs(e) < hx - 2 && Math.abs(py) < hy - 10) Box(V(e, py, H * 0.5), V(6, 26, H - 180), T.floor2, false, false);
+            A.masses.push([x0, y0, x1, y1]); }
+          else A.masses.push(r);
+          const a = ((r.yaw || 0) * Math.PI) / 180; carve.push({ x: cx + r.x, z: cy + r.y, hw: r.w / 2, hd: r.d / 2, c: Math.cos(a), s: Math.sin(a) });
+        }
+        M.world.carve = carve;
+      }
       // laid stone: a grid of joints, a border, a runner from door to door
       if (false) {
       for (let x = -hx + 800; x < hx; x += 800) Floor(V2(x - 5, -hy), V2(x + 5, hy), 1.2, T.floor2);
@@ -222,9 +274,15 @@ export function buildDescent(M) {
         for (const s of [-1, 1]) { brazier(s * 3300 * bs, 0, T, 240); brazier(s * 1300 * bs, s * 3300 * bs, T, 240); brazier(-s * 1300 * bs, s * 3300 * bs, T, 240); }
         C = craftBoss(i - N_ROOMS, { M, T, hx, hy, H, rnd, rr });
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) C.tall.push([sx * 2700 * bs, sy * 2700 * bs, 500]);
-      } else C = craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
-      if (!C.noCorners) for (const sx of [-1, 1]) for (const sy of [-1, 1]) brazier(sx * (hx - 260), sy * (hy - 260), T);
+      } else {
+        C = craftRoom(kind, { M, T, hx, hy, H, rnd, rr });
+        // what the room stood on top of its furniture, if that furniture was carved away, goes too; and the dressing keeps clear of the new walls
+        const W = M.world; C.tops = (C.tops || []).filter((t) => !W.carved(cx + t[0] - 60, cy + t[1] - 60, cx + t[0] + 60, cy + t[1] + 60));
+        C.masses = A.masses.filter(Array.isArray); const prev = C.avoid; C.avoid = (x, y, pad = 160) => (prev && prev(x, y)) || W.carved(cx + x - pad, cy + y - pad, cx + x + pad, cy + y + pad);
+      }
+      if (!C.noCorners) for (const sx of [-1, 1]) for (const sy of [-1, 1]) if (!(C.avoid && C.avoid(sx * (hx - 260), sy * (hy - 260)))) brazier(sx * (hx - 260), sy * (hy - 260), T);
       dress(T.name === 'Ossuary' ? 0 : THEMES.indexOf(T), hx, hy, H, T, boss, C);
+      M.world.carve = null;
       A.solidified = M.world.solidify(i); (M.world.roomNames || (M.world.roomNames = []))[i] = T.name;   // what looks solid is solid
       // where they come up: on open ground all over the room, never inside anything, on a platform, or by a doorway
       const free = (x, y) => { const [ix, iy] = GM.cellOf(cx + x, cy + y); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (!GM.navFree(ix + a, iy + b)) return false; return !C.raised.some((r) => x > r[0] - 60 && x < r[2] + 60 && y > r[1] - 60 && y < r[3] + 60); };

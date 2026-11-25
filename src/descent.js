@@ -130,7 +130,7 @@ export class Descent {
     const g = this.g;
     if (this.cleared) return;
     this.cleared = true; g.phase = 'Intermission'; g.phaseTimer = 0; this.seq++; this.zones = [];
-    g.player.onRoundEnded(this.room); if (g.player.onRoomClear) g.player.onRoomClear();
+    g.player.onRoundEnded(this.room); if (g.player.onRoomClear) g.player.onRoomClear(); Meta.bump('dRooms');
     this.progress();
     if (this.room >= ROOMS) { this.reward(); g.levelComplete(); return; }
     this.open();

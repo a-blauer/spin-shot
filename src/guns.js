@@ -74,30 +74,30 @@ const FEEL_GUN = {
   "Fan of Knives": { pos: 3, rise: 3.2, side: 1.6, reload: 'deck', rp: [16, -12, 24], cam: { up: 0.8, snap: 1.1, side: 0.3, pat: 'zig' }, flash: 0 },
   'Black Cat': { action: 'bolt', cycle: 0.66, shellAt: 0.42, shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', weight: 1.3, pos: 9, rise: 5.5, k: 150, d: 15, shake: 0.3, cam: { up: 1.4, snap: 2, side: 0.12, fov: 3 }, flash: 0.25 },
   // --- oddities
-  'Come-Back Kid': { odd: true, pos: 2.6, rise: 2, side: 1.4, k: 160, weight: 0.8, cam: { up: 0.6, snap: 1.4, side: 0.4 } },
+  'Come-Back Kid': { odd: true, atk: 'throw', pos: 2.6, rise: 2, side: 1.4, k: 160, weight: 0.8, cam: { up: 0.6, snap: 1.4, side: 0.4 } },
   Whaler: { odd: true, pos: 3, rise: 1, k: 110, d: 12, shake: 0.4, weight: 1.6, cam: { up: 1.6, snap: 2.4, side: 0.2, fov: 3.5 } },
-  'Bear Trap': { odd: true, pos: 2.2, rise: 1.2, k: 130, shake: 0.3, weight: 1.5, cam: { up: 1.4, snap: 1.8, side: 0.3, fov: 2.5 } },
+  'Bear Trap': { odd: true, atk: 'throw', pos: 2.2, rise: 1.2, k: 130, shake: 0.3, weight: 1.5, cam: { up: 1.4, snap: 1.8, side: 0.3, fov: 2.5 } },
   'Jack-in-the-Box': { odd: true, pos: 2, rise: 1.4, k: 140, shake: 0.25, weight: 1.3, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
   'William Tell': { odd: true, pos: 2.2, rise: 0.6, k: 150, d: 14, shake: 0.2, weight: 1.2, cam: { up: 1, snap: 2, side: 0.15, fov: 3 } },
   'Wrecking Ball': { odd: true, pos: 0.3, rise: 0.15, side: 1.6, weight: 2, cam: { up: 0.03, snap: 0.08, side: 0.1 } },
   'Hall of Mirrors': { odd: true, pos: 1.2, rise: 0.5, k: 200, cam: { up: 0.5, snap: 1.1, side: 0.1, fov: 2 }, flash: 1.2, flashTint: [1, 0.5, 0.9] },
   Calliope: { odd: true, pos: 2.4, rise: 1, k: 150, shake: 0.3, weight: 1.6, cam: { up: 1, snap: 1.6, side: 0.3, fov: 3 }, flash: 0.8, flashTint: [1, 0.9, 0.5] },
-  Lariat: { odd: true, pos: 1.6, rise: 1.2, weight: 0.8, cam: { up: 0.5, snap: 0.9, side: 0.3 } },
-  'Loaded Dice': { odd: true, pos: 2, rise: 1.6, k: 150, shake: 0.2, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
+  Lariat: { odd: true, atk: 'throw', pos: 1.6, rise: 1.2, weight: 0.8, cam: { up: 0.5, snap: 0.9, side: 0.3 } },
+  'Loaded Dice': { odd: true, atk: 'throw', pos: 2, rise: 1.6, k: 150, shake: 0.2, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
   'House Edge': { odd: true, action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], pos: 0.5, rise: 0.4, side: 1.4, cam: { up: 0.22, snap: 0.3, side: 0.2, pat: 'rand', taper: 0.04 }, flash: 0.5, flashTint: [0.5, 1, 0.6] },
   Sawbones: { odd: true, action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], lock: false, pos: 1.2, rise: 1.2, cam: { up: 0.8, snap: 1.1, side: 0.2 }, flash: 0.3 },
   Tilt: { odd: true, pos: 2.2, rise: 1, k: 170, shake: 0.2, cam: { up: 0.8, snap: 1.4, side: 0.3, fov: 2 } },
   Poltergeist: { odd: true, pos: 1.4, rise: 0.6, k: 180, shake: 0.15, cam: { up: 0.4, snap: 1, side: 0.3, fov: 2 }, flash: 0.9, flashTint: [0.6, 1, 0.85] },
-  Bullwhip: { odd: true, pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
+  Bullwhip: { odd: true, atk: 'lash', pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
   'Live Wire': { odd: true, pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
   Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'drumtop', rp: [2, -18, 30], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
   Gusher: { odd: true, pos: 0.2, rise: 0.1, side: 1.4, weight: 1.5, cam: { up: 0.03, snap: 0.04, side: 0.06 } },
-  'Hocus Pocus': { odd: true, pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
-  "Dead Man's Hand": { odd: true, pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
+  'Hocus Pocus': { odd: true, atk: 'flick', pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
+  "Dead Man's Hand": { odd: true, atk: 'throw', pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
   'Barn Door': { odd: true, action: 'none', reload: 'mag', rp: [10, -10, 32], shell: null, pos: 2.2, weight: 1.9, cam: { up: 2, snap: 2.6, side: 0.4, fov: 3.2 }, flash: 1.6 },
   'Old Faithful': { odd: true, pos: 0.25, rise: 0.1, side: 1, weight: 1.6, cam: { up: 0.03, snap: 0.05, side: 0.06 } },
-  'Homing Pigeon': { odd: true, pos: 1.8, rise: 1.2, k: 150, weight: 1.4, cam: { up: 0.9, snap: 1.3, side: 0.3, fov: 2 } },
-  'High Striker': { odd: true, pos: 5, rise: 4, side: 1, k: 120, d: 12, shake: 0.5, weight: 1.8, cam: { up: 1.6, snap: 3.4, side: 0.4, fov: 4 } },
+  'Homing Pigeon': { odd: true, atk: 'throw', pos: 1.8, rise: 1.2, k: 150, weight: 1.4, cam: { up: 0.9, snap: 1.3, side: 0.3, fov: 2 } },
+  'High Striker': { odd: true, atk: 'smash', pos: 5, rise: 4, side: 1, k: 120, d: 12, shake: 0.5, weight: 1.8, cam: { up: 1.6, snap: 3.4, side: 0.4, fov: 4 } },
   'One-Armed Bandit': { odd: true, action: 'reels', shell: null, pos: 0.8, rise: 0.6, cam: { up: 0.36, snap: 0.42, side: 0.18, pat: 'S', taper: 0.07 }, flashTint: [1, 0.85, 0.4] },
 };
 export const gunFeel = (W) => {
@@ -1045,7 +1045,10 @@ function buildGunWith(vm, W, tier, PAL) {
         for (let i = 0; i < 6; i++) { const t = 0.1 + (i / 5) * 0.78; sculpt('whipb' + i, () => sweepSide(c, (u) => sec(u, 1.1), 2.2, 2, 20, t - 0.022, t + 0.022), dark); } }
       Ball(-5.4, 0, -8.6, 4.2, PAL.brass); sculpt('whipf', () => sweepSide((t) => [-2 + 3.6 * t, 4 + 9.9 * t], (t) => [(1.75 - 0.25 * t) * 1.14, (2.3 - 0.6 * t) * 1.14], 2.2, 2, 20, 0.95, 1.03), PAL.brass);   // pommel and ferrule
       const loop = [[1.9, 0, 14.4], [6, 0, 17.4], [13, 0, 17.6]]; for (let a = 80; a >= -470; a -= 30) { const k = (80 - a) / 550, r = 7.6 - k * 2; loop.push([19 + Math.cos(d2r(a)) * r, -1.4 + k * 2.8, 10 + Math.sin(d2r(a)) * r]); }
-      hose(loop, 1.5, hide); const L = loop[loop.length - 1]; hose([L, [L[0] + 3, L[1] + 0.3, L[2] - 4.6], [L[0] + 7, L[1] + 0.5, L[2] - 3]], 0.7, fall); Ball(L[0] + 7.4, L[1] + 0.5, L[2] - 2.8, 1.2, PAL.bone);   // the thong in coils, the fall and the cracker
+      // the thong in coils, the fall and the cracker, in their own group: the lash hides them and draws the thong unrolling
+      const L = loop[loop.length - 1], fallPts = [[L[0] + 3, L[1] + 0.3, L[2] - 4.6], [L[0] + 7, L[1] + 0.5, L[2] - 3]];
+      vm.WhipCoil = group(0, 0, 0); into(vm.WhipCoil, () => { hose(loop, 1.5, hide); hose([L, ...fallPts], 0.7, fall); Ball(L[0] + 7.4, L[1] + 0.5, L[2] - 2.8, 1.2, PAL.bone); });
+      vm.whipPts = loop.concat(fallPts);
       hose([[-5.4, 0, -10.2], [-8.4, 0, -13.6], [-4.4, 0, -15.4], [-3, 0, -10.6]], 0.6, fall);                                // wrist loop
       vm.MagRoot = group(0, 0, 0);
       Muzzle = V(22, 0, 14); Support = V(-1, -4.5, -4); Sight = 19.4;

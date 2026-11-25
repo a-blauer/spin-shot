@@ -295,6 +295,16 @@ export function buildCharacter(look) {
     case 'rope': { const t = add(wg, G.tor, WS.a, 30, 30, 26, 27, -4, 2); t.rotation.y = Math.PI / 2; add(wg, G.tor, WS.b, 24, 24, 22, 27, -4, 2).rotation.y = Math.PI / 2; break; }
     case 'chips': add(wg, G.ball, WS.a, 22, 24, 16, -24, -6, 12); add(wg, G.cyl, WS.b, 12, 3, 12, -24, 6, 12); add(wg, G.cyl, 0xf2e8d5, 12, 3, 12, -24, 9, 12); break;
     case 'champ': add(wg, G.cyl, WS.a, 57, 14, 43, 0, 7, 0); add(wg, G.cyl, WS.b, 26, 4, 26, 0, 7, 20).rotation.x = Math.PI / 2; for (const s of [-1, 1]) add(wg, G.cyl, WS.b, 12, 3, 12, s * 19, 7, 15).rotation.x = Math.PI / 2; break;
+    case 'quickdraw': {   // a gunbelt slung low across the hips, cartridges in its loops, the holster tied down on the right thigh with a revolver in it
+      const g = grp(wg, 0, -4, 0); g.rotation.z = -0.14;
+      clothRing(g, 'qdb' + WS.a, [[29, -3.4], [29.8, -3], [29.8, 3], [29, 3.4], [28.4, 0]], true, () => WS.a);
+      for (let k = 0; k < 11; k++) { const a = -1.3 + k * 0.26, m = add(g, G.cyl, 0xc9a43a, 2.6, 5, 2.6, Math.sin(a) * 30.2, 0.4, Math.cos(a) * 30.2 * 0.92); }   // cartridges
+      rbox(g, 0xc9a43a, 8, 7, 2, -6, 0, 28, 1);
+      const h = grp(wg, 25, -22, 4); h.rotation.z = 0.14;
+      sweepAB(h, 'qdh' + WS.a, [[0, 10, 0], [0, -2, 0.6], [0, -16, 1.2]], (t) => [cprof([[0, 5.4], [0.6, 4.8], [1, 3]], t), cprof([[0, 3.8], [1, 2.6]], t)], () => WS.a, -1e9, 0.6);   // the holster
+      { const p = grp(h, 0, 12, 0.6); p.rotation.z = -0.4; rbox(p, 0x6a4026, 3.6, 9, 4, 0, 3.6, 0, 1.2); add(p, G.cyl, WS.b, 6, 4.6, 6, 0, -1, 0).rotation.z = Math.PI / 2; add(p, G.box, WS.b, 2.2, 3.4, 2.6, 2, -2.6, 0); }   // the revolver's grip and cylinder
+      clothRing(h, 'qdt' + WS.a, [[6.6, -10.6], [7, -10], [7, -8.4], [6.6, -7.8]], true, () => shade(WS.a, 0.7));   // the tie round the thigh
+      break; }
     case 'skulls': for (const x of [-22, 22]) { add(wg, G.box, WS.a, 2, 10, 2, x, 0, 16); add(wg, G.box, WS.b, 12, 11, 11, x, -10, 16); add(wg, G.box, 0x140d12, 8, 3, 1, x, -9, 22); } break;
     default: break;
   }
@@ -402,6 +412,61 @@ export function buildCharacter(look) {
     for (let i = 0; i < 4; i++) { const Y = 50 - i * 9, W = 18 - i * 2; strip('rib' + i, O.b, (t) => { const x = -W + 2 * W * t; return [x, Y - 0.014 * x * x]; }, 4, 1.4); }
     for (let i = 0; i < 6; i++) panel('vt' + i, O.b, 10.6 + i * 8, 15.4 + i * 8, () => [-3.2, 3.2], 1.4, true);   // the spine down the back
     add(body, G.box, O.b, 22, 4.4, 1.6, 0, 3, 19.4); for (const sg of [-1, 1]) add(body, G.box, O.b, 10, 4, 1.6, sg * 13, -1, 18.6).rotation.z = -sg * 0.5;
+  } else if (st === 'duster') {   // a long riding duster: open down the front over a shirt, a short cape across the shoulders, skirts to the boots
+    const xo = opening(26, 2, 12);
+    torso(63, (ph, y) => (Math.abs(Math.sin(ph)) < 0.5 && Math.cos(ph) > 0 ? O.c : O.a));
+    wrapPanel('dus', O.a, 10.6, 61, xo, 1.5);
+    lapels(shade(O.a, 0.82), 26, xo, 8);
+    for (const sg of [-1, 1]) for (const y of [40, 30, 20]) disc(O.b, sg * (xo(y) + 2.6), y, 3, 1.9);
+    // the cape: a short circle of the same cloth from the collar over the shoulders, hanging in a few soft folds
+    const cp = (ph, y) => { const t = Math.max(0, Math.min(1, (64 - y) / 18)), k = 1 + 0.05 * t * Math.cos(7 * ph), a = (18 + 17 * Math.pow(t, 0.8)) * k, b = (16 + 12 * Math.pow(t, 0.8)) * k, sn = Math.sin(ph), c = Math.cos(ph);
+      return [a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.3), y - (t > 0.97 ? Math.sin(7 * ph) : 0), b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.3)]; };
+    wrapSurf(body, 'dcape' + OKY, rowsOf(46, 64, 1.5, [47.6]), 96, (ph, y) => { const P = cp(ph, y); if (Math.cos(ph) > 0.86) { P[2] -= 0; } return P; }, (ph, y, y0) => (y0 < 47.6 ? O.b : O.a));
+    { const m = add(body, G.box, shade(O.a, 0.86), 6, 10, 16, -13, 64, -1); m.rotation.z = -0.3; const m2 = add(body, G.box, shade(O.a, 0.86), 6, 10, 16, 13, 64, -1); m2.rotation.z = 0.3; }   // the collar, up
+    const skirt = (p0, p1, sk) => shell(body, null, 'dsk' + OKY + sk, 44, 40, (u, v) => {   // the skirts, split up the back, swinging out to the shin
+      const y = 9 - v * 50, t = v, ph = p0 + ((u + 1) / 2) * (p1 - p0), k = 1 + 0.05 * t * Math.cos(6 * ph), a = (27.4 + 12 * t) * k, b = (19.8 + 11 * t) * k, sn = Math.sin(ph), c = Math.cos(ph);
+      const x = a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.3), z = b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.3), n = new THREE.Vector3(x / (a * a), 0.14, z / (b * b)).normalize(), hy = y - (v > 0.97 ? 1.4 * Math.sin(6 * ph) : 0);
+      const e = Math.min((ph - p0) * a * 0.8, (p1 - ph) * a * 0.8, (1 - v) * 50, v * 50 + 2);
+      return [x, hy, z, n.x, n.y, n.z, 1.5 * Math.sqrt(Math.max(0, Math.min(1, e / 0.8))), v > 0.95 ? shade(O.a, 0.8) : O.a];
+    });
+    skirt(0.32, Math.PI - 0.06, 'r'); skirt(Math.PI + 0.06, 2 * Math.PI - 0.32, 'l');
+  } else if (st === 'singlet') {   // a strongman's singlet: bold hoops, deep arm holes and a star on the chest; the arms are bare
+    const E = [18, 23, 31, 36, 44, 49];
+    torso(63, (ph, y, y0) => ((y0 > 18 && y0 < 23) || (y0 > 31 && y0 < 36) || (y0 > 44 && y0 < 49) ? O.b : O.a), E);
+    for (const sg of [-1, 1]) for (const bk of [false, true]) panel('ss' + sg + bk, shade(O.a, 0.86), 49, 62.5, () => (sg > 0 ? [8, 14] : [-14, -8]), 1.1, bk);   // the straps
+    { const g = disc(O.b, 0, 41, 2.6, 1.6); for (let k = 0; k < 5; k++) add(g, G.cone, O.b, 5.4, 8, 1.8, Math.sin(k * 1.2566) * 6.6, Math.cos(k * 1.2566) * 6.6, 0.4).rotation.z = -k * 1.2566; }
+  } else if (st === 'apron') {   // a smith's leather apron over a work shirt: a bib on a neck strap, pockets with tools, a skirt to the knee
+    torso(63, (ph, y, y0) => (y0 > 50.9 && y0 < 52.3 ? shade(O.c, 0.86) : O.c), [50.9, 52.3]);
+    collar(mix(O.c, 0xffffff, 0.12)); placket(shade(O.c, 0.9), 10, 60, 0xd8d2c4);
+    panel('apb', O.a, 9, 47, (y) => { const w = y > 40 ? 12 : 12 + (40 - y) * 0.2; return [-w, w]; }, 1.6, false, 0.9);   // the bib
+    for (const sg of [-1, 1]) { strip('aps' + sg, shade(O.a, 0.8), (t) => [sg * (11 - 4 * t), 46.5 + t * 15], 3.2, 1.2, false, 1); strip('apt' + sg, shade(O.a, 0.8), (t) => [sg * (14 + 6 * t), 12 + t * 2], 3, 1, false, 1.2); }   // neck strap and waist ties
+    panel('app', shade(O.a, 0.84), 20, 30, () => [-9.5, 9.5], 1, false, 2.4); panel('appl', shade(O.a, 0.66), 24.6, 25.6, () => [-0.5, 0.5], 1.2, false, 3);   // a split pocket across the front
+    { const w = add(body, G.box, 0x9aa0aa, 2.4, 14, 1.6, -5, 31, 22.8); w.rotation.z = 0.12; add(body, G.tor, 0x9aa0aa, 6, 6, 3, -5.6, 38.6, 22.8); const h = add(body, G.box, 0x6a4a32, 2.2, 12, 2, 5.4, 32, 22.8); h.rotation.z = -0.1; add(body, G.box, 0x46464e, 8, 3.4, 3.2, 5.8, 38.6, 22.8); }   // a wrench and a hammer in it
+    shell(body, null, 'apsk' + OKY, 30, 26, (u, v) => {   // the skirt of the apron, hanging stiff to the knee
+      const y = 9 - v * 34, a = u * 0.72, R = 25.6 + 4 * v, x = Math.sin(a) * R, z = Math.cos(a) * (19.6 + 4 * v) + 0.9, e = Math.min(1 - Math.abs(u), (1 - v) * 4, v * 30 + 1);
+      return [x, y - (v > 0.97 ? 0.6 * Math.sin(u * 8) : 0), z, Math.sin(a), 0.04, Math.cos(a), 1.7 * Math.sqrt(Math.max(0, Math.min(1, e * 3))), v > 0.94 ? shade(O.a, 0.78) : O.a];
+    });
+    for (const x of [-10, 10]) disc(O.b, x, 45.6, 3.2, 2.6);   // rivets at the strap
+  } else if (st === 'ghillie') {   // a ghillie cloak: a hooded poncho of netting covered in strips of burlap, grass and leaves, ragged at the hem
+    torso(30, () => O.c);
+    const pt = (ph, y) => { const t = Math.max(0, Math.min(1, (64 - y) / 50)), k = 1 + 0.06 * Math.pow(t, 1.2) * Math.cos(11 * ph + 0.4), a = (18 + 30 * Math.pow(t, 0.85)) * k, b = (16 + 21 * Math.pow(t, 0.85)) * k, sn = Math.sin(ph), c = Math.cos(ph);
+      return [a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.2), y, b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.2)]; };
+    wrapSurf(body, 'ghl' + OKY, rowsOf(14, 64, 1.6), 108, pt, (ph, y) => shade(O.a, 0.82 + 0.16 * Math.sin(ph * 13 + y * 0.6)));
+    const on = (ph, y, out) => { const p = new THREE.Vector3(...pt(ph, y)), q = new THREE.Vector3(...pt(ph + 0.01, y)), r = new THREE.Vector3(...pt(ph, y + 0.5)), n = new THREE.Vector3().subVectors(q, p).cross(new THREE.Vector3().subVectors(r, p)).normalize(); if (n.dot(new THREE.Vector3(p.x, 0, p.z)) < 0) n.negate(); return [p.addScaledVector(n, out), n]; };
+    const PAL = [O.a, O.b, 0x6a5a2e, 0x3a4a22, 0x8a7a4a, 0x5a6a2a];
+    for (let i = 0; i < 96; i++) {   // strips of burlap and grass sewn on in rows, hanging down off the netting
+      const row = i % 4, ph = (Math.floor(i / 4) / 24) * Math.PI * 2 + row * 0.13, y = 58 - row * 12 + ((i * 7) % 5), [P, n] = on(ph, y, 0.6), len = 10 + ((i * 13) % 7) + row * 2;
+      const g = grp(body, P.x, P.y, P.z); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+      const m = add(g, taper(0.5, 0.15), PAL[(i * 5) % PAL.length], 4 + ((i * 3) % 3), len, 1, ((i * 11) % 5) - 2, -len / 2 + 1, 0.6); m.rotation.z = (((i * 17) % 9) - 4) * 0.06;
+    }
+    for (let i = 0; i < 40; i++) { const ph = (i / 40) * Math.PI * 2, [P] = on(ph, 14.6, -0.4), len = 6 + ((i * 7) % 6); add(body, taper(0.5, 0.15), PAL[(i * 3) % PAL.length], 3.4, len, 1.4, P.x, P.y - len / 2, P.z); }   // the ragged hem
+  } else if (st === 'quilted') {   // a blast jacket: thick quilted panels, a padded collar, straps buckled across the chest
+    const E = []; for (let i = 0; i < 6; i++) E.push(12 + i * 8.4, 13.2 + i * 8.4);
+    torso(63, (ph, y, y0) => (E.some((e, k) => k % 2 === 0 && y0 > e && y0 < E[k + 1]) ? shade(O.a, 0.7) : shade(O.a, 0.94 + 0.06 * Math.cos(ph * 14))), E);   // rows of padding, stitched between
+    panel('qz', shade(O.a, 0.8), 9, 61, () => [-2.6, 2.6], 1.2);
+    for (const y of [24, 38]) { strip('qs' + y, O.b, (t) => [-18 + 36 * t, y], 4, 1.4, false, 0.8); for (const sg of [-1, 1]) { const g = disc(0x9aa0aa, sg * 8, y, 4.6, 1.9); add(g, G.box, 0x6a6a72, 3.2, 1, 1, 0, 0, 0.8); } }   // straps and their buckles
+    panel('qp', shade(O.a, 0.84), 44, 53, () => [8, 18], 1.6); add(body, G.box, 0xe0ac2a, 6, 3, 1, 13, 49.4, 21.8);   // a pocket with a tag
+    { const m = add(body, G.tor, shade(O.a, 0.9), 38, 38, 50, 0, 61.6, 0); m.rotation.x = Math.PI / 2; }   // the padded collar
   } else torso(63, () => O.a);
   add(body, taper(0.42, 0.5), O.c, 26, 6, 24, 0, 62, 0);   // the collar band round the neck
   // ---- round the neck: bands follow the slope of the shoulders, and what hangs from them is laid on the chest
@@ -433,7 +498,8 @@ export function buildCharacter(look) {
     const arm = grp(body, s * 36 * SW, 54, 0); R[s < 0 ? 'armL' : 'armR'] = arm; arm.scale.set(ARMW / WX, 1, ARMW / WZ);
     const sl = grp(arm, 0, 0, 0), wr = grp(arm, 0, -43 * (aK - 1), 0); sl.scale.y = aK; R[s < 0 ? 'wristL' : 'wristR'] = wr;
     // shoulder, upper arm, an elbow, a forearm into the cuff, and a hand with a thumb and fingers
-    add(arm, G.ball, O.a, 25, 23, 25, 0, 0, 0);
+    const SLC = st === 'singlet' ? tone : O.a;   // a singlet leaves the arms bare
+    add(arm, G.ball, SLC, 25, 23, 25, 0, 0, 0);
     { // the sleeve: one piece of cloth from the shoulder to the cuff, easing in at the elbow where it folds a little;
       // stripes, garters and a rolled-back sleeve are part of it
       const yS = (y) => (2 - y) / 41, B = [];   // a height on the arm as a fraction down the sleeve
@@ -443,13 +509,16 @@ export function buildCharacter(look) {
       if (st === 'shirt' || st === 'plaid' || st === 'badge') band(-37.6, -33.2, shade(O.a, 0.84), 0.09);
       if (st === 'vest') band(-16.3, -13.7, O.b, 0.06);
       if (st === 'hazmat') band(-37.5, -34.5, O.b, 0.03);
+      if (st === 'apron') band(-20, -14, shade(O.c, 0.86), 0.1);
+      if (st === 'quilted') for (let i = 0; i < 4; i++) band(-8 - i * 8.4, -7 - i * 8.4, shade(O.a, 0.7), -0.02);
+      if (st === 'duster') band(-37.6, -33.4, shade(O.a, 0.8), 0.05);
       const inB = (t) => B.find((q) => t > q[0] && t < q[1]);
       const radAt = (t) => cprof([[0, 11.8], [0.25, 10.8], [0.5, 9.9], [0.62, 9.8], [0.8, 9.9], [1, 8.9]], t) * (1 + ((inB(t) || [])[3] || 0));
       const fold = (t, ph) => 1 - 0.055 * Math.exp(-(((t - 0.56) / 0.1) ** 2)) * Math.pow(0.5 + 0.5 * Math.cos(t * 41 * 2.1 + Math.cos(ph) * 0.8), 2);
-      clothTube(sl, 'slv' + OKY, [[0, 2, 0], [0, -18, 0.5], [0, -39, 0]], radAt, (t) => { const q = inB(t); return q ? q[2] : O.a; }, B.flatMap((q) => [q[0], q[1]]), fold, false);
+      clothTube(sl, 'slv' + OKY + (st === 'singlet' ? tone : ''), [[0, 2, 0], [0, -18, 0.5], [0, -39, 0]], radAt, (t) => { const q = inB(t); return q ? q[2] : SLC; }, B.flatMap((q) => [q[0], q[1]]), fold, false);
       if (st === 'coat' || st === 'suit') for (let k = 0; k < 2; k++) add(sl, G.ball, O.id === 'undertaker' ? 0x9aa0aa : O.b, 2.6, 2.6 / aK, 2.6, 0, -33.6 - k * 3.4, -9.4);     // cuff buttons
     }
-    add(sl, G.cyl, O.c, 18.5, 6, 18.5, 0, -40, 0);                              // cuff
+    add(sl, G.cyl, st === 'singlet' ? tone : O.c, 18.5, 6, 18.5, 0, -40, 0);                              // cuff
     const bare = GL.id === 'bare', hc = bare ? (st === 'hazmat' || st === 'bones' ? O.b : tone) : GL.a, big = GL.style === 'big' ? 1.3 : 1, hk = Math.pow(ARMW, -0.5) * (1 - 0.06 * FM);
     const hand = grp(wr, 0, -50, 0); hand.scale.set(big * hk, big, big * hk);     // a thick arm does not mean a hand to match
     // the hand: hangs down (y), palm facing in toward the body (-s across x), width front to back (z). A sculpted palm,
@@ -470,6 +539,11 @@ export function buildCharacter(look) {
       // the glove's cuff, flaring a little over the sleeve's cuff; a gauntlet runs up the forearm
       clothTube(sl, 'gc' + GL.id + GL.b, [[0, -40.4, 0], [0, -44.4, 0]], (t) => 10 + 0.9 * t, () => GL.b, [], (t, ph) => 1 + 0.015 * Math.cos(ph * 6), false);
       if (GL.style === 'long') { clothTube(sl, 'gl' + GL.id, [[0, -22, 0], [0, -40.6, 0]], (t) => cprof([[0, 11.6], [0.15, 11], [1, 10.2]], t), (t) => (t < 0.12 ? GL.b : GL.a), [0.12], (t, ph) => 1 - 0.03 * Math.exp(-(((t - 0.5) / 0.1) ** 2)) * (0.5 + 0.5 * Math.cos(ph * 4)), false); }
+      if (GL.style === 'knuckle') {   // a bar of brass across the knuckles with a ring for each finger and a grip into the palm
+        sweepAB(hand, 'bk' + s, [[s * 2.6, -4.2, -8], [s * 3.4, -4.6, 0], [s * 2.6, -4.2, 8.4]], () => [1.6, 1.3], () => GL.b, -1e9, 0.5);
+        for (let k = 0; k < 4; k++) { const m = add(hand, G.tor, GL.b, 5.4, 5.4, 4.6, s * 0.6, -6.8, -6 + k * 4); m.rotation.y = Math.PI / 2; }
+        add(hand, G.box, GL.b, 1.8, 2.4, 14, IN * 1.6, -1, 0);
+      }
       if (GL.style === 'wrap') { for (let i = 0; i < 3; i++) { const m = add(wr, G.cyl, GL.b, Math.round(10.6 * hk + 1), 2.2, Math.round(17.6 * hk + 1), 0, -46 - i * 3.6, 0); m.rotation.z = (i - 1) * 0.12; }   // wrapped round the wrist
         for (const y of [-1, -4.4]) add(hand, G.cyl, GL.b, 10.6, 2, 18, 0, y, 0).rotation.x = 0.1; }   // and across the knuckles
     }
@@ -644,6 +718,11 @@ export function buildCharacter(look) {
     case 'specs': for (const s of [-1, 1]) add(head, G.tor, F.a, 13, 13, 9, s * 8.4, 17.5, 22.5); add(head, G.box, F.a, 5, 1.5, 1.5, 0, 18.6, 23); for (const s of [-1, 1]) add(head, G.box, F.a, 1.3, 1.5, 20, s * 15.6, 18, 13); break;
     case 'shades': for (const s of [-1, 1]) add(head, G.ball, F.a, 14.5, 10, 3, s * 8.6, 17.4, 22.4); add(head, G.box, F.a, 6, 2, 2, 0, 19, 22.6); for (const s of [-1, 1]) add(head, G.box, F.a, 1.4, 2, 20, s * 16, 18.4, 13); break;
     case 'monocle': add(head, G.tor, F.a, 15, 15, 9, 9, 17.5, 22.6); add(head, G.cyl, 0xbfe4ee, 12, 0.5, 12, 9, 17.5, 22.4).rotation.x = PI / 2; add(head, G.box, F.a, 0.9, 20, 0.9, 16.6, 7.5, 20.6).rotation.z = 0.1; break;
+    case 'spyglass': { const g = grp(head, 9, 17.5, 21.6); g.rotation.x = -Math.PI / 2;   // a brass telescope screwed into an eyecup, drawn out in three sections
+      clothRing(g, 'spy' + F.a, [[5.4, 0.6], [6.2, -2.4], [5, -4], [4.4, -9], [5, -10], [3.9, -10.6], [3.8, -16], [4.4, -17], [3.4, -17.4], [3.4, -22.6], [4.6, -23.4], [4.8, -25.6], [3.8, -26], [0, -26]], false, (t, ph, i) => (i <= 2 ? F.b : i === 4 || i === 7 || (i >= 10 && i <= 11) ? 0xe8c060 : F.a));
+      add(head, G.cyl, 0x9fd6e0, 7, 0.5, 7, 9, 17.5, 47.8, 0.8).rotation.x = Math.PI / 2;
+      for (const s of [-1, 1]) add(head, G.box, F.b, 1.4, 2.6, 20, s * 15.8, 18, 13);   // the strap
+      break; }
     case 'cigar': add(head, G.cyl, F.a, 5, 18, 5, 8, 4.6, 26).rotation.x = PI / 2 - 0.15; add(head, G.ball, F.b, 6, 6, 6, 8, 6, 35, 1.6); break;
     case 'pipe': add(head, G.cyl, F.a, 2.6, 17, 2.6, 8, 3.6, 26).rotation.x = PI / 2 - 0.3; add(head, G.cyl, F.a, 8.5, 9, 8.5, 8, 4.4, 35.5); add(head, G.cyl, 0x1c1a20, 6, 1, 6, 8, 9, 35.5); add(head, G.ball, F.b, 4.4, 2.4, 4.4, 8, 9.4, 35.5, 1.4); break;
     default: break;
@@ -723,6 +802,58 @@ export function buildCharacter(look) {
     case 'fez': add(hat, taper(0.42, 0.5), HA, 40, 30, 38, 0, 16, 0); add(hat, G.box, HB, 2, 22, 2, 14, 24, 10); add(hat, G.ball, HB, 7, 7, 7, 14, 12, 10); break;
     case 'cone': add(hat, G.box, HA, 56, 5, 56, 0, 2, 0); add(hat, G.cone, HA, 42, 62, 42, 0, 34, 0); add(hat, taper(0.3, 0.38), HB, 42, 10, 42, 0, 28, 0); break;
     case 'crown': add(hat, G.dome, HB, 52, 36, 47, 0, 2, 0); add(hat, G.cyl, HA, 53, 13, 48, 0, 6, 0); for (let i = 0; i < 6; i++) { const a = (i + 0.5) / 6 * Math.PI * 2; add(hat, G.ball, i % 2 ? 0x2a6ad0 : 0x2aa05a, 5, 5, 4, Math.sin(a) * 26, 6, Math.cos(a) * 23.6, 0.6); } for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(hat, G.cone, HA, 10, 16, 10, Math.sin(a) * 23.5, 20, Math.cos(a) * 21); add(hat, G.ball, 0xfff4d8, 4, 4, 4, Math.sin(a) * 23.5, 29, Math.cos(a) * 21); } add(hat, G.ball, HB, 9, 9, 6, 0, 7, 24, 0.8); break;
+    case 'gambler': {   // a gambler's hat: a flat-topped crown, a wide flat brim that turns up at its edge, a band with a card in it
+      const ch = 22 * hh, W = R0 + 15 + brimW * 0.6, K = [HA, HB, Math.round(hh * 20), Math.round(W)].join(':');
+      clothRing(hat, 'gbc' + K, [[R0 + 0.6, 0], [R0 + 1.2, 6], [R0 + 0.4, ch * 0.7], [R0 - 1, ch - 2], [R0 - 3.4, ch], [R0 - 9, ch + 0.6], [0, ch + 0.9]], false,
+        (t, ph, i) => shade(HA, i >= 4 ? 0.94 : 1), (t, ph, i) => [i >= 2 && i <= 4 ? 0.35 * Math.cos(2 * ph) : 0, i >= 4 ? -0.8 * Math.max(0, Math.cos(ph)) : 0]);   // a slight pinch at the front
+      clothRing(hat, 'gbb' + K, [[R0 - 2, 3.4], [R0 - 2, -0.4], [R0 + 6, -1.2], [W - 2, -0.6], [W, 1.2], [W + 0.8, 2.8], [W - 0.6, 2.4], [W - 3, 0.6], [R0 + 6, 0.4], [R0 + 0.4, 3.6]], true,
+        (t, ph, i) => shade(HA, i >= 3 && i <= 6 ? 0.88 : 1), (t, ph, i) => [0, (i >= 3 && i <= 7 ? 1 : 0) * 1.6 * Math.pow(Math.abs(Math.sin(ph)), 2)]);   // the brim lifts at the sides
+      clothRing(hat, 'gbn' + K, [[R0 + 1.4, 1.2], [R0 + 1.6, 7.4], [R0 + 1, 7.6], [R0 + 0.8, 1]], true, (t, ph) => shade(HB, Math.abs(Math.sin(ph * 0.5)) < 0.06 ? 0.7 : 1));
+      { const g = grp(hat, (R0 + 1.4) * Math.sin(-0.7), 9.5, (R0 + 1.4) * 0.92 * Math.cos(-0.7)); g.rotation.y = -0.7; g.rotation.z = 0.25;   // a playing card tucked in the band
+        rbox(g, 0xf2e8d5, 7.4, 10.4, 0.7, 0, 0, 0.6, 0.8); add(g, G.ball, 0xc8211b, 2.6, 3, 0.8, 0, 0.4, 1.1); add(g, G.cone, 0xc8211b, 2.4, 2.6, 0.8, 0, -1.6, 1.1).rotation.z = Math.PI; }
+      break; }
+    case 'flatcap': {   // a flat cap: a soft crown cut in panels that slopes forward over a short stiff bill, a button on top
+      const g = grp(hat, 0, -1.2, 1.6); g.rotation.x = 0.06; g.scale.set(1.04, 1, 1.12); const K = [HA, HB, Math.round(hh * 20)].join(':');
+      clothRing(g, 'fcc' + K, [[R0 + 0.4, -0.6], [R0 + 2, 5], [R0 + 4.4, 10 * hh], [R0 + 3.4, 13 * hh], [R0 - 3, 15.4 * hh], [R0 - 12, 16.4 * hh], [0, 16.8 * hh]], false,
+        (t, ph, i) => shade(HA, Math.abs(Math.sin(ph * 4)) < 0.05 && i >= 2 ? 0.74 : 0.96 + 0.04 * Math.cos(ph * 8)),   // eight panels and their seams
+        (t, ph, i) => [i >= 2 && i <= 4 ? 2.2 * Math.max(0, Math.cos(ph)) : 0, i >= 3 ? -1.6 * Math.max(0, Math.cos(ph)) : 0]);   // fuller and lower over the brow
+      shell(g, null, 'fcb' + K, 30, 8, (u, v) => {   // the bill: a stiff curved half-moon out over the nose
+        const a = u * 1.15, r = R0 - 0.6 + v * (11.5 - 4 * u * u), y = 0.6 - v * v * 2.6, x = Math.sin(a) * r, z = Math.cos(a) * r * 0.92, e = Math.min(1 - Math.abs(u), v * 4 + 0.2, (1 - v) * 3);
+        return [x, y, z, 0, 1, 0.08, 1.4 * Math.sqrt(Math.max(0, Math.min(1, e * 4))), v > 0.9 ? shade(HA, 0.82) : HA];
+      });
+      add(g, G.ball, HB, 5.6, 2.6, 5.6, 0, 16.8 * hh + 0.6, 0);
+      break; }
+    case 'welder': {   // a welder's cap: a close cloth cap in panels, its short bill flipped up, goggles pushed up over the front
+      const K = [HA, HB, Math.round(hh * 20)].join(':'), top = 23 * hh;
+      clothRing(hat, 'wcc' + K, [[R0 + 0.8, -0.8], [R0 + 1.4, 8], [R0 + 0.6, top * 0.62], [R0 - 3, top * 0.86], [R0 - 11, top - 0.6], [0, top]], false,
+        (t, ph, i) => shade(HA, Math.abs(Math.sin(ph * 3)) < 0.06 && i >= 1 ? 0.7 : (Math.floor((ph / (Math.PI * 2)) * 6) % 2 ? 0.92 : 1)));   // six panels, two shades
+      shell(hat, HA, 'wcb' + K, 20, 6, (u, v) => { const a = u * 0.9, r = R0 + 1.4, y = 1 + v * 9, x = Math.sin(a) * (r + v * 1.2), z = Math.cos(a) * (r + v * 1.2) * 0.92, e = Math.min(1 - Math.abs(u), (1 - v) * 3); return [x, y, z, Math.sin(a), 0.1, Math.cos(a), 1.3 * Math.sqrt(Math.max(0, Math.min(1, e * 4))), 0.86]; });   // the bill, turned up
+      clothRing(hat, 'wcs' + K, [[R0 + 1.6, 10], [R0 + 2, 14.4], [R0 + 1.4, 14.6], [R0 + 1, 9.8]], true, () => HB);   // the goggle strap
+      for (const sx of [-1, 1]) { const g = grp(hat, sx * 8.6, 13.6, (R0 + 2.2) * 0.92 * Math.cos(sx * 0.34)); g.rotation.y = sx * 0.34; g.rotation.x = -0.35;   // the goggles: brass cups, dark glass
+        const cup = grp(g, 0, 0, 0); cup.rotation.x = Math.PI / 2; clothRing(cup, 'wgc' + HB, [[6.2, 0], [6.6, 3.4], [5.4, 5], [4.4, 5.2], [4.6, 0]], true, (t, ph, i) => (i === 2 || i === 3 ? 0xc9a43a : 0x3a3a40));
+        add(g, G.cyl, 0x2a4a5a, 9, 0.6, 9, 0, 0, 5.2, 0.6).rotation.x = Math.PI / 2; }
+      add(hat, G.box, HB, 6, 2.6, 2, 0, 13.6, (R0 + 3) * 0.92);   // the bridge between them
+      break; }
+    case 'boonie': {   // a boonie hat: a soft round crown with a loop band stuffed with leaves, a floppy brim that droops all round
+      const ch = 19 * hh, W = R0 + 9 + brimW * 0.55, K = [HA, HB, Math.round(hh * 20), Math.round(W)].join(':');
+      clothRing(hat, 'bnc' + K, [[R0 + 0.4, 0], [R0 + 1, 5], [R0 + 0.2, ch * 0.75], [R0 - 3.4, ch], [R0 - 10, ch + 1.6], [0, ch + 2]], false,
+        (t, ph, i) => shade(HA, i >= 2 ? 0.95 + 0.05 * Math.cos(ph * 5) : 1), (t, ph, i) => [i === 2 ? 0.6 * Math.cos(ph * 5) : 0, 0]);
+      clothRing(hat, 'bnb' + K, [[R0 - 2.6, 3], [R0 - 2.6, -0.4], [R0 + 3, -1.4], [W - 1, -4], [W + 0.4, -5.4], [W - 0.6, -4.2], [R0 + 3, 0.6], [R0 + 0.4, 3.2]], true,
+        (t, ph, i) => shade(HA, i >= 3 && i <= 5 ? 0.86 : 0.97), (t, ph, i) => [0, (i >= 2 && i <= 6 ? 1 : 0) * (-1.2 - 1.4 * Math.sin(4 * ph + 0.7))]);   // stitched rows, a soft droop that waves
+      clothRing(hat, 'bnl' + K, [[R0 + 1.2, 2.4], [R0 + 1.6, 7.2], [R0 + 1, 7.4], [R0 + 0.6, 2.2]], true, () => HB);   // the loop band
+      for (let k = 0; k < 14; k++) { const a = (k / 14) * Math.PI * 2 + 0.2, g = grp(hat, Math.sin(a) * (R0 + 2.2), 5, Math.cos(a) * (R0 + 2.2) * 0.92); g.rotation.y = a; g.rotation.x = -0.35 - (k % 3) * 0.2; g.rotation.z = (k % 2 ? 0.3 : -0.3);   // leaves and grass tucked in it
+        add(g, G.cone, [0x5a7a2e, 0x7a8a3a, 0x3a5a22, 0x8a7a3a][k % 4], 3.2, 11 + (k % 3) * 3, 0.9, 0, 5.4 + (k % 3), 0.8); }
+      break; }
+    case 'blasthood': {   // a bomb-suit hood: thick quilted padding over the head and down the neck, a slab of amber glass at the front
+      const K = [HA, HB, Math.round(hh * 20)].join(':'), top = 26 * hh;
+      clothRing(hat, 'bhd' + K, [[R0 + 5, -18], [R0 + 7, -10], [R0 + 7, 0], [R0 + 6.4, 9], [R0 + 3.4, top * 0.72], [R0 - 4, top * 0.94], [R0 - 13, top], [0, top + 0.6]], false,
+        (t, ph, i) => shade(HA, 0.9 + 0.1 * Math.cos(ph * 12)), (t, ph, i) => [i >= 1 && i <= 5 ? 0.9 * Math.cos(ph * 12) : 0, 0]);   // padded in vertical ribs
+      for (const y of [-12, -3, 6]) clothRing(hat, 'bhq' + y + K, [[R0 + 7.4, y - 1], [R0 + 7.8, y], [R0 + 7.4, y + 1], [R0 + 6.6, y]], true, () => shade(HA, 0.72));   // quilting seams round it
+      shell(hat, null, 'bhv' + K, 24, 12, (u, v) => {   // the visor: a curved slab of glass in a rubber frame
+        const a = u * 0.72, y = -9 + v * 16, r = R0 + 8.6, x = Math.sin(a) * r, z = Math.cos(a) * r * 0.92, e = Math.min(1 - Math.abs(u), v, 1 - v), frame = 1 - Math.abs(u) < 0.12 || v < 0.1 || v > 0.9;
+        return [x, y, z, Math.sin(a), 0, Math.cos(a), 1.6 * Math.sqrt(Math.max(0, Math.min(1, e * 6))), frame ? 0x24202a : HB];
+      });
+      break; }
     default: break;
   }
 
@@ -756,6 +887,26 @@ export function buildCharacter(look) {
     case 'shovel': { const g = grp(back, 0, 10, -6); g.rotation.z = -0.5; add(g, G.cyl, B.b, 5, 96, 5, 0, 0, 0); add(g, G.box, B.a, 26, 30, 4, 0, 60, 0); add(g, G.box, B.b, 18, 5, 5, 0, -48, 0); break; }
     case 'tank': for (const x of [-12, 12]) { add(back, G.cyl, B.a, 20, 54, 20, x, 10, -10); add(back, G.ball, B.a, 20, 20, 20, x, 37, -10); add(back, G.cyl, B.b, 8, 8, 8, x, 48, -10); } add(back, G.box, B.b, 50, 6, 4, 0, 10, 0); break;
     case 'tomb': add(back, G.box, B.a, 46, 54, 12, 0, 6, -8); add(back, G.cyl, B.a, 46, 12, 46, 0, 33, -8).rotation.x = Math.PI / 2; add(back, G.box, B.b, 22, 5, 2, 0, 22, -14.5); add(back, G.box, B.b, 5, 26, 2, 0, 16, -14.5); break;
+    case 'toolpack': {   // a canvas pack with a leather lid, a pressure gauge on its side, pipe and a wrench strapped to it
+      const K = [B.a, B.b].join(':');
+      sweepAB(back, 'tpk' + K, [[0, -16, -10], [0, 0, -12.5], [0, 20, -11]], (t) => [cprof([[0, 16], [0.5, 17.5], [1, 15]], t), cprof([[0, 8.4], [0.5, 10], [1, 8]], t)], (t) => (t > 0.78 ? B.a : 0x8a7a5e), -1e9, 0.7);
+      shell(back, B.a, 'tpl' + K, 16, 10, (u, v) => { const x = u * 16.5, y = 21 - v * 13, z = -11 - 10.6 * Math.cos(u * 0.9) * (0.8 + 0.2 * v) - 0.4, e = Math.min(1 - Math.abs(u), (1 - v) * 2, v * 8 + 0.1); return [x, y, z, 0, 0.3, -1, 1.4 * Math.sqrt(Math.max(0, Math.min(1, e * 5))), 0.9]; });   // the flap over the top
+      for (const x of [-9, 9]) { rbox(back, shade(B.a, 0.7), 3.4, 22, 1.4, x, 6, -23.2, 0.6); rbox(back, 0xc9a43a, 4.4, 3.4, 1.6, x, 4, -24, 0.6); }   // flap straps and buckles
+      for (const x of [-1, 1]) { const m = add(back, G.cyl, 0x9aa0aa, 3.6, 34, 3.6, x * 5, 26, -12); m.rotation.z = Math.PI / 2; m.rotation.y = x * 0.05; } add(back, G.cyl, 0xc9a43a, 5, 4, 5, 17.6, 26, -12).rotation.z = Math.PI / 2;   // two lengths of pipe across the top
+      { const g = grp(back, -17.4, 2, -12); g.rotation.y = -Math.PI / 2; add(g, G.cyl, 0xc9a43a, 10, 3, 10, 0, 0, 0).rotation.x = Math.PI / 2; add(g, G.cyl, 0xf2e8d5, 8, 1, 8, 0, 0, 1.4).rotation.x = Math.PI / 2; add(g, G.box, 0xc8211b, 0.8, 3.6, 0.6, 0.8, 0.8, 2.1).rotation.z = -0.7; }   // the gauge
+      { const g = grp(back, 17.6, 0, -13); g.rotation.z = 0.2; add(g, G.box, 0x9aa0aa, 2.6, 26, 1.8, 0, 0, 0); add(g, G.box, 0x9aa0aa, 7, 4, 1.8, 0, 13, 0); add(g, G.box, 0x9aa0aa, 2.2, 4, 1.8, -2.4, 15.4, 0); add(g, G.box, 0x9aa0aa, 2.2, 4, 1.8, 2.4, 15.4, 0); }   // a wrench in a loop
+      for (const x of [-11, 11]) rbox(back, shade(B.a, 0.6), 3.4, 30, 2, x, 14, 1.6, 0.8);   // the shoulder straps
+      break; }
+    case 'keg': {   // a powder keg: oak staves bound in iron, a fuse coiled on the lid and a spark at the end of it
+      const K = [B.a, B.b].join(':'), g = grp(back, 0, 4, -16);
+      clothRing(g, 'keg' + K, [[13, -18], [15.2, -12], [16.4, -2], [16.4, 4], [15.2, 13], [13, 19], [0, 19.4]], false, (t, ph, i) => shade(B.a, Math.abs(Math.sin(ph * 7)) < 0.08 ? 0.7 : (Math.floor(ph / (Math.PI / 7)) % 2 ? 0.92 : 1)), (t, ph, i) => [i >= 1 && i <= 4 ? 0.3 * Math.cos(ph * 14) : 0, 0]);
+      clothRing(g, 'kegb' + K, [[0, -18.4], [13, -18.4], [13, -17]], false, () => shade(B.a, 0.8));
+      for (const y of [-13, 0.8, 14]) { const r = y === 0.8 ? 16.4 : 15.1; clothRing(g, 'kegh' + y + K, [[r + 0.2, y - 1.4], [r + 0.9, y - 1.2], [r + 0.9, y + 1.2], [r + 0.2, y + 1.4]], true, () => B.b); }   // the iron hoops
+      const fz = [[0, 19.8, 2], [4, 21, 4], [7, 22.6, 0], [5, 25, -4], [1, 27.4, -2]]; sweepAB(g, 'kegf' + K, fz, () => [0.8, 0.8], () => 0x2a2420);
+      add(g, G.ball, 0xffb040, 3.4, 3.4, 3.4, 1, 28.4, -2, 2.4); add(g, G.ball, 0xfff0b0, 1.6, 1.6, 1.6, 1, 28.6, -2, 3);   // the spark
+      rbox(g, 0xf2e8d5, 9, 6, 1, 0, 3, 16.6, 0.4); add(g, G.box, 0x140d12, 6, 1.4, 1.2, 0, 3, 17.2);   // a label on the front
+      for (const x of [-11, 11]) rbox(back, 0x5a3a24, 3.4, 30, 2, x, 14, 1.6, 0.8);
+      break; }
     case 'wings': for (const s of [-1, 1]) { const w = R[s < 0 ? 'wingL' : 'wingR'] = grp(back, s * 10, 26, -4); for (let i = 0; i < 4; i++) { const f = add(w, G.box, i === 3 ? B.b : B.a, 14, 58 - i * 9, 4, s * (12 + i * 13), -10 - i * 5, -2); f.rotation.z = s * (0.25 + i * 0.12); } } break;
     default: break;
   }

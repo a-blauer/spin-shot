@@ -120,7 +120,7 @@ export const Net = {
       G.pitch = num(s.pt, -2, 2); G.wdef = num(s.w, -1, 500) | 0;
       { const sh = num(s.sh, 0, 100000) | 0; if (G.fresh && G.shot !== undefined && sh !== G.shot && !s.dead) G.queue = Math.min(10, (G.queue || 0) + Math.min(10, (sh - G.shot + 100000) % 100000)); G.shot = sh; }
       if (Array.isArray(s.pg) && s.pg.length >= 4) { const q = num(s.pg[3], 0, 1e6) | 0; if (G.pingSeq !== undefined && q !== G.pingSeq && this.game) this.game.showPing(new THREE.Vector3(num(s.pg[0], -1e5, 1e5), num(s.pg[1], -1e5, 1e5), num(s.pg[2], -1e5, 1e5)), cleanName(s.name), num(s.pg[4], 0, 3) | 0); G.pingSeq = q; } else if (G.pingSeq === undefined) G.pingSeq = 0;
-      G.yaw = num(s.yaw, -100, 100); G.hp = num(s.hp, 0, 1); G.dead = !!s.dead; G.name = cleanName(s.name); G.wantSkin = String(s.look || '').slice(0, 240);
+      G.kills = num(s.kl, 0, 1e7) | 0; G.dmg = num(s.dm, 0, 1e12); G.yaw = num(s.yaw, -100, 100); G.hp = num(s.hp, 0, 1); G.dead = !!s.dead; G.name = cleanName(s.name); G.wantSkin = String(s.look || '').slice(0, 240);
     }
     for (const [peer, G] of this.ghosts) if (!here.has(peer)) {
       if (G.group && this.game) this.game.scene.remove(G.group);
@@ -172,7 +172,7 @@ export const Net = {
     if (this.tp <= 0) {
       this.tp = 0.1;
       this.started = true;
-      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, dn: P.downed ? 1 : null, bl: P.downed ? Math.round(P.bleed) : null, rp: P.downed ? Math.round((P.reviveP || 0) * 100) / 100 : null, rv: this.rvPeer || null, sh: P.shotSeq || 0, pt: Math.round(P.pitch * 100) / 100, w: P.wield ? -1 : P.slot.def, pg: g.myPing || null, name: this.name, look: Meta.lookStr() }).catch(() => {});
+      this.room.presence({ isHost: this.role === 'host' ? 1 : null, started: 1, x: Math.round(P.pos.x), y: Math.round(P.pos.y), z: Math.round(P.pos.z), yaw: Math.round(P.yaw * 100) / 100, hp: Math.round(Math.max(0, P.health / Math.max(1, P.maxHealth)) * 100) / 100, dead: P.dead ? 1 : 0, dn: P.downed ? 1 : null, bl: P.downed ? Math.round(P.bleed) : null, rp: P.downed ? Math.round((P.reviveP || 0) * 100) / 100 : null, rv: this.rvPeer || null, sh: P.shotSeq || 0, pt: Math.round(P.pitch * 100) / 100, w: P.wield ? -1 : P.slot.def, pg: g.myPing || null, name: this.name, look: Meta.lookStr(), kl: P.kills | 0, dm: Math.round(Object.values(P.runDmg || {}).reduce((a, b) => a + b, 0)) }).catch(() => {});
       if (this.role === 'client' && this.hits.size) { this.emit('h', { l: [...this.hits.entries()].slice(0, 80).map(([id, h]) => [id, Math.round(h.a), h.hs, Math.round(h.x * 100) / 100, Math.round(h.z * 100) / 100]) }); this.hits.clear(); }
     }
     if (this.role === 'host') {
@@ -347,7 +347,7 @@ export const Net = {
   doorOpened(D) { if (this.active && !this._door) this.emit('door', { i: this.game.interactables.indexOf(D) }); },
   killed(E, headshot) { if (this.role === 'host') this.emit('k', { id: E.id, by: E.netKiller || this.me, hs: headshot ? 1 : 0 }); },
   // lobby (before the run starts): who is here, and has the host started
-  lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe })); },
+  lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe, look: p.isMe ? Meta.lookStr() : String((p.presence || {}).look || '').slice(0, 240) })); },
   hostHere() { return this.role !== 'client' || (this.room && this.room.peers().some((p) => p.peer === this.hostPeer)); },
   hostStarted() { if (this.role !== 'client' || !this.room) return false; const h = this.room.peers().find((p) => p.peer === this.hostPeer); return !!(h && h.presence && h.presence.started); },
   setMap(i) { if (this.role === 'host' && this.room) this.room.presence({ map: i }).catch(() => {}); },

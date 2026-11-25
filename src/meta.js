@@ -79,11 +79,11 @@ export const STARTERS = ['Tin Star', 'Copperhead', 'Back-Alley', 'Sawbuck', 'Qua
 export const CLASS_LEVELS = [8, 25, 60];
 export const CLASS_LEVEL_NAMES = ['Adept', 'Veteran', 'Master'];
 export const CLASS_META = [
-  { id: 'gunslinger', name: 'Gunslinger', rewards: [{ renown: 500 }, { renown: 1500 }, { renown: 4000 }] },
-  { id: 'brawler', name: 'Brawler', rewards: [{ renown: 500 }, { renown: 1500 }, { renown: 4000 }] },
-  { id: 'engineer', name: 'Engineer', rewards: [{ renown: 500 }, { renown: 1500 }, { renown: 4000 }] },
-  { id: 'sniper', name: 'Sniper', rewards: [{ renown: 500 }, { renown: 1500 }, { renown: 4000 }] },
-  { id: 'bomber', name: 'Bomber', rewards: [{ renown: 500 }, { renown: 1500 }, { renown: 4000 }] },
+  { id: 'gunslinger', name: 'Gunslinger', rewards: [{ cos: ['hat:gambler'], renown: 300 }, { cos: ['outfit:duster'], renown: 800 }, { cos: ['waist:quickdraw'], renown: 3000 }] },
+  { id: 'brawler', name: 'Brawler', rewards: [{ cos: ['hat:flatcap'], renown: 300 }, { cos: ['gloves:knuckles'], renown: 800 }, { cos: ['outfit:singlet'], renown: 3000 }] },
+  { id: 'engineer', name: 'Engineer', rewards: [{ cos: ['hat:welder'], renown: 300 }, { cos: ['outfit:apron'], renown: 800 }, { cos: ['back:toolpack'], renown: 3000 }] },
+  { id: 'sniper', name: 'Sniper', rewards: [{ cos: ['hat:boonie'], renown: 300 }, { cos: ['outfit:ghillie'], renown: 800 }, { cos: ['face:spyglass'], renown: 3000 }] },
+  { id: 'bomber', name: 'Bomber', rewards: [{ cos: ['hat:blasthood'], renown: 300 }, { cos: ['outfit:quilted'], renown: 800 }, { cos: ['back:keg'], renown: 3000 }] },
 ];
 
 export const SKINS = [
@@ -107,41 +107,46 @@ export const SKINS = [
 ];
 
 // ---- challenges. stat = lifetime counter (or best value) the challenge reads; the rest is what it unlocks.
-export const GROUPS = ['Combat', 'Survival', 'Fortune', 'The Frontier'];
+export const GROUPS = ['Combat', 'The Descent', 'The Workshop', 'Survival'];
 export const ACHIEVEMENTS = [
   { id: 'kills25', group: 0, name: 'First Blood', desc: 'Kill 300 enemies', stat: 'kills', need: 300, renown: 250 },
-  { id: 'kills250', group: 0, name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, renown: 800 },
-  { id: 'kills1000', group: 0, name: 'One-Man Army', desc: 'Kill 12,000 enemies', stat: 'kills', need: 12000, renown: 2000 },
-  { id: 'head100', group: 0, name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, renown: 1200 },
+  { id: 'kills250', group: 0, name: 'Exterminator', desc: 'Kill 3,000 enemies', stat: 'kills', need: 3000, parts: ['Grapeshot'] },
+  { id: 'kills1000', group: 0, name: 'One-Man Army', desc: 'Kill 12,000 enemies', stat: 'kills', need: 12000, renown: 2500 },
+  { id: 'head100', group: 0, name: 'Sharpshooter', desc: 'Get 800 headshot kills', stat: 'headshots', need: 800, parts: ['Echo Chamber'] },
   { id: 'air100', group: 0, name: 'Airborne', desc: 'Get 600 kills while in the air', stat: 'airKills', need: 600, renown: 1000 },
-  { id: 'elite25', group: 0, name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, renown: 800 },
+  { id: 'wall150', group: 0, name: 'Wall Walker', desc: 'Get 150 kills while wall-running', stat: 'wallKills', need: 150, renown: 800 },
+  { id: 'elite25', group: 0, name: 'Elite Hunter', desc: 'Kill 100 elites', stat: 'eliteKills', need: 100, parts: ['Death Mark'] },
   { id: 'melee1', group: 0, name: 'Close Work', desc: 'Get 400 melee kills', stat: 'meleeKills', need: 400, blades: ['Gunslinger Katana'] },
   { id: 'melee2', group: 0, name: 'Gravedigger', desc: 'Get 2,000 melee kills', stat: 'meleeKills', need: 2000, blades: ["Gravedigger's Shovel"] },
-  { id: 'round5', group: 1, name: 'Still Standing', desc: 'Reach round 3', stat: 'bestRound', need: 3, renown: 150 },
-  { id: 'round10', group: 1, name: 'Dug In', desc: 'Reach round 6', stat: 'bestRound', need: 6, renown: 400 },
-  { id: 'round15', group: 1, name: 'Hard to Kill', desc: 'Reach round 9', stat: 'bestRound', need: 9, renown: 800 },
-  { id: 'round20', group: 1, name: 'Last One Standing', desc: 'Reach round 12', stat: 'bestRound', need: 12, renown: 1500 },
+  { id: 'd5', group: 1, name: 'Going Down', desc: 'Reach room 5 of the Descent', stat: 'dRoom', need: 5, renown: 150 },
+  { id: 'd10', group: 1, name: 'Halfway Down', desc: 'Reach room 10 of the Descent', stat: 'dRoom', need: 10, renown: 400 },
+  { id: 'd15', group: 1, name: 'Deep Water', desc: 'Reach room 15 of the Descent', stat: 'dRoom', need: 15, renown: 800 },
+  { id: 'dwin', group: 1, name: 'The Bottom', desc: 'Clear the Descent', stat: 'dWins', need: 1, renown: 1500 },
+  { id: 'dwin5', group: 1, name: 'Regular', desc: 'Clear the Descent 5 times', stat: 'dWins', need: 5, renown: 3000 },
+  { id: 'dhard', group: 1, name: 'Hardened', desc: 'Clear the Descent on Hard or above', stat: 'dDiff', need: 2, parts: ['Hollow Charge'] },
+  { id: 'dnm', group: 1, name: 'Nightmare Fuel', desc: 'Clear the Descent on Nightmare', stat: 'dDiff', need: 3, renown: 5000 },
   { id: 'boss1', group: 1, name: 'Boss Killer', desc: 'Defeat 4 bosses', stat: 'bosses', need: 4, renown: 300 },
-  { id: 'boss3', group: 1, name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, renown: 800 },
+  { id: 'boss3', group: 1, name: 'Boss Hunter', desc: 'Defeat 12 bosses', stat: 'bosses', need: 12, parts: ['Pinning Bolt'] },
   { id: 'boss40', group: 1, name: 'Kingslayer', desc: 'Defeat 40 bosses', stat: 'bosses', need: 40, renown: 2500 },
-  { id: 'slots25', group: 2, name: 'Treasure Seeker', desc: 'Open 75 chests', stat: 'chests', need: 75, renown: 600 },
-  { id: 'money100k', group: 2, name: 'Big Earner', desc: 'Earn $600,000 in total', stat: 'moneyEarned', need: 600000, renown: 800 },
-  { id: 'tier3', group: 2, name: 'Gunsmith', desc: 'Give one gun three modifiers', stat: 'tier3', need: 1, renown: 300 },
-  { id: 'bench40', group: 2, name: 'Tinkerer', desc: 'Fit 40 workbench modifiers', stat: 'mods', need: 40, renown: 600 },
-  { id: 'tonic60', group: 2, name: 'Snake Oil', desc: 'Drink 60 tonics', stat: 'tonics', need: 60, renown: 600 },
-  { id: 'master1', group: 2, name: 'Mastery', desc: 'Get two guns to level 5', stat: 'mastered', need: 2, renown: 500 },
-  { id: 'master6', group: 2, name: 'Arsenal', desc: 'Get six guns to level 5', stat: 'mastered', need: 6, renown: 1500 },
+  { id: 'rooms100', group: 1, name: 'Long Way Down', desc: 'Clear 100 rooms of the Descent', stat: 'dRooms', need: 100, renown: 1500 },
+  { id: 'fit50', group: 2, name: 'Tinkerer', desc: 'Fit 50 parts at the workbench', stat: 'fits', need: 50, renown: 400 },
+  { id: 'evo10', group: 2, name: 'Evolution', desc: 'Evolve guns 10 times', stat: 'mods', need: 10, renown: 600 },
+  { id: 'evo4', group: 2, name: 'Fully Evolved', desc: 'Evolve one gun all the way to IV', stat: 'dEvo', need: 4, parts: ['Static Build'] },
+  { id: 'press10', group: 2, name: 'Under Pressure', desc: 'Press 10 parts at the Compressor', stat: 'pressed', need: 10, renown: 500 },
+  { id: 'fuse3', group: 2, name: 'Alchemist', desc: 'Fuse 3 elemental parts', stat: 'fused', need: 3, renown: 800 },
+  { id: 'scrap40', group: 2, name: 'Scrapper', desc: 'Scrap 40 parts at the Recycler', stat: 'scrapped', need: 40, renown: 500 },
+  { id: 'make10', group: 2, name: 'Made to Order', desc: 'Make 10 parts at the Recycler', stat: 'made', need: 10, renown: 600 },
+  { id: 'fort15', group: 2, name: 'Second Sight', desc: 'Reroll or trade 15 buffs at the Fortune Teller', stat: 'fortune', need: 15, renown: 600 },
+  { id: 'asc1', group: 2, name: 'Ascendant', desc: 'Ascend a gun', stat: 'dAsc', need: 1, renown: 1000 },
+  { id: 'asc6', group: 2, name: 'Hall of Fame', desc: 'Earn 6 ascension marks', stat: 'dAsc', need: 6, renown: 4000 },
   { id: 'win', group: 3, name: 'Town Tamer', desc: 'Clear Deadwater Gulch', stat: 'clear_gulch', need: 1, renown: 600 },
   { id: 'win_mine', group: 3, name: 'Struck Gold', desc: 'Clear Blackwater Mine', stat: 'clear_mine', need: 1, renown: 600 },
   { id: 'win_frost', group: 3, name: 'End of the Line', desc: 'Clear Frostbite Junction', stat: 'clear_frost', need: 1, renown: 600 },
   { id: 'win_bayou', group: 3, name: 'Last Rites', desc: 'Clear Mourning Bayou', stat: 'clear_bayou', need: 1, renown: 600 },
   { id: 'win_carnival', group: 3, name: 'Final Curtain', desc: 'Clear Carnival of Ash', stat: 'clear_carnival', need: 1, renown: 600 },
   { id: 'win_wharf', group: 3, name: 'Cut Down', desc: 'Clear Gallows Wharf', stat: 'clear_wharf', need: 1, renown: 600 },
-  { id: 'maps3', group: 3, name: 'Globetrotter', desc: 'Clear three different maps', stat: 'mapsCleared', need: 3, renown: 1200 },
-  { id: 'maps6', group: 3, name: 'Polyshot', desc: 'Clear all six maps', stat: 'mapsCleared', need: 6, renown: 3000 },
-  { id: 'hard1', group: 3, name: 'Hardened', desc: 'Clear any map on Hard or above', stat: 'hardClears', need: 1, renown: 1000 },
-  { id: 'nm1', group: 3, name: 'Nightmare Fuel', desc: 'Clear any map on Nightmare', stat: 'nmClears', need: 1, renown: 1500 },
-  { id: 'nm6', group: 3, name: 'No Rest for the Wicked', desc: 'Clear all six maps on Nightmare', stat: 'nmClears', need: 6, renown: 5000 },
+  { id: 'maps3', group: 3, name: 'Globetrotter', desc: 'Clear three different Survival maps', stat: 'mapsCleared', need: 3, renown: 1200 },
+  { id: 'maps6', group: 3, name: 'Polyshot', desc: 'Clear all six Survival maps', stat: 'mapsCleared', need: 6, renown: 3000 },
 ];
 
 const fresh = () => ({ stats: {}, got: {}, claimed: {}, gunXp: {}, skin: 'drifter', look: Object.assign({}, DEFAULT_LOOK), cos: {} });
@@ -164,6 +169,7 @@ export function rewardText(A) {
   if (A.blades) out.push(...A.blades);
   if (A.upgrades) out.push(...A.upgrades);
   if (A.heirloom) out.push(`Heirloom: ${A.heirloom}`);
+  if (A.cos) for (const c of A.cos) { const [sl, id] = c.split(':'), I = (COSMETICS[sl] || []).find((i) => i.id === id); if (I) out.push(I.name); }
   if (A.renown) out.push(`+${A.renown.toLocaleString()} renown`);
   return out.join(', ');
 }
@@ -182,7 +188,7 @@ const BY_KEY = new Map(MILESTONES.map((M) => [M.key, M]));
 const hasReward = (M) => !!rewardText(M.reward);
 // 'locked' (goal not met), 'ready' (met, waiting to be claimed) or 'claimed'
 const stateOf = (M) => (!M.ok() ? 'locked' : S.claimed[M.key] || !hasReward(M) ? 'claimed' : 'ready');
-const payClaim = (M) => { const n = M.reward && M.reward.renown; if (n) S.stats.xp = (S.stats.xp || 0) + n; };
+const payClaim = (M) => { S.stats['claim:' + M.key] = 1; const n = M.reward && M.reward.renown; if (n) S.stats.xp = (S.stats.xp || 0) + n; };
 function recompute() {
   lockedGuns = new Set(); lockedUps = new Set(); lockedBlades = new Set(); earnedSkins = new Set(['drifter']);
   for (const M of MILESTONES) {
@@ -213,6 +219,8 @@ export const Meta = {
     this.check(true);      // whatever is already earned is simply marked; only new things are announced
     // a save from before rewards had to be claimed keeps everything it had already unlocked
     if (preClaim) { for (const M of MILESTONES) if (M.ok()) S.claimed[M.key] = 1; dirty = true; }
+    for (const k of Object.keys(S.claimed)) if (!S.stats['claim:' + k]) { S.stats['claim:' + k] = 1; dirty = true; }
+    this.check(true);
     recompute();
     events.length = 0;
   },

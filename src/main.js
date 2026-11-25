@@ -4,7 +4,7 @@ import { MELEE, rollMelee } from './melee.js';
 import { MUTATORS, setMutators, mutators, mutXp, DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
-import { COSMETICS, SLOTS, SLOT_NAMES, needText, PAGES, SHAPES, bodyStatLines, DEFAULT_SHAPE, FACE_PRESETS } from './cosmetics.js';
+import { COSMETICS, SLOTS, SLOT_NAMES, needText, PAGES, SHAPES, bodyStatLines, DEFAULT_SHAPE, FACE_PRESETS, parseLook } from './cosmetics.js';
 import { Net } from './net.js';
 import { makeCraft } from './craft.js';
 import * as THREE from 'three';
@@ -236,6 +236,7 @@ function rewardLine(R) {
   (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
   (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
   if (R.heirloom) out.push(`${R.heirloom} (heirloom)`);
+  if (R.cos) for (const c of R.cos) { const [sl, id] = c.split(':'), I = (COSMETICS[sl] || []).find((i) => i.id === id); if (I) out.push(`${I.name} (${(SLOT_NAMES[sl] || sl).toLowerCase()})`); }
   if (R.renown) out.push(`+${R.renown.toLocaleString()} (renown)`);
   return out.join(', ');
 }
@@ -250,6 +251,7 @@ function rewardCards(M) {
   (R.blades || []).forEach((n) => { const W = MELEE.find((m) => m.name === n) || {}; out.push({ img: modelThumb('blade', n), wide: true, name: n, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: `${W.rarity || ''} blade`, desc: (W.desc || '') + ' Now in the mystery box.' }); });
   (R.upgrades || []).forEach((n) => { const i = ups.findIndex((u) => u.name === n), U = ups[i] || {}, k = kindOf(n); out.push({ img: iconURL('U_' + i), name: n, col: RARITY_HEX[U.rarity] || '#f2e8d5', kind: `${U.rarity || ''} ${k}`, desc: (U.desc || '') + (k === 'workbench modifier' ? ' Now turns up at the workbench.' : ' Now turns up in chests.') }); });
   if (R.heirloom) { const i = ups.findIndex((u) => u.name === R.heirloom), U = ups[i] || {}; out.push({ img: iconURL('U_' + i), name: R.heirloom, col: '#ffcd5a', kind: 'Heirloom', desc: (U.desc || '') + ' Pick it in the lobby to start every run with it.' }); }
+  if (R.cos) for (const c of R.cos) { const [sl, id] = c.split(':'), I = (COSMETICS[sl] || []).find((i) => i.id === id); if (I) out.push({ sw: [I.a, I.b, I.c].filter((x) => x !== undefined), name: I.name, col: '#ffcd5a', kind: SLOT_NAMES[sl] || sl, desc: 'New for your character. Wear it from the character screen.' }); }
   if (R.renown) out.push({ name: `+${R.renown.toLocaleString()} renown`, col: '#ffcd5a', kind: 'Renown', desc: 'Added to your rank right away.' });
   return out;
 }
@@ -451,7 +453,7 @@ function renderLocker() {
   };
   // One preview canvas and one WebGL context for the life of the page. Making a new context per redraw makes
   // browsers (phones especially) throw away the oldest one, which is the game's own renderer.
-  ensureLock(); if (lockR) lockR.setSize(LW, LH, false); lockCanvas.id = 'lcanvas'; if (lockCam) { lockCam.aspect = LW / LH; lockCam.updateProjectionMatrix(); }
+  ensureLock(); if (lockR) { lockR.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lockR.setSize(LW, LH, false); } lockCanvas.id = 'lcanvas'; if (lockCam) { lockCam.aspect = LW / LH; lockCam.updateProjectionMatrix(); }
   const cv = lockCanvas; locker.querySelector('#lcanvas').replaceWith(cv);
   let drag = null;
   cv.onpointerdown = (e) => { drag = e.clientX; cv.setPointerCapture(e.pointerId); };
@@ -636,7 +638,7 @@ function renderLobby() {
   const info = (k) => (lobbyInfo[k] ? `<span class="warn">${esc2(lobbyInfo[k])}</span>` : '');
   let h = `<div class="lbh"><h2>LOBBY</h2><span class="lbrank">RANK ${RI.rank}  -  ${RI.name.toUpperCase()}<i>${RI.max ? 'top rank' : `${RI.into.toLocaleString()} / ${RI.span.toLocaleString()} renown`}</i></span><button id="lbback">BACK</button></div><div class="lbwrap"><aside>`;
   // party
-  h += '<section><h3>PARTY</h3>';
+  h += '<section><h3>PARTY</h3><canvas id="lbline" width="536" height="400"></canvas>';
   const list = Net.active ? Net.lobbyList() : [{ name: nameV, host: true, me: true }];
   for (const p of list) h += `<div class="lbrow ${p.me ? 'me' : ''}"><b>${esc2(p.name)}</b><span>${p.host ? 'Host' : ''}${p.me ? (p.host ? ' - you' : 'You') : ''}</span></div>`;
   if (!Net.active) {
@@ -750,7 +752,39 @@ async function beginRun() {
   if (Net.role === 'client' && game.round === 0) { const a = Math.random() * 6.28; P.pos.x += Math.cos(a) * 130; P.pos.z += Math.sin(a) * 130; }   // don't spawn inside the host
   start();
 }
+// The party, standing in a row at the top of the lobby, each as they look right now. It is drawn with the character
+// screen's renderer (one preview context for the page) and copied onto the lobby's own canvas.
+let lineScene = null, lineCam = null, lineT = 0; const lineChars = [];
+function tickLineup(dt) {
+  const cv = lobby.querySelector('#lbline');
+  if (!cv || lobby.style.display !== 'block' || locker.style.display === 'block') return;
+  ensureLock(); if (!lockR) return;
+  if (!lineScene) { lineScene = new THREE.Scene(); lineCam = new THREE.PerspectiveCamera(24, cv.width / cv.height, 10, 6000); }
+  const list = (Net.active ? Net.lobbyList() : [{ name: (lobby.querySelector('#lname') || {}).value || Net.name || 'Player', me: true, look: Meta.lookStr() }]).slice(0, 4);
+  const n = list.length, gap = 170;
+  list.forEach((p, i) => {
+    const look = p.look || Meta.lookStr(), C = lineChars[i];
+    if (!C || C.look !== look) { if (C) lineScene.remove(C.ch); const ch = buildCharacter(parseLook(look)); lineScene.add(ch); lineChars[i] = { ch, look }; }
+    const ch = lineChars[i].ch; ch.position.set((i - (n - 1) / 2) * gap, 0, 0); ch.visible = true; lineChars[i].name = p.name; lineChars[i].me = p.me;
+  });
+  for (let i = n; i < lineChars.length; i++) if (lineChars[i]) lineChars[i].ch.visible = false;
+  lineT += dt;
+  for (let i = 0; i < n; i++) { const ch = lineChars[i].ch; ch.rotation.y = Math.sin(lineT * 0.5 + i * 1.7) * 0.35; animateCharacter(ch, lineT + i * 0.8, 0, { preview: true }); }
+  const tall = Math.max(...lineChars.slice(0, n).map((c) => (c.ch.userData.rig && c.ch.userData.rig.topY) || 220)) + 20, span = (n - 1) * gap + 180;
+  const dist = Math.max(tall * 2.4, span * 1.9 / (cv.width / cv.height));
+  lineCam.position.set(0, tall * 0.52, dist); lineCam.lookAt(0, tall * 0.46, 0); lineCam.aspect = cv.width / cv.height; lineCam.updateProjectionMatrix();
+  lockR.setSize(cv.width, cv.height, false); lockR.setPixelRatio(1); lockR.render(lineScene, lineCam);
+  const x = cv.getContext('2d'); x.clearRect(0, 0, cv.width, cv.height); x.drawImage(lockCanvas, 0, 0, cv.width, cv.height);
+  // names under the feet
+  x.textAlign = 'center'; x.font = '400 30px "Big Shoulders Display", sans-serif';
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3((i - (n - 1) / 2) * gap, -6, 0).project(lineCam), sx = (v.x * 0.5 + 0.5) * cv.width, sy = Math.min(cv.height - 10, (-v.y * 0.5 + 0.5) * cv.height + 34);
+    x.fillStyle = 'rgba(20,10,16,0.8)'; const t = String(lineChars[i].name || '').toUpperCase().slice(0, 14), w = x.measureText(t).width + 18; x.fillRect(sx - w / 2, sy - 27, w, 34);
+    x.fillStyle = lineChars[i].me ? '#ffcd5a' : '#f2e8d5'; x.fillText(t, sx, sy);
+  }
+}
 function tickLobby(dt) {
+  tickLineup(dt);
   if (lobby.style.display !== 'block') return;
   lobbyTimer -= dt; if (lobbyTimer > 0) return; lobbyTimer = 0.4;
   if (Net.role === 'client') {
@@ -764,6 +798,7 @@ lobby.addEventListener('click', (e) => e.stopPropagation());
 Net.init().then(() => { Net.tried = true; });
 document.getElementById('playbtn').addEventListener('click', (e) => { e.stopPropagation(); if (game) openLobby(); });
 document.getElementById('setbtn').addEventListener('click', (e) => { e.stopPropagation(); pauseEl.classList.add('menu'); pauseEl.querySelector('h2').textContent = 'SETTINGS'; pauseEl.querySelector('#presume').textContent = 'DONE'; pauseEl.style.display = 'flex'; });
+document.getElementById('charbtn').addEventListener('click', (e) => { e.stopPropagation(); locker.style.display = 'block'; renderLocker(); });   // the same character screen the lobby opens
 document.getElementById('progbtn').addEventListener('click', (e) => { e.stopPropagation(); if (Meta.claimable().length) progTab = tabOf(Meta.claimable()[0].key); renderProgress(); prog.style.display = 'block'; prog.scrollTop = 0; });
 hudCanvas.addEventListener('click', () => {
   if (!game) return;
