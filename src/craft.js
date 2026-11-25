@@ -3,7 +3,8 @@
 // take it back. Hovering a part shows what it would do before you commit to it.
 import * as THREE from 'three';
 import { DATA, RARITY_HEX, cash } from './data.js';
-import { CORE0, CORE_DEFS, coreSvg } from './cores.js';
+import { CORE0, CORE_DEFS, coreSvg, BLADE } from './cores.js';
+import { MELEE, HONE_MAX } from './melee.js';
 import { sigOf, sigProc } from './signatures.js';
 import { Meta } from './meta.js';
 import { deed, DEEDS, ROMAN, ASC, TEMPERS, ATTUNES, temperOf, attuneOf } from './deeds.js';
@@ -44,11 +45,13 @@ const CSS = `
 #craft .table canvas { position:absolute; inset:0; width:100%; height:100%; cursor:grab; }
 #craft .hint { position:absolute; left:0; right:0; top:10px; text-align:center; font-size:19px; color:#d8cdb8; pointer-events:none; text-shadow:0 2px 6px #000; }
 #craft .pop { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px; border-radius:50%; border:3px solid var(--c); pointer-events:none; opacity:0; }
-#craft .pop.go { animation:cpop .5s ease-out; }
-@keyframes cpop { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(16); } }
-#craft .slots { display:flex; gap:8px; margin-top:10px; align-items:stretch; flex-wrap:wrap; min-height:84px; }
-#craft .slot { width:84px; height:84px; border:2px dashed rgba(255,255,255,0.25); display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:rgba(0,0,0,0.3); }
+#craft .pop.go { animation:benchpop .5s ease-out; }
+@keyframes benchpop { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(16); } }
+#craft .slots { display:flex; gap:6px; margin-top:10px; align-items:stretch; flex-wrap:wrap; min-height:84px; }
+#craft .slot { width:60px; height:60px; border:2px dashed rgba(255,255,255,0.25); display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:rgba(0,0,0,0.3); }
 #craft .slot.fill { border:2px solid var(--c); background:rgba(255,255,255,0.07); cursor:grab; }
+#craft .slot.lock { border:2px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.25); }
+#craft .slot.lock small { color:#6f665a; }
 #craft .slot.fill:hover::after { content:"TAKE OFF"; position:absolute; bottom:2px; font:700 12px "Barlow Condensed"; color:#ff9a8a; }
 #craft .slot .gly { width:54%; height:54%; font-size:17px; }
 #craft .slot small { font:700 12px "Barlow Condensed"; color:#d8cdb8; text-align:center; line-height:1; margin-top:3px; }
@@ -125,6 +128,18 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   const esc = (s) => String(s).replace(/[<>&]/g, '');
   const gly = (u) => `<div class="gly">${coreSvg(U(u))}</div>`;
   const guns = () => { const p = P(), out = []; for (let i = 0; i < p.maxSlots; i++) if (p.weapons[i].def >= 0) out.push(i); return out; };
+  // what is on the table: the gun in hand, or the blade
+  let onBlade = false;
+  const sel = () => { const p = P(); return onBlade ? { blade: true, def: -1, cores: p.bladeCores, mods: [] } : p.slot; };
+  const bladeW = () => MELEE[P().meleeDef] || MELEE[0];
+  const partText = (u) => (onBlade ? (BLADE[U(u).name] ? BLADE[U(u).name][1] : 'Does nothing on a blade') : U(u).desc);
+  // the blade's numbers, as the gun's are shown
+  function bladeSheet() {
+    const p = P(), W = bladeW();
+    return { damage: W.dmg * p.meleePower(), rate: p.meleeSpeed() / Math.max(0.2, W.cd || 0.5), reach: p.meleeRange() / 100, crit: 100 * Math.min(0.75, (W.crit || 0) + p.stat('MeleeCrit')), cleave: p.meleeCleave(), steal: 100 * p.stat('MeleeLifesteal') };
+  }
+  const BROWS = [['damage', 'Damage per swing', 1], ['rate', 'Swings per second'], ['reach', 'Reach (m)'], ['crit', 'Crit chance'], ['cleave', 'Enemies per swing'], ['steal', 'Life steal']];
+  const bfmt = { damage: (v) => Math.round(v), rate: (v) => v.toFixed(2), reach: (v) => v.toFixed(1), crit: (v) => Math.round(v) + '%', cleave: (v) => v, steal: (v) => Math.round(v) + '%' };
 
   // ---- the gun on the table
   function ensureScene() {
@@ -136,13 +151,15 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const edge = new THREE.Mesh(new THREE.BoxGeometry(86, 0.5, 42), new THREE.MeshBasicMaterial({ color: 0x6a5a2a })); edge.position.set(0, -11.8, 0); scene.add(edge);
   }
   function rebuildModel(force) {
-    const p = P(), S = p.slot; if (S.def < 0) return;
-    const key = S.def + '|' + S.tier + '|' + S.cores.join(',');
+    const p = P(), S = p.slot; if (!onBlade && S.def < 0) return;
+    const key = onBlade ? 'blade|' + p.meleeDef + '|' + (p.meleeTier || 0) : S.def + '|' + S.tier + '|' + S.cores.join(',');
     if (key === modelKey && !force) return; modelKey = key;
     if (model) scene.remove(model);
-    const g = H.game().vm.constructor.displayModel(H.game(), S.def, Math.min(3, S.tier), S.cores);
+    let g;
+    if (onBlade) { const t = H.game().vm.constructor.meleeTool(bladeW()); g = new THREE.Group(); g.add(t); t.rotation.z = -Math.PI / 2; t.scale.setScalar(1.1); }   // laid along the table, handle to the left
+    else g = H.game().vm.constructor.displayModel(H.game(), S.def, Math.min(4, S.tier), S.cores);
     const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
-    g.position.sub(c); model = new THREE.Group(); model.add(g); model.userData.len = Math.max(sz.x, sz.z, sz.y * 1.6); scene.add(model);
+    g.position.sub(c); model = new THREE.Group(); model.add(g); model.userData.rxz = 0.5 * Math.hypot(sz.x, sz.z); model.userData.hy = 0.5 * sz.y + 0.05 * Math.hypot(sz.x, sz.z); scene.add(model);   // it turns about the upright: this is as wide and as tall as it ever gets
   }
   function tick(dt) {
     if (!open || !R || !scene) return;
@@ -151,10 +168,16 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const w = cv.clientWidth | 0, h = cv.clientHeight | 0;
     if (w > 8 && h > 8 && (cv.width !== w || cv.height !== h)) R.setSize(w, h, false);
     if (model) {
-      const L = model.userData.len || 40, k = 1 + Math.sin(bump * Math.PI) * 0.12;
-      model.rotation.set(0.1 + Math.sin(t * 0.7) * 0.02, spin + Math.sin(t * 0.35) * 0.12, 0); model.scale.setScalar(k); model.position.y = 2 + Math.sin(t * 1.1) * 0.5 + Math.sin(bump * Math.PI) * 3;
-      cam.aspect = Math.max(0.3, w / Math.max(1, h)); const d = Math.max(L * 2.15 / Math.min(1.6, cam.aspect), 60);
-      cam.position.set(0, d * 0.2, d); cam.lookAt(0, 0, 0); cam.updateProjectionMatrix();
+      // It hovers just above the mat whichever way it is turned: its lowest point, measured each frame, is kept 1.5 over
+      // the table. The camera stands back far enough that a sphere round the whole model fits the view with a margin.
+      const rxz = model.userData.rxz || 30, hy = model.userData.hy || 10, k = 1 + Math.sin(bump * Math.PI) * 0.12;
+      model.rotation.set(0.1 + Math.sin(t * 0.7) * 0.02, spin + Math.sin(t * 0.35) * 0.12, 0); model.scale.setScalar(k); model.position.y = 0;
+      model.updateMatrixWorld(true); const lo = new THREE.Box3().setFromObject(model).min.y;
+      const lift = -11.6 + 1.5 - lo + Math.sin(t * 1.1) * 0.5 + 0.5 + Math.sin(bump * Math.PI) * 3; model.position.y = lift;
+      cam.aspect = Math.max(0.3, w / Math.max(1, h));
+      // far enough that the widest it turns to fits across, and the tallest fits up and down, with a little room
+      const vh = THREE.MathUtils.degToRad(cam.fov / 2), hh = Math.atan(Math.tan(vh) * cam.aspect); let d = rxz * 1.08 + Math.max((rxz * 1.1) / Math.tan(hh), (hy * 1.25) / Math.tan(vh));
+      const cy = lift; d = Math.max(d, 75); cam.position.set(0, cy + d * 0.16, d); cam.lookAt(0, cy, 0); cam.updateProjectionMatrix();
     }
     R.setClearColor(0x000000, 0); R.render(scene, cam);
   }
@@ -172,9 +195,12 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   }
   function sheetWith(u) {   // the numbers as they would be with one more part fitted
     const p = P(), S = p.slot; if (u < 0) return null;
+    if (onBlade) { if (!BLADE[U(u).name] || p.bladeCores.length >= p.partSlots({ blade: true })) return null; p.bladeCores.push(u); p.recompute(); const sh = bladeSheet(); p.bladeCores.pop(); p.recompute(); return sh; }
+    if (S.cores.length >= p.partSlots(S)) return null;
     S.cores.push(u); p.recompute(); const sh = p.gunSheet(); S.cores.pop(); p.recompute(); return sh;
   }
   function statsHtml(flash) {
+    if (onBlade) return bladeHtml(flash);
     const p = P(), sh = p.gunSheet(); if (!sh) return '';
     const nx = hover >= 0 ? sheetWith(hover) : null;
     const sgRule = sigOf(DATA.weapons[p.slot.def]);
@@ -194,24 +220,44 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (sg) h = `<div class="sig" style="--c:${RARITY_HEX[DATA.weapons[S.def].rarity] || '#ffcd5a'}"><b>${esc(sg.name.toUpperCase())}</b>${esc(sg.text)}<i>${esc(sg.play)}</i><em>Best with: ${esc(sg.fav.join(', '))}</em></div>` + h;
     return h + `<div class="fx">${fx || '<div style="color:#9a8f7c">Nothing fitted yet.</div>'}</div>`;
   }
+  function bladeHtml(flash) {
+    const p = P(), sh = bladeSheet(), nx = hover >= 0 ? sheetWith(hover) : null, W = bladeW();
+    let h = `<div class="sig" style="--c:${RARITY_HEX[W.rarity] || '#ffcd5a'}"><b>${esc(W.name.toUpperCase())}</b>Parts work on a blade too: each does what it would to an edge (shown on the part). They stay on the melee slot when you change blades.</div>`;
+    for (const [k, label, big] of BROWS) {
+      const v = sh[k], was = lastSheet && lastSheet.damage !== undefined && lastSheet.reach !== undefined ? lastSheet[k] : v, better = v - was;
+      let d = ''; if (nx && Math.abs(nx[k] - v) > 1e-6) d = `<u class="${nx[k] > v ? '' : 'neg'}">&#9654; ${bfmt[k](nx[k])}</u>`;
+      h += `<div class="row${big ? ' big' : ''}"><span>${label}</span><span><b class="${flash && Math.abs(better) > 1e-6 ? (better > 0 ? 'up' : 'down') : ''}">${bfmt[k](v)}</b>${d}</span></div>`;
+    }
+    lastSheet = sh;
+    const n = new Map(); for (const u of p.bladeCores) n.set(u, (n.get(u) || 0) + 1);
+    let fx = ''; for (const [u, c] of n) fx += `<div style="--c:${U(u).hex}"><b>${esc(U(u).name)}${c > 1 ? ' x' + c : ''}</b>  ${esc(partText(u))}${c > 1 ? ' (each)' : ''}</div>`;
+    return h + `<div class="fx">${fx || '<div style="color:#9a8f7c">Nothing fitted yet.</div>'}</div>`;
+  }
   function render(flash) {
-    const p = P(), S = p.slot, G = guns(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0).sort((a, b) => a - b);
+    const p = P(), S = sel(), G = guns(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0).sort((a, b) => a - b);
     const total = inv.reduce((s, u) => s + p.coreInv[u], 0);
-    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun to fit it, or off it to take it back. A gun takes any number of parts, and evolves on its own as you kill with it. Hold Shift to move every copy at once.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    let h = `<div class="cw"><div class="ch"><h1>WORKBENCH</h1><div class="sub">Drag a part onto the gun or the blade to fit it, or off it to take it back. Four slots to start, and one more each time it evolves (a blade: each time it is honed). Hold Shift to move every copy at once.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>PARTS <i>${total} carried</i></h2><div class="list">`;
-    if (!inv.length) h += `<div class="empty">You are not carrying any parts.<br><br>They drop from what you kill: the stranger the enemy, the better the part. Bosses always leave three.</div>`;
-    const sg = sigOf(DATA.weapons[S.def]);
-    for (const u of inv) { const nt = suits(sg, U(u)); h += `<div class="chip${nt ? ' suit' : ''}" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}${nt ? ` <u>${nt}</u>` : ''}</span></div><em>x${p.coreInv[u]}</em></div>`; }
+    if (!inv.length) h += `<div class="empty">You are not carrying any parts.<br><br>They drop from what you kill: the stranger the enemy, the better the part. Bosses always leave one.</div>`;
+    const sg = onBlade ? null : sigOf(DATA.weapons[S.def]);
+    for (const u of inv) { const nt = suits(sg, U(u)); h += `<div class="chip${nt ? ' suit' : ''}" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(partText(u))}${nt ? ` <u>${nt}</u>` : ''}</span></div><em>x${p.coreInv[u]}</em></div>`; }
     h += `</div>${recHtml(p)}</div><div class="mid"><div class="tabs">`;
-    for (const i of G) { const W = DATA.weapons[p.weapons[i].def], s = p.weapons[i]; h += `<div class="tab${i === p.active ? ' on' : ''}" data-i="${i}" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${s.cores.length} part${s.cores.length === 1 ? '' : 's'} fitted</small></div>`; }
+    for (const i of G) { const W = DATA.weapons[p.weapons[i].def], s = p.weapons[i]; h += `<div class="tab${!onBlade && i === p.active ? ' on' : ''}" data-i="${i}" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${s.cores.length} / ${p.partSlots(s)} slots</small></div>`; }
+    { const W = bladeW(); h += `<div class="tab${onBlade ? ' on' : ''}" data-i="blade" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${p.bladeCores.length} / ${p.partSlots({ blade: true })} slots</small></div>`; }
     h += `</div><div class="table" id="ctable"><canvas id="ccv"></canvas><div class="hint">${total ? 'Drop a part here' : ''}</div><div class="pop" id="cpop"></div></div><div class="slots">`;
-    // what is on the gun: one tile per kind of part, however many of it there are
-    const on = new Map(); for (const u of S.cores) on.set(u, (on.get(u) || 0) + 1);
-    if (!on.size) h += `<div class="slot none">Nothing fitted to this gun yet</div>`;
-    for (const [u, c] of [...on].sort((a, b) => a[0] - b[0])) h += `<div class="slot fill" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<small>${esc(U(u).name)}</small>${c > 1 ? `<em>x${c}</em>` : ''}</div>`;
-    const maxed = S.mods.length >= 4, need = p.evoNeed(S), k = S.evoK || 0;
-    h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY EVOLVED' : `EVOLVED ${S.mods.length ? ROMAN[S.mods.length] : '0'} OF IV`}</b><span>${maxed ? 'This gun has evolved four times.' : `${Math.max(0, need - k)} more kills with this gun and it evolves: +20% damage, +15% magazine and reserve, a little fire rate and reload.`}</span></div></div>${ascHtml(S)}</div>`;
-    h += `<div class="col"><h2>${esc(DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto">${statsHtml(flash)}</div></div></div>`;
+    // its slots: one tile each, filled or empty; the ones still to come are shown locked
+    const cap = p.partSlots(S), most = onBlade ? 4 + HONE_MAX : 8;
+    for (let i = 0; i < most; i++) { const u = S.cores[i];
+      if (u !== undefined && i < S.cores.length) h += `<div class="slot fill" data-u="${u}" style="--c:${U(u).hex}" title="${esc(partText(u))}">${gly(u)}<small>${esc(U(u).name)}</small></div>`;
+      else h += i < cap ? '<div class="slot"><small>EMPTY</small></div>' : `<div class="slot lock" title="${onBlade ? 'Hone the blade to open this slot' : 'Evolve the gun to open this slot'}"><small>${onBlade ? 'HONE' : 'EVOLVE'} ${ROMAN[i - 3] || ''}</small></div>`; }
+    if (onBlade) {
+      const t = p.meleeTier || 0, need = p.honeNeed(), k = p.meleeK || 0, maxed = t >= HONE_MAX;
+      h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY HONED' : `HONED ${t ? ROMAN[t] : '0'} OF IV`}</b><span>${maxed ? 'The blade is as sharp as it gets.' : `${Math.max(0, need - k)} more kills with the blade and it is honed: harder, faster, further, and one more part slot.`}</span></div></div></div>`;
+    } else {
+      const maxed = S.mods.length >= 4, need = p.evoNeed(S), k = S.evoK || 0;
+      h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY EVOLVED' : `EVOLVED ${S.mods.length ? ROMAN[S.mods.length] : '0'} OF IV`}</b><span>${maxed ? 'This gun has evolved four times.' : `${Math.max(0, need - k)} more kills with this gun and it evolves: +20% damage, +15% magazine and reserve, a little fire rate and reload, and one more part slot.`}</span></div></div>${ascHtml(S)}</div>`;
+    }
+    h += `<div class="col"><h2>${esc(onBlade ? bladeW().name.toUpperCase() : DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto">${statsHtml(flash)}</div></div></div>`;
     // passives
     const pas = []; for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k; if (CORE_DEFS[k].kind === 'me' && p.upgradeStacks[u] > 0) pas.push(u); }
     h += `<div class="cf"><h3>ON YOU</h3>${pas.length ? pas.map((u) => `<div class="pas" style="--c:${U(u).hex}" title="${esc(U(u).desc)}">${gly(u)}<b>${esc(U(u).name)}</b><em>x${p.upgradeStacks[u]}</em><span>${esc(U(u).desc)}</span></div>`).join('') : '<span style="color:#9a8f7c;font-size:17px">Passives (health, speed, armor and the like) work the moment you pick them up. None yet.</span>'}</div></div>`;
@@ -221,9 +267,11 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     ensureScene(); rebuildModel(false);
     if (flash) setTimeout(() => el.querySelectorAll('.row b').forEach((b) => b.classList.remove('up', 'down')), 60);
     el.querySelector('#cclose').onclick = close;
-    el.querySelectorAll('.tab').forEach((tb) => { tb.onclick = () => { const i = +tb.dataset.i; if (i !== p.active) { p.switchTo(i); lastSheet = null; modelKey = ''; H.audio.play('S_Switch', 0.6); render(false); } }; });
+    el.querySelectorAll('.tab').forEach((tb) => { tb.onclick = () => {
+      if (tb.dataset.i === 'blade') { if (!onBlade) { onBlade = true; lastSheet = null; modelKey = ''; H.audio.play('S_Switch', 0.6); render(false); } return; }
+      const i = +tb.dataset.i; if (i !== p.active || onBlade) { onBlade = false; if (i !== p.active || p.wield) p.switchTo(i); lastSheet = null; modelKey = ''; H.audio.play('S_Switch', 0.6); render(false); } }; });
     // an ascended gun's temper and element
-    el.querySelectorAll('.ap').forEach((b) => { b.onclick = () => { Meta.setAscPick(DATA.weapons[S.def].name, b.dataset.k, b.dataset.v); p.recompute(); H.audio.play('S_Fit', 0.7); bump = 0.6; pop('#ff8cff'); render(true); }; });
+    el.querySelectorAll('.ap').forEach((b) => { b.onclick = () => { if (onBlade) return; Meta.setAscPick(DATA.weapons[S.def].name, b.dataset.k, b.dataset.v); p.recompute(); H.audio.play('S_Fit', 0.7); bump = 0.6; pop('#ff8cff'); render(true); }; });
     // the Recycler
     el.querySelectorAll('.hs.f').forEach((b) => { b.onclick = () => { hop.splice(+b.dataset.h, 1); H.audio.play('S_Unfit', 0.6); render(false); }; });
     const act = (id, fn) => { const b = el.querySelector(id); if (b) b.onclick = () => { const r = fn(); hop = []; if (r === false || r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play(id === '#rban' ? 'S_Deny' : 'S_Upgrade', 0.8); recOut = id === '#rban' ? 'Struck from this run.' : `The Recycler made: <b style="color:${U(r).hex}">${esc(U(r).name)}</b>${CORE_DEFS[r - CORE0].kind === 'me' ? ' (yours at once)' : ''}`; } render(true); }; };
@@ -287,7 +335,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (!open || !drag) return; const d = drag; drag = null;
     if (d.kind === 'spin') return;
     if (ghost) { ghost.remove(); ghost = null; }
-    const p = P(), S = p.slot, on = overTable(e); hover = -1;
+    const p = P(), S = sel(), on = overTable(e); hover = -1;
     // a part dropped on the gun (or simply clicked) is fitted; a fitted part dragged off the bench (or clicked) comes off
     const all = d.all || e.shiftKey;
     if (d.kind === 'fit' && d.moved && overRec(e)) {   // into the Recycler's hopper
@@ -305,7 +353,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   addEventListener('keydown', (e) => { if (!open) return; e.stopImmediatePropagation(); if (e.code === 'KeyE' || e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyF') { e.preventDefault(); close(); } }, true);
   addEventListener('keyup', (e) => { if (open) e.stopImmediatePropagation(); }, true);
 
-  function show() { if (open || !H.game() || !H.game().descent) return; open = true; hop = []; recOut = ''; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
+  function show(blade) { if (open || !H.game() || !H.game().descent) return; open = true; onBlade = !!blade; hop = []; recOut = ''; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
   function close() { if (!open) return; open = false; if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
   return { show, close, tick, isOpen: () => open, refresh: () => { if (open) render(false); } };
 }

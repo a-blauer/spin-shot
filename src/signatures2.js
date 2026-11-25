@@ -438,13 +438,60 @@ export const SIG2 = {
     },
   },
   Tumbleweed: {
-    name: 'Snowball', short: 'Rolls through everything, growing: bigger and 20% deadlier with each thing it runs over.',
-    text: 'It bowls a tumbleweed that rolls and bounces through everything in its way. Every enemy it runs over makes it bigger and 20% deadlier, eight times over, and when it finally comes apart it bursts as big as it grew.',
-    play: 'Bowl it down the longest line of them you can find. The last thing it reaches gets all of it.', fav: ['Heavy Rounds', 'Blast Cap', 'Incendiary'], aff: { ExplosionRadius: 1.5 },
-    snd: ['S_SwingBig', 0.6, 0.8],
-    fire(p, S, W, g, C, F) { const d = F.pdir.clone(); d.y = Math.max(d.y, -0.15); d.normalize(); const P = p.fireProjectile(F.muzzle, d, F.damage, 0.5, W); P.gravity = 1; P.vel.y += 120; P.bounces = 40; P.bounceDamp = 0.93; P.life = 5; P.pierce = 99; P.tw = 0; P.spin = 10; },
-    pHit(p, P, E, at) { if (P.tw < 8) { P.tw++; P.damage *= 1.2; P.splash += 28; P.radius += 4; P.group.scale.multiplyScalar(1.11); } if (!E.dead && !E.isBoss) E.applyKnock(V3(-P.vel.z * 0.18, 220, P.vel.x * 0.18)); p.game.fx.puff(at, [0.6, 0.5, 0.3], 50, 0.4); return true; },
-    pEnd(p, P, at) { if (P.tw >= 4) say(p, at, `SNOWBALL  x${Math.pow(1.2, P.tw).toFixed(1)}`, [0.9, 0.8, 0.5]); },
+    name: 'Snowball', short: 'Bowls a tumbleweed along the ground. It rolls through everything, growing bigger and 15% deadlier with each thing it runs over.',
+    text: 'It bowls a tumbleweed along the ground in the way you are facing. It rolls straight through every enemy in its path, growing bigger and 15% deadlier with each one, ten times over, turns off walls twice, and bursts as big as it grew when it stops.',
+    play: 'Bowl it down the longest line of them you can find: up a corridor, along a wall. It goes under anything flying.', fav: ['Heavy Rounds', 'Blast Cap', 'Incendiary'], aff: { ExplosionRadius: 1.5 },
+    snd: ['S_SwingBig', 0.7, 0.75],
+    // It does not fly: it is set down on the floor just ahead of you and rolls along it, following the ground up and
+    // down slopes, until its time runs out or it has turned off two walls.
+    fire(p, S, W, g, C, F) {
+      const G = p.game, d = V3(F.dir.x, 0, F.dir.z); if (d.lengthSq() < 1e-4) d.set(Math.sin(p.yaw), 0, -Math.cos(p.yaw)); d.normalize();
+      const P = p.fireProjectile(F.muzzle, d, F.damage, 0.6, W);
+      P.gravity = 0; P.pierce = 99; P.bounces = 0; P.life = 3.2; P.tw = 0; P.wb = 0; P.spin = 0; P.group.scale.setScalar(22 / P.radius); P.radius = 22; P.roll = d; P.spd = W.projSpeed || 1300; P.dust = 0; P.air = true;
+      // put it on the ground in front of you; with no floor there it drops until it finds one
+      const at = F.muzzle.clone().addScaledVector(d, 40), dn = G.phys.raycastDown(at.clone().add(V3(0, 40, 0)), 520);
+      if (dn) { P.pos.copy(dn.point).add(V3(0, P.radius, 0)); P.air = false; }
+      P.vel.copy(d).multiplyScalar(P.spd); P.group.position.copy(P.pos);
+      G.fx.puff(P.pos.clone().add(V3(0, -P.radius * 0.6, 0)), [0.62, 0.52, 0.36], 50, 0.5);
+    },
+    pTick(p, P, dt) {
+      const G = p.game, d = P.roll;
+      if (P.air) {   // falling to the floor
+        P.vel.y -= 1960 * dt; P.pos.addScaledVector(P.vel, dt);
+        const dn = G.phys.raycastDown(P.pos.clone().add(V3(0, 10, 0)), P.radius + 14);
+        if (dn && P.vel.y <= 0) { P.pos.y = dn.point.y + P.radius; P.vel.y = 0; P.air = false; G.fx.puff(dn.point, [0.62, 0.52, 0.36], 60, 0.5); G.audio.playAt('S_Land', P.pos, 0.6, 0.8); }
+      } else {
+        P.spd = Math.min(P.spd * (1 + 0.35 * dt), 2400);   // it picks up speed as it goes
+        const step = P.spd * dt, mid = P.pos.clone(), wall = G.phys.raycast(mid, d, step + P.radius);
+        if (wall && Math.abs(wall.normal.y) < 0.6) {
+          if (P.wb >= 2) { G.projectiles.detonate(P, wall.point.clone().addScaledVector(wall.normal, P.radius)); return true; }
+          P.wb++; const n = V3(wall.normal.x, 0, wall.normal.z).normalize(); d.addScaledVector(n, -2 * d.dot(n)).normalize(); P.hit.clear();
+          G.fx.puff(wall.point, [0.62, 0.52, 0.36], 70, 0.45); G.audio.playAt('S_Blunt', wall.point, 0.7, 0.8); return true;
+        }
+        const nx = P.pos.clone().addScaledVector(d, step), dn = G.phys.raycastDown(nx.clone().add(V3(0, P.radius + 40, 0)), P.radius * 2 + 90);
+        if (dn) { P.pos.set(nx.x, dn.point.y + P.radius, nx.z); P.vel.copy(d).multiplyScalar(P.spd); }
+        else { P.pos.copy(nx); P.vel.copy(d).multiplyScalar(P.spd); P.vel.y = 0; P.air = true; }   // off an edge: it falls and rolls on below
+      }
+      // everything it runs into
+      for (const E of G.enemies) {
+        if (E.dead || E.burrowed || E.emerging || P.hit.has(E)) continue;
+        const r = (E.hitR || E.radius) + P.radius, dx = E.pos.x - P.pos.x, dz = E.pos.z - P.pos.z; if (dx * dx + dz * dz > r * r) continue;
+        const y0 = E.pos.y - (E.feetOffset || 0), y1 = y0 + (E.hitH || (E.half || 50) * 2); if (P.pos.y + P.radius < y0 || P.pos.y - P.radius > y1) continue;
+        const at = P.pos.clone(); p.handleProjectileHit(P, E, at); P.hit.add(E); this.pHit(p, P, E, at); if (P.done) return true;
+      }
+      // it turns as it rolls, and throws up dust
+      const ax = V3(-d.z, 0, d.x); if (!P.air) P.group.rotateOnWorldAxis(ax, -(P.spd * dt) / P.radius);
+      if ((P.dust -= dt) <= 0 && !P.air) { P.dust = 0.06; G.fx.puff(P.pos.clone().add(V3(0, -P.radius * 0.85, 0)).addScaledVector(d, -P.radius), [0.62, 0.52, 0.36], 26 + P.radius * 0.6, 0.45); }
+      return true;
+    },
+    pHit(p, P, E, at) {
+      if (P.tw < 10) { P.tw++; P.damage *= 1.15; P.splash += 24; P.radius += 3.4; P.group.scale.multiplyScalar(1.1); }
+      if (!E.dead && !E.isBoss) E.applyKnock(V3(P.roll.x * 380 - P.roll.z * 260 * (P.tw % 2 ? 1 : -1), 260, P.roll.z * 380 + P.roll.x * 260 * (P.tw % 2 ? 1 : -1)));   // bowled aside
+      p.game.fx.puff(at, [0.62, 0.52, 0.36], 50 + P.radius, 0.4); p.game.audio.playAt('S_Blunt', at, 0.5, 1.2 - Math.min(0.4, P.tw * 0.04));
+      return true;
+    },
+    pEnd(p, P, at) { if (P.tw >= 4) say(p, at, `SNOWBALL  x${Math.pow(1.15, P.tw).toFixed(1)}`, [0.9, 0.8, 0.5]); },
+    hud: (p) => { const L = p.game.projectiles.list.filter((P) => !P.done && P.roll && P.sx && P.sx.sig && P.sx.sig.name === 'Snowball'); if (!L.length) return null; const t = Math.max(...L.map((P) => P.tw)); return t ? [`ROLLING  x${Math.pow(1.15, t).toFixed(1)}`, t >= 6 ? '#ffd23a' : '#d8c890'] : null; },
   },
   'Homing Pigeon': {
     name: 'Air Mail', short: 'A pigeon with dynamite that flies where you look. It hits harder the longer it flies.',

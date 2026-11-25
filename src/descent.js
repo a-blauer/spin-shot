@@ -210,10 +210,10 @@ export class Descent {
     // Scavenger's Eye: four drops in ten are something the gun in your hands is glad of
     const pick = (cap) => { if (deed('eye') && Math.random() < 0.4 && !P.wield && P.slot.def >= 0) { const sg = sigOf(DATA.weapons[P.slot.def]), L = []; if (sg && sg.fav) CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (sg.fav.includes(d.name) && coreTier(i) <= cap && !(ban && ban.has(i)) && !(d.kind === 'me' && (P.upgradeStacks[i] || 0) >= DATA.upgrades[i].stacks)) L.push(i); }); if (L.length) return L[randInt(0, L.length - 1)]; } return rollCore(cap, P.upgradeStacks, ban); };
     const drop = (cap, off = 0) => this.g.pickups.spawn('Buff', at.clone().add(V3(Math.cos(off) * (off ? 90 : 0), 0, Math.sin(off) * (off ? 90 : 0)).add(V3(0, 0, 60))), pick(cap));
-    // a boss always leaves three good ones, an elite usually leaves one, and the rank and file leave them often enough
-    // that a room is worth two or three early on and a handful later (the odds thin as the rooms fill up)
-    if (E.isBoss) { for (let k = 0; k < 3; k++) drop(3, 0.5 + k * 2.1); return; }
-    const odds = (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
+    // a boss leaves one good one and often a second, an elite leaves one about a third of the time, and the rank and file
+    // leave them rarely: a room is worth one or two (the odds thin as the rooms fill up). Half what it was.
+    if (E.isBoss) { drop(3, 0.5); if (Math.random() < 0.5) drop(3, 2.6); return; }
+    const odds = 0.5 * (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
     if (Math.random() >= odds) return;
     drop(E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2);
   }

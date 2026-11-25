@@ -21,7 +21,7 @@ import { gunSound } from './gunsound.js';
 import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret } from './turret.js';
-import { isCore, coreKind, rollCoreAt, coreTier } from './cores.js';
+import { isCore, coreKind, rollCoreAt, coreTier, BLADE } from './cores.js';
 import { deed, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit } from './deeds.js';
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
@@ -65,6 +65,7 @@ export class Player {
     this.periodic = new Array(DATA.upgrades.length).fill(0);
     this.weapons = [0, 1, 2].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
     this.coreInv = {};   // gun parts carried but not fitted: upgrade index -> how many
+    this.bladeCores = [];   // parts fitted to the blade: they stay with the melee slot whatever blade is in it
     this.cls = CLASSES[0];
     this.maxSlots = 2; this.active = 0;
     this.money = 500; this.luck = 0; this.kills = 0; this.headshots = 0;
@@ -152,7 +153,7 @@ export class Player {
     if (!on && this.slot.def < 0) return;
     this.wield = !!on; this.reloading = false; this.fireCd = 0.3; this.meleeCd = Math.max(this.meleeCd || 0, 0.22); this.railT = 0; this.spool = 0;
     this.play('S_Switch', 0.8, on ? 0.85 : 1);
-    if (on) this.game.vm.meleeShow(MELEE[this.meleeDef]); else this.game.vm.setWeapon(this.slot.def, Math.min(3, this.slot.tier), true);
+    if (on) this.game.vm.meleeShow(MELEE[this.meleeDef]); else this.game.vm.setWeapon(this.slot.def, Math.min(4, this.slot.tier), true);
   }
   switchTo(i) {
     if (i >= this.maxSlots || this.weapons[i].def < 0) return;
@@ -210,6 +211,7 @@ export class Player {
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
     for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
+    for (const u of this.bladeCores || []) { const T = BLADE[DATA.upgrades[u].name]; if (T) for (const [k, v] of T[0]) this.stats[STAT[k]] += v; }
     this.eff = eff;
     // an ascended gun's temper: one strength traded for another (the Descent only)
     if (this.game.descent && this.slot && this.slot.def >= 0) { const T = temperOf(DATA.weapons[this.slot.def].name); for (const [k, v] of T.mods) this.stats[STAT[k]] += v; }
@@ -854,7 +856,7 @@ export class Player {
   honeMelee() {
     const W = MELEE[this.meleeDef], t = this.meleeTier || 0;
     if (t >= HONE_MAX) { this.toast(`${W.name} is as sharp as it gets`, '#ccc'); return; }
-    if (this.game.descent && !this.honeFree) { this.toast(`${W.name} hones itself on what it kills: ${Math.max(1, 12 - (this.meleeK || 0))} more`, '#ffcd5a'); return; }
+    if (this.game.descent && !this.honeFree) { this.toast(`${W.name} hones itself on what it kills: ${Math.max(1, this.honeNeed() - (this.meleeK || 0))} more`, '#ffcd5a'); return; }
     if (!this.spend(this.honeCost())) return;
     this.meleeTier = t + 1; this.benchUses++;
     this.play('S_Upgrade', 0.9); this.game.vm.meleeShow(W);
@@ -1889,7 +1891,7 @@ export class Player {
       case 'Slots': I.slotUse(this); break;
       case 'Chest': this.openChest(I); break;
       case 'MysteryBox': I.boxUse(this); break;
-      case 'HighRoller': if (this.game.descent && !this.wield && this.game.openCraft) this.game.openCraft(); else this.benchUpgrade(); break;
+      case 'HighRoller': if (this.game.descent && this.game.openCraft) this.game.openCraft(this.wield); else if (!this.wield) this.benchUpgrade(); break;
       case 'Turret': I.bind(this); break;
       default: this.openMenu(I); break;
     }
@@ -2247,11 +2249,12 @@ export class Player {
   // ---------------------------------------------------------------- the Descent: guns that grow, parts you can trade
   // A gun evolves by being used. Kills with it in this run count toward the next of four evolutions (what a paid
   // tune-up was); an elite counts three and a boss ten. A gun you put down keeps what it has earned only while you hold it.
+  honeNeed() { return Math.round(12 / (1 + Math.max(0, this.stat('BladeHone')))); }
   evoNeed(S) { return S.mods.length >= 4 ? Infinity : Math.round(EVO_NEED[S.mods.length] / (1 + Math.max(0, this.stat('EvolveSpeed')))); }
   creditKill(E) {
     const C = this.shotCtx || (E.sgLast && this.game.time - E.sgLast.t < 1.5 ? E.sgLast.C : null), n = E.isBoss ? 10 : E.elite ? 3 : 1;
     if (this.meleeHitting || (this.wield && !C)) {   // the blade hones itself the same way
-      if ((this.meleeTier || 0) < HONE_MAX) { this.meleeK = (this.meleeK || 0) + n; if (this.meleeK >= 12) { this.meleeK -= 12; this.honeFree = true; this.honeMelee(); this.honeFree = false; } }
+      if ((this.meleeTier || 0) < HONE_MAX) { this.meleeK = (this.meleeK || 0) + n; const need = this.honeNeed(); if (this.meleeK >= need) { this.meleeK -= need; this.honeFree = true; this.honeMelee(); this.honeFree = false; } }
       return;
     }
     const S = C && C.S && C.S.def >= 0 && (C.def === undefined || C.S.def === C.def) ? C.S : this.slot;
@@ -2263,10 +2266,10 @@ export class Player {
     const W = DATA.weapons[S.def], u = rollGunMod(S.mods, W, this.cls.id, this.luck); if (u < 0) return false;
     S.mods.push(u); S.tier = S.mods.length;
     this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
-    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
+    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), true);
     this.play('S_Upgrade', 0.9); Meta.bump('mods'); Meta.best('dEvo', S.tier); if (S.tier >= 3) Meta.bump('tier3');
     this.game.banner(`${W.name.toUpperCase()} EVOLVED  -  ${ROMAN[S.tier]}`, lin(1, 0.45, 0.85), 2.6);
-    this.toast(`${W.name} ${ROMAN[S.tier]}: +20% damage, a bigger magazine, a little faster.${S.tier < 4 ? `  ${this.evoNeed(S)} kills to the next.` : '  Fully evolved.'}`, '#ff8cff');
+    this.toast(`${W.name} ${ROMAN[S.tier]}: +20% damage, a bigger magazine, a little faster, and a new part slot (${this.partSlots(S)} now).${S.tier < 4 ? `  ${this.evoNeed(S)} kills to the next.` : '  Fully evolved.'}`, '#ff8cff');
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 110, 0.45, true);
     return true;
   }
@@ -2300,15 +2303,26 @@ export class Player {
   refit(S) {
     this.recompute();
     S.ammo = Math.min(S.ammo, this.magSize(S)); S.reserve = Math.min(S.reserve, this.reserveSize(S));
-    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), false);
+    if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), false);
   }
+  // A gun has four part slots and one more each time it evolves; the blade has four and one more each time it is honed.
+  partSlots(S) { return S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0); }
   fitCore(S, u) {
-    if (S.def < 0 || !(this.coreInv[u] > 0)) return false;   // a gun takes as many parts as you care to fit
+    if (S.blade) return this.fitBlade(u);
+    if (S.def < 0 || !(this.coreInv[u] > 0)) return false;
+    if (S.cores.length >= this.partSlots(S)) { this.toast(`Every slot on this gun is full. It gets another each time it evolves.`, '#ffb057'); return false; }
     this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u];
     const mag0 = this.magSize(S); S.cores.push(u); this.refit(S); if (this.magSize(S) > mag0) S.ammo = Math.min(this.magSize(S), S.ammo + this.magSize(S) - mag0);
     return true;
   }
-  pullCore(S, u) { const k = S.cores.lastIndexOf(u); if (k < 0) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
+  // the blade's parts: the same parts, read as what they would do to an edge (cores.js BLADE)
+  fitBlade(u) {
+    if (!(this.coreInv[u] > 0) || !BLADE[DATA.upgrades[u].name]) return false;
+    if (this.bladeCores.length >= this.partSlots({ blade: true })) { this.toast(`Every slot on the blade is full. It gets another each time it is honed.`, '#ffb057'); return false; }
+    this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u]; this.bladeCores.push(u); this.recompute(); return true;
+  }
+  pullBlade(u) { const k = this.bladeCores.lastIndexOf(u); if (k < 0) return false; this.bladeCores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.recompute(); return true; }
+  pullCore(S, u) { if (S.blade) return this.pullBlade(u); const k = S.cores.lastIndexOf(u); if (k < 0) return false; S.cores.splice(k, 1); this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.refit(S); return true; }
   returnCores(S) { if (!S.cores || !S.cores.length) return; for (const u of S.cores) this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${S.cores.length} part${S.cores.length > 1 ? 's' : ''} came back to your pack`, '#ffcd5a'); S.cores = []; }
   // the numbers on the bench card, for the gun in hand
   gunSheet() {
@@ -2332,7 +2346,7 @@ export class Player {
       if (S.def !== J.def) { this.addMoney(J.cost, false); this.toast(`${W.name} is gone  -  money returned`, '#ccc'); return; }
       S.mods.push(J.u); S.tier = S.mods.length;
       this.recompute(); S.ammo = this.magSize(S); S.reserve = this.reserveSize(S);
-      if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(3, S.tier), true);
+      if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), true);
       this.play('S_Upgrade', 0.9);
       Meta.bump('mods'); if (S.tier >= 3) Meta.bump('tier3');
       this.game.hud.gotUpgrade(J.u, 1, `${W.name} modifier`);

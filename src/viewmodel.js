@@ -470,7 +470,7 @@ export class ViewModel {
     const sk = Meta.skin();
     const Glove = hex(sk.glove), GloveLight = hex(sk.gloveL), Cuff = hex(sk.cuff), Sleeve = hex(sk.sleeve), SleeveStripe = hex(sk.stripe);
     const SightZ = spec.Sight, MuzzleAt = spec.Muzzle, EjectAt = spec.Eject, SupportRest = spec.Support;
-    { const Pl = this.game.player, own = Pl && Pl.weapons ? Pl.weapons.find((s) => s.def === this.weaponDef) : null; dressGun(this, W, spec, this.coresOverride || (own && own.cores) || [], this.game.data); }   // parts fitted at the bench show on the gun
+    // Parts fitted at the bench no longer change the model (it made the guns look cluttered); evolving is what changes it.
     this.gunPartCount = this.parts.length;
     if (this.PumpRoot) this.A.pump = this.PumpRoot;
     if (!this.A.mag) this.A.mag = this.MagRoot;
@@ -540,6 +540,16 @@ export class ViewModel {
       for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(m); if (Math.abs(v.x) < 1.6 && v.z < 6 && v.y > top) top = v.y; }
     });
     this.sightTop = spec.SightExact ? this.sightZ : top > -1e8 ? top : this.sightZ;   // the oddities say where the eye goes: their tops are wide and flat, and nothing on the centre line marks them
+    // Is anything in the way down the sights? Every vertex of the gun in front of the eye that comes up into a narrow cone
+    // round the line of sight blocks it. A gun that is blocked is not sighted down at all: it is turned on its side and held
+    // low and to the right (its cant), so nothing is hidden and the middle of the view stays clear.
+    { const eye = this.sightTop + 0.45, ex = -26; let blocked = false; const sk = new Set(this.flash); if (this.support) this.support.traverse((o) => sk.add(o)); if (this.hand) this.hand.traverse((o) => sk.add(o));
+      this.gun.traverse((o) => {
+        if (blocked || !o.isMesh || sk.has(o) || !o.geometry || !o.geometry.attributes.position) return;
+        const a = o.geometry.attributes.position, m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+        for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(m); const X = -v.z, ahead = X - ex; if (ahead < 8) continue; const r = 0.035 * ahead; if (Math.abs(v.x) < r && v.y > eye - 0.15 && v.y < eye + r) { blocked = true; return; } }
+      });
+      this.autoCant = blocked ? [-50, 10, -14 - Math.max(0, ((spec.Muzzle && spec.Muzzle.Z) || 7.4) - 7.4)] : null; }
     if (!this.noMerge) this.mergeStatic();
   }
   // A detailed gun is a couple of hundred small meshes. Everything that shares a parent and a material is welded into
@@ -752,7 +762,7 @@ export class ViewModel {
     const hipK = 1 - this.aimA, hip = f.hip || [0, 0, 0, 0, 0, 0];
     // A gun with something big on top of it (a drum, a tank, a saw arm) is not sighted down: it is rolled onto its side and
     // held low and to the right, so the middle of the view is clear and the barrel still points where you look.
-    const cant = f.cant || null;
+    const cant = f.cant || this.autoCant || null;
     const ads = cant ? { X: 25, Y: cant[1], Z: cant[2] } : this.adsPose || { X: 26, Y: 0, Z: -(this.sightTop ?? this.sightZ) - 0.45 };
     const hb = HIP_BIG[this.cls] || [0, 0, 0], hp = { X: HipPos.X + hb[0] + (this.armOff || 0), Y: HipPos.Y + hb[1], Z: HipPos.Z + hb[2] };
     const pos = { X: hp.X + (ads.X - hp.X) * this.aimA, Y: hp.Y + (ads.Y - hp.Y) * this.aimA, Z: hp.Z + (ads.Z - hp.Z) * this.aimA };
@@ -1061,14 +1071,16 @@ export class ViewModel {
       supPos.lerp(arm, In.reloading ? sstep(0.7, 0.78, RT) : 1);
     }
 
-    const p3 = P3(pos).addScaledVector(this.swayPos, still).add(bob).add(this.recoilPos).add(new THREE.Vector3(0, this.landZ * (1 - this.aimA * 0.8), 0));
+    // How much the gun moves about in the hand: sway, the walk, a shot and a landing, all at half what they were.
+    const MOVE = 0.5;
+    const p3 = P3(pos).addScaledVector(this.swayPos, still * MOVE).addScaledVector(bob, MOVE).addScaledVector(this.recoilPos, MOVE).add(new THREE.Vector3(0, this.landZ * (1 - this.aimA * 0.8) * MOVE, 0));
     this.gun.position.copy(p3);
     if (this.mDip > 0.001) { this.gun.position.y -= this.mDip * 4; this.gun.position.x += this.mDip * 3; }   // gun hand eases aside to make room
     if (this.support) this.support.visible = !(this.mDip > 0.15);   // the left hand is busy swinging
     // UE pitch (nose up) -> rotation about view x; yaw (right) -> about -y; roll -> about -z
-    const P = rot.P + this.swayRot.x * still + bobRot.x + this.recoilRot.x;
-    const Y = rot.Y + this.swayRot.y * still + bobRot.y + this.recoilRot.y;
-    const Rr = rot.R + this.swayRot.z * still + bobRot.z + this.recoilRot.z;
+    const P = rot.P + (this.swayRot.x * still + bobRot.x + this.recoilRot.x) * MOVE;
+    const Y = rot.Y + (this.swayRot.y * still + bobRot.y + this.recoilRot.y) * MOVE;
+    const Rr = rot.R + (this.swayRot.z * still + bobRot.z + this.recoilRot.z) * MOVE;
     this.gun.quaternion.copy(quatVM(R(P, Y, Rr)));
     if (this.inspect) { this.gun.position.copy(P3({ X: this.inspect[0], Y: this.inspect[1], Z: this.inspect[2] })); this.gun.quaternion.copy(quatVM(R(this.inspect[3], this.inspect[4], this.inspect[5]))); if (this.hand) this.hand.visible = false; if (this.support) this.support.visible = false; }
     if (gunSpin) {   // a spin around the trigger finger: the gun turns, the hand holding it does not
@@ -1115,7 +1127,7 @@ export class ViewModel {
     }
     this.gun.updateMatrixWorld(true); gunInv.value.copy(this.gun.matrixWorld).invert();
     this.tickFlyers(dt);
-    if (this.adsHide) this.adsHide.visible = this.aimA < 0.8;
+
     this.root.visible = !this.scoped && !this.hidden && !this.wield;
     this.tickMelee(dt);
   }

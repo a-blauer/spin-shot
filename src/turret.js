@@ -38,7 +38,7 @@ export class Turret {
     this.bound = b; this.shots = 0;
     while (this.gunG.children.length) this.gunG.remove(this.gunG.children[0]);
     if (b) {
-      try { const g = ViewModel.displayModel(this.game, b.def, Math.min(3, b.tier || 0)); const bb = new THREE.Box3().setFromObject(g), c = bb.getCenter(new THREE.Vector3()); g.position.sub(c); const s = 1.5; const h = new THREE.Group(); h.add(g); h.scale.setScalar(s); h.rotation.y = Math.PI; this.gunG.add(h); this.len = (bb.max.z - bb.min.z) * s * 0.5; }
+      try { const g = ViewModel.displayModel(this.game, b.def, Math.min(4, b.tier || 0)); const bb = new THREE.Box3().setFromObject(g), c = bb.getCenter(new THREE.Vector3()); g.position.sub(c); const s = 1.5; const h = new THREE.Group(); h.add(g); h.scale.setScalar(s); h.rotation.y = Math.PI; this.gunG.add(h); this.len = (bb.max.z - bb.min.z) * s * 0.5; }
       catch (e) { this.len = 30; }
     } else { box(this.gunG, 0, 0, 22, 9, 9, 50, 0x23252b); box(this.gunG, 0, 0, 48, 12, 12, 8, 0x111215); this.len = 52; }
   }
@@ -121,4 +121,4 @@ export class Turret {
   }
   destroy() { this.game.scene.remove(this.group); const i = this.game.interactables.indexOf(this); if (i >= 0) this.game.interactables.splice(i, 1); }
 }
-function G_vm(P, S) { P.reloading = false; P.fireCd = 0.4; P.game.vm.setWeapon(S.def, Math.min(3, S.tier), true); }
+function G_vm(P, S) { P.reloading = false; P.fireCd = 0.4; P.game.vm.setWeapon(S.def, Math.min(4, S.tier), true); }

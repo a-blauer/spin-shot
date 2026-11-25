@@ -157,8 +157,8 @@ body:not(.ready) #title .menu { display: none; }
 #progress .sw { display: inline-flex; border-radius: 3px; overflow: hidden; } #progress .sw i { width: 14px; height: 24px; display: block; }
 #progress .pstats { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; } #progress .pstats div { background: rgba(255,255,255,0.05); padding: 12px 14px; } #progress .pstats b { display: block; font-family: "Big Shoulders Display"; font-weight: 400; font-size: 30px; color: #ffcd5a; } #progress .pstats span { color: #b9ad98; }
 #claim { display: none; position: fixed; inset: 0; z-index: 8; align-items: flex-start; justify-content: center; overflow: auto; background: rgba(8,4,8,0.82); cursor: default; padding: 5vh 3vw; box-sizing: border-box; }
-#claim .cbox { background: #1a0e16; border: 2px solid #7dff8a; padding: 20px 26px 22px; width: min(720px, 100%); box-sizing: border-box; margin: auto; animation: cpop 0.28s ease-out; }
-@keyframes cpop { from { transform: scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }
+#claim .cbox { background: #1a0e16; border: 2px solid #7dff8a; padding: 20px 26px 22px; width: min(720px, 100%); box-sizing: border-box; margin: auto; animation: claimpop 0.28s ease-out; }
+@keyframes claimpop { from { transform: scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #claim .cbox { animation: none; } }
 #claim .ck { font-family: "Big Shoulders Display"; font-size: 18px; letter-spacing: 3px; color: #7dff8a; }
 #claim h3 { font-family: "Big Shoulders Display"; font-weight: 400; font-size: 34px; letter-spacing: 1px; color: #ffcd5a; margin: 6px 0 0; line-height: 1.05; }

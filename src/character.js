@@ -9,10 +9,32 @@ const mats = new Map();
 function mat(c, glow = 0) { const k = c + ':' + glow; if (!mats.has(k)) { const m = toonMaterial({ glow }); m.uniforms.uColor.value.setHex(c); mats.set(k, m); } return mats.get(k); }
 const G = { dome: new THREE.SphereGeometry(0.5, 18, 9, 0, Math.PI * 2, 0, Math.PI / 2), box: new THREE.BoxGeometry(1, 1, 1), cyl: new THREE.CylinderGeometry(0.5, 0.5, 1, 14), cone: new THREE.ConeGeometry(0.5, 1, 14), ball: new THREE.SphereGeometry(0.5, 14, 10), tor: new THREE.TorusGeometry(0.5, 0.09, 6, 18) };
 const geo = new Map();
+const CURL = new THREE.TorusGeometry(0.5, 0.16, 6, 14, Math.PI * 1.6);   // an open coil, for curls
 function taper(top, bot) { const k = top + '/' + bot; if (!geo.has(k)) geo.set(k, new THREE.CylinderGeometry(top, bot, 1, 14)); return geo.get(k); }
 function add(p, g, c, sx, sy, sz, x = 0, y = 0, z = 0, glow = 0) { const m = new THREE.Mesh(g, mat(c, glow)); m.scale.set(sx, sy, sz); m.position.set(x, y, z); p.add(m); return m; }
 // a box with its edges taken off: heads, hands, boots and anything else that should not look like a crate
 function rbox(p, c, w, h, d, x = 0, y = 0, z = 0, r = 4, glow = 0) { w = Math.round(w * 2) / 2; h = Math.round(h * 2) / 2; d = Math.round(d * 2) / 2; r = Math.round(r * 10) / 10; const k = `r${w}/${h}/${d}/${r}`; if (!geo.has(k)) geo.set(k, new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.1, h / 2 - 0.1, d / 2 - 0.1))); const m = new THREE.Mesh(geo.get(k), mat(c, glow)); m.position.set(x, y, z); p.add(m); return m; }
+// A smooth body swept down a curve: an oval section at every point (a across `ref`, b the other way), closed off round
+// at both ends. Noses, beards, locks and moustaches are made of these, so they read as one sculpted shape, not a pile of balls.
+function sweep(p, c, pts, rads, o = {}) {
+  const key = 'sw' + JSON.stringify([pts.map((q) => q.map((v) => Math.round(v * 10) / 10)), rads.map((q) => q.map((v) => Math.round(v * 10) / 10)), o.ref || 0, o.cap || 0]);
+  if (!geo.has(key)) {
+    const N = 30, S = 16, V = (q) => new THREE.Vector3(q[0], q[1], q[2]), curve = new THREE.CatmullRomCurve3(pts.map(V), false, 'catmullrom', 0.5);
+    const rc = new THREE.CatmullRomCurve3(rads.map((r, i) => new THREE.Vector3(r[0], r[1], i)), false, 'catmullrom', 0.5);
+    const ref = V(o.ref || [1, 0, 0]), len = curve.getLength(), cap = o.cap || [1, 1];
+    const c0 = Math.min(0.45, (cap[0] * Math.min(rads[0][0], rads[0][1])) / len), c1 = Math.min(0.45, (cap[1] * Math.min(rads[rads.length - 1][0], rads[rads.length - 1][1])) / len);
+    const pos = [], idx = [], P = new THREE.Vector3(), T = new THREE.Vector3(), A = new THREE.Vector3(), B = new THREE.Vector3(), R = new THREE.Vector3();
+    for (let i = 0; i <= N; i++) {
+      const t = i / N; curve.getPoint(t, P); curve.getTangent(t, T); rc.getPoint(t, R);
+      A.copy(ref).addScaledVector(T, -ref.dot(T)); if (A.lengthSq() < 1e-6) A.set(0, 0, 1).addScaledVector(T, -T.z); A.normalize(); B.crossVectors(T, A);
+      const e = t < c0 ? Math.sqrt(Math.max(0, 1 - ((c0 - t) / c0) ** 2)) : t > 1 - c1 ? Math.sqrt(Math.max(0, 1 - ((t - 1 + c1) / c1) ** 2)) : 1, a = Math.max(0.05, R.x) * e, b = Math.max(0.05, R.y) * e;
+      for (let j = 0; j < S; j++) { const th = (j / S) * Math.PI * 2, ca = Math.cos(th) * a, sb = Math.sin(th) * b; pos.push(P.x + A.x * ca + B.x * sb, P.y + A.y * ca + B.y * sb, P.z + A.z * ca + B.z * sb); }
+    }
+    for (let i = 0; i < N; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = a + S, d = b + S; idx.push(a, b, c2, b, d, c2); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); geo.set(key, g);
+  }
+  const m = new THREE.Mesh(geo.get(key), mat(c)); p.add(m); return m;
+}
 const shade = (c, k) => { const o = new THREE.Color(c); o.multiplyScalar(k); return o.getHex(); };
 const mix = (a, b, k) => new THREE.Color(a).lerp(new THREE.Color(b), k).getHex();
 export const charMat = mat, charShade = shade, charMix = mix;
@@ -239,56 +261,123 @@ export function buildCharacter(look) {
   add(head, G.cyl, tone, 20, 8, 20, 0, 0, 0);                                                // neck
   add(head, G.ball, tone, 42, 38, 38, 0, 15, 0);                                             // cheeks, under the brim
   for (const s of [-1, 1]) { add(head, G.ball, shade(tone, 0.94), 7, 13, 9, s * 20.6, 13, -2); add(head, G.cone, shade(tone, 0.94), 6, 9, 4, s * 23, 19, -3).rotation.z = -s * 0.7; }   // ears, a little pointed
-  { // the nose
-    const NC = BL.id === 'red' ? mix(tone, 0xd8463a, 0.55) : BL.id === 'rosy' ? mix(tone, 0xe07a6a, 0.4) : mix(tone, 0xd88a70, 0.2), nose = grp(head, 0, 14, 17.5); nose.scale.setScalar(1.22 * (1 + 0.4 * SV.nose));
-    switch (NS.id) {
-      case 'potato': add(nose, G.ball, NC, 20, 15, 15, 0, 0, 3); add(nose, G.ball, NC, 8, 7, 7, 6, -3, 7); break;
-      case 'long': add(nose, G.ball, NC, 12, 11, 25, 0, -1, 8).rotation.x = 0.22; break;
-      case 'button': add(nose, G.ball, NC, 10.5, 9.5, 10, 0, 0, 3); break;
-      case 'pointed': add(nose, G.ball, NC, 12, 11, 10, 0, 0, 2); add(nose, G.cone, NC, 10.5, 18, 9.5, 0, -1, 11).rotation.x = PI / 2 + 0.15; break;
-      case 'bulb': add(nose, G.ball, NC, 10, 10, 10, 0, 3, 2); add(nose, G.ball, NC, 17, 15, 15, 0, -2, 7); break;
-      case 'hook': add(nose, G.ball, NC, 12, 13, 18, 0, 1, 5).rotation.x = 0.5; add(nose, G.ball, NC, 10, 9, 9, 0, -6, 11); break;
-      default: add(nose, G.ball, NC, 16, 14, 15, 0, 0, 4); break;
+  { // the nose: one sculpted shape from under the brim to the tip, with the wings of the nostrils either side of it
+    const NC = BL.id === 'red' ? mix(tone, 0xd8463a, 0.6) : BL.id === 'rosy' ? mix(tone, 0xe0705e, 0.48) : mix(tone, 0xd8705a, 0.34), nose = grp(head, 0, 14 - 2 * Math.max(0, SV.nose), 17.5); nose.scale.setScalar(1.22 * (1 + 0.4 * SV.nose));   // a bigger nose sits a little lower, clear of the brim
+    const NW = shade(NC, 0.97), hole = shade(NC, 0.42);
+    // [spine from the bridge to the tip], [section at each point], [wing x, y, z, size] and how round the tip is
+    const N = {
+      round: [[[0, 2, -2], [0, 0.5, 2], [0, -1.8, 5], [0, -2.6, 6.6]], [[3.2, 3], [5, 4.6], [6.4, 6.2], [5.8, 5.4]], [4.4, -4.4, 2.6, 4.2], 1],
+      potato: [[[0, 2, -2], [0, 0, 2.6], [0, -2.4, 6], [0, -3.6, 7]], [[4, 3.4], [6.6, 5], [8.6, 6.6], [7.4, 5.8]], [6, -4.6, 2.8, 5], 1],
+      long: [[[0, 2, -2], [0, 1.2, 4], [0, -0.6, 10], [0, -3, 15.5], [0, -4.4, 17.4]], [[3.4, 3], [3.4, 3.2], [3.8, 3.6], [4.6, 4.4], [4.4, 4]], [3.8, -2.6, 2, 3.8], 1],
+      button: [[[0, 1.6, -2], [0, 0, 2.2], [0, -2.4, 4.8], [0, -2, 6.2]], [[2.8, 2.6], [4.2, 3.8], [4.8, 4.4], [4, 3.6]], [3.6, -3.6, 2.2, 3.4], 1],
+      pointed: [[[0, 2, -2], [0, 0.8, 4], [0, -1.4, 10], [0, -2.6, 15.6]], [[3.6, 3.2], [4.6, 4.2], [3.4, 3.2], [1.1, 1]], [4, -2.8, 2.4, 4], 0.6],
+      bulb: [[[0, 2, -2], [0, 1.6, 2.4], [0, -1.6, 6], [0, -6, 7.6], [0, -8, 6.6]], [[3, 2.8], [3.4, 3.2], [5.6, 5.4], [7.6, 7], [6.6, 5.6]], [5, -7.4, 4.2, 4.8], 1],
+      hook: [[[0, 1.2, -2], [0, 1.8, 3.6], [0, 0.6, 8.6], [0, -2.8, 12], [0, -6, 10.8]], [[3.2, 3], [3.4, 3.2], [3.8, 3.6], [4.2, 4], [3.2, 2.8]], [4, -4, 2.8, 4.2], 1],
+    }, D = N[NS.id] || N.round;
+    sweep(nose, NC, D[0], D[1], { cap: [1, D[3]] });
+    const [wx, wy, wz, ws] = D[2];
+    for (const s of [-1, 1]) {
+      add(nose, G.ball, NW, ws, ws * 0.8, ws * 1.1, s * wx, wy, wz).rotation.y = s * 0.35;                                    // the wing of the nostril, bedded into the side of the tip
+      const nh = add(nose, G.ball, hole, ws * 0.36, ws * 0.16, ws * 0.44, s * wx * 0.62, wy - ws * 0.33, wz); nh.rotation.y = s * 0.35;   // and the nostril under it
     }
+    if (NS.id === 'potato') add(nose, G.ball, NC, 5.4, 4.6, 4, 3.6, -1.6, 10.6);   // a lump off to one side   // a lump or two
     if (BL.id !== 'plain') for (const s of [-1, 1]) add(head, G.ball, mix(tone, 0xe05a6a, BL.id === 'red' ? 0.5 : 0.36), 10, 8, 5, s * 13.5, 11.5, 14.6);
   }
-  // ---- beard: it starts under the nose, spreads to the cheeks and lies down the front of the body
+  // ---- beard: it starts under the nose, spreads to the cheeks and lies down the front of the body. Each is a sculpted mass
+  // with locks laid over its front that end in a soft point, the way a carved garden gnome's beard is cut.
   {
     // it hangs from the chin and is tipped forward far enough to lie on whatever the chest is wearing (a poncho stands well out)
     const bl = 1 + 0.4 * SV.beardL, bw = 1 + 0.3 * SV.beardW, z0 = HF - 2.5, bgP = grp(head, 0, 6, 8), bg = grp(bgP, 0, -6, -8); bgP.rotation.x = st === 'poncho' ? -0.3 : -0.05;
-    const tuft = (c, w, h, x, y, z, rz = 0) => { const m = add(bg, G.cone, c, w, h, w * 0.62, x, y, z); m.rotation.x = PI; m.rotation.z = rz; return m; };
-    const cheeks = () => { for (const s of [-1, 1]) add(bg, G.ball, BC, 17 * bw, 21, 16, s * 15.5, 7.5, 8.5); };
-    const braid = (x, y, n, c0 = 0, dx = 0) => { for (let i = 0; i < n; i++) add(bg, G.ball, (i + c0) % 2 ? BD : BC, 12.5 - i * 0.7, 10.5, 11 - i * 0.5, x + dx * i, y - i * 8.2 * bl, z0 + 3); add(bg, G.cyl, 0xc8211b, 7.5, 3.4, 7, x + dx * n, y - n * 8.2 * bl + 2.5, z0 + 1); tuft(BC, 8, 9, x + dx * n, y - n * 8.2 * bl - 3.5, z0 + 1); };
+    // pale hair would leave the moustache lost against the beard, so pale beards are shaded down a step and the moustache stays bright
+    const lum = new THREE.Color(HC).getHSL({}).l, pale = lum > 0.62, BCm = pale ? shade(HC, 0.9) : HC, BDm = pale ? shade(HC, 0.78) : BD, mc = pale ? HC : new THREE.Color(HC).offsetHSL(0, 0.03, 0.13).getHex();   // a shade lighter in its own colour, not greyed toward white
+    const sideburns = () => { for (const s of [-1, 1]) sweep(bg, BCm, [[s * 19.4, 20, 0], [s * 19.6, 13, 2.4], [s * 17.4, 5, 7.4], [s * 13, -1, 11.6]], [[5, 3.4], [7, 4.2], [8.4, 4.8], [8, 4.6]], { ref: [0, 0, 1] }); };   // flat against the side of the face, ear to jaw
+    // a mass from knots [y, z, half width, half depth], top to bottom
+    // over a poncho the beard is tipped out to clear it; below the poncho's hem it hangs straight down again
+    const bz = (y) => (st === 'poncho' && y < -40 ? (y + 40) * 0.31 : 0);
+    // the longest beards stop short of the ground on short legs
+    const room = (HIP + 60) / HS - 22, cap = (L, k) => Math.min(L, room / k);
+    const lerpK = (K, t) => { const u = t * (K.length - 1), k = Math.min(K.length - 2, Math.floor(u)), f = u - k, q = K[k].map((v, i) => v + (K[k + 1][i] - v) * f); q[1] += bz(q[0]); return q; };
+    const mass = (K, c = BCm, cx = 0) => sweep(bg, c, K.map((q) => [cx, q[0], q[1] + bz(q[0])]), K.map((q) => [q[2], q[3]]), { ref: [1, 0, 0] });
+    // a lock laid over the front of a mass: fx across it (-1..1), from t0 to t1 down it, then `ext` beyond, `w` wide
+    const lock = (K, fx, t0, t1, ext, w, c, cx = 0, wave = 1) => {
+      const P = [], Rr = [], n = 5;
+      for (let i = 0; i <= n; i++) {
+        const t = t0 + ((t1 - t0) * i) / n, [y, z, ha, hb] = lerpK(K, t), x = fx * ha * 0.78, fr = Math.sqrt(Math.max(0, 1 - (fx * 0.78) ** 2));
+        P.push([cx + x + Math.sin(i * 1.3 + fx * 3) * 0.9 * wave, y - (i === n ? ext : 0), z + hb * fr - 1.2 - (i === n ? 1 : 0)]); Rr.push([w * (1 - 0.45 * (i / n)) * (ha / 20), 2.6 - 0.9 * (i / n)]);
+      }
+      sweep(bg, c, P, Rr, { cap: [1, 0.8] });
+    };
+    const locks = (K, list, cx = 0) => list.forEach(([fx, t0, t1, ext, w], i) => lock(K, fx, t0, t1, ext, w, i % 2 ? BDm : BCm, cx));
+    const braid = (x, y, n, tilt = 0) => {   // a plait: lobes leaning alternately left and right, a red band, then the loose end
+      for (let i = 0; i < n; i++) { const m = add(bg, G.ball, i % 2 ? BDm : BCm, 11.6 - i * 0.6, 9.4, 9.6 - i * 0.4, x + (i % 2 ? 1.2 : -1.2) + tilt * i, y - i * 6.6 * bl, z0 + 3 - i * 0.2 + bz(y - i * 6.6 * bl)); m.rotation.z = i % 2 ? -0.55 : 0.55; }
+      const yb = y - n * 6.6 * bl + 2, xb = x + tilt * n;
+      const zb = z0 + bz(yb);
+      add(bg, G.cyl, 0xc8211b, 7.8, 3.2, 7.4, xb, yb, zb + 2.4); add(bg, G.cyl, shade(0xc8211b, 0.7), 8.2, 0.8, 7.8, xb, yb - 1.6, zb + 2.4);
+      sweep(bg, BCm, [[xb, yb - 1, zb + 2.4], [xb, yb - 5, zb + 2.6 + bz(yb - 5) - bz(yb)], [xb + 0.6, yb - 9.4, zb + 2.4 + bz(yb - 9.4) - bz(yb)]], [[3, 2.6], [4.6, 3.6], [3.6, 2.8]], { cap: [1, 1.2] });
+    };
+    if (BE !== 'none') sideburns();
     switch (BE) {
-      case 'long': { const L = 72 * bl; cheeks(); add(bg, G.ball, BC, 50 * bw, L * 0.82, 19, 0, 9 - L * 0.41, z0); for (const [x, k, c] of [[-11, 0.84, BD], [11, 0.84, BD], [0, 1, BC]]) tuft(c, 19 * bw, L * 0.5, x * 1.15 * bw, 9 - L * (k - 0.25), z0 + (x ? 1 : 2.6), x * 0.012); break; }
-      case 'round': { const L = 54 * bl; cheeks(); add(bg, G.ball, BC, 60 * bw, L, 22, 0, 8 - L * 0.45, z0); for (let i = -2; i <= 2; i++) tuft(i % 2 ? BD : BC, 14 * bw, 16, i * 10.5 * bw, 8 - L * 0.9 + Math.abs(i) * 3.4, z0 + 2.5 - Math.abs(i), i * 0.1); break; }
-      case 'forked': { const L = 68 * bl; cheeks(); add(bg, G.ball, BC, 46 * bw, L * 0.6, 19, 0, 9 - L * 0.3, z0); for (const s of [-1, 1]) tuft(s > 0 ? BC : BD, 19 * bw, L * 0.62, s * 10.5 * bw, 9 - L * 0.69, z0 + 1.5, s * 0.2); break; }
-      case 'braid': cheeks(); add(bg, G.ball, BC, 44 * bw, 30, 18, 0, -2, z0); braid(0, -15, 5); break;
-      case 'twin': cheeks(); add(bg, G.ball, BC, 44 * bw, 26, 18, 0, 0, z0); for (const s of [-1, 1]) braid(s * 8.5, -8, 5, s > 0 ? 1 : 0, s * 1.3); break;
-      case 'short': cheeks(); add(bg, G.ball, BC, 46 * bw, 30 * bl, 18, 0, 0, z0); for (let i = -1; i <= 1; i++) tuft(i ? BD : BC, 13 * bw, 12, i * 11 * bw, -14 * bl + Math.abs(i) * 2.5, z0 + 2, i * 0.12); break;
-      case 'curly': cheeks(); for (let r = 0; r < 5; r++) { const n = 4 - (r > 2 ? r - 2 : 0), w = (n - 1) * 11.5 * bw; for (let i = 0; i < n; i++) add(bg, G.ball, (r + i) % 2 ? BD : BC, 17, 16, 14, -w / 2 + i * 11.5 * bw + (r % 2 ? 2.4 : -2.4), 5 - r * 11 * bl, z0 + 3 - Math.abs(i - (n - 1) / 2) * 1.3); } break;
-      case 'wizard': { const L = 92 * bl; cheeks(); add(bg, G.ball, BC, 34 * bw, L * 0.55, 18, 0, 9 - L * 0.28, z0); tuft(BC, 22 * bw, L * 0.62, 0, 9 - L * 0.69, z0 + 1.5); tuft(BD, 9, 16, -6 * bw, 9 - L * 0.5, z0 + 3.4, -0.12); break; }
+      case 'long': { const L = cap(72 * bl, 0.94), K = [[6, 8, 19 * bw, 9], [-3, 14.5, 23 * bw, 10.5], [-L * 0.32, z0 - 1, 22 * bw, 8.4], [-L * 0.62, z0 - 0.5, 16 * bw, 7], [-L * 0.86, z0, 7 * bw, 5]];
+        mass(K); locks(K, [[-0.85, 0.22, 0.86, 2, 6.4], [0.85, 0.22, 0.86, 2, 6.4], [-0.52, 0.2, 0.94, 3.4, 7], [0.52, 0.2, 0.94, 3.4, 7], [-0.18, 0.2, 1, 5, 7.4], [0.18, 0.2, 1, 5, 7.4]]); break; }
+      case 'round': { const L = 54 * bl, K = [[6, 8, 21 * bw, 10], [-3, 15, 28 * bw, 13], [-L * 0.42, z0 + 1, 29 * bw, 11.5], [-L * 0.74, z0 + 0.6, 22 * bw, 9], [-L * 0.9, z0, 10 * bw, 6]];
+        mass(K); locks(K, [[-0.92, 0.3, 0.8, 3, 7], [0.92, 0.3, 0.8, 3, 7], [-0.6, 0.26, 0.9, 3.6, 7.4], [0.6, 0.26, 0.9, 3.6, 7.4], [-0.2, 0.26, 0.96, 3.6, 7.6], [0.2, 0.26, 0.96, 3.6, 7.6]]); break; }
+      case 'forked': { const L = cap(68 * bl, 0.94), K = [[6, 8, 19 * bw, 9], [-3, 14.5, 22 * bw, 10.5], [-L * 0.3, z0 - 1, 19 * bw, 8.4], [-L * 0.44, z0 - 1, 15 * bw, 7]];
+        mass(K); locks(K, [[-0.5, 0.25, 1, 0, 7], [0.5, 0.25, 1, 0, 7]]);
+        for (const s of [-1, 1]) { const T = [[s * 7 * bw, -L * 0.34, z0 + 1], [s * 9 * bw, -L * 0.58, z0 + 2], [s * 12 * bw, -L * 0.8, z0 + 2.2], [s * 14.5 * bw, -L * 0.92, z0 + 2.4]].map((q) => [q[0], q[1], q[2] + bz(q[1])]);
+          sweep(bg, s > 0 ? BCm : BDm, T, [[8 * bw, 6.4], [7 * bw, 5.4], [4.6 * bw, 4], [2.4, 2.2]], { cap: [1, 1] }); } break; }
+      case 'braid': { const K = [[6, 8, 19 * bw, 9], [-3, 14, 21 * bw, 10], [-14, z0, 15 * bw, 7.4], [-20, z0, 8 * bw, 5]]; mass(K); locks(K, [[-0.6, 0.2, 0.84, 1, 6], [0.6, 0.2, 0.84, 1, 6]]); braid(0, -18, 5); break; }
+      case 'twin': { const K = [[6, 8, 19 * bw, 9], [-3, 14, 21 * bw, 10], [-12, z0, 17 * bw, 7.4], [-17, z0, 11 * bw, 5]]; mass(K); for (const s of [-1, 1]) braid(s * 8.4, -12, 5, s * 0.25); break; }
+      case 'short': { const K = [[6, 8, 19 * bw, 9], [-3, 14, 22 * bw, 10.4], [-10 * bl, z0, 18 * bw, 8], [-17 * bl, z0 - 0.6, 9 * bw, 5]];
+        mass(K); locks(K, [[-0.66, 0.3, 0.92, 1.4, 6.6], [0.66, 0.3, 0.92, 1.4, 6.6], [0, 0.3, 1, 2.6, 7.4]]); break; }
+      case 'curly': { const L = 50 * bl, K = [[6, 8, 19 * bw, 9], [-3, 14, 23 * bw, 10.4], [-L * 0.45, z0, 22 * bw, 9], [-L * 0.74, z0, 15 * bw, 7], [-L * 0.84, z0, 7 * bw, 4.6]];
+        mass(K, BDm);
+        // tight curls standing out of the mass, row on row, each a round puff with a coil on its face; the outer ones break
+        // the outline and the last row hangs below it, so the edge of the beard is bumpy all the way round
+        for (let r = 0; r < 6; r++) { const t = 0.1 + r * 0.16, [y, z, ha, hb] = lerpK(K, Math.min(1, t)), n = Math.max(2, Math.round((ha * 2) / 9.5));
+          for (let i = 0; i < n; i++) { const fx = -0.92 + (1.84 * i) / (n - 1) + (r % 2 ? 0.08 : -0.08), x = fx * ha, zz = z + hb * Math.sqrt(Math.max(0.1, 1 - (fx * 0.9) ** 2)) - 1.6, sz = 11.6 - r * 0.5, yy = y - (r === 5 ? 3 : 0) + (i % 2) * 1.6;
+            add(bg, G.ball, (r + i) % 2 ? BCm : mix(BCm, BDm, 0.35), sz, sz * 0.94, 8.4, x, yy, zz).rotation.z = i * 0.7;
+            const c = new THREE.Mesh(CURL, mat(BDm)); c.scale.set(sz * 0.6, sz * 0.6, sz * 0.9); c.position.set(x, yy, zz + 3.4); c.rotation.z = r * 1.3 + i * 2.1; bg.add(c); } } break; }
+      case 'wizard': { const L = cap(92 * bl, 1.08), K = [[6, 8, 18 * bw, 9], [-3, 14, 20 * bw, 10], [-L * 0.3, z0 - 1, 15 * bw, 7.6], [-L * 0.62, z0, 9 * bw, 5.8], [-L * 0.84, z0 + 0.6, 4 * bw, 3.8], [-L * 0.95, z0 + 1, 1.6, 1.6]];
+        mass(K); locks(K, [[-0.6, 0.2, 0.7, 0, 7], [0.6, 0.2, 0.7, 0, 7], [-0.2, 0.18, 0.86, 0, 7.4], [0.2, 0.18, 0.86, 0, 7.4]]);
+        sweep(bg, BCm, [[0, -L * 0.8, z0 + 2], [1.4, -L * 0.92, z0 + 2.6], [3.4, -L * 1.02, z0 + 2.2], [5.4, -L * 1.06, z0 + 1.4]].map((q) => [q[0], q[1], q[2] + bz(q[1])]), [[3.4, 2.8], [2.4, 2.2], [1.6, 1.5], [0.9, 0.9]], { cap: [1, 0.7] }); break; }
       default: break;
     }
-    // moustache: two tufts from under the nose
-    const mc = mix(HC, 0xffffff, 0.22), mz = 19.6;
-    switch (ST) {
-      case 'droop': for (const s of [-1, 1]) { add(bg, G.ball, mc, 19, 8.5, 8.5, s * 8.6, 7.4, mz).rotation.z = -s * 0.45; add(bg, G.cone, mc, 7, 10, 6, s * 17.4, 1.6, mz - 1.2).rotation.z = PI - s * 0.5; } break;
-      case 'handlebar': for (const s of [-1, 1]) { add(bg, G.ball, mc, 17, 6.5, 7.5, s * 8, 8.6, mz).rotation.z = s * 0.2; add(bg, G.tor, mc, 8, 8, 22, s * 17.4, 12, mz - 0.6); } break;
-      case 'walrus': for (const s of [-1, 1]) add(bg, G.ball, mc, 24, 13.5, 11, s * 7.4, 4.4, mz + 0.4).rotation.z = -s * 0.72; break;
-      case 'curl': for (const s of [-1, 1]) { add(bg, G.ball, mc, 16, 6.5, 7.5, s * 8, 8, mz).rotation.z = -s * 0.2; add(bg, G.tor, mc, 9.5, 9.5, 24, s * 17, 5, mz - 0.6); } break;
-      default: break;
-    }
+    // moustache: from under the nose out over the cheeks. It sits proud of the beard so it reads as its own shape.
+    const MS = {
+      droop: [[[0.4, 6.2, 22.6], [6, 5.2, 22], [11, 1.8, 20.2], [14, -3.6, 18.4], [15.2, -8.6, 17]], [[3.4, 3.2], [3.8, 3.4], [3.1, 2.8], [2, 1.9], [0.9, 0.9]], 0.8],
+      handlebar: [[[0.4, 6, 22.6], [6.6, 5.6, 21.8], [12.4, 5, 19.8], [16.4, 6.8, 17.6], [17.6, 10.2, 16.6], [15.8, 12, 16.4]], [[3, 2.8], [3.2, 3], [2.4, 2.2], [1.7, 1.6], [1.3, 1.2], [1, 1]], 1],
+      walrus: [[[0.4, 4.6, 23.4], [5.4, 3.4, 23], [9.8, -0.8, 21.8], [11.6, -6, 20.4]], [[4.8, 4.2], [5.6, 4.6], [5, 4], [3.8, 3.2]], 1.4],
+      curl: [[[0.4, 6, 22.6], [6.6, 5.2, 21.8], [12.2, 2.4, 20], [14.8, -2.2, 18.6], [13.4, -5.6, 18.4], [10.6, -5, 19], [11, -2.4, 19.4]], [[3, 2.8], [3.2, 3], [2.6, 2.4], [2, 1.9], [1.6, 1.5], [1.2, 1.2], [1, 1]], 1],
+    }[ST];
+    if (MS) for (const s of [-1, 1]) sweep(bg, mc, MS[0].map((q) => [s * q[0], q[1], q[2]]), MS[1], { ref: [0, 1, 0], cap: [1, MS[2]] });
   }
-  // ---- hair: what shows below the hat
+  // ---- hair: what shows below the hat. Swept locks and proper plaits, laid on the head and back so none of it pokes through.
   {
-    const hc = HC, hd = shade(HC, 0.84), zb = -Math.max(15, (18 * WZ + 1.5) / HS - 4);
+    const hc = HC, hd = shade(HC, 0.82), back = -(18 * WZ + 1.5) / HS, red = 0xc8211b;
+    const plait = (pts, n) => {   // a plait down a path: lobes leaning alternately, then a red tie and the loose end
+      const cv = new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(q[0], q[1], q[2]))), P = new THREE.Vector3(), T = new THREE.Vector3();
+      for (let i = 0; i < n; i++) { const t = (i + 0.5) / (n + 1); cv.getPoint(t, P); cv.getTangent(t, T); const w = 10 - i * 0.3, m = add(head, G.ball, i % 2 ? hd : hc, w, 8.2, w * 0.8, P.x, P.y, P.z); m.rotation.set(-Math.atan2(T.z, -T.y), 0, i % 2 ? -0.55 : 0.55); }
+      cv.getPoint(n / (n + 1), P); add(head, G.cyl, red, 7.2, 3, 7.2, P.x, P.y, P.z); const E = cv.getPoint(1);
+      sweep(head, hc, [[P.x, P.y - 1, P.z], [(P.x + E.x) / 2, (P.y + E.y) / 2 - 1, (P.z + E.z) / 2], [E.x, E.y, E.z]], [[2.8, 2.4], [4.2, 3.4], [3, 2.4]], { cap: [1, 1.2] });
+    };
     switch (HAIR.id) {
-      case 'tufts': for (const s of [-1, 1]) for (let i = 0; i < 3; i++) add(head, G.ball, i % 2 ? hd : hc, 13, 12, 14, s * (23 + i * 1.6), 16 - i * 6.5, -3 + i * 2.6); break;
-      case 'braids': for (const s of [-1, 1]) { for (let i = 0; i < 6; i++) add(head, G.ball, i % 2 ? hd : hc, 11.5 - i * 0.5, 10.5, 11.5 - i * 0.5, s * (23.5 + Math.min(i, 2) * 1.2), 12 - i * 8.4, 3 + Math.min(i, 3) * 1.5); add(head, G.cyl, 0xc8211b, 7, 3.2, 7, s * 26, -36, 7.5); add(head, G.cone, hc, 7, 9, 7, s * 26, -42, 7.5).rotation.x = PI; for (const k of [-1, 1]) add(head, G.cone, 0xc8211b, 5, 7, 2.4, s * 26 + k * 4.4, -36, 10).rotation.z = k * PI / 2; } break;
-      case 'pigtails': for (const s of [-1, 1]) { add(head, G.ball, 0xc8211b, 8, 8, 8, s * 23.5, 13, -4); add(head, taper(0.5, 0.2), s > 0 ? hc : hd, 14, 26, 14, s * 29, 2, -4).rotation.z = s * 0.45; } break;
-      case 'long': add(head, G.ball, hc, 46, 30, 26, 0, 8, -9); add(head, G.ball, hc, 42, 66, 17, 0, -18, zb); for (const x of [-12, 0, 12]) add(head, G.cone, x ? hd : hc, 15, 20, 9, x, -52, zb).rotation.x = PI; break;
-      case 'pony': add(head, G.ball, hc, 42, 26, 22, 0, 10, -11); add(head, G.cyl, 0xc8211b, 9, 4, 9, 0, 3, zb - 1); add(head, taper(0.5, 0.18), hd, 14, 46, 12, 0, -20, zb - 3).rotation.x = -0.12; break;
+      case 'tufts': for (const s of [-1, 1]) [[17, -2, 0.9, 8], [12, 2, 1.1, 7.4], [8, -6, 0.8, 6.4]].forEach(([y, z, k, r], i) =>   // locks splaying out from under the brim
+        sweep(head, i % 2 ? hd : hc, [[s * 17, y + 2, z], [s * (22 + 3 * k), y, z - 1], [s * (27 + 4 * k), y - 4 * k, z - 2.4], [s * (29 + 4 * k), y - 8 * k, z - 2]], [[r * 0.6, r * 0.5], [r * 0.7, r * 0.55], [r * 0.45, r * 0.4], [1.4, 1.2]], { ref: [0, 0, 1], cap: [1, 0.8] })); break;
+      case 'braids': { const zf = HF + (st === 'poncho' ? 7.5 : 3.4); for (const s of [-1, 1]) plait([[s * 21, 14, -3], [s * 23.4, 3, 6], [s * 23, -10, zf - 2], [s * 22, -26, zf + 0.6], [s * 21.4, -36, zf + 1.4]], 10); break; }   // forward over the shoulders and down the chest
+      case 'pigtails': for (const s of [-1, 1]) { add(head, G.cyl, red, 7.4, 3.4, 7.4, s * 22.4, 12, -4).rotation.z = s * PI / 2;   // a bunch tied out at each side
+        sweep(head, s > 0 ? hc : hd, [[s * 21, 12, -4], [s * 27, 12.4, -4.6], [s * 33, 10, -5], [s * 38, 5, -5], [s * 40, -0.6, -4.6]], [[4.6, 4.2], [7, 6], [7.2, 6], [4.8, 4.2], [1.6, 1.4]], { ref: [0, 0, 1], cap: [1, 0.9] }); } break;
+      case 'long': {   // down the back to between the shoulder blades, in locks
+        const z = (y) => Math.min(-15, y > 8 ? -16 : back - 3.4), K = [[18, -12, 19, 7], [6, z(6), 21, 6], [-14, z(-14), 20, 5], [-30, z(-30), 15, 4.4]];
+        sweep(head, hc, K.map((q) => [0, q[0], q[1]]), K.map((q) => [q[2], q[3]]), { ref: [1, 0, 0] });
+        for (let i = 0; i < 6; i++) { const fx = -0.83 + i * 0.333, len = 34 + (i % 2 ? 4 : 0) + (i === 2 || i === 3 ? 4 : 0);
+          sweep(head, i % 2 ? hd : hc, [[fx * 19, 12, z(12) - 3.6], [fx * 20, -4, z(-4) - 3.4], [fx * 18.6 + Math.sin(i) * 0.8, -len + 4, z(-len) - 3], [fx * 17.6, -len - 2, z(-len) - 2.4]], [[5.4, 2.2], [5.6, 2.2], [4.4, 1.9], [1.6, 1.2]], { ref: [1, 0, 0], cap: [1, 0.8] }); }
+        for (const s of [-1, 1]) sweep(head, hc, [[s * 19, 18, -4], [s * 21, 6, -6], [s * 21.4, -6, -8.6], [s * 20, -14, -10]], [[5, 4], [6, 4.4], [5, 3.8], [2, 1.8]], { ref: [0, 0, 1], cap: [1, 0.8] });   // and behind each ear
+        break; }
+      case 'pony': {   // gathered at the back of the head, under the hat, and hanging down the back
+        const zt = Math.min(-21, back - 2.6);
+        add(head, G.cyl, red, 9, 4, 9, 0, 9, -19.8).rotation.x = PI / 2 - 0.5;
+        sweep(head, hd, [[0, 13, -12], [0, 10, -19]], [[13, 9], [6, 5]], { ref: [1, 0, 0], cap: [0.5, 1] });
+        sweep(head, hc, [[0, 9, -19], [0, 4, zt - 3], [0, -10, zt - 2.4], [0, -24, zt - 1], [0, -34, zt + 0.4]], [[4.6, 4.2], [7.2, 6.2], [6.6, 5.4], [4.6, 3.8], [1.6, 1.4]], { ref: [1, 0, 0], cap: [1, 0.9] }); break; }
       default: break;
     }
   }

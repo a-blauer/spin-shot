@@ -623,7 +623,10 @@ export class Game {
     const P = this.player, loc = E.pos.clone();
     P.onEnemyKilled(E, headshot);
     if (!this.descent && (E.has('Gilded') || E.ai === 'Gilded')) this.pickups.spawn('MoneyBag', loc.clone().add(V3(60, 0, 0)), 300 + this.round * 40);
-    if (E.isBoss) {
+    // a boss that has split (or has a twin) is beaten when the last of it goes, not each piece
+    const rest = E.isBoss && this.enemies.some((O) => O !== E && !O.dead && O.isBoss && !O.decoy && O.bossIndex === E.bossIndex);
+    if (E.isBoss && !rest) {
+      this.splitSaid = 0;
       if (!this.descent) this.pickups.spawn('MaxAmmo', loc.clone().add(V3(0, 0, 150)));
       if (!this.descent) this.pickups.spawn('MoneyBag', loc.clone().add(V3(0, 0, -150)), 1500 + this.round * 100);
       Meta.bossKilled(!!E.boss.final, difficulty());

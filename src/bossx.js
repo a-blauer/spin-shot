@@ -50,7 +50,7 @@ const lead = (T, t = 0.5) => { const p = T.pos.clone(); if (T.vel) p.addScaledVe
 export function phaseName(E) { const D = PH[E.boss.art]; return D && E.phase > 1 ? D.n[E.phase - 2] : ''; }
 // true while it is changing: it does nothing else then
 export function phaseX(E, dt, C) {
-  const G = E.game, D = PH[E.boss.art]; if (!D || E.decoy) return false;
+  const G = E.game, D = PH[E.boss.art]; if (!D || E.decoy || E.gen) return false;   // the pieces of a split boss do not go through its phases
   const hpf = E.health / E.maxHealth, want = hpf < 0.34 ? 3 : hpf < 0.67 ? 2 : 1, dmg = E.attackDamage, Rm = room(E);
   if (E.phase === undefined) { E.phase = 1; E.baseMask = E.attackMask.slice(); }
   if (want > E.phase && !(E.ward > 0) && !E.burrowed) {
@@ -156,8 +156,11 @@ export function deathX(E) {
       const at = G.findFreeLocationNear(E.pos, 150, 500) || E.pos.clone();
       const K = G.spawnEnemy(B.minion, at.clone().add(V3(0, 120, 0)), false, E.bossIndex, Math.pow(0.66, (E.gen || 0) + 1), 0.4 * Math.pow(0.55, E.gen || 0), 0, false);
       K.gen = (E.gen || 0) + 1; K.noLoot = true; K.money = Math.round(E.money * 0.2); K.emerge = 0.6; K.launch(V3(s * 500, 600, frandRange(-300, 300)));
+      // the pieces leap and leave pools, but only the whole of it throws rings; and they do not all move at once
+      const AT = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);   // the order enemies.js keeps them in
+      K.attackMask = K.attackMask.filter((i) => !['Ring', 'Nova'].includes(AT[i])); if (!K.attackMask.length) K.attackMask = [AT.indexOf('Leap')]; K.bossTimer = 1.4 + Math.random() * 2.6 + (s > 0 ? 1 : 0);
     }
-    G.banner((E.gen || 0) === 0 ? 'IT COMES APART' : 'AND AGAIN', lin(0.4, 1, 0.7), 2);
+    if ((G.splitSaid || 0) <= (E.gen || 0)) { G.splitSaid = (E.gen || 0) + 1; G.banner((E.gen || 0) === 0 ? 'IT COMES APART' : 'AND AGAIN', lin(0.4, 1, 0.7), 2); }   // once for each time it splits, not once a piece
     E.noLoot = (E.gen || 0) > 0;
   }
   if (E.decoys) for (const K of E.decoys) if (!K.dead) { K.noLoot = true; K.takeHit(1e9, K.pos, V3(0, 1, 0), false); }

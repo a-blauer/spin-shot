@@ -496,6 +496,22 @@ window.__lookSheet = (list, cols = 6, cw = 240, ch = 320) => {
   lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.85);
 };
+// test hook: heads framed the way the NOSE AND BEARD page frames them. list: [{ label, look, yaw, dist, dy }]
+window.__buildChar = buildCharacter;
+window.__faceSheet = (list, cols = 6, cw = 260, ch = 260) => {
+  const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
+  const g = out.getContext('2d'); g.fillStyle = '#3a2430'; g.fillRect(0, 0, out.width, out.height);
+  ensureLock(); lockR.setSize(cw, ch, false); const sc = new THREE.Scene();
+  list.forEach((Q, i) => {
+    const look = Object.assign({}, Meta.look(), Q.look || {}); look.shape = Object.assign({}, DEFAULT_SHAPE, (Q.look || {}).shape);
+    const c3 = buildCharacter(look); c3.rotation.y = Q.yaw || 0; animateCharacter(c3, 0, 0, { preview: true }); sc.add(c3);
+    const hy = (c3.userData.rig.headY || 130) + 6 + (Q.dy || 0), cam = new THREE.PerspectiveCamera(30, cw / ch, 10, 3000); cam.position.set(0, hy + (Q.up || 0), Q.dist || 300); cam.lookAt(0, hy, 0);
+    lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch); sc.remove(c3);
+    g.fillStyle = '#ffcd5a'; g.font = '15px sans-serif'; g.fillText(Q.label || '', (i % cols) * cw + 6, Math.floor(i / cols) * ch + 18);
+  });
+  lockR.setSize(LW, LH, false);
+  return out.toDataURL('image/jpeg', 0.85);
+};
 // test hook: a sheet of guns as the workbench shows them, with parts fitted. list: [{ def, cores, yaw, pitch, label }]
 window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
@@ -510,6 +526,34 @@ window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   });
   lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.88);
+};
+// test hook: pieces of a gun model that touch nothing else (floating). Builds the model, reads every mesh as an oriented
+// box (from its geometry's bounds), joins any two whose boxes meet (with a small tolerance), and reports every mesh that
+// is not joined to the biggest group. [{ name, at: [x, y, z] in gun units, size, color }]
+window.__floatScan = (def, tier = 0, tol = 0.35) => {
+  const VM = game.vm.constructor, vm = new VM(game); vm.weaponDef = def; vm.weaponTier = tier; vm.coresOverride = []; vm.noMerge = true; vm.build();
+  const g = vm.gun; g.updateWorldMatrix(true, true);
+  const shown = (o) => { for (let p = o; p && p !== g.parent; p = p.parent) if (!p.visible) return false; return true; };
+  const ms = vm.parts.slice(0, vm.gunPartCount).filter((o) => o.isMesh && shown(o) && o.geometry);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), sc = new THREE.Vector3().setFromMatrixColumn(g.matrixWorld, 0).length();
+  const box = ms.map((m) => {
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); const bb = m.geometry.boundingBox, M = new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld);
+    const c = bb.getCenter(new THREE.Vector3()).applyMatrix4(M), ax = [], h = [], half = bb.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+    for (let k = 0; k < 3; k++) { const v = new THREE.Vector3().setFromMatrixColumn(M, k); const L = v.length(); ax.push(L > 1e-9 ? v.divideScalar(L) : new THREE.Vector3(k === 0, k === 1, k === 2)); h.push([half.x, half.y, half.z][k] * L + tol); }
+    return { c, ax, h };
+  });
+  const sep = (A, Bx) => {   // separating axis test for two oriented boxes
+    const T = Bx.c.clone().sub(A.c), axes = [...A.ax, ...Bx.ax]; for (const a of A.ax) for (const b of Bx.ax) { const x = a.clone().cross(b); if (x.lengthSq() > 1e-8) axes.push(x.normalize()); }
+    for (const L of axes) { let ra = 0, rb = 0; for (let k = 0; k < 3; k++) { ra += A.h[k] * Math.abs(A.ax[k].dot(L)); rb += Bx.h[k] * Math.abs(Bx.ax[k].dot(L)); } if (Math.abs(T.dot(L)) > ra + rb) return true; }
+    return false;
+  };
+  const par = ms.map((_, i) => i), find = (i) => (par[i] === i ? i : (par[i] = find(par[i])));
+  for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) if (find(i) !== find(j) && !sep(box[i], box[j])) par[find(i)] = find(j);
+  const cnt = {}; for (let i = 0; i < ms.length; i++) { const r = find(i); cnt[r] = (cnt[r] || 0) + 1; }
+  const main = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  const out = []; for (let i = 0; i < ms.length; i++) if (find(i) !== main) { const b = box[i], c = b.c; out.push({ at: [+(-c.z / sc * sc).toFixed(1), +c.x.toFixed(1), +c.y.toFixed(1)], size: b.h.map((v) => +(v - tol).toFixed(1)), color: '#' + (ms[i].material.uniforms && ms[i].material.uniforms.uColor ? ms[i].material.uniforms.uColor.value.getHexString() : '?'), geo: ms[i].geometry.type.replace('Geometry', '') }); }
+  vm.clear && vm.clear();
+  return out;
 };
 window.__build = buildCharacter; window.__THREE = THREE;
 window.__locker = () => { locker.style.display = 'block'; renderLocker(); };
@@ -841,7 +885,7 @@ function frame(now) {
   let dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   tickLocker(dt); tickLobby(dt); craft.tick(dt);
-  if (game && !game.openCraft) game.openCraft = () => craft.show();
+  if (game && !game.openCraft) game.openCraft = (blade) => craft.show(blade);
   if (mode === 'craft' && (!game || game.player.dead || !game.descent)) craft.close();
   hud.needMouse = mode === 'play' && !TEST && !TOUCH && !lockFailed && !document.pointerLockElement;
   if (window.__dmhFixedDt) dt = window.__dmhFixedDt;

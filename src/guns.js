@@ -90,7 +90,7 @@ const FEEL_GUN = {
   Poltergeist: { odd: true, pos: 1.4, rise: 0.6, k: 180, shake: 0.15, cam: { up: 0.4, snap: 1, side: 0.3, fov: 2 }, flash: 0.9, flashTint: [0.6, 1, 0.85] },
   Bullwhip: { odd: true, pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
   'Live Wire': { odd: true, pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
-  Tumbleweed: { odd: true, pos: 2.4, rise: 1.2, k: 130, shake: 0.3, weight: 1.6, cam: { up: 1.2, snap: 1.6, side: 0.3, fov: 2.5 } },
+  Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'drumtop', rp: [2, -18, 30], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
   Gusher: { odd: true, pos: 0.2, rise: 0.1, side: 1.4, weight: 1.5, cam: { up: 0.03, snap: 0.04, side: 0.06 } },
   'Hocus Pocus': { odd: true, pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
   "Dead Man's Hand": { odd: true, pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
@@ -127,8 +127,10 @@ const TIER_PAL = [
   { steelL: 0xE2B23A, brass: 0xF2C43A, steel: 0x343848, wood: 0x6a3a22 },
   { steelL: 0xF2C43A, brass: 0xFFD24A, steel: 0x2a2436, steelD: 0x1a1622, wood: 0x241a20, woodD: 0x16101a, woodL: 0x3a2a30 },
   { steelL: 0xFFD860, brass: 0xFFE27A, steel: 0x15121c, steelD: 0x0c0a12, wood: 0x5a0f1c, woodD: 0x3a0a14, woodL: 0x7a1a28, black: 0x08070c, bone: 0xfff4d8 },
+  // IV, fully evolved: white-gold and pearl over a deep teal, everything that glows burns cold and bright
+  { steelL: 0xFFF2C0, brass: 0xFFF0A8, steel: 0x10303a, steelD: 0x0a1c24, wood: 0xE8E2D6, woodD: 0xC8BFB0, woodL: 0xF6F2EA, black: 0x061418, bone: 0xFFFFFF },
 ];
-const TIER_GLOW = [0, 0xF2C43A, 0xFF4FD0, 0xFF4FD0];
+const TIER_GLOW = [0, 0xF2C43A, 0xFF4FD0, 0xFF4FD0, 0x7FF6FF];
 
 export function buildGun(vm, W, tier, mastered = false) {
   const N = W.name;
@@ -143,7 +145,7 @@ export function buildGun(vm, W, tier, mastered = false) {
 
 function buildGunWith(vm, W, tier, PAL) {
   const N = W.name;
-  const Accent = tier >= 3 ? C(W.color).lerp(new THREE.Color(1, 1, 1), 0.25) : C(W.color);
+  const Accent = tier >= 4 ? C(W.color).lerp(new THREE.Color(0.5, 1, 1), 0.35) : tier >= 3 ? C(W.color).lerp(new THREE.Color(1, 1, 1), 0.25) : C(W.color);
   Accent.metal = ['Energy', 'Wonder'].includes(W.cls) ? 0.5 : 0.4;
   const Trim = tier > 0 ? C(0xF2C43A) : PAL.steelL;
   const TG = tier > 0 ? 0.6 + 0.25 * tier : 0;
@@ -433,6 +435,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (let i = 0; i < 5; i++) Ty(19 + i * 3, 7.3, 1.5, 4.6, PAL.black);
       T(33, 54, 2.6, 7.4, PAL.steelD); T(54, 59, 3.8, 7.4, PAL.steel); for (let i = 0; i < 3; i++) B(55.2 + i * 1.4, 0, 7.4, 0.6, 4, 1.2, PAL.black);  // muzzle brake
       E([[42, 7.6], [44, 7.6], [43.6, 10.2], [42.4, 10.2]], 1.4, PAL.steelD, { bevel: 0.2 });
+      T(37, 40.4, 3.4, 7.4, PAL.steelD); B(38.7, 0, 5.4, 2.8, 4.4, 2, PAL.steelD); both((s) => Ty(38.7, 5.4, 1.2, 0.4, PAL.steelL, s * 2.3));   // bipod clamp and hinge
       E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: 1.6, bevel: 0.2 }); E([[38, 5], [39.4, 5], [36, -3], [35, -3]], 1, PAL.steelD, { y: -1.6, bevel: 0.2 });  // folded bipod
       grip(-2, 4.6, PAL.black, 11.4, 14, 5.2, 3.8); guard(0.6, 4.4, PAL.steelD, 6.6, 4.4);
       scope(-1, 13, 13.2, 3);
@@ -763,7 +766,7 @@ function buildGunWith(vm, W, tier, PAL) {
       stock(-8, 8.4, PAL.woodD, 15, 3.5, 8.4, 4);
       grip(-2, 4.2, C(0x5a3a22), 11, 14, 5.2, 4); guard(0.6, 4, PAL.brass, 6.4, 4.2);
       vm.MagRoot = group(22, 0, 9.4);
-      into(vm.MagRoot, () => { for (const s of [-1, 1]) { B(2, s * 5.6, 0, 17, 4.2, 1.1, wd, R(0, s * 32, 0)); B(8.4, s * 9.6, 0.05, 5, 4.4, 1.2, paint, R(0, s * 32, 0)); B(2, s * 5.6, 0.62, 12, 1, 0.2, wl, R(0, s * 32, 0)); } Tz(-4.6, -0.7, 0.9, 5.4, PAL.brass); Tz(-4.6, 0.9, 1.1, 2.4, paint); });
+      into(vm.MagRoot, () => { for (const s of [-1, 1]) { B(2, s * 5.6, 0, 17, 4.2, 1.1, wd, R(0, s * 32, 0)); B(8.4, s * 9.6, 0.05, 5, 4.4, 1.2, paint, R(0, s * 32, 0)); B(2, s * 5.6, 0.62, 12, 1, 0.2, wl, R(0, s * 32, 0)); } Tz(-4.6, -2.2, 0.9, 5.4, PAL.brass); Tz(-4.6, 0.9, 1.1, 2.4, paint); });
       Muzzle = V(36, 0, 9.4); Support = V(16, 0, 4.6); Sight = 12.8;
       break;
     }
@@ -924,7 +927,7 @@ function buildGunWith(vm, W, tier, PAL) {
       T(-4, 16, 5.8, 9.4, glass, 0, 0.25); T(-3, 9, 4.7, 9.4, blood, 0, 0.9); T(9, 9.6, 4.9, 9.4, PAL.black);                // the syringe, and what is in it
       for (let i = 0; i < 6; i++) Ring(-1 + i * 2.8, 9.4, 6, 0.22, PAL.steelD);
       T(16, 18.6, 3.2, 9.4, PAL.steelL); T(18.6, 31, 0.7, 9.4, PAL.steelL); Cone(32, 9.4, 0.7, 2, PAL.steelL); Ring(16.3, 9.4, 6.2, 0.7, PAL.steelL);
-      B(-4.6, 0, 9.4, 0.9, 9, 1.6, PAL.steelL); hideAds(() => { T(-11, -4, 1.4, 9.4, PAL.steelL); Ring(-12.2, 9.4, 4.2, 0.9, PAL.steelL); });   // finger flange, plunger and thumb ring
+      B(-4.6, 0, 9.4, 0.9, 9, 1.6, PAL.steelL); T(-11, -4, 1.4, 9.4, PAL.steelL); T(-12.4, -11, 4.4, 9.4, PAL.steelL); T(-12.7, -12.3, 4.8, 9.4, PAL.steelD);   // finger flange, plunger and its thumb press
       both((s) => { B(5, s * 1.84, 5, 3.2, 0.1, 1, blood); B(5, s * 1.84, 5, 1, 0.1, 3.2, blood); });                        // the red cross
       grip(-2, 3.6, PAL.bone, 10.4, 14, 5, 3.8); guard(0.6, 3.4, PAL.steelL, 6.4, 4.2);
       vm.MagRoot = group(-3.4, 0, -4); into(vm.MagRoot, () => { Tz(0, -2, 0, 2.6, blood, 0, 0.6); Tz(0, -2.8, -2, 3, PAL.steelL); });
@@ -989,16 +992,29 @@ function buildGunWith(vm, W, tier, PAL) {
       break;
     }
     case 'Tumbleweed': {
-      const tan = C(0x8A6A3A), weed = C(0x6A5230);
-      E([[-8, 3.6], [-8, 10], [12, 10], [12, 3.6]], 5.4, tan, { bevel: 0.9 });
-      Ty(3, 7, 13, 6.6, PAL.steelD); Ty(3, 7, 5, 7.4, PAL.brass); both((s) => { for (let i = 0; i < 6; i++) { const a = d2r(i * 60); B(3 + Math.cos(a) * 4.4, s * 3.34, 7 + Math.sin(a) * 4.4, 2.4, 0.1, 0.8, PAL.black, R(i * 60, 0, 0)); } });   // the fan
-      Hol(12, 26, 8.2, 7.4, PAL.steelD); Cone(31, 7.4, 13.4, 9.6, tan, false); Ring(35.4, 7.4, 13.6, 1.1, PAL.brass); Ring(14, 7.4, 9, 0.9, PAL.brass);   // bell mouth
-      hideAds(() => { Tz(15, 11.2, 13, 5, PAL.steelD); part('emit', 15, 0, 17, () => { Ball(15, 0, 17, 7.6, weed); for (let i = 0; i < 6; i++) Pt(8, 15, 0, 17, 4.5, 8.8, 8.8, i % 2 ? Accent : C(0x7A6238), R(i * 31, i * 53, i * 17)); }); });   // one in the hopper
-      E([[-8, 9.6], [-8, 4.4], [-20, 4], [-22, 4.6], [-22, 9], [-20, 9.6]], 4.6, C(0x5A3A22), { bevel: 1 });
-      both((s) => B(-2, s * 2.74, 7, 1.4, 0.1, 6.6, C(0x5A3A22)));
-      grip(-2, 3.8, C(0x5A3A22), 11.4, 14, 5.4, 4); guard(0.6, 3.6, PAL.brass, 6.6, 4.4);
-      vm.MagRoot = group(8, 0, 3.4); into(vm.MagRoot, () => { Ball(0, 0, -4.4, 7.4, C(0xB89A5A)); Ring(0, -1, 3, 0.8, C(0x5A3A22)); });
-      Muzzle = V(36.5, 0, 7.4); Support = V(20, 0, 2.4); Sight = 15.6;
+      // A prairie bowler: a little oak cask the weed is wound through, a hand crank on its flank, a tin chute that opens
+      // into a brass bell, and a wire hopper on top with the next tumbleweed in it.
+      const oak = C(0xA0703E), oakD = C(0x6A4626), tin = C(0xB9B2A0), dry = C(0x9C7A44), dryD = C(0x6E5530); oak.grain = 1; oakD.grain = 1;
+      const weed = (x, y, z, d) => { Ball(x, y, z, d * 0.55, dryD); for (let i = 0; i < 9; i++) Pt(8, x, y, z, d * 0.06, d, d, i % 3 ? dry : (i % 2 ? Accent : dryD), R(i * 37, i * 61, i * 23)); };   // a ball of dry twigs
+      T(-6, 15, 11.6, 7.6, oak); T(-6.8, -5.6, 10.4, 7.6, oakD); T(14.6, 15.8, 10.4, 7.6, oakD);                                     // the cask and its heads
+      for (let i = 0; i < 12; i++) { const a = d2r(i * 30); B(4.5, Math.cos(a) * 5.82, 7.6 + Math.sin(a) * 5.82, 20.6, 0.26, 0.5, dk(oak, 0.8), R(i * 30, 0, 0)); }   // the joins between its staves
+      for (const x of [-3.6, 4.5, 12.6]) { Ring(x, 7.6, 12.4, 1.3, PAL.steelD); for (let i = 0; i < 6; i++) { const a = d2r(i * 60 + 30); Ball(x, Math.cos(a) * 6.1, 7.6 + Math.sin(a) * 6.1, 0.6, PAL.steelL); } }   // iron hoops, riveted
+      // the crank, on the side you see: an axle out of the cask, a forged arm and a turned wooden knob
+      Ty(4.5, 7.6, 2.6, 2.4, PAL.steelD, -6.6); Ty(4.5, 7.6, 3.4, 0.8, PAL.brass, -7.6);
+      part('crank', 4.5, -8.2, 7.6, () => { B(4.5, -8.2, 4.4, 1.2, 0.9, 7.4, PAL.steelD); Ty(4.5, 1.2, 1.4, 2.2, PAL.steelD, -9.2); Ty(4.5, 1.2, 2.2, 3.6, oakD, -11.6); Ball(4.5, -13.5, 1.2, 1.8, oakD); });
+      // the chute and the bell it opens into, with the next weed sitting in the mouth
+      Hol(15.6, 24, 8.4, 7.6, tin); Ring(16.6, 7.6, 9.4, 1, PAL.brass); Ring(23.4, 7.6, 9.4, 1, PAL.brass);
+      for (const y of [-1, 1]) B(20, y * 4.3, 7.6, 6.6, 0.3, 1.2, PAL.steelL);                                                         // rivet straps
+      Cone(28, 7.6, 14.6, 8.4, PAL.brass, false); Ring(32.1, 7.6, 14.8, 1.1, dk(PAL.brass, 0.8)); Hol(24, 32, 14.2, 7.6, C(0x3A2A1A));   // the bell, dark inside
+      weed(27.4, 0, 7.6, 6.4);
+      // a wire hopper on top, out of the way when you aim, with the next one waiting in it
+      hideAds(() => { Tz(4.5, 13, 15.2, 4.4, oakD); for (const a of [0, 60, 120]) Pt(8, 4.5, 0, 20.4, 0.12, 11.6, 11.6, PAL.steelL, R(0, a, 0)); Pt(8, 4.5, 0, 20.4, 0.12, 11.6, 11.6, PAL.steelL, R(0, 0, 90)); Ring(4.5, 15.6, 6, 0.8, PAL.steelD); Tz(4.5, 25.8, 26.8, 1.4, PAL.steelD); });
+      vm.MagRoot = group(4.5, 0, 20.4); into(vm.MagRoot, () => weed(0, 0, 0, 8.4));
+      // hold: a pistol grip under the cask, a fore grip under the chute, a real stock behind
+      grip(-1.2, 2.6, oakD, 11.4, 14, 5.4, 4); guard(1.4, 2.4, PAL.brass, 6.6, 4.4);
+      E([[16.6, 3.8], [23, 3.8], [22.2, -3.4], [17.6, -3.4]], 3.6, oakD, { bevel: 0.9 }); for (let i = 0; i < 4; i++) B(20, 0, 2.2 - i * 1.5, 5.2, 3.8, 0.35, dk(oakD, 0.7));
+      stock(-6.8, 10.8, oak, 19, 3, 9, 4.4, 5.4);
+      Muzzle = V(32.4, 0, 7.6); Support = V(20, 0, 1.6); Sight = 16.6;
       break;
     }
     case 'Gusher': {
@@ -1515,7 +1531,7 @@ function buildGunWith(vm, W, tier, PAL) {
         break;
       case 'Long Rider':
         T(mx, mx + 8, 4.4, mz, PAL.black);                                                                             // I long brake
-        if (t2) both((s) => E([[39, 5], [40.6, 5], [34, -6], [33, -5]], 1, gold, { y: s * 2.4, bevel: 0.2 }));           // II deployed bipod
+        if (t2) both((s) => E([[38.2, 5.6], [39.8, 5.6], [34, -6], [33, -5]], 1, gold, { y: s * 2.3, bevel: 0.2 }));      // II deployed bipod, from the clamp
         if (t3) { hideAds(() => { T(12, 16.4, 5, 13.2, PAL.steelD); T(16, 16.6, 4.4, 13.2, g, 0, 2.6); }); for (let i = 0; i < 5; i++) Ring(36 + i * 3.6, mz, 4.6, 0.5, g, 2.2); }   // III big objective lens, rifled glow
         break;
       case 'Gold Rush':
@@ -1535,7 +1551,7 @@ function buildGunWith(vm, W, tier, PAL) {
         break;
       case 'Stampede':
         E(rect(20, 2.4, 38, 4.4), 3, PAL.steelD, { bevel: 0.3 });                                                       // I under rail
-        if (t2) { Ty(7, -5, 15, 3.4, PAL.steelD, 6.6); Ty(7, -5, 6, 3.8, gold, 6.6, 0.5); }                             // II second drum
+        if (t2) into(vm.MagRoot, () => { Ty(0, -7, 15, 3.4, PAL.steelD, 4.6); Ty(0, -7, 6, 3.8, gold, 4.8, 0.5); Ty(0, -7, 2.4, 13, PAL.steelL); });   // II second drum, side by side on one axle
         if (t3) { for (let i = 0; i < 5; i++) B(-4 + i * 5, 0, 12.6, 3.4, 4, 0.3, PAL.brass, R(18, 0, 0), 0.3); Ring(mx - 2, mz, 7.6, 0.9, g, 2.6); }   // III brass heat plates on the rail
         break;
       case "Dragon's Breath":
@@ -1561,7 +1577,7 @@ function buildGunWith(vm, W, tier, PAL) {
       case 'Railroad Spike':
         for (let i = 0; i < 6; i++) Ty(23.5 + i * 7.4, 13.4, 2.4, 3, PAL.brass);                                        // I capacitor row
         if (t2) both((s) => { for (let i = 0; i < 3; i++) B(28 + i * 12, s * 3, 7.5, 8, 0.3, 0.8, g, null, 2.6); });     // II arc strips
-        if (t3) { Ring(66, 7.5, 12, 1.1, g, 2.8); Ring(60, 7.5, 9, 0.8, C(0xdff6ff), 2.8); Ball(69, 0, 7.5, 2.6, C(0xdff6ff), 3); }   // III muzzle accelerator rings
+        if (t3) { Ring(66, 7.5, 12, 1.1, g, 2.8); Ring(60, 7.5, 9, 0.8, C(0xdff6ff), 2.8); Ball(64.6, 0, 7.5, 2.6, C(0xdff6ff), 3); }   // III muzzle accelerator rings
         break;
       case 'Dynamite Dan':
         for (const z of [15.4, 17]) T(8, 20, 2.6, z, Accent, 0);                                                        // I spare sticks strapped on top
@@ -1574,18 +1590,18 @@ function buildGunWith(vm, W, tier, PAL) {
         if (t3) { both((s) => E([[-22, 9.6], [-12, 9.6], [-22, 18]], 0.6, PAL.red, { y: s * 5, bevel: 0.1 })); Ring(-16, 9.6, 11, 1, g, 2.6); }   // III tail fins and afterburner ring
         break;
       case 'Fireworks Finale':
-        for (let i = 0; i < 6; i++) Spike(-6 + i * 6, 0, 17, 3, [C(0xFFD23A), C(0x4AD0FF), C(0x7CFF6A), C(0xFF5A4A)][i % 4], 1.6, 1.6);   // I sparkler row
+        E(rect(7, 14.4, 27, 15.8), 3.4, PAL.steelD, { bevel: 0.3 }); for (let i = 0; i < 6; i++) { Tz(8.4 + i * 3.6, 15.8, 17.4, 0.6, PAL.bone); Spike(8.4 + i * 3.6, 0, 17.2, 3, [C(0xFFD23A), C(0x4AD0FF), C(0x7CFF6A), C(0xFF5A4A)][i % 4], 1.6, 1.6); }   // I sparkler rack
         if (t2) both((s) => { T(-8, 26, 4.4, 18.4, Accent, s * 3.2); Cone(28.4, 18.4, 4.2, 5, C(0xFFD23A), true, s * 3.2, 0.6); });   // II two more tubes
-        if (t3) { for (let i = 0; i < 8; i++) { const a = d2r(i * 45); Ball(31.6, Math.cos(a) * 7.4, 10.2 + Math.sin(a) * 7.4, 1.4, i % 2 ? C(0xFF6FAE) : C(0xFFF0A0), 2.8); } }   // III ring of fairy lights
+        if (t3) { B(28, 0, 15, 1, 11.4, 1, PAL.steelD); B(28, 0, 2.8, 1, 11.4, 1, PAL.steelD); both((s) => B(28, s * 5.2, 8.9, 1, 1, 13.2, PAL.steelD)); for (let i = 0; i < 4; i++) { Ball(28.6, -3.9 + i * 2.6, 15.6, 1.4, i % 2 ? C(0xFF6FAE) : C(0xFFF0A0), 2.8); Ball(28.6, -3.9 + i * 2.6, 2.2, 1.4, i % 2 ? C(0xFFF0A0) : C(0xFF6FAE), 2.8); } }   // III fairy lights on a frame round the mouth
         break;
       case 'Tesla Coil':
         Tz(16, 10, 16, 1.4, PAL.brass); Ball(16, 0, 16.6, 2.4, Accent, 2.6);                                            // I second spark post
         if (t2) { Ring(40, 7, 13.4, 1.4, PAL.brass); Ring(40, 7, 16, 0.6, g, 2.6); }                                    // II double toroid
-        if (t3) { for (let i = 0; i < 4; i++) { const a = d2r(i * 90 + 45); T(40, 48, 0.9, 7 + Math.sin(a) * 4, C(0xdff6ff), Math.cos(a) * 4, 3); } Ball(49, 0, 7, 3, C(0xdff6ff), 3); }   // III arc cage
+        if (t3) { for (let i = 0; i < 4; i++) { const a = d2r(i * 90 + 45); T(40, 48, 0.9, 7 + Math.sin(a) * 4, C(0xdff6ff), Math.cos(a) * 4, 3); } Ring(48, 7, 9, 0.6, PAL.brass); B(48, 0, 7, 0.6, 8.6, 0.6, PAL.brass); B(48, 0, 7, 0.6, 0.6, 8.6, PAL.brass); Ball(48, 0, 7, 3, C(0xdff6ff), 3); }   // III arc cage, the spark held where its bars cross
         break;
       case "Will-o'-Wisp":
         Ball(15, 0, 6.6, 3, Accent, 2.8);                                                                               // I a second wisp in the jar
-        if (t2) { for (let i = 0; i < 3; i++) Ball(-12 - i * 4, 0, 11 + i * 1.6, 2 - i * 0.4, Accent, 2.6); }           // II wisps trailing off the stock
+        if (t2) { for (let i = 0; i < 3; i++) { const x = -5 + i * 3.8; B(x, -2.7, 6.8, 1.2, 1, 1.8, PAL.brass); Tz(x, 4.6, 8.8, 2.2, C(0xbff7ea), -3.5, 0.35); Ball(x, -3.5, 6.6, 1.5, Accent, 2.6); Tz(x, 8.8, 9.6, 2.5, PAL.brass, -3.5); Tz(x, 4, 4.6, 2.5, PAL.brass, -3.5); } }   // II spare wisps in vials, clipped to the side
         if (t3) { Ring(34, 8, 13.6, 0.8, C(0xeafff8), 2.8); for (let i = 0; i < 6; i++) { const a = d2r(i * 60); Spike(38, Math.cos(a) * 5.4, 8 + Math.sin(a) * 5.4 - 1.5, 3, PAL.brass, 0.6, 1); } }   // III crowned bell
         break;
       case 'Frostbite Beam':
@@ -1611,12 +1627,145 @@ function buildGunWith(vm, W, tier, PAL) {
       case "Fan of Knives":
         both((s) => E(star(-14, 7, 2.4, 4, 0.5), 0.3, PAL.bone, { y: s * 2.5, bevel: 0.04, glow: 0.6 }));               // I throwing-star inlay
         if (t2) { for (let i = 0; i < 4; i++) B(-2 + i * 5, 0, 12.2, 4.4, 1.6, 0.25, C(0xC9CED8), R(14, 0, 0), 0.2); }   // II spare blades racked on top
-        if (t3) { Ball(26, 0, 8, 3, g, 3); for (let i = 0; i < 2; i++) Ring(24 - i * 4, 8, 12 - i * 2, 0.6, g, 2.6); E([[-6, 13.6], [-2, 13.6], [-3, 17], [-5, 17]], 3, PAL.bone, { bevel: 0.6 }); }   // III death's-head skull, cursed glow
+        if (t3) { Ball(26, 0, 8, 3, g, 3); for (let i = 0; i < 2; i++) Ring(24 - i * 4, 8, 12 - i * 2, 0.6, g, 2.6); E([[-6.2, 11.4], [-1.8, 11.4], [-1.6, 14.6], [-2.6, 16.4], [-5.4, 16.4], [-6.4, 14.6]], 3, PAL.bone, { bevel: 0.6 }); both((s) => Ball(-4, s * 0.7, 14.4, 1.1, g, 2.6)); E(rect(-5, 12, -3, 12.4), 3.1, PAL.black, { bevel: 0.05 }); }   // III a death's head standing on the receiver, eyes lit
         break;
       case 'Black Cat':
         both((s) => E([[-36, 8], [-40, 12], [-44, 8], [-42, 14], [-37, 13]], 0.8, PAL.black, { y: s * 0.6, bevel: 0.2 }));   // I tail tip curl
         if (t2) both((s) => E([[62, 8.2], [68, 8.2], [66, 5.6], [64, 4.6]], 0.5, PAL.bone, { y: s * 1.8, bevel: 0.1 }));     // II claws at the muzzle
         if (t3) { hideAds(() => both((s) => Ball(19, s * 1.5, 12.8, 1.8, C(0x7CFF4A), 3))); for (let i = 0; i < 4; i++) Ring(40 + i * 5, 8.2, 4.4, 0.5, C(0x7CFF4A), 2.4); }   // III glowing eyes and barrel
+        break;
+      // ---- the oddities: three looks each, every piece set on the body it belongs to
+      case 'Come-Back Kid': {
+        const pt = C(0xC8302A);
+        for (const x of [16, 22]) B(x, 0, 6.6, 1, 2.9, 3.4, gold);                                                      // I brass bands bind the throwing arm
+        if (t2) E([[-6, 5], [2, 7.6], [0.4, 8.2], [-7, 5.8]], 0.5, pt, { y: -2.45, bevel: 0.1 });                       // II a spare boomerang carried on the side
+        if (t3) { both((s) => E(star(-14, 5.6, 1.6, 5, 0.5), 0.3, g, { y: s * 2.05, bevel: 0.05, glow: 1.4 })); B(30.5, 0, 8.95, 4.4, 3.4, 0.3, g, null, 2.2); }   // III carved stars lit in the stock, a lit cradle
+        break; }
+      case 'Whaler': {
+        const rope = C(0xC9A46A);
+        Ty(6, 7, 6, 2, rope, 3.3); Ty(6, 7, 6.6, 0.4, PAL.steelD, 4.4); Ty(6, 7, 1.6, 0.6, PAL.steelD, 2.6);               // I a coil of line on its drum
+        if (t2) both((s) => { B(5, s * 2.42, 7, 14, 0.25, 4.6, gold); for (const x of [-1, 11]) Ty(x, 7, 0.9, 0.2, PAL.steelL, s * 2.6); });   // II brass cheek plates
+        if (t3) into(vm.MagRoot, () => { Ring(14, 0, 2.3, 0.6, g, 2.4); Ring(-12, 0, 2.3, 0.6, g, 2.4); });             // III the harpoon's shaft ringed with light
+        break; }
+      case 'Bear Trap':
+        for (let i = 0; i < 4; i++) Spike(18 + i * 3, 0, 11.9, 1.8, PAL.steelL, 0, 1.2);                              // I teeth along the top of the drum
+        if (t2) Ring(22.2, 7.4, 10.2, 0.8, gold);                                                                      // II a brass band
+        if (t3) both((s) => { Ty(4, 7, 2.4, 0.4, g, s * 2.9, 2.4); Ty(4, 7, 3, 0.2, PAL.black, s * 2.75); });            // III lamps either side, like eyes
+        break;
+      case 'Jack-in-the-Box':
+        Ty(4, 9, 1.2, 1.6, gold, -4.8); B(4, -5.9, 7, 1, 0.6, 5.2, gold); Ty(4, 5, 1.6, 1.6, PAL.red, -6.9);           // I the winding handle
+        if (t2) both((s) => E(star(10, 11, 1.6), 0.2, gold, { y: s * 4.1, bevel: 0.04 }));                              // II gold stars
+        if (t3) for (let i = 0; i < 5; i++) Ball(-4 + i * 4.4, 0, 15.1, 1.2, i % 2 ? C(0xFFE060) : g, 2.6);              // III a row of marquee bulbs
+        break;
+      case 'William Tell': {
+        const lea = C(0x6A3A22);
+        for (const x of [12, 24]) B(x, 0, 6.6, 1, 3.9, 4, gold);                                                       // I brass bands on the tiller
+        if (t2) { B(16, 2.5, 3.6, 8, 1.4, 4, lea); for (let i = 0; i < 3; i++) { Tz(14 + i * 2, 5.6, 9, 0.5, PAL.wood, 2.5); Cone(14 + i * 2, 9.6, 1, 1.4, PAL.bone, true, 2.5); } }   // II a quiver at the side
+        if (t3) Ball(38.7, 0, 12.1, 1.6, g, 2.8);                                                                      // III a lit bead on the stirrup
+        break; }
+      case 'Wrecking Ball':
+        both((s) => { B(3, s * 3.1, 7.3, 8, 0.2, 5, gold); for (let i = 0; i < 3; i++) B(0 + i * 3, s * 3.22, 7.3, 1, 0.1, 5, PAL.black); });   // I hazard plates
+        if (t2) { Ty(4, 12.6, 3.2, 4, PAL.steelD); both((s) => Ty(4, 12.6, 4, 0.4, gold, s * 2.1)); }                    // II a second cable drum
+        if (t3) { Tz(-4, 11, 12.4, 1.6, PAL.steelD); Ball(-4, 0, 13.2, 2, g, 2.6); }                                    // III a warning beacon
+        break;
+      case 'Hall of Mirrors':
+        both((s) => B(3, s * 2.75, 7.3, 8, 0.2, 4, C(0xDCEBF2), null, 0.6));                                            // I mirror plates
+        if (t2) { T(33, 35, 5.4, 7.4, gold); Ring(34, 7.4, 6, 0.9, gold); }                                            // II a gold lens cap
+        if (t3) E([[0, 11.2], [6, 11.2], [3, 15]], 1.6, C(0xBFEFFF), { bevel: 0.2, glow: 1.6 });                         // III a prism on top
+        break;
+      case 'Calliope':
+        Tz(2, 11.6, 14, 1.4, gold); Ball(2, 0, 14.4, 1.6, gold);                                                     // I a brass whistle
+        if (t2) for (let i = 0; i < 6; i++) B(-5 + i * 2, -3.3, 8, 1.6, 0.3, 2.2, i % 2 ? PAL.black : PAL.bone);          // II a keyboard on the side
+        if (t3) both((s) => Ty(23, 2.2, 2, 0.4, g, s * 2.9, 2.4));                                                     // III lamps on the boiler
+        break;
+      case 'Lariat': {
+        const rope = C(0xC9A46A);
+        both((s) => Ty(-14, 6.6, 2.4, 0.3, gold, s * 2.25));                                                         // I conchos on the stock
+        if (t2) Ty(4, 6.8, 5, 1.6, rope, 3);                                                                          // II a spare coil hung on the side
+        if (t3) Ring(30, 7.4, 3.2, 0.7, g, 2.4);                                                                       // III a lit ring at the muzzle
+        break; }
+      case 'Loaded Dice': {
+        const iv = C(0xF2EEE4);
+        Ring(21, 7.6, 11.2, 0.9, gold);                                                                                // I a brass band round the cup
+        if (t2) both((s) => { for (let i = 0; i < 3; i++) Ty(2 + i * 3, 7, 0.9, 0.2, iv, s * 2.6); });                 // II pips along the sides
+        if (t3) { B(2, 0, 12.6, 3.2, 3.2, 3.2, gold, null, 0.4); for (const [y, z] of [[-0.8, 13.4], [0, 12.6], [0.8, 11.8]]) Ball(3.62, y, z, 0.6, g, 2.6); }   // III a gold die on top, its pips lit
+        break; }
+      case 'House Edge':
+        both((s) => B(7, s * 2.4, 6.8, 24, 0.25, 0.8, gold));                                                          // I brass rails
+        if (t2) both((s) => E(star(14, 7, 1.4, 4, 0.5), 0.2, C(0xC8302A), { y: s * 2.38, bevel: 0.04 }));              // II diamonds on the felt
+        if (t3) B(7, 0, 10.75, 26, 4.2, 0.3, C(0x3AE07A), null, 1.4);                                                  // III the felt lit from inside
+        break;
+      case 'Sawbones':
+        for (const x of [0, 10]) B(x, 0, 6.9, 1.2, 4, 1.2, PAL.steelD);                                                // I clamps hold the syringe down
+        if (t2) { T(0, 10, 2.4, 5, C(0xD8EEF2), 2.8, 0.25); T(1, 8, 1.9, 5, C(0x5AE07A), 2.8, 0.9); for (const x of [-0.6, 10.6]) T(x - 0.5, x + 0.5, 2.6, 5, PAL.steelL, 2.8); }   // II a second vial clipped on
+        if (t3) T(18.6, 30, 1.1, 9.4, g, 0, 2.4);                                                                      // III the needle glows
+        break;
+      case 'Tilt':
+        both((s) => Ty(14, 7, 2.6, 0.6, C(0xFF4A8A), s * 3.1, 1));                                                      // I bumpers
+        if (t2) both((s) => { for (let i = 0; i < 5; i++) Ball(-5 + i * 3, s * 2.9, 9, 1, i % 2 ? C(0xFFE040) : C(0xFF4A8A), 1.6); });   // II score lights
+        if (t3) for (const x of [10, 22]) Ring(x, 12.8, 5.2, 0.7, g, 2.4);                                              // III lit rings round the lane
+        break;
+      case 'Poltergeist':
+        Ring(18.5, 7.4, 8.4, 0.6, gold);                                                                               // I a band round the jar
+        if (t2) { Tz(7, 12.6, 15, 1.4, PAL.bone); Ball(7, 0, 15.8, 1.2, C(0xFFD060), 3); }                             // II a second candle
+        if (t3) both((s) => E(star(2, 7, 2, 5, 0.4), 0.2, g, { y: s * 2.75, bevel: 0.04, glow: 1.6 }));                 // III sigils on the sides
+        break;
+      case 'Bullwhip':
+        Ball(1.6, 0, 14.2, 2.6, gold);                                                                                 // I a brass pommel
+        if (t2) both((s) => E([[-2.6, 6], [-1.2, 6], [0.4, 10], [-1, 10]], 0.2, C(0x2A1A10), { y: s * 1.75, bevel: 0.03 }));   // II a binding wrap
+        if (t3) B(1.6, 0, 13.4, 3.2, 3.6, 0.6, g, null, 2.2);                                                          // III a lit collar
+        break;
+      case 'Live Wire': {
+        const cop = C(0xB87333);
+        for (let i = 0; i < 5; i++) Ring(15.6 + i * 5, 7.4, 5.3, 0.5, cop);                                            // I a copper coil
+        if (t2) both((s) => { B(3, s * 2.7, 7, 8, 0.2, 4, C(0xE8C81E)); for (let i = 0; i < 3; i++) B(0.4 + i * 2.6, s * 2.82, 7, 0.8, 0.1, 4, PAL.black); });   // II warning plates
+        if (t3) for (let i = 0; i < 2; i++) Tz(-2 + i * 7, 11, 14.2, 2, g, 0, 2.4);                                    // III the jars' cores burn
+        break; }
+      case 'Tumbleweed':
+        T(-7.1, -6.6, 8, 7.6, gold); T(15.6, 16.1, 8, 7.6, gold);                                                      // I brass on the cask heads
+        if (t2) Ring(32.3, 7.6, 15.6, 1.4, gold);                                                                      // II a gold lip on the bell
+        if (t3) { Ball(27.4, 0, 7.6, 3.4, C(0xFF7A2A), 2.6); Ring(4.5, 7.6, 12.7, 0.6, g, 2.2); }                       // III the weed alight, a lit hoop
+        break;
+      case 'Gusher':
+        Ty(4, 7.4, 3, 0.6, PAL.bone, -2.9); B(4.2, -3.25, 7.8, 1.2, 0.1, 0.3, PAL.red);                                // I a pressure gauge
+        if (t2) Ring(39.4, 7.4, 4.2, 0.8, gold);                                                                       // II a brass collar on the line
+        if (t3) Ring(42.6, 7.4, 6, 0.7, g, 2.4);                                                                       // III a ring of fire at the nozzle
+        break;
+      case 'Hocus Pocus':
+        both((s) => E(star(4, 6, 1.4), 0.2, gold, { y: s * 2.35, bevel: 0.04 }));                                      // I gold stars
+        if (t2) for (const x of [22, 28, 34]) Ring(x, 6.6, 2.3, 0.5, PAL.steelL);                                      // II silver rings on the wand
+        if (t3) T(17, 36.6, 2.1, 6.6, g, 0, 1.6);                                                                      // III the wand alight
+        break;
+      case "Dead Man's Hand": {
+        const chips = [C(0xC8302A), C(0x1A1A1A), C(0x2A6AD0), C(0xF2EEE4)];
+        both((s) => { for (let i = 0; i < 4; i++) Ty(-4 + i * 5, 6, 1.4, 0.2, gold, s * 2.6); });                       // I brass studs
+        if (t2) for (let k = 0; k < 4; k++) Ty(12, 6.4, 3.4, 0.4, chips[k], -(2.7 + k * 0.42));                          // II a stack of chips on the side
+        if (t3) both((s) => { B(6, s * 2.9, 11, 5, 0.2, 3, C(0xF2EEE4), null, 0.4); B(6, s * 3.02, 11, 1.4, 0.1, 1.4, g, null, 2.4); });   // III a lit ace on the shoe
+        break; }
+      case 'Barn Door':
+        for (const z of [0, 14]) B(9, -6.75, z, 10, 0.5, 1.6, PAL.steelD);                                             // I iron hinge straps
+        if (t2) E([[7, -4], [10, -4], [35, 18], [32, 18]], 0.4, C(0x8A2A1A), { y: -6.7, bevel: 0.05 });                // II a brace across the door
+        if (t3) { Ty(21, 7, 8, 0.4, gold, -6.75); E(star(21, 7, 3.4, 8, 0.45), 0.3, g, { y: -7.05, bevel: 0.04, glow: 1.6 }); }   // III a hex sign, lit
+        break;
+      case 'Old Faithful':
+        B(3, -4.75, 7.6, 6, 0.2, 2.4, gold);                                                                           // I a brass maker's plate
+        if (t2) { Ty(8, 9, 2.6, 0.6, PAL.brass, 4.9); Ty(8, 9, 2, 0.2, PAL.bone, 5.25); }                               // II a second gauge
+        if (t3) Ring(36, 7.6, 4, 0.8, g, 2.4);                                                                         // III a lit valve ring
+        break;
+      case 'Homing Pigeon':
+        T(-4, 4, 1.8, 7, PAL.brass, -3.4); T(-4.4, -3.8, 2.1, 7, PAL.steelD, -3.4); T(3.8, 4.4, 2.1, 7, PAL.steelD, -3.4);   // I a message tube
+        if (t2) both((s) => E([[-20, 6], [-12, 8], [-13, 6.6]], 0.2, C(0xE8E4F0), { y: s * 2.15, bevel: 0.03 }));        // II feathers inlaid in the stock
+        if (t3) into(vm.MagRoot, () => both((s) => Ball(6.2, s * 1.4, 4, 0.9, g, 2.6)));                                // III the bird's eyes lit
+        break;
+      case 'High Striker':
+        both((s) => { for (let i = 0; i < 4; i++) B(14 + i * 8, s * 1.85, 7.6, 1.4, 0.15, 3.4, gold); });              // I gold bands on the tower
+        if (t2) both((s) => { for (let i = 0; i < 5; i++) Ball(14 + i * 6, s * 1.3, 10.1, 1, C(0xFFE060), 1.4); });     // II bulbs up the tower
+        if (t3) Ball(44.8, 0, 13, 5.4, g, 1.4);                                                                        // III the bell lit
+        break;
+      case 'One-Armed Bandit':
+        B(2, 0, 15, 4, 2, 0.4, PAL.black); B(2, 0, 15.25, 3, 0.4, 0.1, gold);                                         // I a coin slot plate
+        if (t2) both((s) => E([[0, 10], [4, 10], [2, 6], [1, 6], [2.8, 9.2], [0, 9.2]], 0.2, C(0xC8302A), { y: s * 3.05, bevel: 0.03 }));   // II sevens on the cabinet
+        if (t3) both((s) => { for (let i = 0; i < 6; i++) Ball(-4 + i * 3, s * 2.4, 15.1, 1, i % 2 ? C(0xFFE060) : g, 2.4); });   // III marquee lights
         break;
       default: break;
     }

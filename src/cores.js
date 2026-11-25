@@ -81,6 +81,18 @@ export const coreKind = (i) => (isCore(i) ? DATA.upgrades[i].kind : null);
 const TIER = { Common: 0, Uncommon: 1, Rare: 2, Epic: 3 };
 // a random part no rarer than `cap` (0 common .. 3 epic); `have` (stacks by index) keeps capped passives from turning up again
 // a part of exactly this rarity (0..3), not one of `skip`, falling back to any rarity below it
+// What each gun part does when it is fitted to a blade instead: [mods, words]
+export const BLADE = {
+  'Heavy Rounds': [[['MeleeDamage', 0.15]], '+15% blade damage'], 'Rapid Bolt': [[['MeleeSpeed', 0.1]], '+10% swing speed'],
+  'Extended Mag': [[['MeleeRange', 0.08]], '+8% reach'], 'Quick Hands': [[['MeleeGuard', 0.1]], 'Take 10% less damage for 2s after a swing lands'],
+  'Keen Sight': [[['MeleeCrit', 0.08]], '+8% crit chance with the blade'], 'Hollow Tip': [[['MeleeHeavy', 0.15]], '+15% damage on heavy swings'],
+  'Marksman Scope': [[['MeleeExecute', 0.05]], 'Finishes off enemies below 5% health'], 'Piercing Tip': [[['MeleeCleave', 1]], 'Each swing hits 1 more enemy'],
+  'Feed Loop': [[['MeleeAmmo', 0.2]], 'Blade hits put ammo back in your gun'], 'Incendiary': [[['MeleeBurn', 15]], 'Blade hits set enemies alight'],
+  'Cryo Cell': [[['MeleeStun', 0.4]], 'Heavy swings stun for 0.4s'], 'Serrated': [[['MeleeBleed', 0.2]], 'Blade hits make enemies bleed'],
+  'Split Barrel': [[['MeleeArc', 0.15]], '+15% wider swing'], 'Arc Coil': [[['MeleeShock', 0.2]], 'Blade hits can arc to an enemy nearby'],
+  'Blast Cap': [[['MeleeKnock', 0.4]], '+40% knockback'], 'Ricochet': [[['MeleeCleave', 1]], 'Each swing hits 1 more enemy'],
+  'Leech Rounds': [[['MeleeLifesteal', 0.02]], 'Heal for 2% of blade damage'], 'Whetstone': [[['BladeHone', 0.25]], 'The blade hones 25% faster'],
+};
 export function rollCoreAt(t, skip = null, have = null) {
   for (; t >= 0; t--) { const pool = []; CORE_DEFS.forEach((d, k) => { const i = CORE0 + k; if (TIER[d.rarity] === t && !(skip && skip.has(i)) && !(have && d.kind === 'me' && (have[i] || 0) >= DATA.upgrades[i].stacks)) pool.push(i); }); if (pool.length) return pool[Math.floor(Math.random() * pool.length)]; }
   return CORE0;
