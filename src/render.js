@@ -50,6 +50,9 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false } =
         #ifdef USE_INSTANCING_COLOR
           vCol = instanceColor;
         #endif
+        #ifdef USE_COLOR
+          vCol *= color;
+        #endif
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */`
