@@ -47,7 +47,7 @@ function shell(p, c, key, nu, nv, F) {
       const off = pos.length / 3;
       for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) {
         const f = F(-1 + (2 * i) / nu, j / nv), t = side > 0 ? f[6] : -f[6] * 0.5;
-        pos.push(f[0] + f[3] * t, f[1] + f[4] * t, f[2] + f[5] * t); col.push(f[7], f[7], f[7]); if (side > 0) front.push([f[0] + f[3] * t, f[1] + f[4] * t, f[2] + f[5] * t]);
+        pos.push(f[0] + f[3] * t, f[1] + f[4] * t, f[2] + f[5] * t); if (c === null) { const q = new THREE.Color(f[7]); col.push(q.r, q.g, q.b); } else col.push(f[7], f[7], f[7]); if (side > 0) front.push([f[0] + f[3] * t, f[1] + f[4] * t, f[2] + f[5] * t]);
       }
       for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) { const a = off + j * row + i, b = a + 1, c2 = a + row, d = c2 + 1; if (side > 0) idx.push(a, c2, b, b, c2, d); else idx.push(a, b, c2, b, d, c2); }
     }
@@ -58,12 +58,12 @@ function shell(p, c, key, nu, nv, F) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
     g.userData.front = front; geo.set(key, g);
   }
-  const g = geo.get(key), m = new THREE.Mesh(g, matV(c)); p.add(m); return g.userData.front;
+  const g = geo.get(key), m = new THREE.Mesh(g, matV(c === null ? 0xffffff : c)); p.add(m); return g.userData.front;
 }
 // Soft cloth swept up a smooth spine: a hat's crown or a jester's horn. Round in section (a little narrower front to back),
 // closed round at the tip, open at the base (the brim or the head covers it). Colour is painted per vertex, with a pair of
 // rings at every colour edge so stripes and dipped tips are clean, and the cloth creases on the inside of every bend.
-function clothTube(p, key, spine, radAt, colAt, edges = []) {
+function clothTube(p, key, spine, radAt, colAt, edges = [], mod = null, closeTip = true) {
   if (!geo.has(key)) {
     const curve = new THREE.CatmullRomCurve3(spine.map((q) => new THREE.Vector3(q[0], q[1], q[2])), false, 'centripetal'), L = curve.getLength(), S = 30;
     const ss = []; for (let i = 0; i <= 80; i++) ss.push(i / 80); for (const e of edges) if (e > 0.01 && e < 0.99) ss.push(e - 0.0006, e + 0.0006); ss.sort((a, b) => a - b);
@@ -71,14 +71,14 @@ function clothTube(p, key, spine, radAt, colAt, edges = []) {
     let N = new THREE.Vector3(1, 0, 0);
     for (const f of F) { N = N.clone().addScaledVector(f.T, -N.dot(f.T)).normalize(); f.N = N; f.B = new THREE.Vector3().crossVectors(f.T, N); }
     F.forEach((f, i) => { const a = F[Math.max(0, i - 2)], b = F[Math.min(F.length - 1, i + 2)]; f.K = new THREE.Vector3().subVectors(b.T, a.T).divideScalar(Math.max(1e-3, (b.s - a.s) * L)); });
-    const tipS = Math.min(0.3, (radAt(1) * 1.2) / L), pos = [], col = [], idx = [], C = new THREE.Color(), d = new THREE.Vector3();
+    const tipS = closeTip ? Math.min(0.3, (radAt(1) * 1.2) / L) : 0, pos = [], col = [], idx = [], C = new THREE.Color(), d = new THREE.Vector3();
     for (const f of F) {
-      const e = f.s > 1 - tipS ? Math.sqrt(Math.max(0, 1 - ((f.s - 1 + tipS) / tipS) ** 2)) : 1, r = radAt(f.s) * e, k = f.K.length(), kn = k > 1e-4 ? f.K.clone().divideScalar(k) : null;
+      const e = tipS && f.s > 1 - tipS ? Math.sqrt(Math.max(0, 1 - ((f.s - 1 + tipS) / tipS) ** 2)) : 1, r = radAt(f.s) * e, k = f.K.length(), kn = k > 1e-4 ? f.K.clone().divideScalar(k) : null;
       for (let j = 0; j < S; j++) {
         const ph = (j / S) * Math.PI * 2, c = Math.cos(ph), sn = Math.sin(ph); d.copy(f.N).multiplyScalar(c).addScaledVector(f.B, sn);
-        const crease = Math.pow(kn ? Math.max(0, d.dot(kn)) : 0, 1.5) * Math.min(1, k * 22) * Math.pow(0.5 + 0.5 * Math.cos((f.s * L * Math.PI * 2) / 13 + 1), 2), rr = r * (1 - 0.09 * crease + 0.014 * Math.sin(4 * ph + f.s * 6));   // a few soft folds where it bends
+        const crease = Math.pow(kn ? Math.max(0, d.dot(kn)) : 0, 1.5) * Math.min(1, k * 22) * Math.pow(0.5 + 0.5 * Math.cos((f.s * L * Math.PI * 2) / 13 + 1), 2), rr = r * (1 - 0.09 * crease + 0.014 * Math.sin(4 * ph + f.s * 6)) * (mod ? mod(f.s, ph) : 1);   // a few soft folds where it bends
         pos.push(f.P.x + (f.N.x * c + f.B.x * sn * 0.92) * rr, f.P.y + (f.N.y * c + f.B.y * sn * 0.92) * rr, f.P.z + (f.N.z * c + f.B.z * sn * 0.92) * rr);
-        C.set(colAt(f.s)).multiplyScalar(1 - 0.28 * crease); col.push(C.r, C.g, C.b);
+        C.set(colAt(f.s, ph)).multiplyScalar((1 - 0.28 * crease) * (mod ? Math.min(1, 0.5 + 0.5 * mod(f.s, ph) ** 6) : 1)); col.push(C.r, C.g, C.b);
       }
     }
     for (let i = 0; i < F.length - 1; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = a + S, dd = b + S; idx.push(a, b, c2, b, dd, c2); }
@@ -112,6 +112,38 @@ function clothRing(p, key, P, closed, colAt, mod = () => [0, 0]) {
 }
 // a profile [[t, value], ...] read at t, smoothly
 function prof(P, t) { t = Math.max(P[0][0], Math.min(P[P.length - 1][0], t)); for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const f = (t - P[i - 1][0]) / (P[i][0] - P[i - 1][0] || 1), k = f * f * (3 - 2 * f); return P[i - 1][1] + (P[i][1] - P[i - 1][1]) * k; } return P[P.length - 1][1]; }
+// a smooth curve through [[t, value], ...] (cubic, so a profile has no flat steps at its knots)
+function cprof(P, t) {
+  if (t <= P[0][0]) return P[0][1]; if (t >= P[P.length - 1][0]) return P[P.length - 1][1];
+  let i = 1; while (t > P[i][0]) i++;
+  const t0 = P[i - 1][0], t1 = P[i][0], h = t1 - t0, f = (t - t0) / h, m = (k) => (k <= 0 ? (P[1][1] - P[0][1]) / (P[1][0] - P[0][0]) : k >= P.length - 1 ? (P[k][1] - P[k - 1][1]) / (P[k][0] - P[k - 1][0]) : (P[k + 1][1] - P[k - 1][1]) / (P[k + 1][0] - P[k - 1][0]));
+  const f2 = f * f, f3 = f2 * f; return (2 * f3 - 3 * f2 + 1) * P[i - 1][1] + (f3 - 2 * f2 + f) * h * m(i - 1) + (-2 * f3 + 3 * f2) * P[i][1] + (f3 - f2) * h * m(i);
+}
+// A surface all the way round an upright axis: rows at heights ys (bottom to top), S points round each, pt(ph, y) where
+// each sits (ph 0 is the front), colAt(ph, y) its colour. A pair of rows at the same height gives a clean colour edge.
+function wrapSurf(p, key, ys, S, pt, colAt) {
+  if (!geo.has(key)) {
+    const pos = [], col = [], idx = [], C = new THREE.Color();
+    for (const y of ys) for (let j = 0; j < S; j++) { const ph = (j / S) * Math.PI * 2, q = pt(ph, y); pos.push(q[0], q[1], q[2]); C.set(colAt(ph, q[1], y)); col.push(C.r, C.g, C.b); }
+    for (let i = 0; i < ys.length - 1; i++) for (let j = 0; j < S; j++) { const a = i * S + j, b = i * S + ((j + 1) % S), c2 = a + S, d = b + S; idx.push(a, c2, b, b, c2, d); }
+    { const m = Math.floor(ys.length / 2) * S + 2, A = new THREE.Vector3().fromArray(pos, m * 3), Bv = new THREE.Vector3().fromArray(pos, (m + S) * 3), Cv = new THREE.Vector3().fromArray(pos, (m + 1) * 3);
+      if (new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A)).dot(new THREE.Vector3(A.x, 0, A.z)) < 0) for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); geo.set(key, g);
+  }
+  p.add(new THREE.Mesh(geo.get(key), matV(0xffffff)));
+}
+// rows from a to b about `step` apart, with a doubled row at each height in `edges` (for clean colour edges)
+function rowsOf(a, b, step, edges = []) { const n = Math.max(2, Math.round((b - a) / step)), ys = []; for (let i = 0; i <= n; i++) ys.push(a + ((b - a) * i) / n); for (const e of edges) if (e > a && e < b) ys.push(e - 0.05, e + 0.05); return ys.sort((x, y) => x - y); }
+// The torso every outfit is cut to, in the body's frame: sections between an oval and a rounded square, from the hips to the neck.
+const TPROF = [[0, 25.6, 18.4], [10, 26, 18.6], [24, 27.2, 19.4], [38, 29, 20.2], [47, 31.4, 20.6], [53, 32.4, 19.8], [57.5, 29.6, 18], [60.5, 22, 15], [63, 13, 11.8]];
+const TA = TPROF.map((q) => [q[0], q[1]]), TBD = TPROF.map((q) => [q[0], q[2]]), SUP = 2.6;
+function torsoAt(ph, y, lift = 0) {   // the point at angle ph (0 the front, rising to the wearer's left) and height y, and the way out there
+  const P = (h, yy) => { const a = cprof(TA, yy), b = cprof(TBD, yy), sn = Math.sin(h), c = Math.cos(h); return new THREE.Vector3(a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / SUP), yy, b * Math.sign(c) * Math.pow(Math.abs(c), 2 / SUP)); };
+  const p0 = P(ph, y), n = new THREE.Vector3().subVectors(P(ph + 0.004, y), P(ph - 0.004, y)).cross(new THREE.Vector3().subVectors(P(ph, y + 0.2), P(ph, y - 0.2))).normalize();
+  if (n.dot(new THREE.Vector3(p0.x, 0, p0.z)) < 0) n.negate(); return [p0.addScaledVector(n, lift), n];
+}
+// the angle round the torso at which it reaches x across, at height y (front half)
+function torsoPh(x, y) { const a = cprof(TA, y); return Math.asin(Math.min(1, Math.pow(Math.min(1, Math.abs(x) / a), SUP / 2))) * Math.sign(x); }
 const sstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 // the head under the hat: an egg 42 x 38 x 38 centred 15 up. A point on it at angle th round from the front and height y, with its outward direction.
 function headPt(th, y, lift = 0) {
@@ -225,80 +257,134 @@ export function buildCharacter(look) {
     default: break;
   }
 
-  // ---- torso by style
-  add(body, taper(0.5, Math.round((0.44 - 0.05 * FM) * 100) / 100), O.a, 58, 50, 40, 0, 34, 0);
-  if (st !== 'poncho') { rbox(body, O.a, Math.round(74 * SW), 15, 36, 0, 53, 0, 7); add(body, taper(0.5, 0.47), shade(O.a, 0.93), 61, 20, 42, 0, 44, 0.5); }   // a yoke across the shoulders and a chest under it
-  add(body, taper(0.42, 0.5), O.c, 26, 6, 24, 0, 62, 0);                                                     // collar
-  // the chest: two rounded forms under the shirt, set apart so whatever runs down the middle of an outfit still shows.
-  // vband and hband lay a strip of an outfit over them (a strap, a stripe, a rib) so it follows the form instead of
-  // vanishing into it.
-  const BX = 11.5, BY = 42, BRd = 5 + 6 * chest, BZ = 21 + 7 * chest - BRd, bust = chest > 0.02 && st !== 'poncho';
-  const vband = (x, w, c) => { if (!bust) return; for (const s of [-1, 1]) { const dx = Math.abs(x) - BX; if (Math.abs(dx) >= BRd - 0.5) continue; const rr = Math.sqrt(BRd * BRd - dx * dx) * 2 + 0.9; add(body, G.cyl, c, rr, w, rr, s * Math.abs(x), BY, BZ).rotation.z = Math.PI / 2; } };
-  const hband = (y, h, c) => { if (!bust) return; const dy = y - BY; if (Math.abs(dy) >= BRd - 0.5) return; const rr = Math.sqrt(BRd * BRd - dy * dy) * 2 + 0.9; for (const s of [-1, 1]) add(body, G.cyl, c, rr, h, rr, s * BX, y, BZ); };
-  // how far the chest stands out at a point on the front: what is pinned there is moved out by this much
-  const bz = (x, y) => { if (!bust) return 0; const dx = Math.abs(x) - BX, dy = y - BY, d2 = BRd * BRd - dx * dx - dy * dy; return d2 > 0 ? Math.max(0, BZ + Math.sqrt(d2) - 20.2) : 0; };
-  if (bust) for (const s of [-1, 1]) add(body, G.ball, st === 'overalls' ? O.b : O.a, BRd * 2, BRd * 2, BRd * 2, s * BX, BY, BZ);   // under overalls it is the bib that rises over them
-  if (st === 'poncho') { add(body, taper(0.3, 0.62), O.a, 74, 44, 56, 0, 42, 0); add(body, taper(0.585, 0.62), O.b, 74, 6, 56, 0, 26, 0); add(body, taper(0.47, 0.5), shade(O.b, 0.8), 74, 5, 56, 0, 40, 0); }
-  if (st === 'shirt' || st === 'badge' || st === 'plaid') { add(body, G.box, O.b, 4, 44, 2, 0, 36, 20.5); for (let i = 0; i < 3; i++) add(body, G.ball, O.c, 4, 4, 3, 0, 22 + i * 12, 21.5); }
-  if (st === 'badge') add(body, G.cyl, 0xffcd5a, 9, 3, 9, -15, 46, 20.6 + bz(-15, 46)).rotation.x = Math.PI / 2;
-  if (st === 'plaid') { for (let i = 0; i < 3; i++) add(body, taper(0.5, 0.5), O.b, 59 - i, 4, 41, 0, 20 + i * 14, 0); for (const x of [-16, 16]) add(body, G.box, O.b, 4, 48, 41.5, x, 34, 0); vband(16, 4, O.b); hband(48, 4, O.b); hband(34, 4, O.b); }
-  if (st === 'overalls') { add(body, G.box, O.b, 30, 26, 3, 0, 28, 20); for (const x of [-12, 12]) add(body, G.box, O.b, 7, 34, 42, x, 44, 0); add(body, taper(0.5, 0.5), 0xf2e8d5, 56, 16, 39, 0, 50, 0); }
-  if (st === 'coat' || st === 'suit') {
-    add(body, G.box, O.c, 14, 40, 2, 0, 38, 20);                             // shirt front
-    for (const s of [-1, 1]) add(body, G.box, shade(O.a, 0.8), 10, 30, 3, s * 10, 44, 20.5).rotation.z = s * 0.25;   // lapels
-    add(body, G.box, O.b, 5, 26, 2.5, 0, 38, 21.5);                          // tie
-    if (st === 'coat') add(body, taper(0.46, 0.56), O.a, 62, 30, 44, 0, -4, -1);   // long tails
-    if (st === 'suit') { for (const x of [-20, -10, 10, 20]) add(body, G.box, O.b, 1.2, 46, 41, x, 34, 0); vband(10, 1.2, O.b); vband(20, 1.2, O.b); }
-  }
-  if (st === 'vest') { add(body, taper(0.5, 0.45), 0xece6d6, 57, 48, 39, 0, 34, 0); for (const s of [-1, 1]) add(body, G.box, O.a, 22, 46, 42, s * 17, 33, 0); add(body, G.box, O.b, 12, 6, 3, 0, 56, 20); }
-  if (st === 'stripes') for (let i = 0; i < 5; i++) { add(body, taper(0.5, 0.5), O.b, 58.5 - i * 0.5, 5, 40.5, 0, 14 + i * 10, 0); hband(14 + i * 10, 5, O.b); }
-  if (st === 'hazmat') { add(body, G.box, O.b, 6, 48, 2, 0, 34, 20.5); add(body, taper(0.5, 0.5), O.b, 59, 6, 41, 0, 20, 0); add(body, G.cyl, 0x140d12, 16, 2, 16, 14, 44, 20 + bz(14, 44)).rotation.x = Math.PI / 2; }
-  if (st === 'bones') { add(body, G.box, O.b, 5, 40, 2, 0, 36, 20.5); for (let i = 0; i < 4; i++) { add(body, G.box, O.b, 36 - i * 4, 4, 2, 0, 50 - i * 9, 20.5); hband(50 - i * 9, 4, O.b); } }
-
-  // ---- what makes each outfit itself: pockets, collars, trim, the things a person would notice
+  // ---- the torso and what is worn on it. One smooth torso in the outfit's colour (or in the shirt under a coat or vest);
+  // everything worn over it (a coat, a vest, a bib, braces, lapels, ribs) is a panel cut to the torso's own shape, so it
+  // lies on it and its edges are clean. Stripes and seams are painted on with a doubled row at each edge.
+  const OKY = [O.id, O.a, O.b, O.c].join(':');
+  const BCK = Math.PI;
+  // a panel on the front (or back) of the torso between heights y0 and y1, xr(y) -> [x0, x1] across it, th thick
+  const panel = (key, c, y0, y1, xr, th = 1, back = false, lift = 0.15) => shell(body, c, 'pn' + OKY + key + '/' + lift, 20, 24, (u, v) => {   // lift: how far off the torso it starts (on top of a coat, the coat's thickness)
+    const y = y1 + (y0 - y1) * v, [x0, x1] = xr(y), x = x0 + ((u + 1) / 2) * (x1 - x0), p0 = torsoPh(x, y), [P, nn] = torsoAt(back ? BCK - p0 : p0, y, lift), e = Math.min(x - x0, x1 - x, y1 - y, y - y0);
+    return [P.x, P.y, P.z, nn.x, nn.y, nn.z, th * Math.sqrt(Math.max(0, Math.min(1, e / 0.7))), 1];
+  });
+  // a strip of cloth laid along a path across the front: path(t) -> [x, y] for t 0..1, w wide
+  const strip = (key, c, path, w, th = 1, back = false, lift = 0.15) => shell(body, c, 'st' + OKY + key + '/' + lift, 30, 6, (u, v) => {
+    const t = (u + 1) / 2, [x, y0] = path(t), [x2, y2] = path(Math.min(1, t + 0.01)), [x1, y1] = path(Math.max(0, t - 0.01)), dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+    const off = (v - 0.5) * w, xx = x - (dy / L) * off, yy = y0 + (dx / L) * off, p0 = torsoPh(xx, yy), [P, nn] = torsoAt(back ? BCK - p0 : p0, yy, lift), e = Math.min(w / 2 - Math.abs(off), t * 40, (1 - t) * 40);
+    return [P.x, P.y, P.z, nn.x, nn.y, nn.z, th * Math.sqrt(Math.max(0, Math.min(1, e / 0.6))), 1];
+  });
+  // a garment wrapped round the torso from one side of a front opening, round the back, to the other: xo(y) is how far the
+  // opening reaches either side of the middle at each height. colFn(ph, y) can colour it (trim); th is how thick it stands.
+  const wrapPanel = (key, c, y0, y1, xo, th = 1.4, colFn = null) => shell(body, colFn ? null : c, 'wp' + OKY + key, 72, 32, (u, v) => {
+    const y = y1 + (y0 - y1) * v, p0 = torsoPh(Math.max(0.3, xo(y)), y), ph = p0 + ((u + 1) / 2) * (2 * Math.PI - 2 * p0), [P, nn] = torsoAt(ph, y, 0.15), a = cprof(TA, y);
+    const e = Math.min((ph - p0) * a * 0.75, (2 * Math.PI - p0 - ph) * a * 0.75, y1 - y, y - y0);
+    return [P.x, P.y, P.z, nn.x, nn.y, nn.z, th * Math.sqrt(Math.max(0, Math.min(1, e / 0.8))), colFn ? colFn(ph, y) : 1];
+  });
+  // something small pinned flat on the torso at (x, y), standing `out` off it: buttons, badges, buckles
+  const pin = (m, x, y, out = 0.6, back = false) => { const p0 = torsoPh(x, y), [P, nn] = torsoAt(back ? BCK - p0 : p0, y, out); m.position.copy(P); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), nn); return m; };
+  const disc = (c, x, y, d = 3.6, out = 0.7, back = false) => { const g = new THREE.Group(), m = add(g, G.cyl, c, d, 1.2, d); m.rotation.x = Math.PI / 2; body.add(g); return pin(g, x, y, out, back); };   // a flat disc facing out
+  const torso = (top, colAt, edges = []) => wrapSurf(body, 'torso' + OKY + top + edges.join(','), rowsOf(0, top, 1.6, edges), 96, (ph, y) => torsoAt(ph, y)[0].toArray(), colAt);
+  const opening = (yv, x0, x1) => (y) => (y > yv ? x0 + ((y - yv) / (61 - yv)) * (x1 - x0) : 0.4);   // a V from yv up to the neck
+  const lapels = (c, yv, xo, w0) => { for (const sg of [-1, 1]) panel('lap' + sg + c, c, yv, 59, (y) => { const a = xo(y), w = w0 * Math.min(1, (y - yv) / 12); return sg > 0 ? [a, a + w + 0.01] : [-(a + w + 0.01), -a]; }, 1.3, false, 1.5); };   // laid back on the coat
+  const pocket = (x, y, c = shade(O.a, 0.84)) => { panel('pk' + x + '/' + y, c, y - 5, y + 5, () => [x - 5.5, x + 5.5], 0.8); panel('pf' + x + '/' + y, shade(O.a, 0.72), y + 3, y + 6.2, () => [x - 5.9, x + 5.9], 1.5); disc(O.c, x, y + 4.4, 2.6, 1.7); };
+  const collar = (c) => { for (const sg of [-1, 1]) { const m = add(body, G.box, c, 10, 5.4, 2.4, sg * 7, 59.4, 15.6); m.rotation.z = sg * 0.55; m.rotation.y = -sg * 0.35; } };
+  const placket = (c, y0 = 10, y1 = 60, bc = O.c) => { panel('plk', c, y0, y1, () => [-2.2, 2.2], 0.7); for (const y of [22, 34, 46]) disc(bc, 0, y, 3.4, 1.4); };
+  const GOLDM = 0xc9a43a;
+  if (st === 'poncho') {
+    torso(30, () => O.a);   // all that shows of it is below the poncho's hem
+    // the poncho: hangs from the neck over the shoulders to a hem, falling into soft folds that deepen toward the hem
+    const pt = (ph, y) => { const t = Math.max(0, Math.min(1, (62 - y) / 45)), k = 1 + 0.045 * Math.pow(t, 1.3) * Math.cos(9 * ph + 0.4), a = (17 + 30 * Math.pow(t, 0.85)) * k, b = (15.5 + 20.5 * Math.pow(t, 0.85)) * k, sn = Math.sin(ph), c = Math.cos(ph);
+      return [a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.2), y - (t > 0.98 ? 1.2 * Math.sin(9 * ph) : 0), b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.2)]; };
+    const band = (y) => (y > 23 && y < 29 ? O.b : y > 37.5 && y < 42.5 ? shade(O.b, 0.8) : O.a);
+    wrapSurf(body, 'poncho' + OKY, rowsOf(17, 62, 1.5, [23, 29, 37.5, 42.5]), 108, pt, (ph, y, y0) => band(y0));
+    const on = (ph, y, out) => { const p = new THREE.Vector3(...pt(ph, y)), q = new THREE.Vector3(...pt(ph + 0.01, y)), r = new THREE.Vector3(...pt(ph, y + 0.5)), n = new THREE.Vector3().subVectors(q, p).cross(new THREE.Vector3().subVectors(r, p)).normalize(); if (n.dot(new THREE.Vector3(p.x, 0, p.z)) < 0) n.negate(); return [p.addScaledVector(n, out), n]; };
+    for (let i = 0; i < 12; i++) { const [P, n] = on(((i + 0.5) / 12) * Math.PI * 2, 33, 0.4), g = grp(body, P.x, P.y, P.z); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); add(g, G.box, O.c, 4.4, 4.4, 1, 0, 0, 0).rotation.z = Math.PI / 4; }   // a row of diamonds woven in
+    for (let i = 0; i < 30; i++) { const ph = (i / 30) * Math.PI * 2, [P] = on(ph, 17.4, -0.6); add(body, taper(0.5, 0.32), i % 2 ? O.b : shade(O.b, 0.8), 2.4, 7.4, 2.4, P.x, P.y - 1.2 * Math.sin(9 * ph) - 3.4, P.z); }   // the fringe
+    { const m = add(body, G.tor, O.b, 35, 32, 22, 0, 61.6, 0); m.rotation.x = Math.PI / 2; }   // trim round the neck
+  } else if (st === 'shirt' || st === 'badge' || st === 'plaid') {
+    const bands = st === 'plaid' ? [18, 22, 32, 36, 46, 50] : [50.9, 52.3];
+    torso(63, (ph, y, y0) => (st === 'plaid' ? ((y0 > 18 && y0 < 22) || (y0 > 32 && y0 < 36) || (y0 > 46 && y0 < 50) ? O.b : O.a) : y0 > 50.9 && y0 < 52.3 ? shade(O.a, 0.86) : O.a), bands);
+    placket(O.b); collar(st === 'plaid' ? shade(O.a, 0.85) : mix(O.a, 0xffffff, 0.16));
+    if (st === 'plaid') { for (const sg of [-1, 1]) for (const bk of [false, true]) { panel('pl' + sg + bk, O.b, 8, 58, () => (sg > 0 ? [14, 18] : [-18, -14]), 0.4, bk); panel('br' + sg + bk, O.c, 9, 61, () => (sg > 0 ? [6.4, 11.6] : [-11.6, -6.4]), 1.3, bk); } for (const sg of [-1, 1]) disc(GOLDM, sg * 9, 14, 3.4, 1.8); }   // check lines, and braces over it
+    if (st === 'shirt') pocket(13, 43);
+    if (st === 'badge') { pocket(8.6, 42); wrapPanel('wc', O.c, 10.6, 59, () => 14, 1.6);   // a leather waistcoat open over the shirt, a star on it
+      const g = disc(0xffcd5a, -19, 46, 3, 2); for (let k = 0; k < 5; k++) add(g, G.cone, 0xffcd5a, 4.4, 6, 2.2, Math.sin(k * 1.2566) * 6, Math.cos(k * 1.2566) * 6, 0.6).rotation.z = -k * 1.2566; }
+  } else if (st === 'overalls') {
+    torso(63, () => O.a);
+    panel('bib', O.b, 14, 41, () => [-15, 15], 1.3); for (const sg of [-1, 1]) { panel('sf' + sg, O.b, 39, 61, () => (sg > 0 ? [8.6, 15.4] : [-15.4, -8.6]), 1.3); panel('sb' + sg, O.b, 14, 61, () => (sg > 0 ? [8.6, 15.4] : [-15.4, -8.6]), 1.3, true); disc(GOLDM, sg * 12, 39, 3.6, 2.2); }
+    panel('bp', shade(O.b, 0.84), 25.5, 34.5, () => [-7, 7], 2.2); panel('bpf', shade(O.b, 0.7), 33.4, 36, () => [-7.3, 7.3], 2.8);   // the bib pocket
+    add(body, G.box, 0xc8211b, 8, 13, 3, 15, -7, -18.6).rotation.z = 0.2; add(body, G.box, 0x9aa0aa, 3, 15, 2, -16, -3, -19); add(body, G.box, 0x9aa0aa, 7, 4, 2, -16, 5, -19);   // a rag and a wrench in the back pockets
+  } else if (st === 'coat' || st === 'suit') {
+    const xo = opening(30, 1.6, 10.5), trim = O.id === 'showman' || O.id === 'gilded';
+    torso(63, (ph, y) => (Math.abs(Math.sin(ph)) < 0.5 && Math.cos(ph) > 0 ? O.c : O.a));   // the shirt shows in the opening
+    panel('tie', O.b, 27, 57, (y) => { const w = y > 54 ? 2.4 : 1.4 + 1.6 * ((54 - y) / 27); return [-w, w]; }, 0.9);
+    wrapPanel('coat', O.a, 10.6, 61, xo, 1.4);   // down to the belt (the tails hang from under it)
+    lapels(O.id === 'gilded' ? O.b : shade(O.a, 0.8), 30, xo, 9);
+    for (const sg of [-1, 1]) { for (const y of [24, 16]) disc(O.id === 'undertaker' ? 0x9aa0aa : st === 'suit' ? shade(O.a, 0.6) : O.b, sg * (st === 'suit' ? 3.4 : 10.5), y, 3.6, 2); panel('flap' + sg, shade(O.a, 0.74), 19, 21.6, () => (sg > 0 ? [12, 24] : [-24, -12]), 1, false, 1.5); }
+    if (st === 'coat') { for (const sg of [-1, 1]) { const m = add(body, G.box, shade(O.a, 0.86), 5, 10, 15, sg * 13.6, 63, -2); m.rotation.z = sg * 0.28; }   // the collar turned up
+      // the tails: from the waist to below the hips, flaring and falling into folds, split up the back
+      const tail = (p0, p1, sk) => shell(body, null, 'tl' + OKY + sk, 40, 26, (u, v) => {
+        const y = 9 - v * 31, t = v, ph = p0 + ((u + 1) / 2) * (p1 - p0), k = 1 + 0.035 * t * Math.cos(7 * ph), a = (27.2 + 7.6 * t) * k, b = (19.6 + 7 * t) * k, sn = Math.sin(ph), c = Math.cos(ph);
+        const x = a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.3), z = b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.3), n = new THREE.Vector3(x / (a * a), 0.12, z / (b * b)).normalize(), hy = y - (v > 0.97 ? 1.2 * Math.sin(7 * ph) : 0);
+        const e = Math.min((ph - p0) * a * 0.8, (p1 - ph) * a * 0.8, (1 - v) * 31, v * 31 + 2);
+        return [x, hy, z, n.x, n.y, n.z, 1.4 * Math.sqrt(Math.max(0, Math.min(1, e / 0.8))), trim && y < -16.2 && y > -19 ? O.b : O.a];
+      });
+      tail(0.42, Math.PI - 0.05, 'r'); tail(Math.PI + 0.05, 2 * Math.PI - 0.42, 'l'); }
+    if (O.id === 'undertaker') { add(body, G.tor, GOLDM, 15, 10, 4, 9.5, 21, 21.4); disc(O.c, 0, 57, 5, 1.4); }
+    if (O.id === 'showman') for (let i = 0; i < 3; i++) { const y = 51 - i * 8.6, w = 15.5 - i * 2; panel('frog' + i, O.b, y - 1.3, y + 1.3, () => [-w, w], 1.1, false, 1.6); for (const sg of [-1, 1]) disc(O.b, sg * w, y, 4.4, 2.6); }   // frogging across the chest
+    if (O.id === 'gilded') disc(O.b, -17, 38, 7, 2.4);
+    if (st === 'suit') { for (const x of [-21, -13, 13, 21]) for (const bk of [false, true]) panel('ps' + x + bk, O.b, 11.2, bk ? 58 : 55, () => [x - 0.6, x + 0.6], 0.25, bk, 1.5);   // pinstripes
+      panel('hk', O.c, 45.8, 50.2, () => [-18.7, -12.3], 1, false, 1.5);   // a handkerchief in the breast pocket
+      if (O.id === 'highroller') { disc(0xc8211b, 14.5, 51, 6.4, 2.2); add(body, G.tor, GOLDM, 15, 10, 4, 10, 20, 21.6); } }
+  } else if (st === 'vest') {
+    const xo = opening(24, 1, 13);
+    torso(63, () => 0xece6d6);
+    wrapPanel('vest', O.a, 10.6, 59, xo, 1.6);
+    for (let i = 0; i < 3; i++) { const y = 40 - i * 9; disc(O.b, xo(y) + 2.2, y, 3.2, 2); }
+    add(body, G.tor, GOLDM, 13, 9, 4, 12, 22, 22.4);
+    for (const sg of [-1, 1]) add(body, G.cone, O.b, 9, 11, 4.4, sg * 6.5, 57, 20.6).rotation.z = sg * Math.PI / 2; add(body, G.ball, shade(O.b, 0.75), 5, 5, 4, 0, 57, 21.2);   // a bow tie
+  } else if (st === 'stripes') {
+    const E = []; for (let i = 0; i < 5; i++) E.push(11.5 + i * 10, 16.5 + i * 10);
+    torso(63, (ph, y, y0) => (E.some((e, k) => k % 2 === 0 && y0 > e && y0 < E[k + 1]) ? O.b : O.a), E);
+    panel('num', 0xf2e8d5, 43.3, 50.7, () => [-20, -7], 0.7); for (const x of [-17, -15, -12.5, -10]) panel('d' + x, 0x140d12, 44.7, 49.3, () => [x - 0.6, x + 0.6], 1.1);
+  } else if (st === 'hazmat') {
+    torso(63, (ph, y, y0) => (y0 > 17 && y0 < 23 ? O.b : O.a), [17, 23]);
+    panel('zip', O.b, 9, 60, () => [-3, 3], 0.8);
+    { const g = disc(0x140d12, 14, 44, 16, 0.5); for (let k = 0; k < 3; k++) add(g, G.cyl, O.a, 5.6, 1.4, 5.6, Math.sin(k * 2.094) * 4.6, Math.cos(k * 2.094) * 4.6, 0.9).rotation.x = Math.PI / 2; }
+    add(body, G.tor, shade(O.a, 0.84), 36, 36, 44, 0, 62.4, 0).rotation.x = Math.PI / 2;
+    { const g = disc(0x140d12, 0, 38, 19, 0.5, true); for (let k = 0; k < 3; k++) add(g, G.cyl, O.a, 6.6, 1.4, 6.6, Math.sin(k * 2.094) * 5, Math.cos(k * 2.094) * 5, 0.9).rotation.x = Math.PI / 2; }
+    panel('dos', 0x3a3a40, 22, 30, () => [-19, -7], 1); panel('dosw', 0x9fd6e0, 24, 28, () => [-17.5, -8.5], 1.6);   // a dosimeter on the chest
+  } else if (st === 'bones') {
+    torso(63, () => O.a);
+    panel('st', O.b, 16, 56, () => [-2.4, 2.4], 1.4);   // breastbone and ribs, curving down round the chest
+    for (let i = 0; i < 4; i++) { const Y = 50 - i * 9, W = 18 - i * 2; strip('rib' + i, O.b, (t) => { const x = -W + 2 * W * t; return [x, Y - 0.014 * x * x]; }, 4, 1.4); }
+    for (let i = 0; i < 6; i++) panel('vt' + i, O.b, 10.6 + i * 8, 15.4 + i * 8, () => [-3.2, 3.2], 1.4, true);   // the spine down the back
+    add(body, G.box, O.b, 22, 4.4, 1.6, 0, 3, 19.4); for (const sg of [-1, 1]) add(body, G.box, O.b, 10, 4, 1.6, sg * 13, -1, 18.6).rotation.z = -sg * 0.5;
+  } else torso(63, () => O.a);
+  add(body, taper(0.42, 0.5), O.c, 26, 6, 24, 0, 62, 0);   // the collar band round the neck
+  // ---- round the neck: bands follow the slope of the shoulders, and what hangs from them is laid on the chest
   {
-    const GOLDM = 0xc9a43a, fr = (c, w, h, d, x, y, zo = 0) => add(body, G.box, c, w, h, d, x, y, 21 + zo + bz(x, y)), btn = (c, x, y, zo = 0.6) => add(body, G.ball, c, 3.4, 3.4, 2.2, x, y, 21 + zo + bz(x, y));
-    const collar = (c) => { for (const s of [-1, 1]) { const m = add(body, G.box, c, 10, 5.4, 2.4, s * 7, 59.4, 15.6); m.rotation.z = s * 0.55; m.rotation.y = -s * 0.35; } };
-    const pocket = (x, y, c = shade(O.a, 0.84)) => { fr(c, 11, 10, 1, x, y); fr(shade(O.a, 0.72), 11.6, 3.2, 1.5, x, y + 4.6); btn(O.c, x, y + 4.4, 1.2); };
-    switch (st) {
-      case 'poncho': for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; add(body, G.box, i % 2 ? O.b : shade(O.b, 0.8), 2.6, 7.4, 2.6, Math.sin(a) * 45, 17.2, Math.cos(a) * 34); }
-        for (let i = 0; i < 12; i++) { const a = ((i + 0.5) / 12) * Math.PI * 2, m = add(body, G.box, O.c, 5.4, 5.4, 1.6, Math.sin(a) * 38.6, 33, Math.cos(a) * 29.2); m.rotation.y = a; m.rotation.z = Math.PI / 4; }
-        for (const s of [-1, 1]) add(body, G.box, shade(O.a, 0.55), 2.2, 13, 1.6, s * 2.6, 55, 20.6).rotation.z = -s * 0.3; add(body, taper(0.3, 0.33), O.b, 45, 3, 34.6, 0, 61.6, 0); break;
-      case 'shirt': collar(mix(O.a, 0xffffff, 0.16)); pocket(14, 43); add(body, taper(0.5, 0.5), shade(O.a, 0.86), 60.4, 1.4, 41.6, 0, 51.6, 0); break;
-      case 'plaid': collar(shade(O.a, 0.85)); for (const s of [-1, 1]) { add(body, G.box, O.c, 5.4, 52, 42.6, s * 9, 35, 0); btn(GOLDM, s * 9, 14, 1); } break;   // braces over the check
-      case 'badge': collar(mix(O.a, 0xffffff, 0.16)); pocket(14, 43); for (const s of [-1, 1]) add(body, G.box, O.c, 15, 45, 41.8, s * 21.5, 33, 0);                                    // a leather waistcoat over the shirt
-        for (let k = 0; k < 5; k++) add(body, G.cone, 0xffcd5a, 4.4, 6, 2.6, -15 + Math.sin(k * 1.2566) * 6, 46 + Math.cos(k * 1.2566) * 6, 21 + bz(-15, 46)).rotation.z = -k * 1.2566; break;
-      case 'overalls': fr(shade(O.b, 0.84), 14, 9, 1.2, 0, 30, 0.6); fr(shade(O.b, 0.7), 14.6, 2.4, 1.6, 0, 34.6, 0.6); for (const s of [-1, 1]) btn(GOLDM, s * 12, 40, 1.2);
-        add(body, G.box, 0xc8211b, 8, 13, 3, 15, -7, -18.6).rotation.z = 0.2; add(body, G.box, 0x9aa0aa, 3, 15, 2, -16, -3, -19); add(body, G.box, 0x9aa0aa, 7, 4, 2, -16, 5, -19); break;
-      case 'coat':
-        for (const s of [-1, 1]) { const m = add(body, G.box, shade(O.a, 0.86), 5, 10, 15, s * 13.6, 63, -2); m.rotation.z = s * 0.28; for (const y of [24, 16]) add(body, G.ball, O.id === 'undertaker' ? 0x9aa0aa : O.b, 3.6, 3.6, 2.2, s * 10.5, y, 20.4); fr(shade(O.a, 0.74), 12, 2.6, 1.4, s * 18, 20, -1.4); }
-        add(body, G.box, shade(O.a, 0.55), 2, 26, 3, 0, -7, -24.4);                                                                               // the vent in the tails
-        if (O.id === 'undertaker') { add(body, G.tor, GOLDM, 15, 10, 4, 9.5, 21, 20.2); add(body, G.ball, O.c, 9, 7, 3, 0, 57, 21.4); }
-        if (O.id === 'showman') { for (let i = 0; i < 3; i++) { add(body, G.box, O.b, 31 - i * 4, 2.6, 1.6, 0, 51 - i * 8.6, 23.2); hband(51 - i * 8.6, 2.6, O.b); for (const s of [-1, 1]) add(body, G.ball, O.b, 4.4, 4.4, 2.4, s * (15.5 - i * 2), 51 - i * 8.6, 23.2 + bz(s * 12, 51 - i * 8.6)); } add(body, G.cyl, O.b, 70.4, 2.4, 50, 0, -17.6, -1); }
-        if (O.id === 'gilded') { for (const s of [-1, 1]) add(body, G.box, O.b, 1.8, 31, 1.4, s * 15, 44, 21.8 + bz(s * 15, 44)).rotation.z = s * 0.25; add(body, G.cyl, O.b, 70.4, 2.4, 50, 0, -17.6, -1); add(body, G.ball, O.b, 7, 7, 2.6, -17, 38, 21 + bz(-17, 38), 0.4); }
-        break;
-      case 'suit': fr(O.c, 6.4, 4.4, 1.2, -15.5, 48, 0.4); for (const y of [22, 15]) add(body, G.ball, shade(O.a, 0.6), 3.6, 3.6, 2.2, 3.4, y, 20.6); for (const s of [-1, 1]) fr(shade(O.a, 0.74), 12, 2.4, 1.3, s * 18, 19, -1.6);
-        if (O.id === 'highroller') { add(body, G.ball, 0xc8211b, 6.4, 6.4, 3.4, 14.5, 51, 21.6 + bz(14.5, 51)); add(body, G.tor, GOLDM, 15, 10, 4, 10, 20, 20.2); } break;
-      case 'vest': for (const s of [-1, 1]) add(body, G.cone, O.b, 9, 11, 4.4, s * 6.5, 57, 21.2).rotation.z = s * Math.PI / 2; add(body, G.ball, shade(O.b, 0.75), 5, 5, 4, 0, 57, 21.8); add(body, G.tor, GOLDM, 13, 9, 4, 12, 22, 21.4); for (let i = 0; i < 3; i++) add(body, G.ball, O.b, 3.2, 3.2, 2, 7.4, 40 - i * 9, 21.6); break;
-      case 'stripes': fr(0xf2e8d5, 13, 7.4, 1, -13.5, 47, 0.4); for (const x of [-17, -15, -12.5, -10]) fr(0x140d12, 1.2, 4.6, 1.2, x, 47, 0.6); break;
-      case 'hazmat': add(body, G.tor, shade(O.a, 0.84), 36, 36, 44, 0, 62.4, 0).rotation.x = Math.PI / 2; add(body, G.cyl, 0x140d12, 19, 1.2, 19, 0, 38, -20.4).rotation.x = Math.PI / 2; for (let k = 0; k < 3; k++) add(body, G.cyl, O.a, 6.6, 1.5, 6.6, Math.sin(k * 2.094) * 5, 38 + Math.cos(k * 2.094) * 5, -20.7).rotation.x = Math.PI / 2;
-        add(body, G.box, 0x3a3a40, 12, 8, 2, -13, 26, 20.4); add(body, G.box, 0x9fd6e0, 9, 4, 2.4, -13, 26, 20.5, 0.5); break;
-      case 'bones': for (let i = 0; i < 6; i++) add(body, G.box, O.b, 6.4, 5, 1.6, 0, 13 + i * 8, -20.4); add(body, G.box, O.b, 22, 4.4, 1.6, 0, 3, 18.4); for (const s of [-1, 1]) add(body, G.box, O.b, 10, 4, 1.6, s * 13, -1, 17.6).rotation.z = -s * 0.5; break;
+    const NKY = [NK.id, NK.a, NK.b, O.id].join(':');
+    const neckBand = (c, y0, y1, lift, k = '') => wrapSurf(body, 'nb' + NKY + k, rowsOf(y0, y1, 0.8), 72, (ph, y) => torsoAt(ph, y, lift + 0.5 * (y - y0) / (y1 - y0))[0].toArray(), () => c);
+    const onShirt = st === 'coat' || st === 'suit' || st === 'vest' || st === 'badge' ? 1.7 : 1.1;   // over a coat's front it has to clear the coat
+    const hang = (k, c, path, w, th = 1.2) => strip('nk' + NKY + k, c, path, w, th, false, onShirt);
+    switch (NK.id) {
+      case 'kerchief': neckBand(NK.a, 58.6, 62.6, 0.8); panel('kf' + NKY, NK.a, 44, 59, (y) => { const w = 12 * (y - 44) / 15 + 0.01; return [-w, w]; }, 1.2, false, onShirt); disc(NK.b, 0, 57.6, 4.4, onShirt + 1.4); break;
+      case 'bolo': for (const x of [-2.6, 2.6]) hang('b' + x, NK.a, (t) => [x, 60 - t * 26], 1.3, 0.8); { const g = disc(NK.b, 0, 55, 8, onShirt + 0.6); add(g, G.cyl, shade(NK.b, 0.7), 5, 1.6, 5, 0, 0, 0.8).rotation.x = Math.PI / 2; } break;
+      case 'scarf': neckBand(NK.a, 57.8, 62.8, 1.4); panel('sf' + NKY, NK.a, 16, 58, () => [6.4, 17.6], 1.6, false, onShirt);
+        for (const y of [18, 28]) panel('sfs' + y + NKY, NK.b, y, y + 5, () => [6.3, 17.7], 0.6, false, onShirt + 1.5); break;
+      case 'bowtie': for (const sg of [-1, 1]) add(body, G.cone, NK.a, 12, 12, 5, sg * 7, 57, 21.2).rotation.z = sg * Math.PI / 2; add(body, G.ball, NK.b, 5, 5, 4, 0, 57, 22); break;
+      case 'chain': hang('c', NK.a, (t) => { const x = -13 + 26 * t; return [x, 60 - 26 * (1 - Math.pow(Math.abs(x) / 13, 1.6))]; }, 2, 1.2); { const g = disc(NK.b, 0, 32, 1, onShirt + 1); add(g, G.box, NK.b, 8, 8, 2.4, 0, 0, 1, 0.5).rotation.z = Math.PI / 4; } break;
+      case 'bandolier': { const P = (t) => [-25 + 47 * t, 12 + 49 * t];   // over one shoulder and across the chest, shells along it
+        hang('bf', NK.a, P, 9, 1.6); strip('nkbb' + NKY, NK.a, P, 9, 1.6, true, st === 'coat' || st === 'suit' || st === 'vest' || st === 'badge' ? 1.7 : 0.15);
+        for (let i = 1; i < 8; i++) { const [x, y] = P(i / 8), g = disc(NK.a, x, y, 0.5, onShirt + 1.4); const sh = add(g, G.cyl, NK.b, 3.6, 7.4, 3.6, 0, 0, 1.6); sh.rotation.z = -0.8; } break; }
+      case 'teeth': hang('t', NK.a, (t) => { const x = -13 + 26 * t; return [x, 60 - 20 * (1 - Math.pow(Math.abs(x) / 13, 1.6))]; }, 2.4, 1.2);
+        for (let i = -2; i <= 2; i++) { const x = i * 5.4, y = 60 - 20 * (1 - Math.pow(Math.abs(x) / 13, 1.6)) - 1.6, g = disc(NK.a, x, y, 0.5, onShirt + 1.2); add(g, G.cone, NK.b, 4, 8, 3, 0, -3.6, 0.6).rotation.z = Math.PI; } break;
+      case 'lei': for (let i = 0; i < 22; i++) { const ph = (i / 22) * Math.PI * 2, y = 56 - 8 * Math.pow(Math.max(0, Math.cos(ph)), 1.5), [P] = torsoAt(ph, y, onShirt + 1.8); add(body, G.ball, i % 2 ? NK.a : NK.b, 7.6, 7, 7.6, P.x, P.y, P.z); } break;   // a garland of flowers close round the shoulders
+      case 'noose': neckBand(NK.a, 59.4, 61.8, 0.9); hang('r', NK.a, (t) => [6.5, 59 - 26 * t], 3.6, 2); { const g = disc(NK.b, 6.5, 55, 0.5, onShirt + 1.6); add(g, G.box, NK.b, 7, 8, 5, 0, 0, 1.2); } break;
+      case 'medal': panel('md' + NKY, NK.a, 39, 51, () => [-18, -10], 0.8, false, onShirt); disc(NK.b, -14, 35, 11, onShirt + 0.6); break;
       default: break;
     }
-  }
-  switch (NK.id) {
-    case 'kerchief': add(body, G.cyl, NK.a, 30, 8, 28, 0, 60, 0); add(body, G.cone, NK.a, 26, 20, 6, 0, 48, 19).rotation.x = Math.PI; add(body, G.ball, NK.b, 4, 4, 2, 0, 50, 22.5); break;
-    case 'bolo': add(body, G.box, NK.a, 1.6, 26, 1.6, -3, 44, 21.5); add(body, G.box, NK.a, 1.6, 26, 1.6, 3, 44, 21.5); add(body, G.ball, NK.b, 8, 9, 4, 0, 56, 22); break;
-    case 'scarf': add(body, G.cyl, NK.a, 36, 12, 34, 0, 60, 0); add(body, G.box, NK.a, 12, 44, 5, 12, 38, 20); add(body, G.box, NK.b, 12, 5, 5.5, 12, 18, 20); add(body, G.box, NK.b, 12, 5, 5.5, 12, 30, 20); break;
-    case 'bowtie': for (const s of [-1, 1]) add(body, G.cone, NK.a, 12, 12, 5, s * 7, 57, 21).rotation.z = s * Math.PI / 2; add(body, G.ball, NK.b, 5, 5, 4, 0, 57, 22); break;
-    case 'chain': { const t = add(body, G.tor, NK.a, 36, 44, 30, 0, 50, 6); t.rotation.x = 1.1; add(body, G.box, NK.b, 9, 9, 3, 0, 32, 21.5, 0.5).rotation.z = Math.PI / 4; break; }
-    case 'bandolier': { const bo = bust ? 7 * chest : 0, b = add(body, G.box, NK.a, 9, 76, 43 + bo, 0, 34, bo / 2); b.rotation.z = 0.75; for (let i = -3; i <= 3; i++) add(body, G.cyl, NK.b, 4, 8, 4, i * 6.5, 34 - i * 7, 21.5 + bo).rotation.z = 0.75; break; }
-    case 'teeth': { const t = add(body, G.tor, NK.a, 34, 40, 20, 0, 52, 6); t.rotation.x = 1.1; for (let i = -2; i <= 2; i++) add(body, G.cone, NK.b, 4, 9, 4, i * 6, 38 + Math.abs(i) * 2.5, 21).rotation.x = Math.PI; break; }
-    case 'lei': for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; add(body, G.ball, i % 2 ? NK.a : NK.b, 11, 9, 11, Math.sin(a) * 24, 56 - Math.cos(a) * 6 - 4, Math.cos(a) * 20); } break;
-    case 'noose': add(body, G.cyl, NK.a, 28, 6, 26, 0, 60, 0); add(body, G.box, NK.a, 5, 30, 5, 6, 44, 20); add(body, G.box, NK.b, 7, 8, 7, 6, 56, 20); break;
-    case 'medal': { const mz = Math.max(bz(-14, 46), bz(-14, 38)); add(body, G.box, NK.a, 8, 16, 2, -14, 46, 20.6 + mz); add(body, G.cyl, NK.b, 11, 3, 11, -14, 35, 21 + mz, 0.5).rotation.x = Math.PI / 2; break; }
-    default: break;
   }
   // ---- arms: shoulder pivots; the sleeve takes the arm's length and carries the hand (and the gun) out with it
   for (const s of [-1, 1]) {
@@ -306,13 +392,21 @@ export function buildCharacter(look) {
     const sl = grp(arm, 0, 0, 0), wr = grp(arm, 0, -43 * (aK - 1), 0); sl.scale.y = aK; R[s < 0 ? 'wristL' : 'wristR'] = wr;
     // shoulder, upper arm, an elbow, a forearm into the cuff, and a hand with a thumb and fingers
     add(arm, G.ball, O.a, 25, 23, 25, 0, 0, 0);
-    add(sl, taper(0.5, 0.44), O.a, 21, 22, 21, 0, -12, 0); add(sl, G.ball, shade(O.a, 0.92), 19, 12, 19, 0, -23, 0); add(sl, taper(0.46, 0.4), O.a, 20, 18, 20, 0, -31, 0);
-    if (st === 'stripes') for (let i = 0; i < 3; i++) add(sl, G.cyl, O.b, 21.5 - i, 4, 21.5 - i, 0, -10 - i * 10, 0);
-    if (st === 'plaid') add(sl, G.cyl, O.b, 21, 4, 21, 0, -22, 0);
-    if (st === 'shirt' || st === 'plaid' || st === 'badge') add(sl, taper(0.5, 0.5), shade(O.a, 0.84), 21.4, 4.4, 21.4, 0, -35.4, 0);   // rolled back above the cuff
-    if (st === 'vest') add(sl, G.cyl, O.b, 22, 2.6, 22, 0, -15, 0);                                                                  // sleeve garters
-    if (st === 'coat' || st === 'suit') for (let k = 0; k < 2; k++) add(sl, G.ball, O.id === 'undertaker' ? 0x9aa0aa : O.b, 2.6, 2.6 / aK, 2.6, 0, -33.6 - k * 3.4, -10.4);     // cuff buttons
-    if (st === 'hazmat') add(sl, G.cyl, O.b, 21.6, 3, 21.6, 0, -36, 0);
+    { // the sleeve: one piece of cloth from the shoulder to the cuff, easing in at the elbow where it folds a little;
+      // stripes, garters and a rolled-back sleeve are part of it
+      const yS = (y) => (2 - y) / 41, B = [];   // a height on the arm as a fraction down the sleeve
+      const band = (y0, y1, c, bump = 0) => B.push([yS(y1), yS(y0), c, bump]);
+      if (st === 'stripes') for (let i = 0; i < 3; i++) band(-12 - i * 10, -8 - i * 10, O.b);
+      if (st === 'plaid') band(-24, -20, O.b);
+      if (st === 'shirt' || st === 'plaid' || st === 'badge') band(-37.6, -33.2, shade(O.a, 0.84), 0.09);
+      if (st === 'vest') band(-16.3, -13.7, O.b, 0.06);
+      if (st === 'hazmat') band(-37.5, -34.5, O.b, 0.03);
+      const inB = (t) => B.find((q) => t > q[0] && t < q[1]);
+      const radAt = (t) => cprof([[0, 11.8], [0.25, 10.8], [0.5, 9.9], [0.62, 9.8], [0.8, 9.9], [1, 8.9]], t) * (1 + ((inB(t) || [])[3] || 0));
+      const fold = (t, ph) => 1 - 0.055 * Math.exp(-(((t - 0.56) / 0.1) ** 2)) * Math.pow(0.5 + 0.5 * Math.cos(t * 41 * 2.1 + Math.cos(ph) * 0.8), 2);
+      clothTube(sl, 'slv' + OKY, [[0, 2, 0], [0, -18, 0.5], [0, -39, 0]], radAt, (t) => { const q = inB(t); return q ? q[2] : O.a; }, B.flatMap((q) => [q[0], q[1]]), fold, false);
+      if (st === 'coat' || st === 'suit') for (let k = 0; k < 2; k++) add(sl, G.ball, O.id === 'undertaker' ? 0x9aa0aa : O.b, 2.6, 2.6 / aK, 2.6, 0, -33.6 - k * 3.4, -9.4);     // cuff buttons
+    }
     add(sl, G.cyl, O.c, 18.5, 6, 18.5, 0, -40, 0);                              // cuff
     const bare = GL.id === 'bare', hc = bare ? (st === 'hazmat' || st === 'bones' ? O.b : tone) : GL.a, big = GL.style === 'big' ? 1.3 : 1, hk = Math.pow(ARMW, -0.5) * (1 - 0.06 * FM);
     const hand = grp(wr, 0, -50, 0); hand.scale.set(big * hk, big, big * hk);     // a thick arm does not mean a hand to match
@@ -554,7 +648,13 @@ export function buildCharacter(look) {
     case 'pack': add(back, G.cyl, B.a, 26, 60, 26, 0, 10, -8).rotation.z = Math.PI / 2; for (const x of [-16, 16]) add(back, G.cyl, B.b, 27, 5, 27, x, 10, -8).rotation.z = Math.PI / 2; break;
     case 'shotgun': { const g = grp(back, 0, 8, -6); g.rotation.z = 0.7; add(g, G.box, B.a, 8, 34, 10, 0, -34, 0); add(g, G.cyl, B.b, 7, 70, 7, 0, 18, 0); add(g, G.box, B.a, 9, 24, 9, 0, 4, 0); break; }
     case 'guitar': { const g = grp(back, 0, 0, -8); g.rotation.z = -0.6; add(g, G.cyl, B.a, 40, 10, 40, 0, -14, 0).rotation.x = Math.PI / 2; add(g, G.cyl, B.a, 30, 10, 30, 0, 12, 0).rotation.x = Math.PI / 2; add(g, G.cyl, 0x140d12, 12, 11, 12, 0, -8, 0).rotation.x = Math.PI / 2; add(g, G.box, B.b, 7, 60, 6, 0, 54, 0); add(g, G.box, B.b, 11, 14, 6, 0, 88, 0); break; }
-    case 'cape': { const c = R.cape = grp(back, 0, 24, 0); add(c, G.box, B.a, 60, 84, 4, 0, -42, -4); add(c, G.box, B.b, 60, 6, 4.5, 0, -82, -4); add(back, G.box, B.b, 64, 8, 10, 0, 24, 2); break; }
+    case 'cape': { const c = R.cape = grp(back, 0, 24, 0);   // cloth from the shoulders: round the back, flaring to the hem in folds that deepen as it falls
+      shell(c, null, 'cape' + [B.a, B.b].join(':'), 48, 40, (u, v) => {
+        const y = -v * 86 - (v > 0.97 ? 1.4 * Math.sin(u * 9) : 0), hw = 30 + 7 * v, x = u * hw, z = -4 - 7 * (1 - u * u) * (0.35 + 0.65 * (1 - v)) - 1.8 * v * Math.cos(u * Math.PI * 3.5);
+        const n = new THREE.Vector3(2 * u * 7 / hw * (0.35 + 0.65 * (1 - v)) + 1.8 * v * Math.PI * 3.5 * Math.sin(u * Math.PI * 3.5) / hw, 0.05, -1).normalize(), e = Math.min((1 - Math.abs(u)) * hw, (1 - v) * 86, v * 86 + 1.5);
+        return [x, y, z, n.x, n.y, n.z, 1.3 * Math.sqrt(Math.max(0, Math.min(1, e / 0.8))), v > 0.93 ? B.b : B.a];
+      });
+      add(back, G.box, B.b, 64, 8, 10, 0, 24, 2); break; }
     case 'sack': add(back, G.ball, B.a, 48, 52, 40, 0, 4, -14); add(back, G.cyl, B.a, 14, 14, 14, 0, 34, -14); add(back, G.box, B.b, 6, 20, 2, 0, 4, -34.5); add(back, G.box, B.b, 14, 4, 2, 0, 10, -34.5); add(back, G.box, B.b, 14, 4, 2, 0, -2, -34.5); break;
     case 'shovel': { const g = grp(back, 0, 10, -6); g.rotation.z = -0.5; add(g, G.cyl, B.b, 5, 96, 5, 0, 0, 0); add(g, G.box, B.a, 26, 30, 4, 0, 60, 0); add(g, G.box, B.b, 18, 5, 5, 0, -48, 0); break; }
     case 'tank': for (const x of [-12, 12]) { add(back, G.cyl, B.a, 20, 54, 20, x, 10, -10); add(back, G.ball, B.a, 20, 20, 20, x, 37, -10); add(back, G.cyl, B.b, 8, 8, 8, x, 48, -10); } add(back, G.box, B.b, 50, 6, 4, 0, 10, 0); break;
