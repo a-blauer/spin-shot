@@ -63,11 +63,11 @@ export class Player {
     this.upgradeOrder = [];
     this.procCd = new Array(DATA.upgrades.length).fill(0);
     this.periodic = new Array(DATA.upgrades.length).fill(0);
-    this.weapons = [0, 1, 2].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
+    this.weapons = [0, 1, 2, 3].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
     this.coreInv = {};   // gun parts carried but not fitted: upgrade index -> how many
     this.bladeCores = [];   // parts fitted to the blade: they stay with the melee slot whatever blade is in it
     this.cls = CLASSES[0];
-    this.maxSlots = 2; this.active = 0;
+    this.slotBase = 2; this.active = 0;
     this.money = 500; this.luck = 0; this.kills = 0; this.headshots = 0;
     this.maxHealth = 150; this.health = 150; this.overshield = 0;
     this.recompute();
@@ -91,6 +91,8 @@ export class Player {
     });
   }
   stat(name) { return this.stats[STAT[name]] || 0; }
+  get maxSlots() { return Math.min(4, (this.slotBase || 2) + Math.round(this.stats ? this.stats[STAT.ExtraSlot] || 0 : 0)); }
+  set maxSlots(v) { this.slotBase = v; }
   get S() { if (this.statsDirty || !this._S) { const o = {}; for (let i = 1; i < STATS.length; i++) if (this.stats[i]) o[STATS[i]] = this.stats[i]; this._S = o; this.statsDirty = false; } return this._S; }
   get W() { return DATA.weapons[this.slot.def >= 0 ? this.slot.def : 0]; }
   get slot() { return this.weapons[this.active]; }
@@ -156,6 +158,7 @@ export class Player {
     if (on) this.game.vm.meleeShow(MELEE[this.meleeDef]); else this.game.vm.setWeapon(this.slot.def, Math.min(4, this.slot.tier), true);
   }
   switchTo(i) {
+    if (this.S.SwapGuard && i !== this.active) { this.swapGuardT = this.game.time + 1; this.swapBoost = this.game.time + 3; }
     if (i >= this.maxSlots || this.weapons[i].def < 0) return;
     if (i === this.active) { if (this.wield) this.setWield(false); return; }
     this.wield = false;
@@ -638,7 +641,7 @@ export class Player {
       return;
     }
     if (this.airJumps > 0) {
-      this.airJumps--;
+      this.airJumps--; this.slAir = true;
       const In = this.inputDir();
       let fl = flat(this.vel);
       if (In.lengthSq() > 1e-4) fl = In.normalize().multiplyScalar(Math.max(fl.length(), WalkSpeed * 0.9));
@@ -653,6 +656,8 @@ export class Player {
     }
   }
   onLanded() {
+    if (this.S.StaticLand && (this.slAir || this.game.time - (this.wrEnd || -9) < 1.5)) this.staticLanding();
+    this.slAir = false;
     const fall = Math.max(Math.max(0, -this.vel.y), this.lastFall);
     const impact = clamp((fall - 300) / 1400, 0, 1);
     this.landDipVel -= 40 + impact * 260;
@@ -693,7 +698,7 @@ export class Player {
     }
     return false;
   }
-  endWallRun() { this.wallRunning = false; this.wallRunCd = Math.max(this.wallRunCd, 0.2); this.gravityScale = BaseGravity; }
+  endWallRun() { this.wrEnd = this.game.time; this.wallRunning = false; this.wallRunCd = Math.max(this.wallRunCd, 0.2); this.gravityScale = BaseGravity; }
   tryMantle() {
     if (this.mantleCd > 0 || this.inFwd < 0.3 || this.slamming || this.grappling) return false;
     const G = this.game, fwd = this.forward();
@@ -737,6 +742,7 @@ export class Player {
   doDash() {
     if (this.dashCharges <= 0 || this.dashT > 0) return;
     this.dashCharges--; if (this.S.DashGuard) this.dashGuardT = 1.5;
+    this.onDashBuffs();
     if (this.grappling) this.endGrapple(false);
     if (this.wallRunning) this.endWallRun();
     if (this.sliding) this.endSlide();
@@ -907,7 +913,7 @@ export class Player {
       const Z = this.wells[i]; Z.t -= dt;
       for (const E of G.enemies) { if (E.dead || E.burrowed || E.isBoss || E.remote) continue; const d = E.pos.distanceTo(Z.at); if (d < Z.r && d > 40) { const pull = 2600 * dt * (1 - d / Z.r * 0.5); E.vel.x += (Z.at.x - E.pos.x) / d * pull; E.vel.z += (Z.at.z - E.pos.z) / d * pull; E.staggerT = Math.max(E.staggerT || 0, 0.1); } }
       if (Math.random() < dt * 20) G.fx.glowAt(Z.at.clone().add(V3((Math.random() - 0.5) * Z.r, Math.random() * 120, (Math.random() - 0.5) * Z.r)), [0.7, 0.45, 1], 50, 0.25);
-      if (Z.t <= 0) { this.explodeAt(Z.at, Z.r * 0.75, Z.dmg, 0, true, false, [0.7, 0.45, 1], null); this.wells.splice(i, 1); }
+      if (Z.t <= 0) { if (Z.dmg > 0) this.explodeAt(Z.at, Z.r * 0.75, Z.dmg, 0, true, false, [0.7, 0.45, 1], null); this.wells.splice(i, 1); }
     }
     for (let i = this.gzones.length - 1; i >= 0; i--) {
       const Z = this.gzones[i]; Z.t -= dt; Z.tick -= dt;
@@ -954,6 +960,100 @@ export class Player {
       }
     }
   }
+  // ---- the unlockable parts (see cores.js)
+  heatSink() { const T = this.game.time; if (T - (this.hsAt || -9) < 0.25) return; this.hsAt = T; this.abilityCd = Math.max(0, this.abilityCd - this.S.HeatSink); }
+  ridersOnHit(E, dealt, killed, at, fromProc, gunStatus) {
+    const G = this.game, S = this.S;
+    if (S.HeatSink && gunStatus && !fromProc) this.heatSink();
+    if (S.Accelerant && E.burnT > 0 && G.time - (E.accAt || -9) > 0.3) { E.accAt = G.time; for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < 200) O.applyBurn(Math.max(E.burnDps * 0.5, dealt * 0.15), 2); }
+    if (killed || fromProc) return;
+    if (S.WoundStagger && E.bleedT > 0 && !E.isBoss && G.time - (E.woundT || -9) > 2) { E.woundT = G.time; this.stun(E, 0.35); G.hud.floater(at.clone().add(V3(0, 40, 0)), 'STAGGER', [1, 0.4, 0.45], 0.7); }
+    if (S.Lodestone && this.procDepth < 1) {   // Lodestone: four charges and they go off
+      E.lode = (E.lode || 0) + 1; G.fx.sparks(at, UP, [0.7, 0.7, 0.85], 2);
+      if (E.lode >= 4) { E.lode = 0; this.procDepth++; this.explodeAt(E.pos.clone().add(V3(0, 50, 0)), 200 * (1 + this.stat('ExplosionRadius')), dealt * 1.5 * S.Lodestone, 0.5, true, false, [0.7, 0.75, 1], null); this.procDepth--; }
+    }
+    if (S.Tether && !(E.tetherUntil > G.time)) {   // Tether: to the nearest other enemy
+      let O = null, od = 700; for (const K of G.enemies) { if (K === E || K.dead || K.burrowed || K.tetherUntil > G.time) continue; const d = K.pos.distanceTo(E.pos); if (d < od) { od = d; O = K; } }
+      if (O) { E.tetherTo = O; O.tetherTo = E; E.tetherUntil = O.tetherUntil = G.time + 3; E.tetherK = O.tetherK = S.Tether; }
+    }
+  }
+  // what is dealt to one end of a tether, the other end takes a share of (called from dealDamage's end and the enemies' own bleeding and burning)
+  tetherShare(E, dealt) {
+    const O = E.tetherTo; if (!O || O.dead || !(E.tetherUntil > this.game.time) || this.tethering) return;
+    this.tethering = true; this.dealDamage(O, dealt * (E.tetherK || 0.25), O.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, [0.75, 0.85, 1]); this.tethering = false;
+  }
+  ridersOnKill(E) {
+    const G = this.game, S = this.S, st = { burn: E.burnT > 0, bleed: E.bleedT > 0, chill: E.slowT > 0 };
+    if (S.Contagion && (st.burn || st.bleed || st.chill)) {   // the status goes on to the next one
+      let O = null, od = 700; for (const K of G.enemies) { if (K === E || K.dead || K.burrowed) continue; const d = K.pos.distanceTo(E.pos); if (d < od) { od = d; O = K; } }
+      if (O) { G.fx.arc(E.pos.clone().add(V3(0, 60, 0)), O.pos.clone().add(V3(0, 60, 0)), [0.6, 0.95, 0.35]); if (st.burn) O.applyBurn(E.burnDps, Math.max(2, E.burnT)); if (st.bleed) O.applyBleed(E.bleedDps * Math.max(1, E.bleedT)); if (st.chill) O.applySlow(E.slowAmt, Math.max(1.5, E.slowT)); }
+    }
+    if (S.Shatter && st.chill) { G.fx.frostBurst(E.pos, 300); for (const K of G.enemies) if (K !== E && !K.dead && K.pos.distanceTo(E.pos) < 300) K.applySlow(0.5, 2.5); }
+    if (S.Salvage && Math.random() < S.Salvage) { this.scrap = (this.scrap || 0) + 1; G.hud.floater(E.pos.clone().add(V3(0, 110, 0)), '+1 SCRAP', [0.6, 1, 0.75], 1); }
+    if (S.Splitter && this.shotCtx && !this.splitting && this.procDepth < 1) {   // Splitter: two seekers from what it killed
+      const from = E.pos.clone().add(V3(0, 70, 0)), base = this.shotCtx.base || this.power();
+      let n = 0; for (const K of G.enemies) { if (K === E || K.dead || K.burrowed || K.pos.distanceTo(E.pos) > 1400) continue;
+        const dir = K.pos.clone().sub(from).normalize().add(V3(0, 0.5, 0)).normalize();
+        G.projectiles.spawn({ pos: from.clone(), vel: dir.multiplyScalar(1500), damage: base * 0.5, splash: 0, fromProc: true, procCoef: 0, target: K, homing: 8, life: 2, kind: 'Dagger', color: lin(1, 0.85, 0.45), radius: 6, burn: this.W.burn || 0, slow: this.W.slow || 0 });
+        if (++n >= 2) break; }
+    }
+  }
+  staticLanding() {
+    const G = this.game, L = G.enemies.filter((E) => !E.dead && !E.burrowed && E.pos.distanceTo(this.pos) < 480).slice(0, 4), feet = V3(this.pos.x, this.pos.y - 88, this.pos.z);
+    G.fx.ring(feet, 480, [0.6, 0.55, 1], 0.3);
+    for (const E of L) { G.fx.arc(feet.clone().add(V3(0, 20, 0)), E.pos.clone().add(V3(0, 60, 0)), [0.65, 0.6, 1]); this.dealDamage(E, this.power() * 0.5, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, [0.65, 0.6, 1]); if (!E.isBoss) this.stun(E, 0.4); E.shockT = G.time + 3; }
+    if (L.length) this.play('S_Zap', 0.5, 1.1);
+  }
+  onDashBuffs() {
+    const G = this.game, S = this.S, at = this.pos.clone(), feet = V3(at.x, at.y - 85, at.z), f = this.forward(); f.y = 0; f.normalize();
+    if (S.KineticPlate) this.kinetic = Math.min(2, (this.kinetic || 0) + 1);
+    if (S.EmberDash) for (let k = 0; k < 4; k++) this.gzones.push({ at: feet.clone().addScaledVector(f, k * 110), r: 110, t: 3, tick: 0, dps: this.power() * 0.35 });
+    if (S.SmokeStep || S.Decoy) {
+      const kind = S.Decoy ? 'decoy' : 'smoke', P = this;
+      this.lure = { kind, pos: at.clone(), until: G.time + 2, r: kind === 'decoy' ? 1400 : 340, target: { pos: at.clone(), vel: V3(0, 0, 0), dead: false, fresh: true, body: this.body, lastSwingStart: -9, receiveDamage() {}, applyKnockback() {}, eye: () => at.clone() } };
+      if (S.SmokeStep) for (let k = 0; k < 14; k++) { const a = Math.random() * 6.28, r = Math.random() * 300; G.fx.add({ pos: V3(at.x + Math.cos(a) * r, at.y - 60 + Math.random() * 80, at.z + Math.sin(a) * r), vel: V3(0, 40, 0), drag: 1, life: 2, size0: 120, size1: 220, c0: [0.55, 0.55, 0.6, 0.6], c1: [0.55, 0.55, 0.6, 0], tex: 'FX_Puff' }); }
+      if (S.Decoy) { if (this.decoyMesh) G.scene.remove(this.decoyMesh); const m = new THREE.Group(); const mt = new THREE.MeshBasicMaterial({ color: 0xc8a070, transparent: true, opacity: 0.8 }); const b = new THREE.Mesh(new THREE.BoxGeometry(50, 120, 30), mt); b.position.y = -25; const h = new THREE.Mesh(new THREE.BoxGeometry(34, 34, 34), mt); h.position.y = 55; m.add(b, h); m.position.copy(at); G.scene.add(m); this.decoyMesh = m; P.decoyT = G.time + 2; }
+    }
+  }
+  afterHurt(E) {
+    const G = this.game, S = this.S;
+    if (S.Backlash) {   // the element of the gun in your hands goes back into whatever hit you
+      const W = this.W, cores = this.wield ? [] : this.slot.cores || [], has = (n) => cores.some((u) => (DATA.upgrades[u].name || '').replace(/^Pressed /, '') === n || (DATA.upgrades[u].fuse || '').includes(n));
+      const A = !this.wield && this.slot.def >= 0 ? attuneOf(W.name) : null, pw = this.power();
+      let did = false;
+      if ((W && W.burn) || has('Incendiary') || has('fire') || (A && A.id === 'ember')) { E.applyBurn(pw * 0.4, 3); did = true; }
+      if ((W && W.slow) || has('Cryo Cell') || has('ice') || (A && A.id === 'frost')) { E.applySlow(0.45, 2.5); did = true; }
+      if (has('Serrated') || has('blood') || (A && A.id === 'venom')) { E.applyBleed(pw * 0.6); did = true; }
+      if ((W && W.chains) || has('Arc Coil') || has('shock') || (A && A.id === 'storm')) { E.shockT = G.time + 3; this.dealDamage(E, pw * 0.3, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, [0.65, 0.8, 1]); did = true; }
+      if (!did && !E.isBoss) this.stun(E, 0.3);
+    }
+    if (S.LastStand && this.health < this.maxHealth * 0.3 && G.time > (this.lsReady || 0)) {
+      this.lsReady = G.time + 60; G.fx.ring(this.pos, 900, [1, 0.35, 0.3], 0.6); G.hud.floater(this.pos.clone().add(V3(0, 70, 0)), 'LAST STAND', [1, 0.4, 0.35], 1.4); this.play('S_Frost', 0.6, 0.5);
+      for (const K of G.enemies) if (!K.dead && K.pos.distanceTo(this.pos) < 900) K.applySlow(0.5, 3);
+    }
+  }
+  tickBodyBuffs(dt) {
+    const G = this.game, S = this.S; if (this.dead) return;
+    if (this.decoyMesh && G.time > (this.decoyT || 0)) { G.scene.remove(this.decoyMesh); this.decoyMesh = null; }
+    if (S.FrostWake && this.sliding) for (const E of G.enemies) if (!E.dead && E.pos.distanceTo(this.pos) < 170) E.applySlow(0.4, 2);
+    // HolsterReload: a gun on the belt with Holster Loader fills itself after a moment
+    for (let i = 0; i < this.maxSlots; i++) { const Q = this.weapons[i]; if (!Q || Q.def < 0 || (i === this.active && !this.wield)) { if (Q) Q.holT = 0; continue; }
+      if (!(Q.cores || []).some((u) => (DATA.upgrades[u].mods || []).some((m) => m[0] === 'HolsterReload'))) continue;
+      Q.holT = (Q.holT || 0) + dt; if (Q.holT > 1.5) { const need = this.magSize(Q) - Q.ammo, take = Math.min(need, Q.reserve); if (take > 0) { Q.ammo += take; Q.reserve -= take; } } }
+    this.bodyT = (this.bodyT || 0) - dt; if (this.bodyT > 0) return; this.bodyT = 0.5;
+    let bleeders = 0, burners = 0;
+    for (const E of G.enemies) {
+      if (E.dead || E.burrowed) continue; const d = E.pos.distanceTo(this.pos);
+      if (S.BloodBank && E.bleedT > 0 && d < 500) bleeders++;
+      if (S.HeatShield && E.burnT > 0 && d < 600) burners++;
+      if (S.Lantern && d < 400 && (E.burnT > 0 || E.bleedT > 0 || E.slowT > 0 || E.shockT > G.time)) E.applySlow(Math.min(0.85, (E.slowT > 0 ? E.slowAmt : 0) + S.Lantern * 0.5), 0.6);
+      if (E.tetherUntil > G.time && E.tetherTo && !E.tetherTo.dead && E.tetherTo.tetherTo === E && Math.random() < 0.35) G.fx.arc(E.pos.clone().add(V3(0, 60, 0)), E.tetherTo.pos.clone().add(V3(0, 60, 0)), [0.7, 0.85, 1]);
+    }
+    if (bleeders) this.combatHeal(Math.min(3, bleeders) * S.BloodBank * 0.5);
+    if (burners) this.overshield = Math.min(this.shieldCap(), this.overshield + burners * S.HeatShield * 0.5);
+  }
+  // Quartermaster: what a cleared room gives back
+  onRoomClear() { if (this.S.RoomReserve) for (let i = 0; i < this.maxSlots; i++) { const Q = this.weapons[i]; if (Q && Q.def >= 0) Q.reserve = Math.min(this.reserveSize(Q), Q.reserve + Math.ceil(this.reserveSize(Q) * this.S.RoomReserve)); } }
   tickFuseZones(dt) {
     const G = this.game, Z0 = this.fzones; if (!Z0 || !Z0.length) return;
     for (let i = Z0.length - 1; i >= 0; i--) {
@@ -1148,6 +1248,12 @@ export class Player {
       return;
     }
     if (this.S.AirGuard && !this.grounded) amount *= 1 - Math.min(0.5, this.S.AirGuard);
+    { const T = this.game.time;   // the body buffs that soften a blow
+      if (this.S.ChillGuard && source && source.slowT > 0) amount *= 1 - Math.min(0.6, this.S.ChillGuard);
+      if (this.S.ReloadGuard && this.reloading) amount *= 1 - Math.min(0.6, this.S.ReloadGuard);
+      if (this.S.WallGuard && this.wallRunning) amount *= 1 - Math.min(0.6, this.S.WallGuard);
+      if (this.swapGuardT > T) amount *= 0.5;
+      if (this.kinetic > 0) { amount *= 1 - Math.min(0.8, 0.4 * this.kinetic); this.kinetic = 0; this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'ABSORBED', [0.55, 0.75, 1], 0.9); } }
     if (this.dashGuardT > 0 && this.S.DashGuard) amount *= 1 - Math.min(0.6, this.S.DashGuard);
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
@@ -1159,9 +1265,11 @@ export class Player {
     if (this.S.PlateArmor) dmg = Math.max(dmg * 0.4, dmg - this.S.PlateArmor);
     dmg = Math.max(dmg, raw * 0.2);   // armor, plating, guards and the rest together never take off more than 80%
     if (this.S.HitCap) dmg = Math.min(dmg, this.maxHealth * Math.max(0.2, this.S.HitCap));
+    if (this.S.GroundRod && source && source.shockT > this.game.time) dmg = Math.min(dmg, this.maxHealth * this.S.GroundRod);   // Grounding Rod
     if (this.meleeGuardT > 0) dmg *= 1 - Math.min(0.6, this.stat('MeleeGuard'));
     if (this.overshield > 0) { const a = Math.min(this.overshield, dmg); this.overshield -= a; dmg -= a; if (this.overshield <= 0 && !silent) this.runProcs('OnShieldBreak', null, this.pos, 0, 1); }
     this.health -= dmg;
+    if (source && source.takeHit && !source.dead) this.afterHurt(source);
     if (this.S.SecondWind && !this.secondWindUsed && this.health > 0 && this.health < this.maxHealth * 0.25) { this.secondWindUsed = true; this.health = Math.min(this.maxHealth, this.health + this.maxHealth * Math.min(0.8, this.S.SecondWind)); this.invuln = Math.max(this.invuln, 0.6); this.toast('Second wind', '#7dff8a'); this.play('S_Revive', 0.8, 1.1); }
     this.sinceDamage = 0;
     // damage report: what hit you, totalled for the run and kept in order for the last few seconds
@@ -1461,6 +1569,11 @@ export class Player {
             if (Math.random() < 0.3) G.audio.playAt(Math.random() < 0.3 ? 'S_Ricochet' : 'S_HitWall', wall.point, 0.6, 1, 0.15);
           }
           if (W.splash > 0) this.explodeAt(wall.point, W.splash * (1 + this.stat('ExplosionRadius')), dmg * 0.6, procCoef, false, false, color, null);
+          if (this.S.BankShot && !C?.banked && !hits) {   // Bank Shot: off the wall toward the nearest enemy it can see
+            let tgt = null, td = 1600; const p0 = wall.point.clone().addScaledVector(wall.normal, 6);
+            for (const E of G.enemies) { if (E.dead || E.burrowed || ignore.has(E)) continue; const d = E.pos.distanceTo(p0); if (d < td && G.phys.lineOfSight(p0, E.pos)) { td = d; tgt = E; } }
+            if (tgt) { const to = tgt.pos.clone(); to.y += (tgt.hitH || 100) * 0.3; G.fx.tracer(p0, to, color || [1, 0.9, 0.7], Math.max(2, width), 0.08); if (C) C.banked = true; this.dealDamage(tgt, dmg * 0.75, to, to.clone().sub(p0).normalize(), false, procCoef, false, W.critBonus, W.burn, W.slow, 0); if (C) C.banked = false; G.audio.playAt('S_Ricochet', p0, 0.5, 1.1, 0.1); }
+          }
         } else final = from.clone().addScaledVector(dir, remaining);
         break;
       }
@@ -1571,7 +1684,7 @@ export class Player {
     const G = this.game;
     const mult = this.damageMult(E);
     const C = !fromProc && !this.meleeHitting ? this.shotCtx : null, SG = C && C.sig, sgG = C && C.g;   // set while a gun's own shot is landing
-    const cc = (SG && SG.critAdd ? SG.critAdd(this, E, C, sgG) : 0) + 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0);
+    const cc = (SG && SG.critAdd ? SG.critAdd(this, E, C, sgG) : 0) + 0.05 + this.stat('CritChance') + (this.aiming ? this.stat('AdsCrit') : 0) + critBonus + (E.slowT > 0 ? this.stat('BrittleCrit') : 0) + (Meta.gunLevel(this.W.name) >= 4 ? 0.08 : 0) + (this.deadeyeT > 0 ? this.stat('DeadeyeCrit') : 0);
     let crit = !fromProc && Math.random() < Math.min((SG && SG.critCap) || 0.75, cc);
     if (SG && SG.noCrit) crit = false;                                   // some guns never roll a crit: theirs are earned
     if (!fromProc && this.headCritT > 0 && !this.meleeHitting) { crit = true; this.headCritT = 0; }
@@ -1605,8 +1718,10 @@ export class Player {
     if (head && !E.isBoss && this.S.HeadExecute && E.health < E.maxHealth * this.S.HeadExecute) dmg = Math.max(dmg, E.health + E.shield + 1);   // Killshot
     const dealt = E.takeHit(dmg, at, dir || V3(0, 0, 0), head);
     if (dealt <= 0) return 0;
+    if (E.tetherUntil > G.time) this.tetherShare(E, dealt);
     if (!fromProc && this.procDepth < 1) buildHit(this, E, at, dealt, crit, head);
     const killed = E.dead;
+    this.ridersOnHit(E, dealt, killed, at, fromProc, burn > 0 || slow > 0);
     sigAfter(this, E, dealt, killed, dir);
     if (G.descent) {   // who did the work this run, and what an attuned gun leaves on what it hits
       const dfn = C ? (C.def !== undefined ? C.def : C.S ? C.S.def : -1) : this.meleeHitting || this.wield ? -1 : this.slot.def;
@@ -1697,6 +1812,7 @@ export class Player {
       const fall = 1 - 0.5 * clamp(E.pos.distanceTo(at) / Math.max(1, radius), 0, 1);
       E.lastHitExplosive = true;
       if (this.S.BlastBurn && !E.dead) E.applyBurn(damage * this.S.BlastBurn, 3);
+      if (this.S.BlastStun && !E.dead && !E.isBoss && !E.elite) this.stun(E, this.S.BlastStun);   // Concussive
       this.dealDamage(E, damage * fall, E.pos, E.pos.clone().sub(at).normalize(), false, procCoef * 0.5, fromProc, 0, 0, 0, 0, fromProc ? [1, 0.6, 0.3] : WHITE);
       if (!E.dead) E.applyKnock(safeN2(E.pos.clone().sub(at)).multiplyScalar(250).add(V3(0, 250, 0)));
     }
@@ -1737,6 +1853,7 @@ export class Player {
     { const t = G.time; this.multiT = (this.multiT || []).filter((x) => t - x < 1.2); this.multiT.push(t); }
     if (headshot && this.S.HeadCrit) this.headCritT = 3;
     buildKill(this, E);
+    this.ridersOnKill(E);
     // fused parts that wait for a death: Boiling Blood bursts into flame, Black Ice shatters
     if (E.boilT > G.time && this.procDepth < 1) { this.procDepth++; const R = 300; G.fx.fireBurst(E.pos, R); this.play('S_Explode', 0.35, 1.2); for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < R) O.applyBurn(E.boilD || 20, 3); this.procDepth--; }
     if (E.shatterT > G.time) { const R = 320; G.fx.frostBurst(E.pos, R); for (const O of G.enemies) if (O !== E && !O.dead && O.pos.distanceTo(E.pos) < R) O.applySlow(0.5, 2.5); }
@@ -1769,13 +1886,14 @@ export class Player {
       if (this.procCd[i] > 0) continue;
       if (this.procDepth > 0 && PROC_DAMAGE.includes(U.fx)) continue;   // a kill made by a buff never sets off another damaging buff: no chains through a crowd
       let ch = U.chance * cm;
-      if (hitT) ch *= procCoef * sigProc(this.shotCtx && this.shotCtx.sig, U.fx);   // some guns set parts off more often
+      if (hitT) ch *= procCoef * sigProc(this.shotCtx && this.shotCtx.sig, U.fx) * (this.swapBoost ? 2 : 1);   // some guns set parts off more often; Quick Swap doubles the next hit
       if (U.chance < 1 && Math.random() >= ch) continue;
       if (U.cd > 0) this.procCd[i] = U.cd;
       this.executeProc(U, stk, target, at, hitT ? base : this.power(), trigger);
     }
   }
   tickProcs(dt) {
+    if (this.swapBoost && this.game.time > this.swapBoost) this.swapBoost = 0;
     for (let i = 0; i < this.procCd.length; i++) this.procCd[i] = Math.max(0, this.procCd[i] - dt);
     if (this.game.phase !== 'Round') return;
     for (const [i, stk] of this.eff) {
@@ -1797,6 +1915,7 @@ export class Player {
     const Me = this.pos;
     const alive = target && !target.dead;
     const near = (c, r, skip) => G.enemies.filter((E) => E !== skip && !E.dead && !E.emerging && E.pos.distanceTo(c) < r);
+    if (this.S.HeatSink && ['Ignite', 'Freeze', 'Bleed', 'Chain', 'Fuse'].includes(U.fx)) this.heatSink();
     switch (U.fx) {
       case 'Explode': {
         const p = selfC ? Me.clone().add(V3(0, -40, 0)) : target ? target.pos.clone() : at.clone();
@@ -1811,12 +1930,15 @@ export class Player {
           from = Me.clone().add(V3(0, 60, 0));
           if (target) { G.fx.arc(from, target.pos, cc); this.dealDamage(target, mag * base, target.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, lin(0.55, 0.8, 1)); from = target.pos.clone(); }
         }
-        for (let c = 0; c < 3; c++) {
+        const carry = this.S.Conductor && target ? { burn: target.burnT > 0 ? target.burnDps : 0, bleed: target.bleedT > 0 ? target.bleedDps * target.bleedT : 0 } : null;   // Conductor
+        if (target) target.shockT = G.time + 3;
+        for (let c = 0; c < 3 + (this.S.Conductor ? 1 : 0); c++) {
           let best = null, bd = 700 * 700;
           for (const E of near(from, 700, null)) { if (done.has(E)) continue; const d = E.pos.distanceToSquared(from); if (d < bd) { bd = d; best = E; } }
           if (!best) break;
           G.fx.arc(from, best.pos, cc);
           this.dealDamage(best, mag * base, best.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, lin(0.55, 0.8, 1));
+          best.shockT = G.time + 3; if (carry && !best.dead) { if (carry.burn) best.applyBurn(carry.burn, 3); if (carry.bleed) best.applyBleed(carry.bleed); }
           done.add(best); from = best.pos.clone();
         }
         G.audio.playAt('S_Zap', from, 0.5);
@@ -1864,6 +1986,7 @@ export class Player {
         break;
       }
       case 'Fuse': this.fuseProc(U.fuse, mag * base, target, alive, at); break;
+      case 'Undertow': { const c = alive ? target.pos.clone() : at.clone(); this.wells.push({ at: c, r: 520, t: 1.5, dmg: 0 }); G.fx.ring(c, 520, [0.35, 0.55, 1], 0.4); this.play('S_Frost', 0.3, 0.6); break; }
       case 'Bleed': if (alive) { target.applyBleed(mag * base); if (G.time - (target.blFx || -9) > 0.5) { target.blFx = G.time; for (let q = 0; q < 3; q++) G.fx.add({ mode: 'streak', pos: at.clone(), vel: V3((Math.random() - 0.5) * 300, 200 + Math.random() * 200, (Math.random() - 0.5) * 300), gravity: 1700, life: 0.8, size0: 10, size1: 8, stretch: 3, c0: [0.75, 0.05, 0.08, 1], fadeOut: 0.1, tex: 'FX_Drop' }); } } break;
       case 'Clover': this.addLuck(1); break;
       case 'Cooldown': this.abilityCd = Math.max(0, this.abilityCd - mag); break;
@@ -2202,7 +2325,7 @@ export class Player {
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
-      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.maxSlots = 3; break;
+      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.slotBase = 3; break;
       case 7: B[STAT.ExtraJumps] += 1; B[STAT.DashCharges] += 1; break; default: break;
     }
     const old = this.maxHealth;
@@ -2214,7 +2337,7 @@ export class Player {
   // ---------------------------------------------------------------- classes
   setClass(id) {
     this.cls = classById(id);
-    if (this.cls.id === 'gunslinger') this.maxSlots = 3;
+    if (this.cls.id === 'gunslinger') this.slotBase = 3;
     if (this.cls.id === 'bomber') this.grenades = [0, 0, 1, 4];
     this.abilityCd = 0;
     const old = this.maxHealth; this.recompute(); this.health += Math.max(0, this.maxHealth - old);
@@ -2275,6 +2398,7 @@ export class Player {
     // Engineer: standing by the turret
     this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;
     if (this.shoulder) { this.shoulder.update(dt, this); if (this.shoulder.active) this.nearTurret = true; }
+    this.tickBodyBuffs(dt);
   }
   // ---------------------------------------------------------------- gun modifiers (workbench)
   altKind() { return null; }   // alternate fire was taken out: a gun does one thing
@@ -2309,6 +2433,7 @@ export class Player {
     }
     const S = C && C.S && C.S.def >= 0 && (C.def === undefined || C.S.def === C.def) ? C.S : this.slot;
     if (!S || S.def < 0) return;
+    if (this.S.Catalyst && (E.burnT > 0) + (E.bleedT > 0) + (E.slowT > 0) + (E.shockT > this.game.time) >= 2) S.evoK = (S.evoK || 0) + n;   // Catalyst: it counts twice
     S.evoK = (S.evoK || 0) + n;
     while (S.mods.length < 4 && S.evoK >= this.evoNeed(S)) { S.evoK -= this.evoNeed(S); if (!this.evolve(S)) break; }
   }
@@ -2343,14 +2468,14 @@ export class Player {
   // the Recycler: break parts down for scrap, and spend scrap on a part of your choosing
   scrapPart(u, n = 1) { let got = 0; while (n-- > 0 && this.takePart(u)) got += this.scrapOf(u); this.scrap = (this.scrap || 0) + got; return got; }
   makePart(u) {
-    const U = DATA.upgrades[u]; if (!machine('recycler') || !U || !U.core || U.noDrop) return false;
+    const U = DATA.upgrades[u]; if (!machine('recycler') || !U || !U.core || U.noDrop || Meta.upgradeLocked(U.name)) return false;
     const c = this.makeCost(u); if ((this.scrap || 0) < c) return false;
     if (U.kind === 'me' && this.upgradeStacks[u] >= U.stacks) return false;
     this.scrap -= c; this.gainCore(u); return true;
   }
   // the Fortune Teller: reroll a character buff once a room into another of its rarity; or two of a rarity for one better
   dropBuffStack(u) { if (!(this.upgradeStacks[u] > 0)) return false; this.upgradeStacks[u]--; if (!this.upgradeStacks[u]) this.upgradeOrder = this.upgradeOrder.filter((x) => x !== u); const hp = this.health / Math.max(1, this.maxHealth); this.recompute(); this.health = Math.min(this.maxHealth, Math.max(1, Math.round(hp * this.maxHealth))); return true; }
-  rollPassive(tier, skip) { const L = []; for (let i = CORE0; i < DATA.upgrades.length; i++) { const U = DATA.upgrades[i]; if (U.core && U.kind === 'me' && coreTier(i) === tier && !(skip && skip.has(i)) && (this.upgradeStacks[i] || 0) < U.stacks) L.push(i); } return L.length ? L[Math.floor(Math.random() * L.length)] : -1; }
+  rollPassive(tier, skip) { const L = []; for (let i = CORE0; i < DATA.upgrades.length; i++) { const U = DATA.upgrades[i]; if (U.core && U.kind === 'me' && !U.noDrop && !Meta.upgradeLocked(U.name) && coreTier(i) === tier && !(skip && skip.has(i)) && (this.upgradeStacks[i] || 0) < U.stacks) L.push(i); } return L.length ? L[Math.floor(Math.random() * L.length)] : -1; }
   fortuneReroll(u) {
     const U = DATA.upgrades[u]; this.fortuneUsed = this.fortuneUsed || {};
     if (!machine('fortune') || !U || U.kind !== 'me' || !(this.upgradeStacks[u] > 0) || this.fortuneUsed[u]) return -1;
@@ -2371,7 +2496,8 @@ export class Player {
   gainCore(u) {
     const U = DATA.upgrades[u];
     if (U.kind === 'me') { if (this.upgradeStacks[u] >= U.stacks) { if (this.game.descent) { this.heal(25); this.toast(`${U.name} is as high as it goes  -  +25 health instead`, '#7dff8a'); } else { this.addMoney(1500, true); this.toast(`${U.name} is as high as it goes  +$150`, '#ffd23a'); } } else { this.addUpgrade(u); this.toast(`${U.name}  -  ${U.desc}  (x${this.upgradeStacks[u]})`, U.hex); } }
-    else { this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${U.name}  -  ${U.desc}.  Fit it at a workbench.`, U.hex); this.coreNew = (this.coreNew || 0) + 1; }
+    else { if (this.S.ScrapPick) this.scrap = (this.scrap || 0) + Math.round(this.S.ScrapPick); if (this.S.PartAmmo && this.slot.def >= 0) { const S = this.slot; S.ammo = Math.min(this.magSize(S), S.ammo + Math.ceil(this.magSize(S) * this.S.PartAmmo)); }
+      this.coreInv[u] = (this.coreInv[u] || 0) + 1; this.toast(`${U.name}  -  ${U.desc}.  Fit it at a workbench.`, U.hex); this.coreNew = (this.coreNew || 0) + 1; }
     this.play('S_Upgrade', 0.8, 1.1); this.game.fx.flash(this.pos, lin(1, 0.9, 0.5), 80, 0.25, true);
   }
   refit(S) {
@@ -2494,7 +2620,7 @@ export class Player {
     const B = this.booth;
     switch (i) {
       case 0: B[STAT.MaxHealth] += 25; break; case 1: B[STAT.Damage] += 0.1; break; case 2: B[STAT.MoveSpeed] += 0.08; break; case 3: B[STAT.CritChance] += 0.06; break;
-      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.maxSlots = 3; break;
+      case 4: B[STAT.FireRate] += 0.1; B[STAT.ReloadSpeed] += 0.1; break; case 5: B[STAT.Armor] += 8; break; case 6: this.slotBase = 3; break;
       case 7: B[STAT.ExtraJumps] += 1; B[STAT.DashCharges] += 1; break; default: break;
     }
     const old = this.maxHealth;

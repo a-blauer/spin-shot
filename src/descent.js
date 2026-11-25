@@ -125,7 +125,7 @@ export class Descent {
     const g = this.g;
     if (this.cleared) return;
     this.cleared = true; g.phase = 'Intermission'; g.phaseTimer = 0; this.seq++; this.zones = [];
-    g.player.onRoundEnded(this.room);
+    g.player.onRoundEnded(this.room); if (g.player.onRoomClear) g.player.onRoomClear();
     this.progress();
     if (this.room >= ROOMS) { this.reward(); g.levelComplete(); return; }
     this.open();
@@ -254,6 +254,6 @@ export class Descent {
       if (g.player.dead) g.player.revive();
       this.arrive(true);
     }
-    if (d[3] && !this.cleared) { this.cleared = true; this.progress(); if (room >= ROOMS) this.reward(); if (room < ROOMS) { this.open(); g.banner(`ROOM ${room} CLEAR`, [0.95, 0.95, 0.92], 3); } }
+    if (d[3] && !this.cleared) { this.cleared = true; this.progress(); if (this.g.player.onRoomClear) this.g.player.onRoomClear(); if (room >= ROOMS) this.reward(); if (room < ROOMS) { this.open(); g.banner(`ROOM ${room} CLEAR`, [0.95, 0.95, 0.92], 3); } }
   }
 }

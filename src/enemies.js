@@ -313,7 +313,7 @@ export class Enemy {
         G.fx.add({ mode: 'streak', pos: this.pos.clone().addScaledVector(randDir(), 20 * this.bodyScale), vel: new THREE.Vector3((Math.random() - 0.5) * 120, 60, (Math.random() - 0.5) * 120), gravity: 1700, life: 0.9, size0: 9, size1: 8, stretch: 3, groundY: this.pos.y - this.half, splat: Math.random() < 0.3, c0: [0.75, 0.05, 0.08, 1], fadeOut: 0.1, tex: 'FX_Drop' }); }
       // chilled: frost hangs on it
       if (this.slowT > 0 && this.slowAmt > 0.2 && Math.random() < 0.6) G.fx.add({ pos: this.pos.clone().addScaledVector(randDir(), 34 * this.bodyScale), vel: new THREE.Vector3(0, -30, 0), life: 0.5, size0: 20 * this.bodyScale, size1: 12 * this.bodyScale, rot: Math.random() * 60, rotVel: 60, c0: [0.9, 0.97, 1, 1], c1: [0.55, 0.85, 1, 0], fadeOut: 0.6, tex: 'FX_Snow', kind: 'add', glow: 1.6 });
-      if (dot > 0) this.takeHit(dot, this.pos, new THREE.Vector3(), false);
+      if (dot > 0) { this.takeHit(dot, this.pos, new THREE.Vector3(), false); if (this.tetherUntil > G.time && G.player) G.player.tetherShare(this, dot); }   // Tether carries bleeding and burning across
       if (this.dead) return;
     }
     if (this.burnT <= 0) this.burnDps = 0;
@@ -610,13 +610,15 @@ export class Enemy {
     G.fx.flash(this.pos, this.accent(), 70 * this.bodyScale, 0.3, true);
     G.audio.playAt('S_Blink', this.pos, 0.8);
   }
-  applyBurn(dps, time) { if (this.remote) { this.game.net.sendFx(this, 'burn', dps, time); return; } this.burnDps = Math.max(this.burnDps, dps); this.burnT = Math.max(this.burnT, time); }
-  applyBleed(total) { if (this.remote) { this.game.net.sendFx(this, 'bleed', total); return; } this.bleedDps += total / 3; this.bleedT = 3; }
+  // Lingering (a part on the gun in the local player's hands) makes what it applies last longer
+  statusK() { const P = this.game.player; return 1 + ((P && P.S && P.S.StatusTime) || 0); }
+  applyBurn(dps, time) { if (this.remote) { this.game.net.sendFx(this, 'burn', dps, time); return; } this.burnDps = Math.max(this.burnDps, dps); this.burnT = Math.max(this.burnT, time * this.statusK()); }
+  applyBleed(total) { if (this.remote) { this.game.net.sendFx(this, 'bleed', total); return; } const t = 3 * this.statusK(); this.bleedDps += total / t; this.bleedT = t; }
   applySlow(amount, time) {
     if (this.remote) { this.game.net.sendFx(this, 'slow', amount, time); return; }
     const resist = this.isBoss ? 0.4 : 1;
     this.slowAmt = Math.min(0.85, Math.max(0, Math.max(this.slowAmt * (this.slowT > 0 ? 1 : 0), amount * resist)));
-    this.slowT = Math.max(this.slowT, time);
+    this.slowT = Math.max(this.slowT, time * this.statusK());
   }
   applyKnock(impulse) {
     if (this.remote) { this.game.net.sendFx(this, 'knock', Math.round(impulse.x), Math.round(impulse.y), Math.round(impulse.z)); return; }

@@ -43,7 +43,11 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   // buffs that do something rather than add a number
   'LandShock', 'Quake', 'Glide', 'OpenerStun', 'PointBlank', 'AirKillJump', 'WeakPoint', 'HeadPop', 'LightBolt', 'Parry', 'BladeWave', 'WallCrit', 'LowBurn', 'CritStun', 'Trample', 'BlockShock', 'SpendNova', 'GoldKill',
   'RampFire', 'DashReload', 'TapedMag', 'HotBarrel', 'PierceRamp', 'PierceSlow', 'FinalRound',
-  'HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch', 'EvolveSpeed', 'BladeHone'];
+  'HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch', 'EvolveSpeed', 'BladeHone',
+  // the Descent's unlockable parts: status riders, handling, two-gun play, and body buffs that work with statuses and movement
+  'StatusTime', 'Accelerant', 'BrittleCrit', 'WoundStagger', 'Contagion', 'Shatter', 'Conductor', 'BlastStun', 'HolsterReload', 'BankShot', 'Lodestone', 'Tether',
+  'HeatSink', 'Splitter', 'Catalyst', 'Salvage', 'ChillGuard', 'BloodBank', 'HeatShield', 'GroundRod', 'FrostWake', 'EmberDash', 'SmokeStep', 'StaticLand',
+  'RoomReserve', 'ReloadGuard', 'ScrapPick', 'ExtraSlot', 'Backlash', 'Decoy', 'KineticPlate', 'WallGuard', 'SwapGuard', 'LastStand', 'PartAmmo', 'Lantern'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
 export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);

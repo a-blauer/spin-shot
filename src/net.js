@@ -137,6 +137,7 @@ export const Net = {
   // nearest living player to an enemy (host only); falls back to the local player
   targetOf(E) {
     const P = this.game.player;
+    { const L = P.lure; if (L && L.until > this.game.time && E.pos.distanceTo(L.pos) < L.r) return L.target; }   // Decoy and Smoke Step
     if (this.role !== 'host' || !this.ghosts.size) return P;
     let best = P, bd = P.dead ? Infinity : E.pos.distanceToSquared(P.pos);
     for (const G of this.ghosts.values()) { if (G.dead || !G.fresh) continue; const d = E.pos.distanceToSquared(G.pos); if (d < bd) { bd = d; best = G; } }

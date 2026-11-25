@@ -363,7 +363,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (press.mode) return '';
     if (!machine('recycler')) return `<div class="rec locked" id="crec"><h3>THE RECYCLER</h3><p>Rank ${Meta.machineRank('recycler')}: break parts you do not want into scrap, and spend scrap on the ones you do.</p></div>`;
     const sc = p.scrap || 0, opts = [];
-    for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k, d = CORE_DEFS[k]; if (d.noDrop) continue; const full = d.kind === 'me' && p.upgradeStacks[u] >= U(u).stacks; opts.push([coreTier(u), `<option value="${u}" ${p.makeCost(u) > sc || full ? 'disabled' : ''}>${['Common', 'Uncommon', 'Rare', 'Epic'][coreTier(u)]}  -  ${esc(d.name)}${d.kind === 'me' ? ' (on you)' : ''}  -  ${p.makeCost(u)} scrap</option>`]); }
+    for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k, d = CORE_DEFS[k]; if (d.noDrop || Meta.upgradeLocked(d.name)) continue; const full = d.kind === 'me' && p.upgradeStacks[u] >= U(u).stacks; opts.push([coreTier(u), `<option value="${u}" ${p.makeCost(u) > sc || full ? 'disabled' : ''}>${['Common', 'Uncommon', 'Rare', 'Epic'][coreTier(u)]}  -  ${esc(d.name)}${d.kind === 'me' ? ' (on you)' : ''}  -  ${p.makeCost(u)} scrap</option>`]); }
     opts.sort((a, b) => a[0] - b[0]);
     let h = `<div class="rec" id="crec"><h3>THE RECYCLER<span class="scrap" style="float:right">${sc} scrap</span></h3>`;
     h += `<div class="drop">Drag a part here to break it down. Common 1, Uncommon 2, Rare 4, Epic 8 scrap. Shift: every copy.</div>`;

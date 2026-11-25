@@ -15,7 +15,7 @@ import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
 import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
-import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST } from './cores.js';
+import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg } from './cores.js';
 import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
@@ -231,6 +231,7 @@ function rewardLine(R) {
   const out = [];
   if (R.starter) out.push(`${R.starter} as a starting gun`);
   if (R.machine) out.push(`${(MACHINES.find((m) => m.id === R.machine) || {}).name} (machine)`);
+  (R.parts || []).forEach((u) => out.push(`${u} (part)`));
   (R.guns || []).forEach((g) => out.push(`${g} (gun)`));
   (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
   (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
@@ -245,6 +246,7 @@ function rewardCards(M) {
   if (R.starter) gun(R.starter, true);
   if (R.machine) { const D = MACHINES.find((m) => m.id === R.machine) || {}; out.push({ name: D.name, col: '#9affc0', kind: 'Machine', desc: D.text }); }
   (R.guns || []).forEach((g) => gun(g, false));
+  (R.parts || []).forEach((n) => { const U = ups.find((x) => x.core && x.name === n) || {}; out.push({ img: 'data:image/svg+xml;utf8,' + encodeURIComponent(coreSvg(U, U.hex || '#fff').replace('style="', 'style="background:#14100e;')), name: n, col: U.hex || '#f2e8d5', kind: `${U.rarity || ''} ${U.kind === 'me' ? 'body part' : 'gun part'}`, desc: U.desc || '' }); });
   (R.blades || []).forEach((n) => { const W = MELEE.find((m) => m.name === n) || {}; out.push({ img: modelThumb('blade', n), wide: true, name: n, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: `${W.rarity || ''} blade`, desc: (W.desc || '') + ' Now in the mystery box.' }); });
   (R.upgrades || []).forEach((n) => { const i = ups.findIndex((u) => u.name === n), U = ups[i] || {}, k = kindOf(n); out.push({ img: iconURL('U_' + i), name: n, col: RARITY_HEX[U.rarity] || '#f2e8d5', kind: `${U.rarity || ''} ${k}`, desc: (U.desc || '') + (k === 'workbench modifier' ? ' Now turns up at the workbench.' : ' Now turns up in chests.') }); });
   if (R.heirloom) { const i = ups.findIndex((u) => u.name === R.heirloom), U = ups[i] || {}; out.push({ img: iconURL('U_' + i), name: R.heirloom, col: '#ffcd5a', kind: 'Heirloom', desc: (U.desc || '') + ' Pick it in the lobby to start every run with it.' }); }

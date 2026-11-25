@@ -36,30 +36,30 @@ export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Show
 export const RANKS = [
   { name: 'Drifter' },
   { name: 'Greenhorn', machine: 'compressor' },
-  { name: 'Ranch Hand', guns: ['Bullwhip'] },
+  { name: 'Ranch Hand', parts: ['Accelerant', 'Open Wound', 'Heat Shield', 'Bloodbank', 'Ember Dash'], guns: ['Bullwhip'] },
   { name: 'Deputy', guns: ['Come-Back Kid'] },
   { name: 'Gunhand', machine: 'showcase' },
-  { name: 'Trailblazer', guns: ['Bear Trap'] },
+  { name: 'Trailblazer', parts: ['Brittle Rounds', 'Conductor', 'Cold Comfort', 'Grounding Rod', 'Frost Wake'], guns: ['Bear Trap'] },
   { name: 'Bounty Hunter', guns: ['Lariat'] },
-  { name: 'Regulator', guns: ['Tumbleweed'], skin: 'rawhide' },
+  { name: 'Regulator', parts: ['Steady Barrel', 'Concussive', 'Holster Loader', 'Quick Swap', 'Brace'], guns: ['Tumbleweed'], skin: 'rawhide' },
   { name: 'Marshal', machine: 'recycler' },
   { name: 'Pathfinder', guns: ['Barn Door'] },
-  { name: 'Outrider', guns: ['Old Faithful'] },
+  { name: 'Outrider', parts: ['Salvage Rounds', 'Scrap Magnet', 'Quartermaster', 'Scavenger', 'Lingering'], guns: ['Old Faithful'] },
   { name: 'Pistolero', guns: ['Whaler'] },
   { name: 'Vigilante', machine: 'fortune', skin: 'gunmetal' },
-  { name: 'Desperado', guns: ['Jack-in-the-Box'] },
+  { name: 'Desperado', parts: ['Smoke Step', 'Decoy', 'Kinetic Plating', 'Static Landing', 'Wall Runner'], guns: ['Jack-in-the-Box'] },
   { name: 'Nightrider', guns: ['William Tell'] },
   { name: 'Warden', guns: ['Calliope'] },
   { name: 'Reaper', machine: 'fusion' },
-  { name: 'Gravewalker', guns: ['Loaded Dice'] },
+  { name: 'Gravewalker', parts: ['Bank Shot', 'Lodestone', 'Heat Sink', 'Catalyst', 'Lantern'], guns: ['Loaded Dice'] },
   { name: 'Dead Shot', guns: ['Sawbones'] },
   { name: 'Tunnel Rat', guns: ['Live Wire'] },
   { name: 'Lamplighter', guns: ['Gusher'] },
-  { name: 'Gravedigger', guns: ['High Striker'] },
+  { name: 'Gravedigger', parts: ['Contagion', 'Shatter', 'Tether', 'Undertow'], guns: ['High Striker'] },
   { name: 'Undertaker', guns: ['Wrecking Ball'] },
   { name: 'Hellhound', guns: ['Hall of Mirrors'] },
   { name: 'Bone Collector', guns: ['House Edge'] },
-  { name: 'Deep Walker', guns: ['Tilt'] },
+  { name: 'Deep Walker', parts: ['Splitter', 'Backlash', 'Last Stand', 'Pack Mule'], guns: ['Tilt'] },
   { name: 'Abyss Walker', guns: ['Homing Pigeon'] },
   { name: 'Iron Prophet', guns: ['One-Armed Bandit'] },
   { name: 'Last Light', guns: ['Poltergeist'] },
@@ -159,6 +159,7 @@ export function rewardText(A) {
   const out = [];
   if (A.starter) out.push(`${A.starter} as a starting gun`);
   if (A.machine) out.push(`Machine: ${MACHINE_NAMES[A.machine]}`);
+  if (A.parts) out.push(`${A.parts.length} new parts: ${A.parts.join(', ')}`);
   if (A.guns) out.push(...A.guns);
   if (A.blades) out.push(...A.blades);
   if (A.upgrades) out.push(...A.upgrades);
@@ -186,7 +187,7 @@ function recompute() {
   for (const M of MILESTONES) {
     const R = M.reward;
     if (M.ok() && S.claimed[M.key]) { if (R.skin) earnedSkins.add(R.skin); continue; }   // earned AND claimed
-    (R.guns || []).forEach((g) => lockedGuns.add(g)); (R.upgrades || []).forEach((u) => lockedUps.add(u)); (R.blades || []).forEach((b) => lockedBlades.add(b));
+    (R.guns || []).forEach((g) => lockedGuns.add(g)); (R.upgrades || []).forEach((u) => lockedUps.add(u)); (R.parts || []).forEach((u) => lockedUps.add(u)); (R.blades || []).forEach((b) => lockedBlades.add(b));
   }
 }
 
