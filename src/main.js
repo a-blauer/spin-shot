@@ -280,6 +280,7 @@ const PTABS = [['renown', 'RENOWN'], ['maps', 'MAPS'], ['classes', 'CLASSES'], [
 let progTab = 'renown';
 const MAP_CLEAR = (m) => ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id);
 const tabOf = (key) => (key[0] === 'r' ? 'renown' : key[0] === 'c' ? 'classes' : key[0] === 'h' ? 'maps' : ACHIEVEMENTS.some((A) => 'a:' + A.id === key && /^clear_/.test(A.stat)) ? 'maps' : 'challenges');
+let progArm = false;
 function renderProgress() {
   const weapons = game ? game.data.weapons : [];
   const bar = (v, n) => `<div class="bar"><i style="width:${Math.max(0, Math.min(1, n > 0 ? v / n : 1)) * 100}%"></i></div>`;
@@ -289,7 +290,7 @@ function renderProgress() {
     return `<div class="prw ${st}"><span>${lead ? `<u>${esc(lead)}</u> ` : ''}${esc(rewardLine(M.reward))}</span>${st === 'ready' ? `<button class="pclaim" data-claim="${esc(key)}">CLAIM</button>` : `<em>${st === 'claimed' ? 'Claimed' : 'Locked'}</em>`}</div>`;
   };
   const I = Meta.rankInfo(), ready = Meta.claimable(), per = {}; for (const M of ready) per[tabOf(M.key)] = (per[tabOf(M.key)] || 0) + 1;
-  let h = '<div class="ph"><h2>PROGRESS</h2><button id="pclose">CLOSE</button></div>';
+  let h = `<div class="ph"><h2>PROGRESS</h2><span style="flex:1"></span><button id="preset" style="margin-right:10px;background:#2a1820;color:#ff9a8a;border:1px solid #ff9a8a;box-shadow:none">${progArm ? 'PRESS AGAIN: THIS ERASES EVERYTHING' : 'RESET PROGRESS'}</button><button id="pclose">CLOSE</button></div>`;
   h += `<div class="renown"><div class="rk"><b>RANK ${I.rank}  -  ${esc(I.name.toUpperCase())}</b><span>${I.max ? `${I.xp.toLocaleString()} renown  -  top rank` : `${I.into.toLocaleString()} / ${I.span.toLocaleString()} renown to rank ${I.next.rank}`}</span></div>${bar(I.max ? 1 : I.into, I.max ? 1 : I.span)}`;
   h += `<div class="rn">${I.max ? 'You hold the top rank.' : `Next: ${esc(I.next.name)}  -  ${esc(rewardLine(RANKS[I.rank]))}`}</div></div>`;
   if (ready.length) h += `<div class="claimbar"><b>${ready.length} reward${ready.length > 1 ? 's' : ''} ready to claim</b><span>${esc(ready.slice(0, 3).map((M) => M.title).join('  |  '))}${ready.length > 3 ? `  +${ready.length - 3} more` : ''}</span><button id="claimall">CLAIM ALL</button></div>`;
@@ -357,7 +358,17 @@ function renderProgress() {
   h += '</div>';
   const keep = prog.scrollTop;
   prog.innerHTML = h; prog.scrollTop = keep;
-  prog.querySelector('#pclose').onclick = (e) => { e.stopPropagation(); prog.style.display = 'none'; progBadge(); };
+  prog.querySelector('#pclose').onclick = (e) => { e.stopPropagation(); progArm = false; prog.style.display = 'none'; progBadge(); };
+  // Starting over: rank, unlocks, gun levels, cosmetics, your character and the Descent's deeds and ascensions all go.
+  // Your name and your settings stay. It takes two presses.
+  prog.querySelector('#preset').onclick = (e) => {
+    e.stopPropagation();
+    if (!progArm) { progArm = true; renderProgress(); setTimeout(() => { if (progArm) { progArm = false; if (prog.style.display === 'block') renderProgress(); } }, 6000); return; }
+    progArm = false; Meta.reset();
+    try { location.reload(); } catch (err) { /* not allowed here: carry on with the fresh save */ }
+    if (game && game.round === 0) { game.player.setBody(Meta.look()); game.player.setClass(Meta.cls()); }
+    renderProgress(); progBadge();
+  };
   prog.querySelectorAll('.ptabs button').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); progTab = el.dataset.tab; prog.scrollTop = 0; renderProgress(); }; });
   prog.querySelectorAll('.pclaim').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); const M = Meta.claim(el.dataset.claim); if (M) { renderProgress(); progBadge(); showClaim([M]); } }; });
   const all = prog.querySelector('#claimall'); if (all) all.onclick = (e) => { e.stopPropagation(); const L = Meta.claimAll(); renderProgress(); progBadge(); showClaim(L); };
