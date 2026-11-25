@@ -221,7 +221,7 @@ export class ViewModel {
   clear() {
     for (const p of this.parts) { p.removeFromParent(); if (p.userData.merged) p.geometry.dispose(); }
     this.parts = [];
-    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.support = this.muzzle = this.eject = this.hand = null; this.WhipCoil = null; this.whipPts = null;
+    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.DoorRoot = this.support = this.muzzle = this.eject = this.hand = null; this.WhipCoil = null; this.whipPts = null;
     this.A = {};   // named moving parts: slide, hammer, bolt, lever, barrels, cover, charge, crank, emit, mag, pump, cyl...
     this.Cards = null; this.cardT = 9;
     for (const f of this.flyers || []) f.m.removeFromParent(); this.flyers = [];
@@ -843,6 +843,13 @@ export class ViewModel {
     this.wallA = interp(this.wallA, In.wallSide, dt, 8);
     this.airA = interp(this.airA, In.grounded ? 0 : 1, dt, 6);
     this.scoped = this.cls === 'Sniper' && this.aimA > 0.92;
+    // the Barn Door: low on the off side at the hip; aimed, it swings round in front of the gun, dipping under the barrels on
+    // the way so they drop into its notch as it comes up. Gun space: hip (21, -10, 3) -> aimed (35, 0, 0), turned a quarter.
+    if (this.DoorRoot) {
+      const a = this.aimA, k = a * a * (3 - 2 * a), b = Math.sin(Math.PI * k), r = this.DoorRoot.userData.rest;
+      const dx = -14 * (1 - k), dy = -10 * (1 - k) - 8 * b, dz = 3 * (1 - k) - 18 * b;   // at the hip it is turned a little out, so you see its face
+      this.DoorRoot.position.set(r.x + dy, r.y + dz, r.z - dx); this.DoorRoot.rotation.set(0, 0.5 * (1 - k) - (Math.PI / 2) * k, 0);
+    }
 
     // sway (UE: Y right, Z up) -> view x, y. A heavy gun lags further behind the hand and takes longer to settle.
     const sm = 1 - this.aimA * 0.94, still = 1 - this.aimA * 0.92;   // down the sights the gun is locked to the eye: it barely lags the hand, and nothing you do with your feet moves it off the target

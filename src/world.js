@@ -151,6 +151,7 @@ export class World {
     const key = meshId + '|' + (glow ? 1 : 0) + '|' + (this.chunk === undefined || this.chunk === null ? -1 : this.chunk);   // a map can build in chunks, and show one at a time
     if (!this.inst.has(key)) this.inst.set(key, []);
     this.inst.get(key).push({ m, c: hex(color) });
+    if (SCAN) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanAll || (this.scanAll = [])).push([meshId, glow ? 1 : 0, this.chunk, gg.boundingBox.clone().applyMatrix4(m), m.elements.slice()]); }
     if ((SCAN || this.recordProps) && !glow) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanDraw || (this.scanDraw = [])).push({ id: meshId, ch: this.chunk, b: gg.boundingBox.clone().applyMatrix4(m), fill: (() => { const u = gg.boundingBox, uv = (u.max.x - u.min.x) * (u.max.y - u.min.y) * (u.max.z - u.min.z), w = gg.boundingBox.clone().applyMatrix4(m), wv = (w.max.x - w.min.x) * (w.max.y - w.min.y) * (w.max.z - w.min.z); return wv > 0 ? (Math.abs(m.determinant()) * uv) / wv : 0; })(), collide: !!collide, shape: gg.userData.shape || '' }); }
     if (collide) {
       const g = COLGEOS[meshId].clone().applyMatrix4(m);

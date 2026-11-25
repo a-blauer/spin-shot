@@ -148,30 +148,70 @@ export function turretStats(P) {
     chains: (T.chains || 0) + Math.round(s('Pierce') + s('Ricochet')), range: T.range * (1 + P.stat('TurretRange')), steal: s('Lifesteal'), burn: P.stat('TurretBurn'),
   };
 }
+// ---- the shoulder turret's body, shared by the turret itself and the workbench. Built about its swivel: the mount below,
+// the yoke turns (yawG), the head tips (head), and the business end (barrel) is built along +z and turned to face -z.
+const cylA = (parent, x, y, z, d, len, axis, col, glow = 0, geo = 1) => { const m = box(parent, x, y, z, d, len, d, col, glow, geo); if (axis === 'z') m.rotation.x = Math.PI / 2; else if (axis === 'x') m.rotation.z = Math.PI / 2; return m; };
+const torus = (parent, x, y, z, d, axis, col, glow = 0) => { const m = box(parent, x, y, z, d, d, d, col, glow, 8); if (axis === 'y') m.rotation.x = Math.PI / 2; else if (axis === 'x') m.rotation.y = Math.PI / 2; return m; };
+const GUNMETAL = 0x34373f, DARK = 0x1d1e23, BRASS = 0xb8923a, LEATHER = 0x5a3a24, COPPER = 0xc87a3a;
+export function turretBody() {
+  const group = new THREE.Group(), arm = new THREE.Group(); group.add(arm);
+  // the mount: a riveted plate strapped to the shoulder, a pedestal and a brass swivel ring
+  box(arm, 0, -6.4, 0.4, 12.5, 2.2, 11.5, GUNMETAL, 0, 7); box(arm, 0, -5.2, 0.4, 10.4, 0.5, 9.4, 0x454953, 0, 7);
+  for (const x of [-4.4, 4.4]) { box(arm, x, -8.6, 0.4, 1.6, 4.4, 10.6, LEATHER); box(arm, x, -6.6, -5.3, 2.2, 1.6, 0.5, BRASS); }
+  for (const [x, z] of [[-5, -4], [5, -4], [-5, 4.8], [5, 4.8]]) box(arm, x, -5, z, 0.8, 0.8, 0.8, BRASS, 0, 2);
+  cylA(arm, 0, -3.6, 0, 5.6, 3, 'y', 0x454953); torus(arm, 0, -2.1, 0, 7.2, 'y', BRASS);
+  const yawG = new THREE.Group(); arm.add(yawG);
+  // the yoke: a turntable and two arms that hold the head on its trunnions
+  cylA(yawG, 0, -1.2, 0, 7, 1.2, 'y', GUNMETAL);
+  for (const x of [-4.5, 4.5]) { box(yawG, x, 1.4, 0.4, 1.3, 6, 4.6, GUNMETAL); cylA(yawG, x * 1.13, 2.5, 0, 2.6, 0.9, 'x', BRASS); }
+  const head = new THREE.Group(); head.position.y = 2.5; yawG.add(head);
+  // the head: an armoured box with a bevelled top, a lit sensor in a hood, a stub of aerial
+  box(head, 0, 0, 0.6, 7.2, 4.8, 9, GUNMETAL); box(head, 0, 2.7, 0.9, 6, 0.7, 7.6, 0x454953); box(head, 0, -2.6, 0.6, 6.4, 0.5, 8, DARK);
+  box(head, 0, 0.2, 5.1, 7.8, 5.4, 1.2, 0x2a2c33); for (const y of [-1.2, 0.4, 2]) box(head, 0, y, 5.8, 5.6, 0.5, 0.3, DARK);   // the back plate, louvred
+  const stripe = []; for (const x of [-3.7, 3.7]) { box(head, x, 0, 0.6, 0.3, 3.6, 7.4, 0x2a2c33); stripe.push(box(head, x * 1.03, 0.9, 0.6, 0.2, 0.7, 6.8, 0x6ec8ff, 0.5)); }
+  cylA(head, 0, 1.4, -4.1, 2.8, 1.2, 'z', DARK); const eye = box(head, 0, 1.4, -4.6, 1.7, 1.7, 1.7, 0x6ec8ff, 1.2, 2);
+  cylA(head, -2.6, 4.6, 3.4, 0.3, 3.8, 'y', DARK); box(head, -2.6, 6.6, 3.4, 0.7, 0.7, 0.7, 0xff5a3a, 1.4, 2);
+  const barrel = new THREE.Group(); barrel.rotation.y = Math.PI; barrel.position.z = -4.4; head.add(barrel);
+  return { group, arm, yawG, head, barrel, eye, stripe };
+}
+// what sticks out of the head, by type, built along +z from the face of the head
+export function dressTurret(barrel, T, stripe) {
+  while (barrel.children.length) barrel.remove(barrel.children[0]);
+  const B = barrel, c = T.col;
+  if (stripe) for (const m of stripe) m.material = mat(c, 0.5);
+  if (T.id === 'sentry') {
+    cylA(B, 0, 0, 2.4, 3, 4.4, 'z', GUNMETAL); for (const z of [1, 2.4, 3.8]) torus(B, 0, 0, z, 3.2, 'z', DARK);   // the cooling shroud
+    cylA(B, 0, 0, 7.4, 1.3, 9, 'z', DARK); box(B, 0, 0, 11.6, 2.4, 1.3, 1.8, GUNMETAL); for (const x of [-0.8, 0.8]) box(B, x, 0, 11.6, 0.3, 1.5, 0.9, DARK);   // barrel and its brake
+    torus(B, 0, 0, 10.2, 1.9, 'z', c, 1.2);
+    box(B, 3.8, -1, -0.6, 1.8, 2.6, 3.4, 0x4a4a2a); for (let i = 0; i < 4; i++) box(B, 2.6 - i * 0.5, -2.4 - i * 0.6, -0.6, 0.7, 0.5, 1.2, BRASS);   // the ammunition box and its belt
+  } else if (T.id === 'scatter') {
+    for (const x of [-1.15, 1.15]) { cylA(B, x, 0, 4.6, 1.8, 8.2, 'z', DARK); cylA(B, x, 0, 9.2, 2.5, 1.2, 'z', GUNMETAL, 0, 3).rotation.x = -Math.PI / 2; torus(B, x, 0, 8.6, 2.1, 'z', c, 0.9); }
+    for (const z of [1.6, 5.6]) box(B, 0, 0, z, 5, 2.4, 0.9, GUNMETAL); box(B, 0, 1.4, 3.6, 1.2, 0.6, 5, BRASS);
+    for (let i = 0; i < 3; i++) cylA(B, -2.9 + i * 0.6, -1.9, 1, 0.9, 2.2, 'y', 0xa8281e);   // a few shells in a side carrier
+  } else if (T.id === 'tesla') {
+    cylA(B, 0, 0, 1.6, 2.8, 3, 'z', 0xe6e0d0); for (const z of [0.8, 1.8, 2.8]) torus(B, 0, 0, z, 3.2, 'z', 0x8a8478);   // the insulator
+    cylA(B, 0, 0, 5.6, 1, 6, 'z', BRASS); for (let i = 0; i < 4; i++) torus(B, 0, 0, 4 + i * 1.1, 3.8 - i * 0.35, 'z', COPPER);   // the coil
+    box(B, 0, 0, 9.6, 2.8, 2.8, 2.8, c, 1.4, 2); torus(B, 0, 0, 9.6, 4, 'x', c, 0.9); torus(B, 0, 0, 9.6, 4, 'y', c, 0.6);   // the charged ball, in its rings
+  } else {
+    cylA(B, 0, 0, 4.4, 2.2, 7, 'z', DARK); for (const z of [2.6, 4.8]) torus(B, 0, 0, z, 2.6, 'z', BRASS);
+    cylA(B, 0, 0, 8.6, 2.8, 1.8, 'z', GUNMETAL, 0, 3).rotation.x = -Math.PI / 2;   // the flared nozzle
+    box(B, 0, -1.1, 9.6, 0.9, 0.9, 0.9, c, 2, 2);   // the pilot light
+    cylA(B, 0, -3, 1.4, 3, 5.2, 'z', 0xa8281e); for (const z of [-0.6, 3.4]) cylA(B, 0, -3, z, 3.1, 0.4, 'z', BRASS); box(B, 0, -1.6, 4.6, 0.6, 1.8, 0.6, BRASS);   // the fuel tank and its feed
+  }
+}
+// the turret as the workbench shows it: the whole thing at rest, its head tipped up a touch
+export function turretModel(typeId) { const b = turretBody(); dressTurret(b.barrel, turretType(typeId), b.stripe); b.head.rotation.x = 0.12; b.yawG.rotation.y = 0.5; return b.group; }
+
 export class ShoulderTurret {
   constructor(game) {
     this.game = game; this.t = 0; this.out = 0; this.cd = 0; this.scan = 0; this.target = null; this.kick = 0; this.typeId = '';
     this.group = new THREE.Group(); this.group.visible = false; game.scene.add(this.group);
-    this.arm = new THREE.Group(); this.group.add(this.arm);
-    box(this.arm, 0, -5, 0, 10, 4, 10, 0x2b2d33); box(this.arm, 0, -2, 0, 6, 3, 6, 0x4a4e58, 0, 1);
-    this.yawG = new THREE.Group(); this.arm.add(this.yawG);
-    box(this.yawG, -4.2, 1.5, 0, 1.2, 5, 6, 0x4a4e58); box(this.yawG, 4.2, 1.5, 0, 1.2, 5, 6, 0x4a4e58);
-    this.head = new THREE.Group(); this.head.position.y = 2.5; this.yawG.add(this.head);
-    box(this.head, 0, 0, 0.5, 7, 4.5, 9, 0x3a3d45); this.eyeM = box(this.head, 0, 2.8, -2, 1.6, 1.6, 1.6, 0x6ec8ff, 1.2, 2);
-    this.barrel = new THREE.Group(); this.barrel.rotation.y = Math.PI; this.head.add(this.barrel);   // built along +z, turned to face where the camera looks
+    const b = turretBody(); this.group.add(b.group); this.arm = b.arm; this.yawG = b.yawG; this.head = b.head; this.barrel = b.barrel; this.eyeM = b.eye; this.stripe = b.stripe;
   }
-  dress(T) {
-    if (this.typeId === T.id) return; this.typeId = T.id;
-    while (this.barrel.children.length) this.barrel.remove(this.barrel.children[0]);
-    const B = this.barrel, c = T.col;
-    if (T.id === 'sentry') { box(B, 0, 0, 7.5, 1.6, 1.6, 8, 0x1d1c22, 0, 1).rotation.x = Math.PI / 2; box(B, 0, 0, 11.5, 2.2, 2.2, 1.2, c, 0.8, 1).rotation.x = Math.PI / 2; }
-    else if (T.id === 'scatter') { for (const x of [-1.3, 1.3]) { const b = box(B, x, 0, 7, 2.2, 2.2, 7, 0x1d1c22, 0, 1); b.rotation.x = Math.PI / 2; } box(B, 0, 0, 10.6, 5.6, 2.6, 0.8, c, 0.6); }
-    else if (T.id === 'tesla') { box(B, 0, 0, 5.5, 1.2, 1.2, 5, 0x6a5a3a, 0, 1).rotation.x = Math.PI / 2; for (let i = 0; i < 3; i++) box(B, 0, 0, 5 + i * 1.8, 3.4, 3.4, 0.6, 0xb08a3a, 0, 8); box(B, 0, 0, 9.6, 2.6, 2.6, 2.6, c, 1.4, 2); }
-    else { box(B, 0, 0, 7, 2.6, 2.6, 7, 0x3a2a22, 0, 1).rotation.x = Math.PI / 2; box(B, 0, -2.4, 4, 3, 3, 4, 0xa8281e, 0, 1); box(B, 0, 0, 10.8, 1.2, 1.2, 1.2, c, 2, 2); }
-  }
+  dress(T) { if (this.typeId === T.id) return; this.typeId = T.id; dressTurret(this.barrel, T, this.stripe); }
   deploy(P) { const S = turretStats(P); this.t = S.time; this.cd = 0.3; this.dress(S.T); }
   get active() { return this.t > 0; }
-  muzzle() { const v = new THREE.Vector3(0, 0, -12); return this.head.localToWorld(v); }
+  muzzle() { const v = new THREE.Vector3(0, 0, -15); return this.head.localToWorld(v); }
   update(dt, P) {
     const G = this.game; this.t = Math.max(0, this.t - dt); this.out += ((this.t > 0 ? 1 : 0) - this.out) * Math.min(1, dt * 9); this.kick = Math.max(0, this.kick - dt * 8);
     this.group.visible = this.out > 0.02 && !P.dead;

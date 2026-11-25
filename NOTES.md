@@ -53,3 +53,9 @@
 - Wall run: holding jump keeps the run while looking anywhere. Tab shows a kills/damage leaderboard (net presence sends kl/dm). Title has CHARACTER; lobby draws a 3D lineup (#lbline) from lookStr.
 - Descent rooms: roomPlan(i) picks one of 10 plans (cross, octagon, hourglass, ell, ell2, ring, serpent, tee, hex, diamond); walls are built first, full height, and world.carve drops any later prop/solid/lamp that would stand in them. Doorways and the bench end (|x| < E) stay open. Tests: /tmp/shp.json (+/tmp/shpdraw.py), /tmp/spots.json.
 - world.solidify also bodies hung props (lanterns, beams; nav off) so they can be grappled.
+
+## (18) Barn Door, turret model, portals, square-lid audit
+- Barn Door: the door is vm.DoorRoot (guns.js), a notched board door; viewmodel swings it from the hip (21,-10,3, turned out 0.5) to in front at (35,0,0) a quarter turn round, dipping 18 under the barrels mid-swing so they drop into the notch. Tier dressing builds into DoorRoot.
+- Turret: turret.js turretBody()/dressTurret()/turretModel() shared by the shoulder turret and the workbench (craft.js shows it at x2.4). The old barrels were flat discs (cylinder scaled on the wrong axis).
+- Square on barrels: the Distillery wash tubs had a full-bright box (meshId 0) as liquid, wider than the round tub. Now round discs. Audit: world.js logs every piece in ?scan=1 (scanAll); /tmp/sq*.json finds flat boxes on round tops. Only other hit: wharf relic cap (now an Oct). Frost turntable deck overhang is intended.
+- Portals: portal.js (arch, whirl shader, floor runes, motes, open-out). Stands PORTAL_Y in front of the room's doorway; pillars and crown are solid (I.solids, cleared in wipe).

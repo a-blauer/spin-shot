@@ -7,7 +7,7 @@ import { CORE0, CORE_DEFS, coreSvg, BLADE, fusionOf, coreTier } from './cores.js
 import { MELEE, HONE_MAX } from './melee.js';
 import { sigOf, sigProc } from './signatures.js';
 import { Meta } from './meta.js';
-import { TURRET_TYPES, turretStats } from './turret.js';
+import { TURRET_TYPES, turretStats, turretModel } from './turret.js';
 import { machine, MACHINES, ROMAN, ASC, TEMPERS, ATTUNES, temperOf, attuneOf } from './deeds.js';
 
 const CSS = `
@@ -178,12 +178,13 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const edge = new THREE.Mesh(new THREE.BoxGeometry(86, 0.5, 42), new THREE.MeshBasicMaterial({ color: 0x6a5a2a })); edge.position.set(0, -11.8, 0); scene.add(edge);
   }
   function rebuildModel(force) {
-    const p = P(), S = p.slot; if (onTurret) { if (model) { scene.remove(model); model = null; } modelKey = 'turret'; return; } if (!onBlade && S.def < 0) return;
-    const key = onBlade ? 'blade|' + p.meleeDef + '|' + (p.meleeTier || 0) : S.def + '|' + S.tier + '|' + S.cores.join(',');
+    const p = P(), S = p.slot; if (!onTurret && !onBlade && S.def < 0) return;
+    const key = onTurret ? 'turret|' + (p.turretType || 'sentry') : onBlade ? 'blade|' + p.meleeDef + '|' + (p.meleeTier || 0) : S.def + '|' + S.tier + '|' + S.cores.join(',');
     if (key === modelKey && !force) return; modelKey = key;
     if (model) scene.remove(model);
     let g;
-    if (onBlade) { const t = H.game().vm.constructor.meleeTool(bladeW()); g = new THREE.Group(); g.add(t); t.rotation.z = -Math.PI / 2; t.scale.setScalar(1.1); }   // laid along the table, handle to the left
+    if (onTurret) { g = new THREE.Group(); const m = turretModel(p.turretType || 'sentry'); m.scale.setScalar(2.4); g.add(m); }   // shown at the size of a gun on the mat
+    else if (onBlade) { const t = H.game().vm.constructor.meleeTool(bladeW()); g = new THREE.Group(); g.add(t); t.rotation.z = -Math.PI / 2; t.scale.setScalar(1.1); }   // laid along the table, handle to the left
     else g = H.game().vm.constructor.displayModel(H.game(), S.def, Math.min(4, S.tier), S.cores);
     const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
     g.position.sub(c); model = new THREE.Group(); model.add(g); model.userData.rxz = 0.5 * Math.hypot(sz.x, sz.z); model.userData.hy = 0.5 * sz.y + 0.05 * Math.hypot(sz.x, sz.z); scene.add(model);   // it turns about the upright: this is as wide and as tall as it ever gets

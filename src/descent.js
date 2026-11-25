@@ -2,6 +2,7 @@
 // written over it. Rooms 5, 10, 15 and 20 belong to bosses. The host (or the solo player) owns the state; guests
 // are told the room, what it paid and what the doors offer, and build the same things on their own side.
 import * as THREE from 'three';
+import { buildPortal, tickPortal, W as PW, SPRING as PSPRING, PORTAL_Y } from './portal.js';
 import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, DIFFS } from './data.js';
 import { machine, ASC } from './deeds.js';
 import { sigOf } from './signatures.js';
@@ -162,9 +163,11 @@ export class Descent {
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));
     I.useRadius = 260; const f = this.flip;
-    I.pane = I.part(null, 0, V(0, f * 104, 245), V(370, 8, 490), C(col), null, 1.1); I.pane.material = I.pane.material.clone(); I.pane.material.transparent = true; I.pane.material.opacity = 0.55;
-    I.part(null, 0, V(0, f * 40, 4), V(370, 260, 4), C(col), null, 1.6);
-    I.text(null, V(0, f * 60, 680), S.textYaw, 96, boss ? 'THE SEAL' : 'THE WAY DOWN', hex); I.text(null, V(0, f * 60, 624), S.textYaw, 40, boss ? 'something is waiting' : `room ${this.room + 1} of ${ROOMS}`, '#e8e0d0');
+    buildPortal(I, f, col, boss);
+    // its pillars and crown are solid (and so something to grapple to); the room's own doorway behind it is hidden
+    { const solid = (x0, x1, y0, y1, z0, z1) => { const b = new THREE.Box3(); for (let k = 0; k < 8; k++) b.expandByPoint(V(x + ((k & 1) ? x1 : x0), y + f * ((k & 2) ? y1 : y0), (k & 4) ? z1 : z0).to3()); return g.phys.addDoor(b); };
+      I.solids = [solid(-PW - 96, -PW - 2, PORTAL_Y - 48, PORTAL_Y + 48, 0, PSPRING + 20), solid(PW + 2, PW + 96, PORTAL_Y - 48, PORTAL_Y + 48, 0, PSPRING + 20), solid(-PW - 100, PW + 100, PORTAL_Y - 48, PORTAL_Y + 48, PSPRING + PW - 20, PSPRING + PW + 110)]; }
+    I.text(null, V(0, f * 20, 900), S.textYaw, 96, boss ? 'THE SEAL' : 'THE WAY DOWN', hex); I.text(null, V(0, f * 20, 840), S.textYaw, 40, boss ? 'something is waiting' : `room ${this.room + 1} of ${ROOMS}`, '#e8e0d0');
     I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nFit your parts at the bench first: it stays here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
       use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
@@ -173,7 +176,7 @@ export class Descent {
   }
   wipe() {
     const g = this.g;
-    for (const I of this.gates.concat(this.things)) { I.remove = true; I.enabled = false; if (I.solid) I.solid.enabled = false; }
+    for (const I of this.gates.concat(this.things)) { I.remove = true; I.enabled = false; if (I.solid) I.solid.enabled = false; for (const b of I.solids || []) b.enabled = false; }
     if (g.box && g.box.descent) g.box = null;
     this.gates = []; this.things = [];
   }
@@ -181,7 +184,7 @@ export class Descent {
   zone(x, z, r, col, y, op, life) { this.zones.push([Math.round(x), Math.round(z), Math.round(r), col, y, op, life]); }
   tickFx(dt) {
     const g = this.g, t = g.time;
-    for (const I of this.gates) if (I.pane) I.pane.material.opacity = 0.42 + 0.2 * Math.sin(t * 3);
+    for (const I of this.gates) tickPortal(I, g, dt);
     if (this.host) { for (const Z of this.zones) Z[6] -= dt; this.zones = this.zones.filter((Z) => Z[6] > 0); }
     const key = this.zones.map((Z) => Z.slice(0, 4).join(',')).join('|');
     if (key !== this.zkey) {

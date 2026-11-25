@@ -193,7 +193,7 @@ export const ROOMS_D = [
         Oct(V(x, 0, 60), V(820, 820, 120), brick, true, true); Glow(V(x, -414, 60), V(160, 6, 70), 0xff6a1a, 0);
         Cyl(V(x, 0, 120 + 130), 560, 260, copper, true, false); Ball(V(x, 0, 120 + 260), V(560, 560, 420), copper); ConeShape(V(x, 0, 120 + 560), V(260, 260, 360), copper); Cyl(V(x, 0, 120 + 760), 90, 120, copper, false, false);
         Cyl(V(x, 330, 120 + 800), 80, 660, copper, false, false, AY); Cyl(V(x, 660, 120 + 560), 70, 480, copper, false, false);
-        Cyl(V(x, 760, 160), 420, 320, oak, true, true); for (const z of [60, 260]) Cyl(V(x, 760, z), 436, 14, hoop, false, false); Glow(V(x, 760, 322), V(360, 360, 6), 0x3aa8ff, 0);
+        Cyl(V(x, 760, 160), 420, 320, oak, true, true); for (const z of [60, 260]) Cyl(V(x, 760, z), 436, 14, hoop, false, false); Cyl(V(x, 760, 321), 404, 4, 0x8a6a3a, false, false); Cyl(V(x, 760, 323), 356, 4, 0x4a3014, false, false);   // the wash in the tub: dark, with a ring of foam where it meets the staves
         for (const f of [0.3, 0.7]) Cyl(V(x, 0, 120 + 260 * f * 2), 580, 12, brass, false, false); L(x, -300, 600, T.lamp, 2000, 2.6); tall(x, 200, 800);
       }
       // the spirit safe: brass and glass on a stand

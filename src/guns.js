@@ -1143,11 +1143,25 @@ function buildGunWith(vm, W, tier, PAL) {
       stock(-8, 9.6, PAL.wood, 20, 4.5, 9.6, 4.4);
       T(14, 46, 3.6, 8.4, PAL.steelD); T(14, 40, 3, 5.2, PAL.steel); Ring(40, 6.8, 7.6, 0.8, PAL.steelL); crown(46.4, 8.4, 3.6);
       E([[18, 3.4], [32, 3.4], [32, 6.6], [18, 6.6]], 4.6, PAL.wood, { bevel: 0.9 }); for (let i = 0; i < 5; i++) both((s) => B(20 + i * 2.6, s * 2.3, 5, 0.5, 0.14, 2.6, PAL.woodD));
-      E(rect(4, -7, 38, 21), 1, red2, { y: -6, bevel: 0.15 });                                                              // the door, on the off side
-      E(rect(4, -7, 38, 21), 1.4, wh, { y: -6, bevel: 0.1, holes: [rect(6, -5, 36, 19)] });
-      B(21, -6.75, 7, 42, 0.3, 2, wh, R(39, 0, 0)); B(21, -6.75, 7, 42, 0.3, 2, wh, R(-39, 0, 0)); B(21, -6.76, 7, 30, 0.3, 2, wh);
-      for (let i = 1; i < 6; i++) B(4 + i * 5.66, -6.56, 7, 0.3, 0.1, 27.6, C(0x7A2A20));
-      for (const z of [-2, 16]) { B(7, -6.8, z, 7, 0.3, 1.6, PAL.black); Ball(5, -7, z, 1.2, PAL.steelL); Ball(9, -7, z, 1.2, PAL.steelL); }   // strap hinges
+      // the door: a board door with a notch cut down from its top for the barrels. Held low on the off side at the hip; aim and
+      // it swings round in front, dips under the barrels and comes up with them seated in the notch (see viewmodel: DoorRoot)
+      vm.DoorRoot = group(35, 0, 0); into(vm.DoorRoot, () => {
+        const nw = 4.2, nz = 5.4, top = 10.6, out = [[-15, -14], [15, -14], [15, top], [nw, top]];
+        for (let i = 0; i <= 10; i++) { const a = (-i / 10) * Math.PI; out.push([nw * Math.cos(a), nz + nw * Math.sin(a)]); }
+        out.push([-nw, top], [-15, top]);
+        E(out, 1, red2, { bevel: 0.12 });
+        for (const x of [-10, -5, 5, 10]) both((s) => B(x, s * 0.52, -1.7, 0.3, 0.1, 24.4, C(0x7A2A20)));                   // the boards
+        both((s) => B(0, s * 0.52, -6.4, 0.3, 0.1, 15.2, C(0x7A2A20)));
+        both((s) => {                                                                                                       // the white frame, both faces
+          const y = s * 0.62;
+          B(0, y, -13, 30, 0.5, 2, wh); for (const x of [-14, 14]) B(x, y, -1.7, 2, 0.5, 24.6, wh);
+          for (const x of [-1, 1]) B(x * (nw + 5.4), y, top - 1, 10.8, 0.5, 2, wh);
+          for (const a of [22.3, -22.3]) B(0, y, -7.3, 30.3, 0.4, 1.8, wh, R(a, 0, 0));                                   // the cross brace below the notch
+        });
+        for (const x of [-1, 1]) B(x * (nw + 0.4), 0, (top + nz) / 2, 0.8, 1.6, top - nz, PAL.steelD);                    // iron lining the notch
+        for (let i = 1; i < 6; i++) { const a = (-i / 6) * Math.PI; B((nw + 0.4) * Math.cos(a), 0, nz + (nw + 0.4) * Math.sin(a), 2.4, 1.6, 0.8, PAL.steelD, R(((a + Math.PI / 2) * 180) / Math.PI, 0, 0)); }
+        for (const z of [-8, 5]) both((s) => { B(-10.5, s * 0.75, z, 8, 0.3, 1.6, PAL.black); Ball(-13, s * 0.85, z, 1.2, PAL.steelL); Ball(-9, s * 0.85, z, 1.2, PAL.steelL); });   // strap hinges
+      });
       Ty(16, 8.4, 1.3, 4.4, PAL.steelD, -3.6); Ty(30, 8.4, 1.3, 4.4, PAL.steelD, -3.6); Ty(16, 5.2, 1.3, 4.4, PAL.steelD, -3.6);
       grip(-2, 4, PAL.woodD, 11.2, 14, 5.4, 4); guard(0.6, 4, PAL.steelD, 6.6, 4.4);
       vm.MagRoot = group(8, 0, 4); into(vm.MagRoot, () => E([[3, 0.4], [-3, 0.4], [-3, -5], [3, -5]], 3.6, PAL.steelD, { bevel: 0.4 }));
@@ -1818,11 +1832,11 @@ function buildGunWith(vm, W, tier, PAL) {
         if (t2) for (let k = 0; k < 4; k++) Ty(12, 6.4, 3.4, 0.4, chips[k], -(2.7 + k * 0.42));                          // II a stack of chips on the side
         if (t3) both((s) => { B(6, s * 2.9, 11, 5, 0.2, 3, C(0xF2EEE4), null, 0.4); B(6, s * 3.02, 11, 1.4, 0.1, 1.4, g, null, 2.4); });   // III a lit ace on the shoe
         break; }
-      case 'Barn Door':
-        for (const z of [0, 14]) B(9, -6.75, z, 10, 0.5, 1.6, PAL.steelD);                                             // I iron hinge straps
-        if (t2) E([[7, -4], [10, -4], [35, 18], [32, 18]], 0.4, C(0x8A2A1A), { y: -6.7, bevel: 0.05 });                // II a brace across the door
-        if (t3) { Ty(21, 7, 8, 0.4, gold, -6.75); E(star(21, 7, 3.4, 8, 0.45), 0.3, g, { y: -7.05, bevel: 0.04, glow: 1.6 }); }   // III a hex sign, lit
-        break;
+      case 'Barn Door': if (vm.DoorRoot) into(vm.DoorRoot, () => both((s) => {
+        for (const z of [-8, 5]) B(-3, s * 0.95, z, 8, 0.4, 1.4, PAL.steelD);                                          // I the hinge straps run on across the door
+        if (t2) B(0, s * 0.95, -1.4, 26, 0.4, 1.8, C(0x8A2A1A));                                                       // II a rail across the middle
+        if (t3) { Ty(0, -8.2, 7, 0.4, gold, s * 1.05); E(star(0, -8.2, 3, 8, 0.45), 0.3, g, { y: s * 1.3, bevel: 0.04, glow: 1.6 }); }   // III a hex sign, lit
+      })); break;
       case 'Old Faithful':
         B(3, -4.75, 7.6, 6, 0.2, 2.4, gold);                                                                           // I a brass maker's plate
         if (t2) { Ty(8, 9, 2.6, 0.6, PAL.brass, 4.9); Ty(8, 9, 2, 0.2, PAL.bone, 5.25); }                               // II a second gauge
