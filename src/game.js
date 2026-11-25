@@ -714,6 +714,10 @@ export class Game {
   // ------------------------------------------------------------------ frame
   step(dt, input) {
     const P = this.player;
+    this.rawDt = dt; this.stepN = (this.stepN || 0) + 1;
+    // hit-stop is a beat, not a state: small ones chained back to back (a fast melee or parry build) are cut off after
+    // a third of a second so the game never sits in slow motion; the big ones (a boss's entrance, act, fall) run out
+    if (this.hitstop > 0) { this.hsRun = (this.hsRun || 0) + dt; if (this.hsRun > 0.3 && this.hitstop < 0.25) this.hitstop = 0; } else this.hsRun = Math.max(0, (this.hsRun || 0) - dt * 2);
     if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.15; }
     this.audio.music(this.phase === 'GameOver' ? 'off' : this.final && this.final.active ? 'boss' : this.phase === 'Round' ? (this.boss && !this.boss.dead ? 'boss' : 'fight') : 'calm');
     this.tickCasino(dt);

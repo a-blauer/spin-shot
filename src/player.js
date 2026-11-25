@@ -50,6 +50,8 @@ const noise1 = (x) => { const i = Math.floor(x), f = x - i; const h = (n) => { c
 
 const ACTIVE_STATS = ['HollowN', 'HeadStreak', 'CritFlash', 'EliteBlast', 'KillRush', 'KillTempo', 'Bulwark', 'SlideLaunch', 'Glide', 'Parry', 'LandShock', 'WallCrit', 'BladeWave', 'AirKillJump', 'Trample', 'DashReload', 'TapedMag', 'FinalRound', 'RampFire', 'HotBarrel', 'LightBolt', 'AltLauncher', 'AltGravity', 'AltRail', 'AltBuck', 'ActiveReload', 'SteadyAim'];
 const PROC_DAMAGE = ['Explode', 'Nova', 'Missile', 'Chain', 'Shockwave', 'Ignite', 'Skip'];
+const MONEY_STATS = new Set(['MoneyGain', 'Interest', 'CasinoDiscount', 'RoundMoney', 'GoldKill', 'SpendNova', 'MoneyDamage']);
+const moneyOnly = (u) => { const U = DATA.upgrades[u], m = (U && U.mods) || []; return m.length > 0 && m.every(([k]) => MONEY_STATS.has(k)) && (!U.trigger || U.fx === 'Money'); };
 export class Player {
   constructor(game) {
     this.game = game;
@@ -420,8 +422,15 @@ export class Player {
   }
   addPitch(deg) { this.pitch = clamp(this.pitch + deg * D2R, -89 * D2R, 89 * D2R); }
   addYaw(deg) { this.yaw -= deg * D2R; }
-  addShake(a) { this.shake = Math.min(this.shake + a * 0.5, 1.6); }   // half the old strength
-  addKick(p, y) { this.camKickVel.x += p * 22; this.camKickVel.y += y * 22; }
+  // Shake does not stack up: everything asking for it in the same step counts once, at the strongest ask, and the
+  // nearer the cap it already is the less a new ask adds. (Before this, a fast gun with explosive or chaining parts
+  // asked many times a step, and with hit-stop slowing the decay it climbed to the cap and stayed there.)
+  addShake(a) {
+    const v = Math.max(0, a) * 0.5, id = this.game.stepN || 0, CAP = 1.2;
+    if (this.shakeId === id) { if (v <= this.shakeAsk) return; const d = v - this.shakeAsk; this.shakeAsk = v; this.shake = Math.min(CAP, this.shake + d * (1 - this.shake / CAP * 0.6)); return; }
+    this.shakeId = id; this.shakeAsk = v; this.shake = Math.min(CAP, this.shake + v * (1 - this.shake / CAP * 0.6));
+  }
+  addKick(p, y) { this.camKickVel.x = clamp(this.camKickVel.x + p * 22, -70, 70); this.camKickVel.y = clamp(this.camKickVel.y + y * 22, -70, 70); }
   inputDir() {
     const d = this.forward().multiplyScalar(this.inFwd).add(this.right().multiplyScalar(this.inRight));
     if (d.length() > 1) d.normalize();
@@ -1344,8 +1353,10 @@ export class Player {
     rollT += clamp(this.inRight || 0, -1, 1) * -1.2;
     rollT += this.swingRoll || 0;
     this.camRoll = interpTo(this.camRoll, rollT, dt, 7);
-    { const ax = -this.camKick.x * 180 - this.camKickVel.x * 17, ay = -this.camKick.y * 180 - this.camKickVel.y * 17; this.camKickVel.x += ax * dt; this.camKickVel.y += ay * dt; this.camKick.x += this.camKickVel.x * dt; this.camKick.y += this.camKickVel.y * dt; }
-    this.shake = Math.max(0, this.shake - dt * 3.2);
+    // the view settles in real time, so hit-stop slow motion does not let shake and kick pile up
+    const rdt = Math.min(0.05, G.rawDt || dt);
+    { const ax = -this.camKick.x * 180 - this.camKickVel.x * 17, ay = -this.camKick.y * 180 - this.camKickVel.y * 17; this.camKickVel.x += ax * rdt; this.camKickVel.y += ay * rdt; this.camKick.x += this.camKickVel.x * rdt; this.camKick.y += this.camKickVel.y * rdt; }
+    this.shake = Math.max(0, this.shake - rdt * (3.2 + 3 * this.shake));
     this.shakeT += dt * 38;
     const sh = this.shake * this.shake * (G.settings.shake ?? 1);
     const pitch = this.pitch + (this.camKick.x + noise1(this.shakeT) * 4 * sh) * D2R;
@@ -1524,7 +1535,7 @@ export class Player {
     this.crossKick = Math.min(this.crossKick + kick * 0.6, 2);
     // every shot is felt: a shake, a punch of the view, a flash on the world in front of you, and a buzz on phones
     this.addShake((continuous ? 0.02 : 0.06 + kick * 0.16) * (this.aiming ? 0.35 : 1));
-    this.fovKick += (continuous ? 0.15 : Math.min(7, cam.fov || (0.6 + kick * 1.1))) * (this.aiming ? 0.25 : 1);
+    this.fovKick = Math.min(8, this.fovKick + (continuous ? 0.15 : Math.min(7, cam.fov || (0.6 + kick * 1.1))) * (this.aiming ? 0.25 : 1));
     if (!continuous) {
       const G = this.game, e = this.eye(), f = this.forward();
       G.fx.glowAt(e.clone().addScaledVector(f, 150), lin(0.45, 0.33, 0.15), (180 + kick * 90) * 1.8, 0.06);   // light on the scene only: the flash itself is on the gun
@@ -2577,6 +2588,7 @@ export class Player {
     const out = keep.slice(), hiChance = Math.min(0.85, 0.3 + this.stat('ChestLuck')), ban = this.banned || (this.banned = new Set());
     for (let tries = 0; tries < 60 && out.length < 3; tries++) {
       const u = rollBuff(Math.random() < hiChance ? tier + 1 : tier, this.upgradeStacks, this.cls.id);
+      if (u >= 0 && this.game.descent && moneyOnly(u)) continue;   // there is no money in the Descent: a buff that only pays would do nothing
       if (u >= 0 && !out.includes(u) && !ban.has(u)) out.push(u);
     }
     return out;

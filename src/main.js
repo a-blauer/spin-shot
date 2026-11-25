@@ -236,7 +236,7 @@ function rewardLine(R) {
   (R.blades || []).forEach((b2) => out.push(`${b2} (blade)`));
   (R.upgrades || []).forEach((u) => out.push(`${u} (${kindOf(u)})`));
   if (R.heirloom) out.push(`${R.heirloom} (heirloom)`);
-  if (R.skin) out.push(`${Meta.skinById(R.skin).name} hands`);
+  if (R.renown) out.push(`+${R.renown.toLocaleString()} (renown)`);
   return out.join(', ');
 }
 // what a claimed reward puts on the popup: one card per thing, with a picture
@@ -250,7 +250,7 @@ function rewardCards(M) {
   (R.blades || []).forEach((n) => { const W = MELEE.find((m) => m.name === n) || {}; out.push({ img: modelThumb('blade', n), wide: true, name: n, col: RARITY_HEX[W.rarity] || '#f2e8d5', kind: `${W.rarity || ''} blade`, desc: (W.desc || '') + ' Now in the mystery box.' }); });
   (R.upgrades || []).forEach((n) => { const i = ups.findIndex((u) => u.name === n), U = ups[i] || {}, k = kindOf(n); out.push({ img: iconURL('U_' + i), name: n, col: RARITY_HEX[U.rarity] || '#f2e8d5', kind: `${U.rarity || ''} ${k}`, desc: (U.desc || '') + (k === 'workbench modifier' ? ' Now turns up at the workbench.' : ' Now turns up in chests.') }); });
   if (R.heirloom) { const i = ups.findIndex((u) => u.name === R.heirloom), U = ups[i] || {}; out.push({ img: iconURL('U_' + i), name: R.heirloom, col: '#ffcd5a', kind: 'Heirloom', desc: (U.desc || '') + ' Pick it in the lobby to start every run with it.' }); }
-  if (R.skin) { const K = Meta.skinById(R.skin); out.push({ sw: [K.glove, K.cuff, K.sleeve, K.stripe], name: K.name + ' hands', col: '#ffcd5a', kind: 'Hands', desc: 'A new look for your gloves and sleeves.', skin: K.id }); }
+  if (R.renown) out.push({ name: `+${R.renown.toLocaleString()} renown`, col: '#ffcd5a', kind: 'Renown', desc: 'Added to your rank right away.' });
   return out;
 }
 const claimEl = document.createElement('div'); claimEl.id = 'claim'; document.body.appendChild(claimEl);
@@ -286,7 +286,7 @@ function progBadge() {
 }
 
 // ---- the Progress screen: a rank banner, anything waiting to be claimed, then one tab at a time
-const PTABS = [['renown', 'RENOWN'], ['maps', 'MAPS'], ['classes', 'CLASSES'], ['challenges', 'CHALLENGES'], ['arsenal', 'ARSENAL'], ['hands', 'HANDS'], ['record', 'RECORD']];
+const PTABS = [['renown', 'RENOWN'], ['maps', 'MAPS'], ['classes', 'CLASSES'], ['challenges', 'CHALLENGES'], ['arsenal', 'ARSENAL'], ['record', 'RECORD']];
 let progTab = 'renown';
 const MAP_CLEAR = (m) => ACHIEVEMENTS.find((x) => x.stat === 'clear_' + m.id);
 const tabOf = (key) => (key[0] === 'r' ? 'renown' : key[0] === 'c' ? 'classes' : key[0] === 'h' ? 'maps' : ACHIEVEMENTS.some((A) => 'a:' + A.id === key && /^clear_/.test(A.stat)) ? 'maps' : 'challenges');
@@ -315,7 +315,7 @@ function renderProgress() {
     });
     h += '</div>';
   } else if (progTab === 'maps') {
-    h += `<p class="pnote">Each map is its own run. Reach round ${HEIRLOOM_ROUND} for its heirloom, clear it for its reward, and clear it on Hard and Nightmare for the silver and gold medals.</p><div class="pgrid">`;
+    h += `<p class="pnote">Each map is its own run. Survival maps are the side mode. Reach round ${HEIRLOOM_ROUND} and clear each one for renown, and clear it on Hard and Nightmare for the silver and gold medals.</p><div class="pgrid">`;
     WORLD.forEach((m) => {
       const MP = MAPS.find((x) => x.id === m.id), med = Meta.medal(m.id), best = Meta.bestRoundOn(m.id), A = MAP_CLEAR(m), rounds = MP ? MP.rounds : 12;
       h += `<div class="pc ${med ? 'claimed' : ''}"><div class="pt"><b>${esc(m.name)}</b><span>${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${med > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}</span></div>`;
@@ -353,13 +353,6 @@ function renderProgress() {
       h += `<div class="pc ${locked ? 'locked' : lvl >= 5 ? 'claimed' : ''}"><div class="pt"><b style="color:${locked ? '' : RARITY_HEX[W.rarity] || ''}">${esc(W.name)}</b><span>${locked ? 'Locked' : 'Level ' + lvl + ' / 5'}</span></div>`;
       h += locked ? `<div class="pn">${esc(Meta.howToUnlock('guns', W.name))}</div>` : `${bar(lvl >= 5 ? 1 : xp - prev, lvl >= 5 ? 1 : next - prev)}<div class="pn">${xp.toLocaleString()} kills  -  ${lvl < 5 ? 'next: ' + esc(GUN_TRAITS[lvl]) : 'mastered'}</div>`;
       h += '</div>';
-    }
-    h += '</div>';
-  } else if (progTab === 'hands') {
-    h += '<p class="pnote">Your gloves and sleeves. Click one you own to wear it.</p><div class="pgrid">';
-    for (const K of SKINS) {
-      const ok = Meta.skinUnlocked(K.id), sel = Meta.skin().id === K.id;
-      h += `<div class="pc skin ${ok ? '' : 'locked'} ${sel ? 'sel' : ''}" data-skin="${K.id}"><div class="pt"><b><span class="sw"><i style="background:${hexOf(K.glove)}"></i><i style="background:${hexOf(K.cuff)}"></i><i style="background:${hexOf(K.sleeve)}"></i></span>${esc(K.name)}</b><span>${ok ? (sel ? 'Equipped' : 'Owned') : 'Locked'}</span></div>${ok ? '' : `<div class="pn">${esc(Meta.howToUnlock('skin', K.id))}</div>`}</div>`;
     }
     h += '</div>';
   } else {
@@ -681,9 +674,6 @@ function renderLobby() {
       `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`); }
   { const curW = Meta.starter();
     h += group('STARTING GUN', STARTERS.map((T) => { const ok = Meta.starterUnlocked(T.w), W = game ? game.data.weapons.find((w) => w.name === T.w) : null; return chip(`data-w="${esc2(T.w)}"`, curW === T.w, !ok, esc2(T.w), ok ? (W ? W.cls : '') : 'Locked', `data-why="${esc2(Meta.stateOf(T.key) === 'ready' ? 'Earned: claim it in Progress.' : T.text)}" data-grp="w"`); }).join(''), info('w')); }
-  { const cur = Meta.heirloomId(), curM = WORLD.find((m) => m.id === cur), U = curM ? ups.find((u) => u.name === curM.heirloom) : null;
-    h += group('HEIRLOOM', chip('data-heir=""', !cur, false, 'None', '') + WORLD.map((m) => { const ok = Meta.heirloomUnlocked(m.id); return chip(`data-heir="${m.id}"`, cur === m.id, !ok, esc2(m.heirloom), ok ? '' : 'Locked', `data-why="${esc2(Meta.stateOf('h:' + m.id) === 'ready' ? 'Earned: claim it in Progress.' : `Reach round ${HEIRLOOM_ROUND} in ${m.name}.`)}" data-grp="h"`); }).join(''),
-      info('h') || (U ? `You start the run with it. ${esc2(U.desc)}` : 'One buff to start the run with. Each map gives up its own.')); }
   h += '</section>';
   // the Descent's own progression: what going down has earned, and what you take with you
   if (MAPS[curMap] && MAPS[curMap].mode === 'descent') {
@@ -745,8 +735,7 @@ async function beginRun() {
   // a fresh run: start the renown tally, and hand over the heirloom
   if (game.round === 0 && !game.metaRun) {
     game.metaRun = true; Meta.beginRun();
-    const hn = Meta.heirloom(), hi = hn ? game.data.upgrades.findIndex((u) => u.name === hn) : -1;
-    if (hi >= 0 && !P.upgradeStacks[hi]) { P.addUpgrade(hi); game.hud.toast(`Heirloom: ${hn}`, '#ffd24d'); }
+    
     // what each class carries in from the start: the sniper has a sniper rifle on the back as well as the starting gun,
     // and the brawler brings a katana instead of a knife
     if (P.cls.id === 'sniper') { const si = game.data.weapons.findIndex((w) => w.name === 'Widowmaker'), first = P.active; if (si > 0 && !P.weapons.some((S) => S.def === si)) { P.giveWeapon(si); P.switchTo(first); game.vm.setWeapon(P.weapons[first].def, 0, false); } }
