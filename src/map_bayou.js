@@ -30,11 +30,11 @@ export function buildBayou(M) {
     Cyl(V(x, y, 40), d * 1.9, 80, BARK_D, solid, solid); Cyl(V(x, y, 120), d * 1.4, 100, BARK, solid, false); Cyl(V(x, y, h / 2), d, h, BARK, solid, false);
     for (let i = 0; i < 5; i++) { const a = i * 1.257 + rr(-0.3, 0.3), r = d * rr(1.3, 2.0); ConeShape(V(x + Math.cos(a) * r, y + Math.sin(a) * r, 30), V(d * 0.3, d * 0.3, rr(50, 110)), BARK_D, false); }
     for (let i = 0; i < 4; i++) { const a = i * 1.571 + rr(-0.4, 0.4), r = i === 0 ? 0 : d * 1.6; Ball(V(x + Math.cos(a) * r, y + Math.sin(a) * r, h + (i === 0 ? d * 0.5 : rr(-80, 40))), V(d * rr(3.4, 4.6), d * rr(3.4, 4.6), d * 1.5), i % 2 ? LEAF : 0x1e3020); }
-    for (let i = 0; i < 7; i++) { const a = rr(0, 6.283), r = d * rr(1.0, 2.6), l = rr(140, 420); Box(V(x + Math.cos(a) * r, y + Math.sin(a) * r, h - 60 - l / 2), V(10, 26, l), MOSS, false, false, rr(0, 180)); }
+    for (let i = 0; i < 7; i++) { const a = rr(0, 6.283), r = d * rr(1.0, 1.6), l = rr(140, 420); Box(V(x + Math.cos(a) * r, y + Math.sin(a) * r, h + d * 0.1 - l / 2), V(10, 26, l), MOSS, false, false, rr(0, 180)); }   // moss hung from under the crown
   };
   const water = (x0, y0, x1, y1, n = 6) => { Floor(V2(x0, y0), V2(x1, y1), 2, WATER); for (let i = 0; i < n; i++) Glow(V(rr(x0 + 150, x1 - 150), rr(y0 + 150, y1 - 150), 3.2), V(rr(180, 460), rr(120, 300), 1), i % 3 ? ALGAE : 0x1e4020, 1); for (let i = 0; i < n; i++) { const x = rr(x0 + 100, x1 - 100), y = rr(y0 + 100, y1 - 100); Cyl(V(x, y, 3.6), rr(60, 110), 1, 0x3a5a2a, false, false); } };
   const boardwalk = (x0, y0, x1, y1) => { Floor(V2(x0, y0), V2(x1, y1), 3, PLANK); const ax = x1 - x0 > y1 - y0; for (let t = (ax ? x0 : y0) + 60; t < (ax ? x1 : y1); t += 110) Floor(ax ? V2(t, y0) : V2(x0, t), ax ? V2(t + 5, y1) : V2(x1, t + 5), 3.6, PLANK_D); };
-  const wisp = (x, y, z) => { Glow(V(x, y, z), V(26, 26, 30), WISP, 2); Lamp(V(x, y, z), LC(0.6, 1, 0.35), 8, 700, false); };
+  const wisp = (x, y, z) => { Cyl(V(x, y, z / 2 - 6), 5, z, 0x3a4a22, false, false); Glow(V(x, y, z), V(26, 26, 30), WISP, 2); Lamp(V(x, y, z), LC(0.6, 1, 0.35), 8, 700, false); };   // a glowing bulb on a long stalk out of the mire
   const tomb = (x, y, kind, yaw = 0) => {
     const ST = [0x8a8a7a, 0x7a7c70, 0x96947f][kind % 3], w = kind === 1 ? 340 : 300, d = kind === 1 ? 520 : 480, h = kind === 1 ? 330 : kind === 2 ? 150 : 220;
     Box(V(x, y, 14), V(w + 50, d + 50, 28), 0x5e5e52, true, true); Box(V(x, y, h / 2 + 20), V(w, d, h), ST, true, true);
@@ -64,7 +64,7 @@ export function buildBayou(M) {
     // the bank: a dark rim of mud, reeds standing in it, a few cypress knees
     for (const [ax, ay, bx, by] of [[x0, y0, x1, y0], [x0, y1, x1, y1], [x0, y0, x0, y1], [x1, y0, x1, y1]]) {
       const hz = ay === by, len = hz ? bx - ax : by - ay; Floor(hz ? V2(ax - 60, ay - 70) : V2(ax - 70, ay - 60), hz ? V2(bx + 60, ay + 70) : V2(ax + 70, by + 60), 1.3, 0x2a2a1e);
-      for (let t = 90; t < len; t += rr(150, 300)) { const x = hz ? ax + t : ax + rr(-50, 50), y = hz ? ay + rr(-50, 50) : ay + t; if (SPANS.some(([sx0, sy0, sx1, sy1]) => x > sx0 - 150 && x < sx1 + 150 && y > sy0 - 150 && y < sy1 + 150)) continue; for (let k = 0; k < 4; k++) ConeShape(V(x + rr(-60, 60), y + rr(-60, 60), rr(70, 130)), V(14, 14, rr(150, 260)), k % 2 ? 0x4a5a2a : 0x5a6a34, false); if (Math.random() < 0.3) ConeShape(V(x + rr(-40, 40), y + rr(-40, 40), 34), V(40, 40, rr(60, 110)), BARK_D, false); }
+      for (let t = 90; t < len; t += rr(150, 300)) { const x = hz ? ax + t : ax + rr(-50, 50), y = hz ? ay + rr(-50, 50) : ay + t; if (SPANS.some(([sx0, sy0, sx1, sy1]) => x > sx0 - 150 && x < sx1 + 150 && y > sy0 - 150 && y < sy1 + 150)) continue; for (let k = 0; k < 4; k++) { const px = x + rr(-60, 60), py = y + rr(-60, 60); rr(0, 1); const h = rr(150, 260); ConeShape(V(px, py, h / 2 - 12), V(14, 14, h), k % 2 ? 0x4a5a2a : 0x5a6a34, false); } if (Math.random() < 0.3) ConeShape(V(x + rr(-40, 40), y + rr(-40, 40), 34), V(40, 40, rr(60, 110)), BARK_D, false); }
     }
   });
   for (let i = 0; i < 150; i++) { const x = rr(-9200, 9200), y = rr(-7000, 7000); if (bayouWater(x, y) !== 2) continue; if (i % 3) Glow(V(x, y, 1.2), V(rr(200, 600), rr(120, 320), 1), i % 2 ? ALGAE : 0x1e4020, 1); else { Cyl(V(x, y, 1.6), rr(60, 120), 1, 0x3a5a2a, false, false); if (i % 5 === 0) Glow(V(x, y, 10), V(18, 18, 14), 0xb8a888, 2); } }
@@ -87,7 +87,7 @@ export function buildBayou(M) {
     K.lantern(hz ? x0 + 40 : x0 - 20, hz ? y0 - 20 : y0 + 40, 190, LAMP, 700); K.lantern(hz ? x1 - 40 : x1 + 20, hz ? y1 + 20 : y1 - 40, 190, 0x8ad04a, 700);
   }
   const DOORS = [[-3200, -4200, 0, 1500, Z0, Z1], [3200, -4200, 0, 1500, Z0, Z5], [-6150, 0, 90, 2500, Z1, Z2], [6150, 0, 90, 2500, Z5, Z4], [-3200, 4200, 0, 3500, Z2, Z3], [3200, 4200, 0, 3500, Z4, Z3], [0, 1700, 90, 3000, Z0, Z3]];
-  for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Cyl(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 300), 70, 600, BARK, true, false); K.lantern(x + (ax ? s * 232 : 90), y + (ax ? 90 : s * 232), 520, s > 0 ? LAMP : 0x8ad04a, 700); } Box(V(x, y, 600), ax ? V(560, 50, 40) : V(50, 560, 40), BARK_D, false, false); for (let i = 0; i < 5; i++) Box(V(x + (ax ? -180 + i * 90 : 0), y + (ax ? 0 : -180 + i * 90), 560 - rr(20, 60)), V(8, 22, rr(60, 150)), MOSS, false, false, ax ? 0 : 90); }
+  for (const [x, y, yaw] of DOORS) { const ax = yaw === 90; for (const s of [-1, 1]) { Cyl(V(x + (ax ? s * 232 : 0), y + (ax ? 0 : s * 232), 300), 70, 600, BARK, true, false); K.lantern(x + (ax ? s * 232 : 90), y + (ax ? 90 : s * 232), 520, s > 0 ? LAMP : 0x8ad04a, 700); } Box(V(x, y, 600), ax ? V(560, 50, 40) : V(50, 560, 40), BARK_D, false, false); for (let i = 0; i < 5; i++) { rr(20, 60); const l = rr(60, 150); Box(V(x + (ax ? -180 + i * 90 : 0), y + (ax ? 0 : -180 + i * 90), 584 - l / 2), V(8, 22, l), MOSS, false, false, ax ? 0 : 90); } }   // moss hanging off the beam
   // an island cannot be reached until its bridge is paid for, whichever way you come at it
   for (const [mx, my, len, dx] of [[-3200, -3550, 7100, 0], [-3200, 700, 1400, 0], [-3200, 4250, 5700, 0], [3200, -3550, 7100, 0], [3200, 700, 1400, 0], [3200, 4250, 5700, 0], [-6250, 0, 6100, 1], [6250, 0, 6100, 1], [0, 1400, 6400, 1]]) M.world.ZoneCeiling(V2(mx, my), len, 60, 0, V(dx, dx ? 0 : 1, 0));
   // the drowned chapel: what is left of it stands on a hump of ground in the middle of the lagoon. Its door is to the
@@ -154,7 +154,7 @@ export function buildBayou(M) {
     }));
     // the drying yard: racks of fish, a great cypress coming up through the boards, a boat on trestles
     boardwalk(-5300, -3800, -4500, -2900); cypress(-4900, -3350, 900, 240);
-    for (const y of [-3650, -3050]) { for (const s of [-1, 1]) Box(V(-5000 + s * 220, y, 110), V(12, 12, 220), PLANK_D, true, false); Box(V(-5000, y, 214), V(460, 8, 8), PLANK_D, false, false); for (let i = 0; i < 8; i++) Box(V(-5180 + i * 52, y, 160), V(16, 5, 80), 0x8a9a9a, false, false); }
+    for (const y of [-3650, -3050]) { for (const s of [-1, 1]) Box(V(-5000 + s * 220, y, 110), V(12, 12, 220), PLANK_D, true, false); Box(V(-5000, y, 214), V(460, 8, 8), PLANK_D, false, false); for (let i = 0; i < 8; i++) Box(V(-5180 + i * 52, y, 172), V(16, 5, 80), 0x8a9a9a, false, false); }
     // the yard at the north end: the well, a cook fire, a skiff hauled out
     Cyl(V(-5600, -700, 50), 200, 100, 0x6a6a5e, true, true); Cyl(V(-5600, -700, 102), 160, 6, 0x0e1a16, false, false); for (const s of [-1, 1]) Box(V(-5600 + s * 110, -700, 170), V(14, 14, 240), PLANK_D, false, false); Box(V(-5600, -700, 290), V(260, 20, 14), PLANK_D, false, false); Box(V(-5600, -700, 220), V(4, 4, 130), 0x7a6a4a, false, false);
     for (let k = 0; k < 6; k++) { const a = k * 1.047; Box(V(-3900 + Math.cos(a) * 70, -650 + Math.sin(a) * 70, 14), V(90, 22, 22), BARK_D, false, false, k * 60 + 90); } Glow(V(-3900, -650, 30), V(50, 50, 40), 0xFF6A2A, 3); Lamp(V(-3900, -650, 60), LC(1, 0.5, 0.2), 12, 1100, false);
@@ -238,7 +238,7 @@ export function buildBayou(M) {
     for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) Box(V(4500 + sx * 700, -3000 + sy * 320, 190), V(22, 22, 380), PLANK_D, true, false); BoxRot(V(4500, -3000, 400), V(1560, 800, 14), 0x8a7a5a, R(0, 0, 8), false);
     for (let i = 0; i < 3; i++) { const x = 4000 + i * 500, y = -3000;
       Cyl(V(x, y, 30), 230, 60, 0x5a5a52, true, true); Cyl(V(x, y, 150), 190, 180, 0x9a5a30, true, false); ConeShape(V(x, y, 300), V(190, 190, 130), 0xb86a3a, false); Cyl(V(x, y, 380), 30, 60, 0xb86a3a, false, false);
-      BoxRot(V(x + 110, y, 380), V(230, 16, 16), 0xb86a3a, R(-20, 0, 0), false); for (let k = 0; k < 4; k++) Ring(V(x + 220, y, 300 - k * 34), V(110, 14, 110), 0xb86a3a, R(0, 0, 90)); Barrel(V(x + 220, y, 0), 0x5a4a3a); Glow(V(x, y - 100, 40), V(90, 30, 50), 0xFF6A2A, 0); Lamp(V(x, y - 160, 60), LC(1, 0.5, 0.2), 10, 800, false); }
+      BoxRot(V(x + 110, y, 380), V(230, 16, 16), 0xb86a3a, R(-20, 0, 0), false); for (let k = 0; k < 3; k++) Cyl(V(x + 220, y, 117 + k * 12), 96 - k * 10, 12, 0xb86a3a, false, false); Barrel(V(x + 220, y, 0), 0x5a4a3a); Glow(V(x, y - 100, 40), V(90, 30, 50), 0xFF6A2A, 0); Lamp(V(x, y - 160, 60), LC(1, 0.5, 0.2), 10, 800, false); }   // a coil of rope on the barrel
     // barrel ricks, crates of jars, two wagons loaded for a run that never left
     for (const [x, y, yaw] of [[3300, -1200, 0], [3300, -1700, 0], [6300, -4300, 90], [5300, -5100, 90]]) { for (let k = 0; k < 2; k++) for (let j = 0; j < 3 - k; j++) Cyl(V(x + (yaw ? (j - (2 - k) / 2) * 116 : 0), y + (yaw ? 0 : (j - (2 - k) / 2) * 116), 58 + k * 100), 110, 150, k ? 0x5a4a3a : 0x4a3a30, true, false, yaw ? R(0, 0, 90) : R(90, 0, 0)); GM.NavBlockBox({ min: V(x - (yaw ? 190 : 90), y - (yaw ? 90 : 190), 0), max: V(x + (yaw ? 190 : 90), y + (yaw ? 90 : 190), 150) }, 1); }
     Wagon(V(5600, -2700, 0), -20); Wagon(V(3600, -3900, 0), 70);

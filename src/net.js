@@ -341,7 +341,7 @@ export const Net = {
     this._in = true;
     if (d[0] === 'ring') g.hazards.ring(at, Math.min(a[0], 500), Math.max(100, a[1]), Math.min(a[2], 4000), col);
     else if (d[0] === 'marker') g.hazards.marker(at, Math.min(a[0], 500), Math.min(a[1], 1200), Math.min(a[2], 10), col);
-    else if (d[0] === 'fire') g.hazards.fire(at, Math.min(a[0], 300), Math.min(a[1], 800), Math.min(a[2], 20));
+    else if (d[0] === 'fire') g.hazards.fire(at, Math.min(a[0], 300), Math.min(a[1], 800), Math.min(a[2], 20), Array.isArray(d[5]) ? col : undefined);
     this._in = false;
   },
   openDoorIdx(i) { const g = this.game, D = g && g.interactables[i | 0]; if (D && D.type === 'Door' && !D.open) { this._door = true; g.openDoor(D); this._door = false; } },

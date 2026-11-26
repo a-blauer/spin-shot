@@ -223,10 +223,10 @@ export function buildFrost(M) {
       for (const y of [3640, 2510]) { Box(V((x0 + x1) / 2, y + (y > 3000 ? -40 : 40), 12), V(220, 80, 24), TIMBER_D, true, false); }
     });
     // down the middle of the street: woodpiles, the wash line, the cookhouse bell
-    for (const [x, n] of [[-6300, 5], [-4000, 4]]) { for (let k = 0; k < 3; k++) for (let j = 0; j < n - k; j++) Cyl(V(x + (j - (n - 1 - k) / 2) * 62, 3075, 30 + k * 54), 60, 300, k % 2 ? 0x6a4a2e : 0x5a3e28, false, false, R(0, 0, 90)); Box(V(x, 3075, 190), V(n * 62 + 30, 320, 12), SNOW, false, false); M.Blocker(V(x, 3075, 90), V(n * 62, 300, 180)); GM.NavBlockBox({ min: V(x - n * 31, 2925, 0), max: V(x + n * 31, 3225, 180) }, 1); }
+    for (const [x, n] of [[-6300, 5], [-4000, 4]]) { for (let k = 0; k < 3; k++) for (let j = 0; j < n - k; j++) Cyl(V(x + (j - (n - 1 - k) / 2) * 62, 3075, 30 + k * 54), 60, 300, k % 2 ? 0x6a4a2e : 0x5a3e28, false, false, R(0, 0, 90)); Box(V(x, 3075, 172), V(n * 62 + 30, 320, 12), SNOW, false, false); M.Blocker(V(x, 3075, 90), V(n * 62, 300, 180)); GM.NavBlockBox({ min: V(x - n * 31, 2925, 0), max: V(x + n * 31, 3225, 180) }, 1); }
     for (const x of [-5500, -4700]) Box(V(x, 3075, 130), V(14, 14, 260), TIMBER_D, true, false); Box(V(-5100, 3075, 250), V(800, 4, 4), 0x1c1a1c, false, false);
     for (let i = 0; i < 6; i++) Box(V(-5420 + i * 128, 3075, 200), V(90, 4, 90 + (i % 3) * 20), [0xc8322a, 0xdfe8ee, 0x3a4a6a, 0xb8a888][i % 4], false, false);
-    { const x = -5150, y = 2700; Box(V(x, y, 160), V(16, 16, 320), TIMBER_D, true, false); Box(V(x + 40, y, 316), V(100, 10, 10), TIMBER_D, false, false); ConeShape(V(x + 80, y, 270), V(60, 60, 60), 0xb9974a, false); }
+    { const x = -5150, y = 2700; Box(V(x, y, 160), V(16, 16, 320), TIMBER_D, true, false); Box(V(x + 40, y, 316), V(100, 10, 10), TIMBER_D, false, false); ConeShape(V(x + 80, y, 283), V(60, 60, 60), 0xb9974a, false); }
     // an outhouse at the end of each alley, a sled, a chopping block
     for (const [x, y] of [[-5650, 4330], [-4450, 1640]]) { Box(V(x, y, 130), V(140, 140, 260), 0x4a3a30, true, true); BoxRot(V(x, y, 280), V(170, 170, 12), 0x2e2a30, R(10, 0, 0), false); Box(V(x, y, 296), V(150, 150, 12), SNOW, false, false); }
     Cyl(V(-6800, 3075, 30), 90, 60, 0x5a3e28, true, true); BoxRot(V(-6790, 3075, 90), V(8, 8, 90), TIMBER, R(0, 0, 30), false); Barrel(V(-3300, 3300, 0), 0x4a3a30);

@@ -103,7 +103,7 @@ export function buildWharf(M) {
     { const x = 1100, y = 1100; Cyl(V(x, y, 60), 300, 120, STONE, true, true); Cyl(V(x, y, 300), 90, 360, IRON, true, false); BoxRot(V(x - 160, y + 60, 620), V(760, 30, 30), IRON, R(34, 160, 0), false); Box(V(x + 110, y - 40, 420), V(200, 160, 160), 0x5a2a26, true, false); Ring(V(x + 110, y - 126, 430), V(150, 14, 150), IRON, R(0, 0, 0));
       Box(V(x - 440, y + 160, 600), V(5, 5, 460), ROPE, false, false); Box(V(x - 440, y + 160, 330), V(160, 130, 110), 0xb8a888, false, false); Box(V(x - 440, y + 160, 330), V(166, 14, 116), ROPE, false, false); }
     for (const [x, y] of [[-1700, 1300], [-1100, 1350], [600, 1350], [1750, 700]]) { Cyl(V(x, y, 45), 60, 90, IRON, true, false); Cyl(V(x, y, 94), 80, 12, IRON, false, false); }
-    for (const [x, y] of [[-300, 1250], [1500, -300]]) { for (let k = 0; k < 4; k++) Ring(V(x, y, 10 + k * 14), V(150 - k * 10, 14, 150 - k * 10), ROPE, R(0, 0, 90)); }
+    for (const [x, y] of [[-300, 1250], [1500, -300]]) { for (let k = 0; k < 4; k++) Cyl(V(x, y, 7 + k * 14), 150 - k * 14, 14, ROPE, false, false); }   // a coil of rope
     for (const [x, y] of [[-1500, -500], [1400, 500], [-1300, 1000], [300, 500], [1500, -1100]]) StreetLamp(V(x, y, 0), x < 0 ? 0 : 180);
     Crate(V(1600, 1200, 0), 140); Crate(V(1760, 1260, 0), 110); Crate(V(1600, 1200, 140), 100); Barrel(V(-1750, -1200, 0), 0x4a3a30); Barrel(V(-1640, -1280, 0), 0x3a4a5a); Barrel(V(-1760, -1060, 0), 0x4a3a30); Crate(V(1700, -700, 0), 120);
     { const x = 500, y = -200; Box(V(x, y, 60), V(300, 150, 14), PLANK, true, true, 20); for (const s of [-1, 1]) Ring(M.L(V(x, y, 0), 20, -60, s * 84, 60), V(120, 10, 120), PLANK_D, R(0, 20, 0)); Box(M.L(V(x, y, 0), 20, 0, 0, 100), V(200, 110, 70), 0x8a9aa0, false, false, 20); }
@@ -121,7 +121,7 @@ export function buildWharf(M) {
     // the smoke house stands in the south rank, still going
     K.cabin(-4200, -930, -3600, -370, 300, 0x4a4038, 0x2a2a30, { door: 90, glow: 0xb85a2a, rise: 150 }); Sign(V(-3900, -364, 250), 90, 'SMOKE HOUSE', { r: 0.85, g: 0.8, b: 0.7 }, 30);
     // racks of split cod along the water, lobster pots, casks of brine
-    for (const x of [-6200, -5000, -3800, -2700]) { for (const s of [-1, 1]) Box(V(x + s * 260, 1410, 120), V(12, 12, 240), PLANK_D, false, false); Box(V(x, 1410, 236), V(540, 8, 8), PLANK_D, false, false); for (let i = 0; i < 10; i++) Box(V(x - 230 + i * 51, 1410, 180), V(22, 5, 90), i % 3 ? 0xa8a898 : 0x8a8a7a, false, false); }
+    for (const x of [-6200, -5000, -3800, -2700]) { for (const s of [-1, 1]) Box(V(x + s * 260, 1410, 120), V(12, 12, 240), PLANK_D, false, false); Box(V(x, 1410, 236), V(540, 8, 8), PLANK_D, false, false); for (let i = 0; i < 10; i++) Box(V(x - 230 + i * 51, 1410, 189), V(22, 5, 90), i % 3 ? 0xa8a898 : 0x8a8a7a, false, false); }
     for (const [x, y] of [[-6750, 500], [-2300, -500]]) { for (let k = 0; k < 3; k++) for (let j = 0; j < 3 - k; j++) { Cyl(V(x, y + (j - (2 - k) / 2) * 90, 36 + k * 66), 84, 110, 0x6a5a40, k === 0, false, R(90, 0, 0)); } GM.NavBlockBox({ min: V(x - 60, y - 140, 0), max: V(x + 60, y + 140, 150) }, 1); }
     for (const [x, y] of [[-2350, 700], [-6750, -700]]) { Barrel(V(x, y, 0), 0x3a4a5a); Barrel(V(x + 20, y + 120, 0), 0x4a3a30); Crate(V(x - 10, y - 130, 0), 90); }
     for (const [x, y] of [[-5550, 0], [-4450, 0], [-3350, 0], [-5550, 1190], [-3350, 1190], [-5550, -1190], [-2350, -1190]]) K.post(x, y, 380, GAS, IRON, 900);
@@ -137,7 +137,7 @@ export function buildWharf(M) {
     for (const [x, y, n] of [[-6800, -3000, 3], [-6800, -4000, 2], [-4700, -3900, 2], [-2500, -3000, 3], [-300, -4500, 3], [-300, -2200, 2]]) for (let k = 0; k < n; k++) Crate(V(x + (k % 2) * 30, y + k * 150, 0), 140 - k * 14);
     for (const [x, y] of [[-4700, -2800], [-4640, -2940], [-2500, -4100], [-2440, -3960], [-5600, -1800], [-3900, -4850]]) Barrel(V(x, y, 0), (x | 0) % 2 ? 0x4a3a30 : 0x3a4a5a);
     for (const [x, y] of [[-6000, -1950], [-3300, -1950], [-1500, -2050]]) { Box(V(x, y, 70), V(180, 130, 140), 0xb8a888, true, true, rr(-10, 10)); Box(V(x, y, 70), V(186, 14, 146), ROPE, false, false); Box(V(x + 200, y + 20, 70), V(180, 130, 140), 0xa89878, true, true, rr(-10, 10)); }
-    { const x = -5000, y = -4780; Box(V(x, y, 80), V(420, 200, 20), PLANK, true, true); for (const sx of [-1, 1]) for (const sy of [-1, 1]) Ring(V(x + sx * 140, y + sy * 110, 70), V(140, 12, 140), PLANK_D, R(0, 0, 0)); for (let k = 0; k < 3; k++) Cyl(V(x - 110 + k * 110, y, 150), 100, 130, 0x4a3a30, false, false, R(0, 0, 90)); Box(V(x + 300, y, 90), V(200, 10, 10), PLANK_D, false, false); }
+    { const x = -5000, y = -4780; Box(V(x, y, 80), V(420, 200, 20), PLANK, true, true); for (const sx of [-1, 1]) for (const sy of [-1, 1]) Ring(V(x + sx * 140, y + sy * 110, 70), V(140, 12, 140), PLANK_D, R(0, 0, 0)); for (let k = 0; k < 3; k++) Cyl(V(x - 110 + k * 110, y, 140), 100, 130, 0x4a3a30, false, false, R(0, 0, 90)); Box(V(x + 300, y, 90), V(200, 10, 10), PLANK_D, false, false); }
     for (const [x, y] of [[-4700, -4400], [-4700, -2000], [-2500, -4400], [-2500, -2000], [-6800, -1800], [-300, -3300], [-300, -1800]]) K.post(x, y, 420, GAS, IRON, 900);
     Station('AmmoCrate', V(-6850, -4820, 0), 0, 2000, -1, 'Ammo');
     wallbuy('Iron Mule', -4700, -4896, 90); wallbuy('Dynamite Dan', -36, -4200, 180); wallbuy('Homesteader', -2500, -1540, -90);
@@ -196,7 +196,7 @@ export function buildWharf(M) {
       Cyl(V(x, y + 150, 600), 40, 980, PLANK_D, true, false); BoxRot(V(x, y - 60, 480), V(20, 560, 20), PLANK_D, R(0, 0, 14), false); for (let i = 0; i < 4; i++) Box(V(x - 150 + i * 100, y + 380, 136), V(80, 80, 44), 0x4a3a2c, false, false);
       Ramp(V(-420, 2900, 0), V(-620, 2900, 112), 190, PLANK_D); }
     // on the pier itself
-    for (const [x, y] of [[-335, 2300], [335, 3400], [-335, 4300]]) { Barrel(V(x, y, 0), 0x4a3a30); } Crate(V(320, 2250, 0), 110); Crate(V(-315, 3500, 0), 120); for (let k = 0; k < 3; k++) Ring(V(200, 4350, 10 + k * 14), V(140 - k * 10, 14, 140 - k * 10), ROPE, R(0, 0, 90));
+    for (const [x, y] of [[-335, 2300], [335, 3400], [-335, 4300]]) { Barrel(V(x, y, 0), 0x4a3a30); } Crate(V(320, 2250, 0), 110); Crate(V(-315, 3500, 0), 120); for (let k = 0; k < 3; k++) Cyl(V(200, 4350, 7 + k * 14), 140 - k * 14, 14, ROPE, false, false);
     for (const [x, y] of [[-400, 2500], [392, 3500], [-400, 3900], [392, 4400]]) K.post(x, y, 380, GAS, IRON, 900);
     for (const [x, y] of [[-1600, 1575], [1500, 1575]]) StreetLamp(V(x, y, 0), 90);
     Crate(V(-1300, 1615, 0), 130); Crate(V(-1430, 1600, 0), 100); Barrel(V(1300, 1590, 0), 0x3a4a5a); Barrel(V(1385, 1590, 0), 0x4a3a30);

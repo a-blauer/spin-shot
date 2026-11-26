@@ -158,5 +158,7 @@ export function props(K, Q) {
   P.lampPost = (x, y, h, lampc, col = iron, z = 0) => { solid(x, y, z, 22, 22, h, col, false); deco(x, y, z, 50, 50, 14, col); deco(x, y, z + h, 46, 46, 50, col); Glow(V(x, y, z + h + 25), V(32, 32, 36), 0xffe6a0, 0); L(x, y, z + h + 30, lampc, 1300, 2); };
   // something hanging from the roof on a chain, clear of heads: `fn(z)` draws it at the chain's end
   P.hung = (x, y, z, fn) => { chain(x, y, z, H); fn(z); tall(x, y, 260); };
+  // each thing is built whole or not at all (see World.group)
+  const Wd = M.world; if (Wd && Wd.group) for (const k of Object.keys(P)) if (typeof P[k] === 'function' && k !== 'pool' && k !== 'fence') { const f = P[k]; P[k] = (...a) => Wd.group(() => f(...a), 'P.' + k); }
   return P;
 }

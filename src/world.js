@@ -77,6 +77,7 @@ const COLGEOS = [
 export const PRIM = { GEOS };
 // test builds can ask for every drawn piece and every collision body to be recorded (?scan=1), to find things you walk through
 const SCAN = typeof location !== 'undefined' && /[?&]scan=1/.test(location.search);
+const SCAN_STACK = SCAN && /[?&]stack=1/.test(location.search);   // test-only: where each piece was laid, to find the code behind a stray one
 // Sculpted shapes (draped cloth, trees, cushions, barrels): built once in UE coordinates by build() -> { pos, col, idx }
 // (col: linear-free sRGB floats per vertex, the way every other colour here is authored), cached by key, and drawn like
 // any other primitive: one instanced batch per shape. They never collide; a prop that has a body adds its own.
@@ -145,13 +146,28 @@ export class World {
     }
     return false;
   }
+  // One thing made of many pieces (a container and its ribs, a rack and its arms) is kept or cut away whole: when a room's
+  // walls carve its furniture, a piece left standing on its own after the rest was cut would float.
+  group(fn, name = '') {
+    if (!this.carve || this.grp) return fn();
+    const G = this.grp = { hit: false, inst: [], nav: [], n: [this.colSolid.length, (this.scanAll || []).length, (this.scanDraw || []).length, (this.scanCol || []).length] };
+    try { return fn(); } finally {
+      this.grp = null; this.lastCut = G.hit;
+      if (G.hit) {
+        for (const [arr, e] of G.inst) { const i = arr.lastIndexOf(e); if (i >= 0) arr.splice(i, 1); }
+        this.colSolid.length = G.n[0]; if (this.scanAll) this.scanAll.length = G.n[1]; if (this.scanDraw) this.scanDraw.length = G.n[2]; if (this.scanCol) this.scanCol.length = G.n[3];
+        for (const b of G.nav) this.game.navBlockBox3(b, -1);
+        if (SCAN) (this.grpDrops || (this.grpDrops = [])).push([name, G.inst.length]);
+      }
+    }
+  }
   AddInstance(meshId, center, size, rot, color, collide, glow, nav) {
     const m = this._matrix(center, size, rot);
-    if (this.carve) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); const b = gg.boundingBox.clone().applyMatrix4(m); if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) return; }
+    if (this.carve) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); const b = gg.boundingBox.clone().applyMatrix4(m); if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) { if (this.grp) this.grp.hit = true; return; } }
     const key = meshId + '|' + (glow ? 1 : 0) + '|' + (this.chunk === undefined || this.chunk === null ? -1 : this.chunk);   // a map can build in chunks, and show one at a time
     if (!this.inst.has(key)) this.inst.set(key, []);
-    this.inst.get(key).push({ m, c: hex(color) });
-    if (SCAN) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanAll || (this.scanAll = [])).push([meshId, glow ? 1 : 0, this.chunk, gg.boundingBox.clone().applyMatrix4(m), m.elements.slice()]); }
+    const E = { m, c: hex(color) }; this.inst.get(key).push(E); const G = this.grp; if (G) G.inst.push([this.inst.get(key), E]);
+    if (SCAN) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanAll || (this.scanAll = [])).push([meshId, glow ? 1 : 0, this.chunk, gg.boundingBox.clone().applyMatrix4(m), m.elements.slice(), SCAN_STACK ? new Error().stack.split('\n').slice(2, 6).join('|') : 0]); }
     if ((SCAN || this.recordProps) && !glow) { const gg = GEOS[meshId]; if (!gg.boundingBox) gg.computeBoundingBox(); (this.scanDraw || (this.scanDraw = [])).push({ id: meshId, ch: this.chunk, b: gg.boundingBox.clone().applyMatrix4(m), fill: (() => { const u = gg.boundingBox, uv = (u.max.x - u.min.x) * (u.max.y - u.min.y) * (u.max.z - u.min.z), w = gg.boundingBox.clone().applyMatrix4(m), wv = (w.max.x - w.min.x) * (w.max.y - w.min.y) * (w.max.z - w.min.z); return wv > 0 ? (Math.abs(m.determinant()) * uv) / wv : 0; })(), collide: !!collide, shape: gg.userData.shape || '' }); }
     if (collide) {
       const g = COLGEOS[meshId].clone().applyMatrix4(m);
@@ -159,7 +175,7 @@ export class World {
       if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
       if (nav) {
         const b = new THREE.Box3().setFromBufferAttribute(g.attributes.position);
-        this.game.navBlockBox3(b, 1);
+        this.game.navBlockBox3(b, 1); if (G) G.nav.push(b);
       }
     }
   }
@@ -181,10 +197,10 @@ export class World {
   // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
   Solid(center, size, nav = true, yaw = 0) {
     const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null));
-    if (this.carve) { g.computeBoundingBox(); const b = g.boundingBox; if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) return; }
+    if (this.carve) { g.computeBoundingBox(); const b = g.boundingBox; if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) { if (this.grp) this.grp.hit = true; return; } }
     this.colSolid.push(g);
     if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
-    if (nav) this.game.navBlockBox3(new THREE.Box3().setFromBufferAttribute(g.attributes.position), 1);
+    if (nav) { const b = new THREE.Box3().setFromBufferAttribute(g.attributes.position); this.game.navBlockBox3(b, 1); if (this.grp) this.grp.nav.push(b); }
   }
   // Anything drawn in this chunk that is chunky enough to look solid where a body walks (a column, a boulder, a lamp post,
   // a cask), and that nothing solid already fills, is made solid: you should never walk through what looks like a thing.

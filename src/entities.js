@@ -248,7 +248,7 @@ export class Hazards {
   fire(ground, dps, radius, life, color = lin(1, 0.35, 0.05)) {
     const H = this._add({ kind: 'Fire', pos: ground.clone(), damage: dps, radius, life, color, puff: 0 });
     H.disc = part(H.group, 1, V3(0, 2, 0), V3(radius * 2, 4, radius * 2), color, 1.2);
-    this.game.net.sentHazard('fire', ground, [dps, radius, life]);
+    this.game.net.sentHazard('fire', ground, [dps, radius, life], color);
     return H;
   }
   update(dt) {
@@ -272,11 +272,13 @@ export class Hazards {
         const t = Math.min(1, H.age / H.delay);
         H.inner.scale.set(H.radius * 2 * t, 4, H.radius * 2 * t);
         if (H.age >= H.delay) {
-          G.fx.explosion(H.pos.clone().add(V3(0, 40, 0)), H.radius, H.color);
-          G.audio.playAt('S_Explosion', H.pos, 0.8, 1.1, 0.1);
-          G.shakeAt(H.pos, H.radius);
-          // markers laid as one attack (a sweep, a wall of nails) share a group: standing where two overlap is one hit, not two
-          if (Math.hypot(P.pos.x - H.pos.x, P.pos.z - H.pos.z) < H.radius + 30 && P.pos.y < H.pos.y + 400 && !(H.gid && P.hzGroup === H.gid)) { if (H.gid) P.hzGroup = H.gid; P.receiveDamage(H.damage, H, false); }
+          if (H.damage > 0) {   // a marker with no damage is a warning only: what it warned of is laid down by whoever drew it
+            G.fx.explosion(H.pos.clone().add(V3(0, 40, 0)), H.radius, H.color);
+            G.audio.playAt('S_Explosion', H.pos, 0.8, 1.1, 0.1);
+            G.shakeAt(H.pos, H.radius);
+            // markers laid as one attack (a sweep, a wall of nails) share a group: standing where two overlap is one hit, not two
+            if (Math.hypot(P.pos.x - H.pos.x, P.pos.z - H.pos.z) < H.radius + 30 && P.pos.y < H.pos.y + 400 && !(H.gid && P.hzGroup === H.gid)) { if (H.gid) P.hzGroup = H.gid; P.receiveDamage(H.damage, H, false); }
+          }
           H.age = H.life + 1;
         }
       } else {

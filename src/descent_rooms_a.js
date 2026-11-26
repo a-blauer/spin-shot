@@ -103,7 +103,7 @@ export const ROOMS_A = [
       for (const e of [-1, 1]) Box(V(0, e * 380, 520 + (H - 520) / 2), V(14, 14, H - 520), dark, false, false); Box(V(0, 0, 520), V(40, 800, 20), steel, false, false); for (let y = -330; y <= 330; y += 110) { Cyl(V(0, y, 480), 6, 70, steel, false, false); Box(V(0, y, 436), V(26, 8, 20), steel, false, false); }
       hit(0, 0, 0, 220, 800, 90, true); L(0, 0, 440, T.lamp, 2200, 3);
       // strip curtains at the ends of the door aisle
-      for (const s of [-1, 1]) { Box(V(0, s * 2950, 600), V(1000, 20, 30), steel, false, false); for (let x = -470; x <= 470; x += 78) { if (Math.abs(x) < 160) continue; Box(V(x, s * 2950, 320), V(66, 6, 540), (x / 78 | 0) % 2 ? 0x9ab6c8 : 0x7a96a8, false, false); } }
+      for (const s of [-1, 1]) { Box(V(0, s * 2950, 600), V(1000, 20, 30), steel, false, false); for (let x = -470; x <= 470; x += 78) { if (Math.abs(x) < 160) continue; Box(V(x, s * 2950, 300), V(66, 6, 590), (x / 78 | 0) % 2 ? 0x9ab6c8 : 0x7a96a8, false, false); } }
       // the cutting floor: blocks, a band saw, tubs
       for (const s of [-1, 1]) {
         solid(s * 700, 0, 0, 120, 120, 84, 0x7a5a3a); deco(s * 700, 0, 84, 40, 12, 26, steel); P.table(s * 1500, s * 300, true, 300, steel);
@@ -135,10 +135,10 @@ export const ROOMS_A = [
         for (const c of [-1, 1]) { Cyl(V(c * 380, e * 500, 40 + 50), 60, 100, stone, false, false); Ball(V(c * 380, e * 500, 40 + 130), V(90, 90, 80), 0x7a7e80); Cyl(V(c * 380, e * 500, 40 + 176), 50, 14, stone, false, false); }
         deco(0, e * 425, 420, 720, 40, 60, 0x7a7e80); }
       for (const z of [130, 260]) deco(0, 0, 40 + z, 632, 812, 12, 0x3a3e40);
-      Box(V(0, 0, 690), V(60, 60, 30), stone, false, false); Box(V(0, 0, 760), V(40, 30, 110), 0x8a8e90, false, false); Ball(V(0, 0, 840), V(40, 40, 44), 0x8a8e90); for (const e of [-1, 1]) BoxRot(V(e * 50, 0, 760), V(14, 60, 130), 0x8a8e90, R(0, 0, e * 30), false);
+      Box(V(0, 0, 690), V(60, 60, 30), stone, false, false); Box(V(0, 0, 760), V(40, 30, 110), 0x8a8e90, false, false); Ball(V(0, 0, 840), V(40, 40, 44), 0x8a8e90); for (const e of [-1, 1]) BoxRot(V(e * 26, 0, 760), V(14, 60, 130), 0x8a8e90, R(0, 0, e * 30), false);
       L(0, 0, 900, T.lamp, 2600, 2.6); tall(0, 0, 760);
       // lanterns on shepherd's crooks down the paths
-      for (const s of [-1, 1]) for (const d of [1100, 2300, 3500]) { for (const [x, y] of [[s * 300, d], [s * 300, -d], [d, s * 260], [-d, s * 260]]) { if (Math.abs(x) > hx - 600 || Math.abs(y) > hy - 700) continue; Box(V(x, y, 100), V(10, 10, 200), 0x2a2e30, false, false); Box(V(x + 20, y, 200), V(50, 8, 8), 0x2a2e30, false, false); Box(V(x + 40, y, 170), V(24, 24, 36), 0x2a2e30, false, false); Glow(V(x + 40, y, 170), V(16, 16, 24), T.glow, 0); } }
+      for (const s of [-1, 1]) for (const d of [1100, 2300, 3500]) { for (const [x, y] of [[s * 300, d], [s * 300, -d], [d, s * 260], [-d, s * 260]]) { if (Math.abs(x) > hx - 600 || Math.abs(y) > hy - 700) continue; Box(V(x, y, 100), V(10, 10, 200), 0x2a2e30, false, false); Box(V(x + 20, y, 200), V(50, 8, 8), 0x2a2e30, false, false); Box(V(x + 40, y, 178), V(24, 24, 36), 0x2a2e30, false, false); Glow(V(x + 40, y, 178), V(16, 16, 24), T.glow, 0); } }
       // plots: a rail round three sides, graves in two ranks, a tree at the back
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const [px, py] of [[1700, 1500], [3300, 1500], [1700, 3300], [3300, 3300]]) {
         const x = sx * px, y = sy * py;

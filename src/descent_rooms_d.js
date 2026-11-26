@@ -68,7 +68,7 @@ export const ROOMS_D = [
       for (const e of [-1, 1]) { Cyl(V(e * 200, 0, 40 + 320), 90, 240, 0x8a8e96, false, false); Cyl(V(e * 200, 0, 40 + 460), 120, 30, iron, false, false); }
       sh(SH.crushedCar(body[0], 3), 0, 60, 100, 90); sh(SH.car(body[3], 1), -80, -480, 40, 90);
       for (let k = 0; k < 6; k++) Box(V(-360 + k * 144, -336, 40 + 30), V(70, 6, 50), k % 2 ? 0x1a1a1a : yel, false, false);   // hazard stripes
-      hit(0, 0, 40, 720, 560, 100, true); Glow(V(0, -334, 40 + 300), V(60, 4, 60), 0xff3a2a, 0); L(0, 0, 900, [1, 0.6, 0.3], 2400, 2.4); tall(0, 0, 720);
+      hit(0, 0, 40, 720, 560, 100, true); Glow(V(-200, 0, 40 + 475 + 11), V(30, 30, 22), 0xff3a2a, 2);   // the warning lamp, on the crusher's post L(0, 0, 900, [1, 0.6, 0.3], 2400, 2.4); tall(0, 0, 720);
       // the crane: a lattice mast, a jib out over the yard, its cable down to a magnet with a wreck stuck to it
       { const mx = -3300, my = -3300; solid(mx, my, 0, 420, 420, 60, conc); for (const a of [-1, 1]) for (const b of [-1, 1]) Box(V(mx + a * 130, my + b * 130, 60 + 650), V(30, 30, 1300), yel, false, false);
         for (let z = 160; z < 1300; z += 180) Box(V(mx, my, 60 + z), V(290, 290, 16), yel, false, false);
@@ -160,7 +160,7 @@ export const ROOMS_D = [
   // A forest of columns standing in water. The whole floor is ankle deep but for a raised causeway from door to door
   // and across; the columns are close and regular, so you fight in glimpses down the rows.
   mk(TH('The Cistern', 0x16222a, 0x1e2e38, 0x2a3a44, 0x8a9a9a, 0x5ac8ff, [0.5, 0.85, 1], 0x0e1e2a, [0.42, 0.56, 0.68]), [4400, 5000, 1400], { panel: 'arch', hang: 'none', corner: 'none', c1: 0x5a6a6e, c2: 0x101c22 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, tile, plat, solid, deco, hit, tall, L, barrel, crate, AX, AY, P, BoxRot }) => {
+    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, tile, plat, solid, deco, hit, tall, L, barrel, crate, AX, AY, P, BoxRot, world }) => {
       const stone = 0x6a7a7e, water = 0x12303e, pale = 0x9aaaae, moss = 0x3a6a4a;
       tile(-hx, -hy, hx, hy, 1.6, water);
       for (let i = 0; i < 60; i++) { const x = ((i * 787) % (hx * 2 - 400)) - hx + 200, y = ((i * 449) % (hy * 2 - 400)) - hy + 200; Glow(V(x, y, 3.2), V(140 + (i % 4) * 60, 8, 2), 0x5ac8ff, 0, R(0, (i * 37) % 180, 0)); }
@@ -168,7 +168,7 @@ export const ROOMS_D = [
       Box(V(0, 0, 20), V(700, hy * 2 - 500, 40), stone, true, false); Box(V(0, 0, 20), V(hx * 2 - 500, 700, 40), stone, true, false); for (const s of [-1, 1]) { tile(s * 330 - 12, -hy + 300, s * 330 + 12, hy - 300, 41.4, pale); tile(-hx + 300, s * 330 - 12, hx - 300, s * 330 + 12, 41.4, pale); }
       // the columns: a grid, alternate ones with a carved base (a great head, on its side, as these places have)
       const xs = [-3500, -2500, -1500, 1500, 2500, 3500], ys = [-4000, -3000, -2000, -1000, 1000, 2000, 3000, 4000];
-      for (const x of xs) for (const y of ys) { const odd = (Math.round(x / 1000) + Math.round(y / 1000)) % 2; P.column(x, y, 300, odd ? stone : 0x5a6a6e, pale, 'round'); Cyl(V(x, y, 120), 320, 60, moss, false, false); if ((x * 3 + y) % 4000 === 500) { Box(V(x, y, 75), V(480, 480, 150), pale, true, true); for (const e of [-1, 1]) Ball(V(x + e * 110, y - 246, 90), V(70, 20, 50), 0x2a3a44); } }
+      for (const x of xs) for (const y of ys) world.group(() => { const odd = (Math.round(x / 1000) + Math.round(y / 1000)) % 2; P.column(x, y, 300, odd ? stone : 0x5a6a6e, pale, 'round'); Cyl(V(x, y, 120), 320, 60, moss, false, false); if ((x * 3 + y) % 4000 === 500) { Box(V(x, y, 75), V(480, 480, 150), pale, true, true); for (const e of [-1, 1]) Ball(V(x + e * 110, y - 246, 90), V(70, 20, 50), 0x2a3a44); } });
       for (const x of xs) Box(V(x, 0, H - 60), V(180, hy * 2 - 60, 120), 0x1e2a32, false, false);
       // the well-head at the crossing, lit from inside
       Oct(V(0, 0, 40 + 60), V(520, 520, 120), stone, true, true); Oct(V(0, 0, 40 + 126), V(560, 560, 12), pale, false, false); Glow(V(0, 0, 40 + 112), V(400, 400, 8), T.glow, 1); L(0, 0, 420, T.lamp, 2600, 3);

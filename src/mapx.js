@@ -42,7 +42,7 @@ export function mapKit(M) {
     const P = (dx, dy, z) => L(x, y, yaw, dx, dy, z);
     Box(P(0, 0, 45), V(len - 100, 210, 70), 0x23262c, true, false, yaw);
     for (const sx of [-1, 1]) for (const k of [-60, 60]) for (const sy of [-1, 1]) Cyl(P(sx * (len * 0.5 - 150) + k, sy * 108, 40), 72, 18, 0x18181c, false, false, R(0, yaw, 90));
-    Box(P(len / 2 + 14, 0, 70), V(40, 30, 24), IRON, false, false, yaw); Box(P(-len / 2 - 14, 0, 70), V(40, 30, 24), IRON, false, false, yaw);
+    for (const e of [-1, 1]) { Box(P(e * (len / 2 + 14), 0, 70), V(40, 30, 24), IRON, false, false, yaw); Box(P(e * (len / 2 - 20), 0, 66), V(76, 14, 14), IRON, false, false, yaw); }   // couplers on their drawbars
     if (kind === 'flat') {
       Box(P(0, 0, 92), V(len, 300, 24), 0x4a3a30, true, false, yaw);
       for (let i = 0; i < 6; i++) { const r = Math.floor(i / 3), c = i % 3 - (r ? 0.5 : 1); if (r && i === 5) continue; Cyl(P(0, c * 86, 146 + r * 76), 84, len - 120, i % 2 ? 0x6a4a2e : 0x5a3e28, true, false, R(90, yaw, 0)); }

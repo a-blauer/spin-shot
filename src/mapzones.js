@@ -163,7 +163,7 @@ export function BuildMotel(M, GM) {
 	Box(V(-4600., -3650., 7.), V(40., 540., 14.), Pal.Cream, false, false);
 	Box(V(-3200., -3650., 7.), V(40., 540., 14.), Pal.Cream, false, false);
 	Glow(V(-3900., -3650., 6.), V(1360., 460., 4.), Pal.Water);
-	Box(V(-4550., -3650., 50.), V(220., 50., 10.), Pal.Cream, false, false);
+	Box(V(-4550., -3650., 50.), V(220., 50., 10.), Pal.Cream, false, false); Box(V(-4625., -3650., 23.), V(40., 40., 46.), Pal.Cream, false, false); // the diving board's block
 	Lamp(V(-3900., -3650., 60.), LC(0.3, 0.8, 1.), 10., 900., false);
 	for (let i = 0; i < 4; ++i)
 	{
@@ -241,7 +241,7 @@ export function BuildMainStreet(M, GM) {
 	}
 	Building(V2(-3000., 4450.), V2(-2050., 5800.), 450., 0x6A5A50, Pal.RoofDark, Pal.WoodDark, -1, "BLACKSMITH");
 	Box(V(-3150., 5100., 50.), V(160., 100., 100.), Pal.MetalDark); // anvil block
-	Glow(V(-3150., 5350., 40.), V(120., 120., 30.), 0xFF6A1A, 1);
+	Box(V(-3150., 5350., 12.), V(170., 170., 24.), Pal.MetalDark, false, false); Glow(V(-3150., 5350., 39.), V(120., 120., 30.), 0xFF6A1A, 1); // the forge fire, in its hearth
 
 	// Rooftop bridges (planks) across the alleys
 	Box(V(-5550., -400., 505.), V(160., 260., 14.), Pal.Wood, true, false);
@@ -403,7 +403,7 @@ export function BuildChapel(M, GM) {
 	DeadTree(V(1600., -2500., 0.), 460.);
 	DeadTree(V(-300., -3400., 0.), 380.);
 	Lamp(V(-700., -3200., 160.), LC(0.5, 1., 0.6), 8., 1200., true);
-	Lamp(V(400., -2300., 160.), LC(0.5, 1., 0.6), 8., 1000., true);
+	Cyl(V(400., -2300., 70.), 10., 140., Pal.MetalDark, false, false); Lamp(V(400., -2300., 160.), LC(0.5, 1., 0.6), 8., 1000., true);
 
 	SpawnAt(V(-1700., -2400., 0.), 2);
 	SpawnAt(V(-1500., -5700., 0.), 2);
@@ -804,7 +804,7 @@ export function BuildBadlands(M, GM) {
       Box(V(x, y, H * 0.62), V(w + 16., w + 16., 14.), 0x7A3A22, false, false, yaw);
       const sx = x + rnd(-1, 1) * (w + 90), sy = y + (rnd(0, 1) < 0.5 ? -1 : 1) * (w + 60), h2 = H * rnd(0.4, 0.6);
       Box(V(sx, sy, h2 * 0.5), V(w * 0.7, w * 0.7, h2), Rock[Math.floor(rnd(0, 2.99))], true, true, yaw + 20.); Box(V(sx, sy, h2 + 6.), V(w * 0.7 + 30., w * 0.7 + 30., 12.), 0x7A3A22, true, false, yaw + 20.);
-      if (H >= 1200) Glow(V(x, y, H + 60.), V(40.), 0xFF8A3A, 2);
+      if (H >= 1200) Glow(V(x, y, H + 33.), V(40.), 0xFF8A3A, 2);
     } else if (roll < 0.36) {   // arch
       const along = rnd(0, 1) < 0.5, H = rnd(520, 760), g = rnd(320, 420), col = Rock[Math.floor(rnd(0, 2.99))];
       for (const s of [-1, 1]) Box(V(x + (along ? s * g : 0), y + (along ? 0 : s * g), H * 0.5), V(240., 240., H), col, true, true);

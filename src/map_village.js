@@ -83,7 +83,7 @@ export function buildVillage(M, cx, cy) {
     // ---- the stream, across the whole valley, with a humped bridge for the road
     { const pts = []; for (let x = -11000; x <= 11000; x += 160) pts.push([x, STREAM_Y + Math.sin(x * 0.0006) * 380 + Math.sin(x * 0.0017) * 120]);
       for (const [x, y] of pts) { Cyl(V(x, y, 1.2), 560, 1, 0x4a8aa0, false, false); Cyl(V(x, y, 2.2), 420, 1, 0x5a9ab0, false, false); }
-      for (let i = 0; i < pts.length; i += 2) for (const s of [-1, 1]) { const [x, y] = pts[i]; if (Math.abs(x) < 400) continue; if (rnd() < 0.55) Oct(V(x + rr(-60, 60), y + s * rr(250, 300), 8), V(rr(50, 110), rr(40, 90), rr(14, 30)), mix(VC.stone, VC.moss, rnd() * 0.4), false, false, R(0, rr(0, 90), 0)); if (rnd() < 0.3) for (let k = 0; k < 4; k++) Cyl(V(x + rr(-40, 40), y + s * rr(220, 280), 50), 5, rr(70, 130), 0x6a8a3a, false, false); }
+      for (let i = 0; i < pts.length; i += 2) for (const s of [-1, 1]) { const [x, y] = pts[i]; if (Math.abs(x) < 400) continue; if (rnd() < 0.55) Oct(V(x + rr(-60, 60), y + s * rr(250, 300), 8), V(rr(50, 110), rr(40, 90), rr(14, 30)), mix(VC.stone, VC.moss, rnd() * 0.4), false, false, R(0, rr(0, 90), 0)); if (rnd() < 0.3) for (let k = 0; k < 4; k++) { const px = x + rr(-40, 40), py = y + s * rr(220, 280), h = rr(70, 130); Cyl(V(px, py, h / 2 - 4), 5, h, 0x6a8a3a, false, false); } }
       for (let i = 0; i < 26; i++) { const [x, y] = pts[Math.floor(rnd() * pts.length)]; if (Math.abs(x) > 600) Cyl(V(x + rr(-120, 120), y + rr(-120, 120), 3.2), rr(50, 80), 1.4, 0x5a9a3a, false, false); }
       avoid.push([0, STREAM_Y, 700]);
       // the bridge: up, a deck, down again; stone footings and a lamp at each end
@@ -118,10 +118,10 @@ export function buildVillage(M, cx, cy) {
       S(wardrobeCab(), -2180, -1960, 24, 0); Solid(V(-2180, -1960, 150), V(90, 180, 290), true);
       S(mirror(), -2160, -1440, 24, 0); Solid(V(-2165, -1440, 120), V(30, 120, 240), false);
       Box(V(-2020, -1240, 70), V(40, 40, 140), VC.woodD, true, false); Box(V(-2020, -1240, 160), V(60, 36, 40), 0x3a6a8a, false, false); VSPOTS.signs.push({ kind: 'wood', o: { text: 'Home', w: 420, h: 160, seed: 9 }, at: [-1986, -1240, 212], face: [1, 0], h: 34 });
-      Glow(V(-2090, -1260, 250), V(20, 20, 24), 0xffd27a, 2); Lamp(V(-2090, -1260, 260), { r: 1, g: 0.8, b: 0.5 }, 2, 600, false);
+      Cyl(V(-2090, -1260, 120), 6, 240, VC.woodD, false, false); Glow(V(-2090, -1260, 250), V(20, 20, 24), 0xffd27a, 2); Lamp(V(-2090, -1260, 260), { r: 1, g: 0.8, b: 0.5 }, 2, 600, false);
       // the washing line, from the cottage corner to a post
       Cyl(V(-3500, -2300, 120), 12, 240, VC.woodD, true, false); Cyl(V(-3500, -1000, 120), 12, 240, VC.woodD, true, false); Box(V(-3500, -1650, 226), V(2, 1300, 2), 0xd8d0c0, false, false);
-      for (let i = 0; i < 6; i++) Box(V(-3500, -2150 + i * 200, 190 - (i % 2) * 10), V(4, rr(70, 110), rr(60, 90)), [0xc8392e, 0xf4ecd6, 0x3a7ac8, 0xf6d04a, 0x5a9a3a, 0xa070d0][i], false, false);
+      for (let i = 0; i < 6; i++) { const w = rr(70, 110), h = rr(60, 90); Box(V(-3500, -2150 + i * 200, 227 - h / 2), V(4, w, h), [0xc8392e, 0xf4ecd6, 0x3a7ac8, 0xf6d04a, 0x5a9a3a, 0xa070d0][i], false, false); }   // pegged on the line
       // the garden: rows of cabbages and pumpkins in dark soil, a fence round it
       Box(V(-3400, -3000 + 700, 2), V(900, 500, 3), 0x5a3e2a, false, false);
       for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) { const px = -3780 + c * 150, py = -2460 + r * 140; if (r === 1) S(pumpkin(rr(32, 46)), px, py, 0, rr(0, 360)); else S(cabbage(rr(22, 30)), px, py, 0, rr(0, 360)); }
@@ -130,7 +130,7 @@ export function buildVillage(M, cx, cy) {
 
     // ---- the challenge board on the square's east side, under its own little roof
     { const [x, y] = [1300, 600]; S(noticeBoard(320), x, y, 0, 180); Solid(V(x, y, 170), V(40, 360, 340), true); avoid.push([x, y, 400]);
-      VSPOTS.signs.push({ kind: 'wood', o: { text: 'Challenge Board', sub: 'contracts posted daily', w: 1000, h: 250, seed: 5 }, at: [x - 44, y, 400], face: [-1, 0], h: 84 }); lit(x - 70, y + 220, 300); }
+      VSPOTS.signs.push({ kind: 'wood', o: { text: 'Challenge Board', sub: 'contracts posted daily', w: 1000, h: 250, seed: 5 }, at: [x - 44, y, 400], face: [-1, 0], h: 84 }); lit(x - 40, y + 175, 300); }   // under the board's roof
 
     // ---- the Lucky Toadstool: a giant cap on twisted roots, a wooden floor, lamps under the gills, the tables
     { const [x, y] = CASINO, Rr = 1400; avoid.push([x, y, Rr + 300]);
@@ -181,7 +181,7 @@ export function buildVillage(M, cx, cy) {
     { const [x, y] = [-1900, 3000], r = 650; avoid.push([x, y, r + 150]);
       Cyl(V(x, y, 1.1), r * 2 + 80, 1, 0x7a6a4a, false, false); Cyl(V(x, y, 2.2), r * 2, 1, 0x3e7a8a, false, false); Cyl(V(x, y, 2.6), r * 1.5, 1, 0x4a8aa0, false, false);
       for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, d = rnd() * r * 0.8; Cyl(V(x + Math.cos(a) * d, y + Math.sin(a) * d, 3.4), rr(60, 100), 1.4, 0x5a9a3a, false, false); if (i % 3 === 0) Ball(V(x + Math.cos(a) * d + 10, y + Math.sin(a) * d, 10), V(18, 18, 14), 0xf08aa8); }
-      for (let i = 0; i < 30; i++) { const a = rnd() * 6.28, d = r + rr(-30, 30); Cyl(V(x + Math.cos(a) * d, y + Math.sin(a) * d, 60), 6, rr(80, 150), 0x6a8a3a, false, false); if (i % 4 === 0) Box(V(x + Math.cos(a) * d, y + Math.sin(a) * d, rr(120, 160)), V(10, 10, 30), 0x6a4a2a, false, false); }
+      for (let i = 0; i < 30; i++) { const a = rnd() * 6.28, d = r + rr(-30, 30); const h = rr(80, 150); Cyl(V(x + Math.cos(a) * d, y + Math.sin(a) * d, h / 2 - 4), 6, h, 0x6a8a3a, false, false); if (i % 4 === 0) { rr(0, 1); Box(V(x + Math.cos(a) * d, y + Math.sin(a) * d, h - 12), V(10, 10, 30), 0x6a4a2a, false, false); } }   // reeds from the mud, a head on some
       for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.28 + 0.2; { const rs = rr(40, 80), px = x + Math.cos(a) * (r + 40), py = y + Math.sin(a) * (r + 40); S(rock(rs, 40 + i), px, py, 0, rr(0, 360)); Solid(V(px, py, rs * 0.3), V(rs * 1.5, rs * 1.3, rs * 0.6), false); } }
       // a little dock, and a frog on a stone
       Box(V(x + r - 120, y - 80, 30), V(360, 160, 10), VC.woodL, true, false); for (const s of [-1, 1]) Cyl(V(x + r - 260, y - 80 + s * 70, 20), 12, 60, VC.woodD, false, false);

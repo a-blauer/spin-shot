@@ -10,7 +10,10 @@ import { writeFileSync } from 'node:fs';
 
 // ---------------------------------------------------------------- the field
 const C = (h) => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
-const BONE = C(0xd9ceb2), BONE2 = C(0xb9ad92), BONED = C(0x8a7f6a), ARM = C(0x2e2838), ARM2 = C(0x3e3650), GOLD = C(0xc9a24a), GOLDD = C(0x8a6a2a), FLESH = C(0x241a30), VOID = C(0x0e0814), VEIN = C(0xb48cff), HORN = C(0x5a4e44);
+// The Mother Mold (was the Hollow King): the same giant, but grown rather than built. Bone is pale stalk-flesh, the
+// armour is bracket fungus in the first strain's red with cream bands, the antlers are branching roots, the veins glow the
+// Blight's green, and a great warted cap spreads over the skull.
+const BONE = C(0xe2d6bc), BONE2 = C(0xc6b696), BONED = C(0x8c7c64), ARM = C(0x8a2e1c), ARM2 = C(0x6a2416), GOLD = C(0xe2d2aa), GOLDD = C(0xb0a07e), FLESH = C(0x2c2418), VOID = C(0x0a0806), VEIN = C(0xc4ff58), HORN = C(0x5e4a36), CAPR = C(0xa4432a), CAPD = C(0x6a2416), WART = C(0xe8dcc4);
 let D, Cc, want = false;
 const reset = () => { D = 1e9; Cc = [0, 0, 0]; };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -102,6 +105,13 @@ function head(p) {
     chain(p, pts, 70, 18, HORN, 40);
     for (const [i, up, out] of [[1, 340, 220], [2, 300, 300], [3, 260, 160]]) U(cap(p, pts[i], [pts[i][0] + e * out, pts[i][1] + up, pts[i][2] + 120], 36, 4), HORN, 30);
   }
+  // the Mother's cap: a broad warted dome over the crown, its gills dark underneath, a ring of smaller caps round its rim
+  { const c = [0, 960, -60], dx = p[0] - c[0], dz = p[2] - c[2], rr = Math.sqrt(dx * dx + dz * dz), t = rr / 820, q = [p[0], p[1] + 160 * t * t, p[2]];
+    const top = ell(q, c, [820, 360, 820]), und = ell(q, [c[0], c[1] - 170, c[2]], [830, 300, 830]), d = Math.max(top, -und);
+    U(d, CAPR, 30);
+    if (want && d < 20) { if (und < 25) Cc = CAPD.slice(); else if (fbm(p[0] * 0.004, 0, p[2] * 0.004) > 0.1) Cc = Cc.map((x, i) => x * 0.85 + CAPD[i] * 0.15); }
+    for (let i = 0; i < 26; i++) { const a = i * 2.399, r = Math.sqrt((i + 0.5) / 26) * 700, wx = c[0] + Math.cos(a) * r, wz = c[2] + Math.sin(a) * r, tt = r / 820, wy = c[1] + 360 * Math.sqrt(Math.max(0, 1 - tt * tt)) - 160 * tt * tt; U(ell(p, [wx, wy, wz], [60, 30, 60]), i % 5 === 2 ? VEIN : WART, 20); }
+    for (let i = 0; i < 9; i++) { const a = i * 0.698 + 0.2, b = [Math.cos(a) * 760, 820, -60 + Math.sin(a) * 760]; U(cap(p, b, [b[0] * 1.06, 960, b[2] * 1.06], 50, 40), BONE, 20); U(Math.max(ell(p, [b[0] * 1.06, 970, b[2] * 1.06], [150, 70, 150]), 940 - p[1]), CAPR, 20); } }
   if (want) { const n = fbm(p[0] * 0.012, p[1] * 0.012, p[2] * 0.012); Cc = Cc.map((x) => clamp(x * (1 + n * 0.1), 0, 1)); }
   return D;
 }
@@ -174,7 +184,7 @@ function mesh(f, lo, hi, h) {
     const ao = clamp(1 - occ * 1.1, 0.28, 1) * (0.92 + 0.08 * gy);
     want = true; f([x, y, z]); const c = Cc;
     nor[q * 3] = Math.round(gx * 127); nor[q * 3 + 1] = Math.round(gy * 127); nor[q * 3 + 2] = Math.round(gz * 127);
-    const glow = c === VEIN || (c[2] > 0.95 && c[0] > 0.65) ? 1 : 0;
+    const glow = c === VEIN || (c[2] > 0.95 && c[0] > 0.65) || (c[1] > 0.95 && c[0] < 0.85 && c[2] < 0.45) ? 1 : 0;
     for (let a = 0; a < 3; a++) col[q * 3 + a] = Math.round(clamp(c[a] * (glow ? 1 : ao), 0, 1) * 255);
   }
   // make sure every face looks out (one check per triangle against the field's normal)
@@ -189,7 +199,7 @@ function mesh(f, lo, hi, h) {
 
 const parts = [
   ['torso', torso, [-1700, -900, -1000], [1700, 3250, 800], 22],
-  ['head', head, [-950, -50, -700], [950, 2050, 520], 16],
+  ['head', head, [-1000, -50, -1000], [1000, 2050, 900], 16],
   ['upper', upper, [-760, -400, -760], [760, UL + 560, 760], 26],
   ['fore', fore, [-800, -260, -800], [800, FL + 300, 800], 24],
   ['hand', hand, [-500, -200, -260], [800, 1950, 900], 16],

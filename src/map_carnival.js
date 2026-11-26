@@ -17,7 +17,9 @@ export function buildCarnival(M) {
   const L = (x, y, yaw, dx, dy, z) => M.L(V(x, y, 0), yaw, dx, dy, z);
   const wallbuy = (name, x, y, yaw) => { const n = [Math.cos(yaw * Math.PI / 180), Math.sin(yaw * Math.PI / 180)]; Box(V(x - n[0] * 4, y - n[1] * 4, 150), Math.abs(n[0]) > 0.5 ? V(12, 300, 230) : V(300, 12, 230), WOOD_D, false, false); WallBuy(name, V(x, y, 0), yaw); };
   // a string of coloured bulbs between two points, sagging
-  const bulbs = (x0, y0, z0, x1, y1, z1, n = 9) => { for (let i = 0; i <= n; i++) { const t = i / n, sag = Math.sin(t * Math.PI) * 60; Glow(V(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, z0 + (z1 - z0) * t - sag), V(15, 15, 18), BULB[i % 3], 2); } Lamp(V((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 - 80), LC(1, 0.7, 0.4), 8, 800, false); };
+  const bulbs = (x0, y0, z0, x1, y1, z1, n = 9) => { const at = (t) => [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, z0 + (z1 - z0) * t - Math.sin(t * Math.PI) * 60];
+    for (let i = 0; i <= n; i++) { const [x, y, z] = at(i / n); Glow(V(x, y, z), V(15, 15, 18), BULB[i % 3], 2); }
+    for (let i = 0; i < n * 2; i++) { const [ax, ay, az] = at(i / (n * 2)), [bx, by, bz] = at((i + 1) / (n * 2)), h = Math.hypot(bx - ax, by - ay); BoxRot(V((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2 + 9), V(Math.hypot(h, bz - az) + 3, 2, 2), 0x1a1a1a, R(Math.atan2(bz - az, h) * 57.3, Math.atan2(by - ay, bx - ax) * 57.3, 0), false); } Lamp(V((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 - 80), LC(1, 0.7, 0.4), 8, 800, false); };   // the wire they hang from
   const pole = (x, y, h = 520) => { Cyl(V(x, y, h / 2), 22, h, WOOD_D, true, false); Ball(V(x, y, h + 10), V(34, 34, 34), GOLD); };
   // a midway booth: back and side walls, a counter, a striped awning, a painted board over it
   const booth = (x, y, yaw, name, col = RED, prize = 0) => {
@@ -37,7 +39,7 @@ export function buildCarnival(M) {
     for (const sx of [-1, 1]) { Box(V(x + sx * 390, y, 236), V(20, 300, 240), CREAM, true, false); Box(V(x + sx * 402, y, 236), V(6, 200, 150), GOLD, false, false); }
     for (let i = -5; i <= 5; i++) { if (inside === 3 && Math.abs(i) < 2) { BoxRot(V(x + i * 64, y - 160, 180), V(8, 8, 150), IRON, R(0, 0, 40 * (i || 1)), false); continue; } for (const sy of [-1, 1]) Box(V(x + i * 64, y + sy * 142, 236), V(8, 8, 240), IRON, false, false); }
     Box(V(x, y, 120), V(760, 280, 8), 0x8a7440, false, false);
-    if (inside === 1) { for (let i = 0; i < 5; i++) BoxRot(V(x - 160 + i * 70, y, 200), V(20, 20, 150 - Math.abs(i - 2) * 20), 0xcfc8b0, R(0, 0, 20), false); Oct(V(x + 220, y, 170), V(120, 110, 100), 0xcfc8b0, false, false); }
+    if (inside === 1) { for (let i = 0; i < 5; i++) { const h = 150 - Math.abs(i - 2) * 20; BoxRot(V(x - 160 + i * 70, y, 118 + h * 0.47), V(20, 20, h), 0xcfc8b0, R(0, 0, 20), false); } Oct(V(x + 220, y, 170), V(120, 110, 100), 0xcfc8b0, false, false); }
     if (inside === 2) { Ball(V(x, y, 150), V(300, 180, 80), 0x3a2e26); for (let i = 0; i < 4; i++) Box(V(x + rr(-200, 200), y + rr(-60, 60), 130), V(rr(60, 110), 14, 14), 0xcfc8b0, false, false, rr(0, 180)); }
     M.Blocker(V(x, y, 200), V(800, 300, 400)); K.solid(x, y, 0, 800, 300, 150);
   };
@@ -152,7 +154,7 @@ export function buildCarnival(M) {
       const cuts = [100, Math.min(g1, g2) - 250, Math.min(g1, g2) + 250, Math.max(g1, g2) - 250, Math.max(g1, g2) + 250, 3400];
       for (let k = 0; k < 6; k += 2) { const y0 = cuts[k], y1 = cuts[k + 1]; if (y1 - y0 < 60) continue; const yc = (y0 + y1) / 2, len = y1 - y0;
         Box(V(x, yc, 210), V(30, len, 420), MIR, true, true); Box(V(x, yc, 430), V(44, len + 10, 20), GOLD, false, false); Box(V(x, yc, 10), V(44, len + 10, 20), GOLD, false, false);
-        for (const s of [-1, 1]) { for (let y = y0 + 125; y < y1; y += 250) { Glow(V(x + s * 16, y, 220), V(3, 190, 330), 0x16303a); Box(V(x + s * 17, y + 110, 220), V(4, 10, 380), GOLD, false, false); } }
+        for (const s of [-1, 1]) { for (let y = y0 + 125; y < y1; y += 250) { Glow(V(x + s * 16, y, 220), V(3, 190, 330), 0x16303a); Box(V(x + s * 17, y + 110, 205), V(4, 10, 410), GOLD, false, false); } }
         for (const y of [y0, y1]) Cyl(V(x, y, 230), 50, 460, RED, true, false); }
     }
     // the trick glass along the outer walls, the bulbs strung gallery to gallery
@@ -199,7 +201,7 @@ export function buildCarnival(M) {
         for (const sx of [-1, 1]) BoxRot(V(x + sx * 300, y + s * 150, hz / 2), V(40, 40, hz * 1.14), RED, R(-sx * 15, 0, 0), true); }
       Cyl(V(x, y, hz), 120, 260, GOLD, false, false, R(0, 0, 90));
       for (let k = 0; k < 8; k++) { const a = k * 0.785 + 0.39, gx = x + Math.cos(a) * r, gz = hz + Math.sin(a) * r; Box(V(gx, y, gz - 70), V(170, 130, 110), [RED, 0x3a5a7a, 0xc8b83a, 0x7a2a5a][k % 4], false, false); Box(V(gx, y, gz - 4), V(190, 150, 12), CREAM, false, false); Glow(V(gx, y - 66, gz - 60), V(110, 4, 50), k % 3 ? 0x2a2420 : WARM); Glow(V(gx, y, gz + 8), V(14, 14, 16), BULB[k % 3], 2); }
-      for (let k = 0; k < 24; k++) { const a = k / 24 * 6.283; Glow(V(x + Math.cos(a) * (r + 6), y - 86, hz + Math.sin(a) * (r + 6)), V(16, 10, 16), BULB[k % 3], 2); }
+      for (let k = 0; k < 24; k++) { const a = k / 24 * 6.283; Glow(V(x + Math.cos(a) * (r - 4), y - 75, hz + Math.sin(a) * (r - 4)), V(16, 10, 16), BULB[k % 3], 2); }
       Box(V(x, y, 25), V(1500, 520, 50), WOOD, true, true); Box(V(x - 600, y - 300, 120), V(200, 160, 240), RED, true, true); Sign(V(x - 600, y - 382, 180), -90, 'WHEEL', { r: 0.95, g: 0.8, b: 0.4 }, 40); Lamp(V(x, y - 200, 600), LC(1, 0.7, 0.4), 14, 2200, false); }
     // the gallopers: a canopy, a centre drum of mirrors, horses on brass poles
     { const x = -4300, y = 5250; Cyl(V(x, y, 20), 1100, 40, WOOD, true, false); Cyl(V(x, y, 290), 260, 500, RED, true, true); for (let k = 0; k < 8; k++) Glow(V(x + Math.cos(k * 0.785) * 132, y + Math.sin(k * 0.785) * 132, 300), V(8, 70, 300), 0x16303a, 0, R(0, k * 45, 0));
@@ -214,7 +216,7 @@ export function buildCarnival(M) {
       Lamp(V(x, y, 500), LC(1, 0.7, 0.4), 14, 1800, false); }
     // the coaster: trestle along the back fence, the track over it, one car stopped on the crest
     const ch = (x) => 380 + Math.sin(x / 900) * 220 + Math.sin(x / 370 + 1) * 70;
-    for (let x = -6600; x <= 6600; x += 300) { if (Math.abs(x) < 1500) continue; const h = ch(x); for (const s of [-1, 1]) Box(V(x, 6290 + s * 70, h / 2), V(26, 26, h), CREAM, false, false); Box(V(x, 6290, h * 0.5), V(20, 150, 14), CREAM, false, false); BoxRot(V(x + 150, 6220, h * 0.5), V(340, 12, 12), CREAM, R(Math.atan2(h * 0.8, 300) * 57.3 * ((x / 300) & 1 ? 1 : -1), 0, 0), false);
+    for (let x = -6600; x <= 6600; x += 300) { if (Math.abs(x) < 1500) continue; const h = ch(x); for (const s of [-1, 1]) Box(V(x, 6290 + s * 70, h / 2), V(26, 26, h), CREAM, false, false); Box(V(x, 6290, h * 0.5), V(20, 150, 14), CREAM, false, false); BoxRot(V(x + 150, 6220, h * 0.5), V(Math.hypot(300, h * 0.8) + 6, 12, 12), CREAM, R(Math.atan2(h * 0.8, 300) * 57.3 * ((x / 300) & 1 ? 1 : -1), 0, 0), false);
       if (x + 300 <= 6600 && Math.abs(x + 300) >= 1500) { const h2 = ch(x + 300); BoxRot(V(x + 150, 6290, (h + h2) / 2 + 10), V(Math.hypot(300, h2 - h) + 10, 170, 14), RED, R(Math.atan2(h2 - h, 300) * 57.3, 0, 0), false); } }
     { const x = -4200, h = ch(-4200); Box(V(x, 6290, h + 60), V(260, 150, 80), 0x3a5a7a, false, false); Box(V(x + 110, 6290, h + 110), V(40, 150, 60), 0x3a5a7a, false, false); Glow(V(x + 132, 6290, h + 70), V(6, 60, 30), WARM); }
     M.Blocker(V(-4050, 6290, 350), V(5200, 200, 700)); M.Blocker(V(4050, 6290, 350), V(5200, 200, 700)); GM.NavBlockBox({ min: V(-6700, 6180, 0), max: V(-1400, 6400, 150) }, 1); GM.NavBlockBox({ min: V(1400, 6180, 0), max: V(6700, 6400, 150) }, 1);

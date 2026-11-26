@@ -141,3 +141,25 @@
   the background at start; a boss spawned before its file arrives stands in its old painted body and swaps
   (Enemy.bodyPending / makeBody()). Baker: vertices renumbered by first use, positions as deltas, indices as distance
   from the next new vertex, normals octahedral (z:3); budgets x0.8 (BS env). blight.json 2.5 MB + bosses ~5 MB.
+- (28) Mother Mold, sectors, nothing floating.
+  Raid: the King is the Mother Mold (king.json rebaked, fungal palette, warted cap); raid.js green (cracks, eyes, heart,
+  mist, abyss), "THE MOTHER KNEELS". Raid room has its own theme ROOT_THEME ('The Root', map_descent THEMES, pushed after
+  EXTRA; maps.js lighting uses it) and dressing (bracket fungus clutches on the walls, mycelium from the roof, mold and
+  toadstools on the floor, great caps in the corners). craftRaid re-themed: mossy stone, mold creeping over the island
+  edge, caps on the old ruins, six great toadstools out of the dark, spore sacs on mycelium stalks; green lights.
+  src/sector.js (stage 5): every non-raid room gets its strain's mold (patches, glow specks, clusters of toadstools in
+  the strain's colours) built locally from the room number (same for every client), plus one hazard per strain:
+  Toadstool puffball beds (burst when a player is within 300), Rustcap rust fall (markers at each player's lead every
+  ~7.5 s), Mirecap mire pools (local slow 0.4 while standing in them), Nightshade blooms (warning marker then a 5 s
+  cloud by each player), Char smoulder (the two charred patches nearest a player flare). Host lays markers/fires (sent
+  as usual); boss rooms are dressed but quiet. A toast names the sector on its first room. Hazards: a marker with
+  damage 0 is a warning only (no blast, no hurt); fire carries its colour to clients.
+  FLOATING AUDIT: ?scan=1&stack=1 records every placed piece with its call site (world.scanAll[5]); dmh-test/fl/
+  (scan.js = union of touching pieces, a group is held up if any piece stands on the ground; run.py MAP groups the
+  loose ones by source line; look.py/views.py photograph them; shot_fl.py serves /tmp/fldist, an unminified build).
+  All 7 maps now 0 loose (mine's lit sign and hanging rope judged fine by eye). World.group(fn): a thing of many
+  pieces is kept or carved away whole (carving by plan walls used to leave ribs, doors, rails standing alone); P.*
+  props (not pool/fence), kit crate/barrel/candle/skull/chain/lowWall/plat/platOct, and Q.group() (returns whether it
+  was built) use it. Chains get one extra link so they always reach what hangs from them. Many single fixes: lamp
+  rods reach the roof, door strips sit on the lintel, Null Chamber slabs rest on the floor and its crystals hang on
+  chains, bone heaps on the floor, carnival string lights have wires, bayou reeds/moss/wisps grounded or hung, etc.

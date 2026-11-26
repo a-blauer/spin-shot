@@ -23,9 +23,8 @@ export const ROOMS_B = [
       // undergrowth: clumps of little ones, ferns, moss on the walls, spores in the air under the big caps
       for (let i = 0; i < 56; i++) { const a = i * 2.399, r = 800 + (i * 193) % 3600, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) > hx - 400 || Math.abs(y) > hy - 800 || (Math.abs(x) < 1500 && Math.abs(y) > hy - 1500)) continue;
         if (i % 3) for (let q = 0; q < 3; q++) { const h = 30 + ((i + q) % 4) * 14, w = h * 1.1, mx = x + q * 40 - 40, my = y + (q % 2) * 46; Cyl(V(mx, my, h / 2), h * 0.2, h, 0xd8cfa8, false, false); ConeShape(V(mx, my, h + w * 0.2), V(w, w, w * 0.44), caps[(i + q) % 4]); }
-        else for (let q = 0; q < 5; q++) { const b = q * 1.257 + i; BoxRot(V(x + Math.cos(b) * 50, y + Math.sin(b) * 50, 46), V(120, 26, 5), [0x2a6a4a, 0x3a8a5a][q % 2], R(0, b * 57.3, -32), false); } }
+        else for (let q = 0; q < 5; q++) { const b = q * 1.257 + i; BoxRot(V(x + Math.cos(b) * 50, y + Math.sin(b) * 50, 13), V(120, 26, 5), [0x2a6a4a, 0x3a8a5a][q % 2], R(0, b * 57.3, -32), false); } }
       for (const sx of [-1, 1]) for (let y = -hy + 500; y < hy - 300; y += 420) { if (Math.abs(Math.abs(y) - 500) < 280) continue; const c = Math.abs(Math.round(y / 420)) % 4; Box(V(sx * (hx - 4), y, 300), V(8, 300, 520), 0x2a4a34, false, false); for (let q = 0; q < 3; q++) { const z = 180 + q * 170, w = 150 - q * 26; Cyl(V(sx * (hx - w * 0.3), y + (q - 1) * 70, z), w, 16, caps[(c + q) % 4], false, false); Glow(V(sx * (hx - w * 0.3), y + (q - 1) * 70, z - 10), V(w * 0.7, w * 0.7, 4), gl[(c + q) % 4], 1); } }
-      for (const [x, y, h, c] of BIG) for (let q = 0; q < 5; q++) Glow(V(x + Math.cos(q * 1.3 + x) * h * 0.3, y + Math.sin(q * 1.3 + x) * h * 0.3, h * (0.35 + q * 0.1)), V(10, 10, 10), gl[c], 2);
       // fallen caps and logs to fight over
       for (const s of [-1, 1]) { Cyl(V(s * 900, s * 1500, 70), 150, 800, 0x3a2c20, false, false, R(90, 30, 0)); hit(s * 900, s * 1500, 0, 620, 420, 130, true); Ball(V(s * 2500, s * 1300, 0), V(520, 520, 260), caps[1]); hit(s * 2500, s * 1300, 0, 360, 360, 120, true); lowWall(-s * 400, s * 3700, 700, true, 0x2a3a34, 0x5a6a5a, 110, 130); lowWall(s * 4000, -s * 1100, 700, false, 0x2a3a34, 0x5a6a5a, 110, 130); }
     }),
@@ -86,11 +85,11 @@ export const ROOMS_B = [
   // A bank's strongroom. The round door stands open at each end; inside, ranks of deposit boxes make a grid of short
   // lanes, the counting tables are in the middle under a cage of bars, and the bullion is on pallets.
   mk(TH('The Vault', 0x20242a, 0x2a3038, 0x3a4048, 0x9a9ea6, 0xffd86a, [1, 0.9, 0.6], 0x161a20, [0.54, 0.58, 0.64]), [4400, 4400, 1100], { panel: 'bars', hang: 'lamp', corner: 'crates', c1: 0x8a8e96, c2: 0x5a5e66, n: 8 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, crate, AX, AY, P }) => {
+    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, crate, AX, AY, P, group }) => {
       const steel = 0x8a8e96, dark = 0x2a2e34, gold = 0xd8b04a, green = 0x2a5a3a;
       slabs(440, T.floor, T.floor2, 0x12151a);
       // deposit boxes: steel cabinets as tall as a man can reach, faces lined with little doors
-      const boxes = (x, y, along) => { const w = along ? 900 : 200, d = along ? 200 : 900; solid(x, y, 0, w, d, 260, dark); deco(x, y, 260, w + 20, d + 20, 14, steel); for (const e of [-1, 1]) for (let r = 0; r < 4; r++) for (let c = -4; c <= 4; c++) { const p = c * 96; Box(V(x + (along ? p : e * 101), y + (along ? e * 101 : p), 40 + r * 58), along ? V(84, 4, 48) : V(4, 84, 48), (r + c) % 5 ? steel : 0x6a6e76, false, false); } };
+      const boxes = (x, y, along) => group(() => { const w = along ? 900 : 200, d = along ? 200 : 900; solid(x, y, 0, w, d, 260, dark); deco(x, y, 260, w + 20, d + 20, 14, steel); for (const e of [-1, 1]) for (let r = 0; r < 4; r++) for (let c = -4; c <= 4; c++) { const p = c * 96; Box(V(x + (along ? p : e * 101), y + (along ? e * 101 : p), 40 + r * 58), along ? V(84, 4, 48) : V(4, 84, 48), (r + c) % 5 ? steel : 0x6a6e76, false, false); } });
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { boxes(sx * 1900, sy * 1500, false); boxes(sx * 3000, sy * 1500, false); boxes(sx * 1900, sy * 3000, true); boxes(sx * 3100, sy * 3000, true); }
       // the counting cage: bars on three sides of a square, tables inside
       plat(0, 0, 1400, 1400, 40, 0x3a3e46, dark);
@@ -109,14 +108,14 @@ export const ROOMS_B = [
   // You fight across the stalls toward a stage. The stage is a platform at the middle with its proscenium over it, the
   // stalls slope away in rows either side, and the orchestra's chairs and stands are scattered below the footlights.
   mk(TH('Opera House', 0x2a1a1e, 0x3a2228, 0x4a2a30, 0xd8b04a, 0xffc86a, [1, 0.8, 0.5], 0x26141a, [0.66, 0.48, 0.5]), [4200, 5200, 1700], { panel: 'banner', hang: 'lamp', corner: 'crates', c1: 0xd8b04a, c2: 0x7a1c22, n: 5 },
-    ({ M, hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
+    ({ M, hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P, group }) => {
       const red = 0x8a1c22, gold = 0xd8b04a, board = 0x6a4a2a, velvet = 0x5a1418;
       slabs(480, T.floor, T.floor2, 0x180e10, (x) => Math.abs(x) < 280);
       P.rug(0, 0, 520, hy * 2 - 900, red, gold);
       // the stage, across the room, with wings left open at each side
-      plat(0, 0, 4200, 1300, 120, board, 0x3a2a1a, [[-1200, 0], [1200, 0]]);
+      const stage = group(() => plat(0, 0, 4200, 1300, 120, board, 0x3a2a1a, [[-1200, 0], [1200, 0]]));
       for (const sx of [-1, 1]) { P.column(sx * 2300, 0, 300, 0xe8dcc0, gold, 'square'); deco(sx * 2300, 0, 300, 320, 320, 30, gold); for (const sy of [-1, 1]) { deco(sx * 2000, sy * 560, 120 + 900, 14, 40, H - 1020, velvet); { const [k, b] = SH.curtain(520, H - 20 - 124, red, sx, 0.6); M.Shape(k, b, V(sx * 1750, sy * 560, H - 20), R(0, sy > 0 ? 0 : 180, 0)); } } }
-      for (const sy of [-1, 1]) { { const [k, b] = SH.valance(4200, 420, red, gold); M.Shape(k, b, V(0, sy * 560, H - 20), R(0, sy > 0 ? 0 : 180, 0)); } for (let x = -1900; x <= 1900; x += 380) Glow(V(x, sy * 700, 120 + 16), V(60, 30, 26), 0xfff0c0, 0); }
+      for (const sy of [-1, 1]) { { const [k, b] = SH.valance(4200, 420, red, gold); M.Shape(k, b, V(0, sy * 560, H - 20), R(0, sy > 0 ? 0 : 180, 0)); } if (stage) for (let x = -1900; x <= 1900; x += 380) Glow(V(x, sy * 625, 120 + 13), V(60, 30, 26), 0xfff0c0, 0); }   // footlights, if the stage is there to hold them
       // on the stage: a painted flat, a prop throne, the prompter's box
       solid(-900, 0, 120, 700, 40, 520, 0x3a5a6a, false); deco(-900, 0, 120, 720, 60, 30, board); for (let q = -2; q <= 2; q++) Box(V(-900 + q * 130, 0, 120 + 420), V(100, 46, 160 + (q * q % 3) * 40), 0x2a4a3a, false, false); tall(-900, 0, 500);
       P.throne(700, 0, 1, red, gold, 120); L(0, 0, 900, T.lamp, 3000, 3);
@@ -130,14 +129,14 @@ export const ROOMS_B = [
         for (const e of [-1, 1]) { solid(e * 3300, s * 2800, 0, 700, 90, 120, 0xe8dcc0); deco(e * 3300, s * 2800, 120, 720, 110, 14, gold); deco(e * 3300, s * 2800 + s * 46, 20, 660, 4, 80, red); }
       }
       // the chandelier over each half of the house
-      for (const s of [-1, 1]) P.hung(0, s * 3000, 900, (z) => { Oct(V(0, s * 3000, z - 30), V(560, 560, 30), gold, false, false); Oct(V(0, s * 3000, z - 90), V(360, 360, 30), gold, false, false); for (let q = 0; q < 10; q++) { const a = q / 10 * 6.283; Glow(V(Math.cos(a) * 250, s * 3000 + Math.sin(a) * 250, z + 6), V(26, 26, 40), 0xfff0c0, 2); } L(0, s * 3000, z - 160, T.lamp, 2400, 2.4); });
+      for (const s of [-1, 1]) P.hung(0, s * 3000, 900, (z) => { Oct(V(0, s * 3000, z - 30), V(560, 560, 30), gold, false, false); Oct(V(0, s * 3000, z - 58), V(360, 360, 30), gold, false, false); for (let q = 0; q < 10; q++) { const a = q / 10 * 6.283; Glow(V(Math.cos(a) * 250, s * 3000 + Math.sin(a) * 250, z + 6), V(26, 26, 40), 0xfff0c0, 2); } L(0, s * 3000, z - 160, T.lamp, 2400, 2.4); });
     }),
 
   // ------------------------------------------------------------------------------------------------ CELL BLOCK
   // A prison wing. The cells run down both sides behind bars (some doors stand open: you can fight in and out of them),
   // the guards' cage stands in the middle of the hall, and the mess tables are bolted down either side of it.
   mk(TH('Cell Block', 0x22262a, 0x2c3238, 0x3a4046, 0x6a7078, 0xffe6a0, [1, 0.92, 0.7], 0x161a1e, [0.56, 0.58, 0.6]), [4000, 5400, 1200], { panel: 'none', hang: 'lamp', corner: 'none', c1: 0x5a6068, n: 8 },
-    ({ out: Q_out, hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
+    ({ out: Q_out, hx, hy, H, T, Box, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P, group }) => {
       const conc = 0x4a5056, iron = 0x2a2e34, steel = 0x6a7078, paint = 0xc8a03a;
       slabs(450, T.floor, T.floor2, 0x14171a);
       for (const s of [-1, 1]) tile(s * 2250 - 14, -hy + 500, s * 2250 + 14, hy - 500, 2.4, paint);
@@ -163,7 +162,7 @@ export const ROOMS_B = [
       for (const s of [-1, 1]) { for (let p = -360; p <= 360; p += 60) Cyl(V(s * 330, p, 80 + 190), 12, 220, iron, false, false); hit(s * 330, 0, 80, 20, 820, 110, false); deco(s * 330, 0, 80, 30, 860, 110, steel); }
       deco(0, 0, 380, 760, 960, 24, iron); P.table(0, 0, true, 240, 0x4a3626, 80); Glow(V(0, 0, 80 + 84), V(60, 40, 10), 0x3aff7a, 0); L(0, 0, 330, T.lamp, 1800, 2.6); tall(0, 0, 560);
       // a bridge between the two galleries, over the cage, railed; lamps under it
-      Box(V(0, 0, 475), V(4840, 260, 20), conc, false, false); for (const e of [-1, 1]) { Box(V(0, e * 124, 540), V(4840, 10, 10), iron, false, false); for (let x = -2400; x <= 2400; x += 300) Box(V(x, e * 124, 512), V(10, 10, 60), iron, false, false); for (const x of [-1500, 1500]) Box(V(x, e * 100, 475 + (H - 475) / 2 + 10), V(14, 14, H - 495), iron, false, false); } for (const x of [-1500, 1500]) { Box(V(x, 0, 450), V(60, 60, 30), iron, false, false); Glow(V(x, 0, 432), V(44, 44, 8), T.glow, 0); }
+      Box(V(0, 0, 475), V(4840, 260, 20), conc, false, false); for (const e of [-1, 1]) { Box(V(0, e * 124, 540), V(4840, 10, 10), iron, false, false); for (let x = -2400; x <= 2400; x += 300) Box(V(x, e * 124, 512), V(10, 10, 60), iron, false, false); for (const x of [-1500, 1500]) Box(V(x, e * 100, 475 + (H - 475) / 2), V(14, 14, H - 475), iron, false, false); } for (const x of [-1500, 1500]) { Box(V(x, 0, 450), V(60, 60, 30), iron, false, false); Glow(V(x, 0, 432), V(44, 44, 8), T.glow, 0); }
       // every cell has its number, painted over the door, and the block's stripe runs the length of the hall
       for (const sx of [-1, 1]) { cy.forEach((y, i) => { Box(V(sx * 2492, y, 420), V(8, 110, 60), paint, false, false); Box(V(sx * 2486, y, 420), V(8, 70 - (i % 3) * 14, 30), iron, false, false); }); tile(sx * 1700 - 40, -hy + 500, sx * 1700 + 40, hy - 500, 2.4, 0x8a2a22); }
       // riot barricades: mess tables thrown on their sides, across the hall from each door
@@ -173,7 +172,7 @@ export const ROOMS_B = [
       // mess tables, bolted in rows
       for (const s of [-1, 1]) for (const y of [1700, 2600, 3500]) for (const e of [-1, 1]) P.mess(e * 950, s * y, true, 420, steel);
       // overhead walkway rails and lamps
-      for (const s of [-1, 1]) { Box(V(s * 2420, 0, 540), V(10, 9100, 10), iron, false, false); for (let y = -4400; y <= 4400; y += 400) Box(V(s * 2420, y, 515), V(10, 10, 60), iron, false, false); }
+      for (const s of [-1, 1]) group(() => { Box(V(s * 2420, 0, 540), V(10, 9100, 10), iron, false, false); for (let y = -4400; y <= 4400; y += 400) Box(V(s * 2420, y, 515), V(10, 10, 60), iron, false, false); });
       for (const y of [-3200, -1500, 1500, 3200]) L(0, y, 620, T.lamp, 2200, 2.2);
     }),
 

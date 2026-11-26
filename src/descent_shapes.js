@@ -202,7 +202,7 @@ export function statue(h, col, pose = 0) {
 export function chain(len, col = 0x2a2e30, link = 30) {
   len = q(len, link * 0.7);
   return ['chain|' + [len, hx(col), link].join('|'), shape((G) => {
-    const pitch = link * 0.7, n = Math.max(1, Math.floor(len / pitch));
+    const pitch = link * 0.7, n = Math.max(1, Math.round(len / pitch) + 1);   // one link more than the drop: the last hooks into what hangs from it
     for (let i = 0; i < n; i++) {
       const pts = []; for (let k = 0; k <= 16; k++) { const a = (k / 16) * Math.PI * 2; pts.push([Math.cos(a) * link * 0.26, 0, Math.sin(a) * link * 0.5]); }
       const b = G.n; G.tube(pts, link * 0.075, col, { S: 6, caps: false, M: 16 }); G.place(b, { z: -link * 0.5 - i * pitch, yaw: i % 2 ? 90 : 0 });

@@ -6,7 +6,7 @@ import { buildMine, MINE_LOOT, mineCeil, MINE_QUEST, MINE_MECH } from './map_min
 import { buildFrost, FROST_LOOT, frostAmbient, FROST_QUEST, FROST_MECH } from './map_frost.js';
 import { buildBayou, BAYOU_LOOT, bayouAmbient, BAYOU_QUEST, BAYOU_MECH, bayouWater } from './map_bayou.js';
 import { buildCarnival, CARNIVAL_LOOT, carnivalAmbient, CARNIVAL_QUEST, CARNIVAL_MECH } from './map_carnival.js';
-import { buildDescent, THEMES, N_ROOMS } from './map_descent.js';
+import { buildDescent, THEMES, N_ROOMS, ROOT_THEME } from './map_descent.js';
 import { buildWharf, WHARF_LOOT, wharfAmbient, WHARF_QUEST, WHARF_MECH } from './map_wharf.js';
 
 const C = (h) => new THREE.Color(h);
@@ -137,7 +137,7 @@ export const MAPS = [
     palette(P, zone) {
       // the village: a warm late afternoon, blue overhead and a golden haze on the hills
       if (zone === 'village') { P.sky = C(0x5c6aa8); P.fog = C(0xe0a070); P.fogStart = 1800; P.fogDensity = 0.00008; P.fogMax = 0.82; P.sun = sun(-0.82, -0.3, 0.24); P.lit.set(1.1, 0.9, 0.7, 1.04); P.shadow.set(0.42, 0.4, 0.62, 0.82); P.sprite.setRGB(1.06, 0.96, 0.86); return P; }   // golden hour: a low sun in the west, peach haze, long warm light
-      const z = typeof zone === 'number' ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, 7][(z - N_ROOMS) % 2] : z] || THEMES[0];
+      const z = typeof zone === "number" ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, ROOT_THEME][(z - N_ROOMS) % 2] : z] || THEMES[0];
       P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
       P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);
       return P;

@@ -1,4 +1,4 @@
-// The Hollow King: the last fight of the Descent, built the way a raid's final encounter is built.
+// The Mother Mold (once the Hollow King): the last fight of the Descent, built the way a raid's final encounter is built.
 //   - It is enormous and it is not in the room with you: a god rising out of the dark past the edge of a stone island,
 //     its hands coming down onto the island to crush whoever it is looking at, its eyes raking the floor.
 //   - It cannot be hurt until you have done the encounter's work: its Bearers come up out of the deep carrying cinders;
@@ -25,7 +25,7 @@ const same = (a, b) => a && Math.abs(a[0] - b[0]) < 0.02 && Math.abs(a[1] - b[1]
 const PH = { rise: 0, gather: 1, kneel: 2, dmg: 3, purge: 4, final: 5, dead: 6, wipe: 7 };
 
 // ---------------------------------------------------------------- the King's body, sculpted
-const STONE = 0x4a4458, STONE2 = 0x5c5468, BONE = 0xd6ccb4, BONE2 = 0xb8ac92, CROWN = 0xc8a048, CLOTH = 0x1a1420, CAV = 0x120a1c;
+const STONE = 0x4a4438, STONE2 = 0x5c5440, BONE = 0xe2d6bc, BONE2 = 0xc6b696, CROWN = 0xa4432a, CLOTH = 0x2a2218, CAV = 0x0e0a06;
 function mesh(build) {
   const G = new Geo(); build(G); const { pos, col, idx } = G.out(), v = new Float32Array(pos.length);
   for (let i = 0; i < pos.length; i += 3) { v[i] = pos[i]; v[i + 1] = pos[i + 2]; v[i + 2] = pos[i + 1]; }
@@ -39,7 +39,7 @@ const cracked = (base, glow) => (nx, ny, nz) => { const w = wob(nx * 7 + nz * 3,
 // hangs in it), ribs across the hole, shoulders under spiked pauldrons, a torn mantle down the back
 function torsoMesh() {
   return mesh((G) => {
-    const c = cracked(STONE, 0xa070e8);
+    const c = cracked(STONE, 0x9ae048);
     G.blob(0, -40, 380, 620, 420, 560, c, { e: 2.4, nu: 24, nv: 14 });
     G.blob(0, -60, 1300, 1060, 560, 640, c, { e: 2.6, nu: 30, nv: 16, warp: (x, y, z) => [x, y > 200 && Math.abs(x) < 520 && Math.abs(z) < 420 ? y - (1 - Math.abs(x) / 520) * 260 : y, z] });
     G.blob(0, 330, 1300, 430, 140, 430, CAV, { e: 2.2, nu: 18, nv: 12 });                             // the cavity
@@ -72,7 +72,7 @@ function headMesh() {
 // an arm's two pieces and its hand, each built along +z from 0 to its length
 function boneMesh(len, r0, r1, armour) {
   return mesh((G) => {
-    G.tube([[0, 0, 0], [0, 20, len * 0.5], [0, 0, len]], (t) => r0 + (r1 - r0) * t + Math.sin(t * Math.PI) * 30, cracked(STONE, 0xa070e8), { S: 14 });
+    G.tube([[0, 0, 0], [0, 20, len * 0.5], [0, 0, len]], (t) => r0 + (r1 - r0) * t + Math.sin(t * Math.PI) * 30, cracked(STONE, 0x9ae048), { S: 14 });
     if (armour) for (let k = 0; k < 3; k++) G.tube([[0, 0, len * (0.2 + k * 0.25)], [0, 0, len * (0.2 + k * 0.25) + 60]], r0 + 30, BONE2, { S: 14 });
     G.blob(0, 0, len, r1 * 1.15, r1 * 1.15, r1 * 1.15, STONE2, { e: 2 });
   });
@@ -132,11 +132,11 @@ export class Raid {
     this.head = new THREE.Group(); this.head.scale.setScalar(1.25); this.head.position.set(0, 2120, 60); this.torso.add(this.head); this.headOld = headMesh(); this.head.add(this.headOld);
     this.shoulder = V3(1150, 1680, 0); this.armA = 1550 * 2.2; this.armB = 1450 * 2.2;
     // eyes and heart: lights you see from across the dark
-    this.eyes = []; for (const e of [-1, 1]) { const m = new THREE.Mesh(new THREE.SphereGeometry(52, 12, 8), glowMat([0.75, 0.55, 1])); m.scale.set(1.5, 0.42, 0.6); m.rotation.z = e * 0.3; m.position.set(e * 140, 385, 400); this.head.add(m); this.eyes.push(m); }
+    this.eyes = []; for (const e of [-1, 1]) { const m = new THREE.Mesh(new THREE.SphereGeometry(52, 12, 8), glowMat([0.77, 1, 0.35])); m.scale.set(1.5, 0.42, 0.6); m.rotation.z = e * 0.3; m.position.set(e * 140, 385, 400); this.head.add(m); this.eyes.push(m); }
     this.heartAt = V3(0, 1300, 330);   // in the torso's frame (three: x, up, forward)
     this.heart = new THREE.Group(); this.heart.position.copy(this.heartAt); this.torso.add(this.heart);
-    this.heartCore = new THREE.Mesh(new THREE.IcosahedronGeometry(150, 1), glowMat([0.7, 0.95, 1])); this.heart.add(this.heartCore);
-    this.heartHalo = new THREE.Mesh(new THREE.SphereGeometry(230, 16, 10), glowMat([0.35, 0.6, 1], 0.3)); this.heart.add(this.heartHalo);
+    this.heartCore = new THREE.Mesh(new THREE.IcosahedronGeometry(150, 1), glowMat([0.85, 1, 0.45])); this.heart.add(this.heartCore);
+    this.heartHalo = new THREE.Mesh(new THREE.SphereGeometry(230, 16, 10), glowMat([0.5, 0.9, 0.25], 0.3)); this.heart.add(this.heartHalo);
     // the arms
     this.arms = [-1, 1].map((e) => { const A = { e, up: boneMesh(1550, 230, 190, true), lo: boneMesh(1450, 190, 150, false), hand: handMesh(), act: null, T: null, rest: null };
       A.up.scale.set(1.8, 2.2, 1.8); A.lo.scale.set(1.8, 2.2, 1.8); A.hand.scale.setScalar(2.1); S.add(A.up, A.lo, A.hand); return A; });
@@ -154,18 +154,18 @@ export class Raid {
       const ember = new THREE.Mesh(new THREE.SphereGeometry(40, 10, 6), glowMat([0.6, 0.85, 1], 0.9)); ember.position.y = 30; G.add(ember);
       return { G, f1, f2, pl, ember }; });
     this.orbs = [];
-    // the abyss: past the island's lip the floor is gone into a violet dark, and a slow mist turns over it
+    // the abyss: past the island's lip the floor is gone into a dark green-black, and a slow mist of spores turns over it
     const cv = document.createElement('canvas'); cv.width = cv.height = 512; const q = cv.getContext('2d'), gr = q.createRadialGradient(256, 256, 0, 256, 256, 256);
-    const r0 = RAID.R / 9000; gr.addColorStop(0, 'rgba(6,4,10,0)'); gr.addColorStop(r0 * 0.985, 'rgba(6,4,10,0)'); gr.addColorStop(r0 * 1.02, 'rgba(6,4,10,0.92)'); gr.addColorStop(1, 'rgba(4,2,8,1)');
+    const r0 = RAID.R / 9000; gr.addColorStop(0, 'rgba(5,8,4,0)'); gr.addColorStop(r0 * 0.985, 'rgba(5,8,4,0)'); gr.addColorStop(r0 * 1.02, 'rgba(5,8,4,0.92)'); gr.addColorStop(1, 'rgba(3,5,2,1)');
     q.fillStyle = gr; q.fillRect(0, 0, 512, 512); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.NoColorSpace;
     const abyss = new THREE.Mesh(new THREE.PlaneGeometry(18000, 18000), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false })); abyss.rotation.x = -Math.PI / 2; abyss.position.copy(this.w(RAID.isle[0], RAID.isle[1], 14)); S.add(abyss);
     const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 256; const q2 = cv2.getContext('2d');
-    for (let i = 0; i < 60; i++) { const a = Math.random() * 6.28, r = 40 + Math.random() * 88, g2 = q2.createRadialGradient(128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 0, 128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 10 + Math.random() * 26); g2.addColorStop(0, 'rgba(150,90,255,0.22)'); g2.addColorStop(1, 'rgba(150,90,255,0)'); q2.fillStyle = g2; q2.fillRect(0, 0, 256, 256); }
+    for (let i = 0; i < 60; i++) { const a = Math.random() * 6.28, r = 40 + Math.random() * 88, g2 = q2.createRadialGradient(128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 0, 128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 10 + Math.random() * 26); g2.addColorStop(0, 'rgba(160,230,90,0.2)'); g2.addColorStop(1, 'rgba(160,230,90,0)'); q2.fillStyle = g2; q2.fillRect(0, 0, 256, 256); }
     const tx2 = new THREE.CanvasTexture(cv2); tx2.colorSpace = THREE.NoColorSpace;
     this.mist = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000), new THREE.MeshBasicMaterial({ map: tx2, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); this.mist.rotation.x = -Math.PI / 2; this.mist.position.copy(this.w(0, -1500, 60)); S.add(this.mist);
     // light falling from far above onto the King: two long shafts
     this.shafts = [];
-    for (const [x, y, r] of [[-900, -4300, 1100], [1300, -5000, 800]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.4, r, 7000, 18, 1, true), glowMat([0.55, 0.45, 1], 0.07)); m.position.copy(this.w(x, y, 3500)); S.add(m); this.shafts.push(m); }
+    for (const [x, y, r] of [[-900, -4300, 1100], [1300, -5000, 800]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.4, r, 7000, 18, 1, true), glowMat([0.6, 0.9, 0.45], 0.07)); m.position.copy(this.w(x, y, 3500)); S.add(m); this.shafts.push(m); }
     this.pose(0);
     // swap in the sculpted King once it has loaded
     loadKing().then((K) => {
@@ -241,7 +241,7 @@ export class Raid {
     // eyes, heart, mist, fires, cinders
     const ex = this.ph === PH.dmg || this.ph === PH.final, pulse = 1 + Math.sin(time * (ex ? 9 : 3)) * (ex ? 0.18 : 0.06);
     this.heartCore.scale.setScalar(pulse * (ex ? 1.25 : 0.8)); this.heartCore.rotation.y += dt * 0.8; this.heartHalo.scale.setScalar(pulse * (ex ? 1.3 : 0.9)); this.heartHalo.material.opacity = ex ? 0.45 : 0.18;
-    for (const m of this.eyes) m.material.color.setRGB(this.ph === PH.final ? 1 : 0.75, this.ph === PH.final ? 0.35 : 0.55, 1);
+    for (const m of this.eyes) m.material.color.setRGB(this.ph === PH.final ? 1 : 0.77, this.ph === PH.final ? 0.35 : 1, this.ph === PH.final ? 0.2 : 0.35);
     this.mist.rotation.z += dt * 0.015;
     this.fires.forEach((F, i) => { const on = !!this.lit[i]; F.f1.visible = F.f2.visible = on; F.ember.visible = !on; if (on) { F.f1.scale.set(1 + Math.sin(time * 11 + i) * 0.08, 1 + Math.sin(time * 7 + i) * 0.12, 1); F.f2.scale.y = 1 + Math.sin(time * 13 + i) * 0.15; }
       F.pl.material.color.setRGB(on ? 1 : 0.6, on ? 0.6 : 0.85, on ? 0.2 : 1); F.pl.material.opacity = on ? 0.9 : 0.45 + 0.25 * Math.sin(time * 3 + i); });
@@ -307,7 +307,7 @@ export class Raid {
     for (const Z of g.enemies) { if (Z.dead || Z === E) continue; const [x, y] = this.loc(Z.pos); if (!walkable(x, y)) { const a = Math.random() * 6.28, r = Math.random() * (RAID.R - 600); Z.pos.copy(this.w(RAID.isle[0] + Math.cos(a) * r, RAID.isle[1] + Math.sin(a) * r, Z.half + 20)); Z.vel.set(0, 0, 0); } }
     switch (this.ph) {
       case PH.rise: if (this.t > 5.5) { this.go(PH.gather); this.say('LIGHT THE THREE PYRES', [1, 0.75, 0.35]); } return;
-      case PH.gather: this.pressure(dt, dmgA, alive, 1); this.work(dt, L); if (this.lit.every(Boolean)) { this.go(PH.kneel); this.say('THE KING KNEELS', [1, 0.85, 0.4]); g.audio.play('S_BossRoar', 1, 0.7); g.shakeAt(this.w(0, -2000), 3000); } return;
+      case PH.gather: this.pressure(dt, dmgA, alive, 1); this.work(dt, L); if (this.lit.every(Boolean)) { this.go(PH.kneel); this.say('THE MOTHER KNEELS', [1, 0.85, 0.4]); g.audio.play('S_BossRoar', 1, 0.7); g.shakeAt(this.w(0, -2000), 3000); } return;
       case PH.kneel: this.adds(dt, 0.5); if (this.t > 2.6) { this.go(PH.dmg); E.finalInv = 0; g.audio.play('S_Phase', 1); } return;
       case PH.dmg: this.dmgLeft = Math.max(0, RAID.dmgT - this.t); this.adds(dt, 0.4);
         if (this.hp < RAID.finalAt) { this.go(PH.final); this.finalLeft = RAID.finalT; this.say('FINAL STAND', [1, 0.3, 0.2], 3.5); g.audio.play('S_BossRoar', 1, 0.5); return; }
@@ -352,7 +352,7 @@ export class Raid {
     this.bearT -= dt;
     if (this.bearT <= 0 && this.bearers.length < need) {
       this.bearT = 9; const at = this.rimSpot(RAID.R - 700);
-      if (at) { const d = DATA.enemies.findIndex((e) => e.name === 'Wraith'), B = g.spawnEnemy(d >= 0 ? d : 0, at, true, -1, 1, 1.4, 0, false); if (B) { B.bearer = true; B.emerge = 1.4; this.bearers.push(B); this.say('A BEARER CLIMBS UP', [1, 0.7, 0.35], 2); } }
+      if (at) { const d = DATA.enemies.findIndex((e) => e.art === 'Wraith'), B = g.spawnEnemy(d >= 0 ? d : 0, at, true, -1, 1, 1.4, 0, false); if (B) { B.bearer = true; B.emerge = 1.4; this.bearers.push(B); this.say('A BEARER CLIMBS UP', [1, 0.7, 0.35], 2); } }
     }
     for (const C of this.cinders) {
       C.life -= dt;

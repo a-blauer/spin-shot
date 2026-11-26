@@ -12,6 +12,8 @@ import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
 import { Raid } from './raid.js';
+import { Sector, SECTORS } from './sector.js';
+import { STRAINS } from './blight.js';
 // boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
 const BOSS_HP = [2.3, 2.5, 2.7, 2.9];
 
@@ -49,6 +51,7 @@ export class Descent {
     const g = this.g;
     this.tickFx(dt);
     if (this.raid) { this.raid.root.visible = g.phase !== 'Village'; if (g.phase !== 'Village') this.raid.tick(dt); }
+    if (this.sector && g.phase !== 'Village') { this.sector.tick(dt); if (this.host) this.sector.hostTick(dt); }
     if (g.phase === 'Village') return;   // up in the village: nothing happens down here until the run starts
     if (!this.host) return;
     this.contain(dt);
@@ -111,10 +114,13 @@ export class Descent {
     const raidRoom = this.arena === N_ROOMS + 1;
     if (this.raid && !raidRoom) { this.raid.dispose(); this.raid = null; }
     if (raidRoom && !this.raid) this.raid = new Raid(g, this);
+    if (this.sector) { this.sector.dispose(); this.sector = null; }
+    if (!raidRoom) this.sector = new Sector(g, this);
     g.hud.hurtWhite = 0.3; g.audio.play('S_Enter', 1);
     const boss = this.isBossRoom();
     g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
     g.hud.roundFlash = 1;
+    if (!raidRoom && (room - 1) % 4 === 0) { const St = STRAINS[g.strainNow()], c = St.glow; g.hud.toast(`${St.name.toUpperCase()} SECTOR - ${SECTORS[g.strainNow()].tip}`, [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255]); }
     if (room === 1) g.hud.toast('Clear the room. Enemies drop parts; a workbench to fit them and the way on open when it is empty.', '#ffd24d');
     this.station('AmmoCrate', S.ammo[0], S.ammo[1], S.ammoYaw, 0, -1, 'Ammo');
     if (started) { Meta.roundStarted(room, g.map.id); P.onRoundStarted(room); }

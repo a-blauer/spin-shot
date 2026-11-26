@@ -77,7 +77,7 @@ export const ROOMS_C = [
       for (let i = 0; i < 46; i++) { const a = i * 2.399, r = 900 + (i * 173) % 3200, x = Math.cos(a) * r * 1.05, y = Math.sin(a) * r * 0.95; if (Math.abs(x) > hx - 500 || Math.abs(y) > hy - 800 || (Math.abs(x) < 1500 && Math.abs(y) > hy - 1500)) continue; const h = 90 + (i % 5) * 50; Pyramid(V(x, y, h / 2), V(h * 0.5, h * 0.5, h), i % 3 ? basalt : 0x342c2e); if (i % 4 === 0) { Pyramid(V(x + 60, y + 30, h * 0.3), V(h * 0.34, h * 0.34, h * 0.6), dark); Glow(V(x + 20, y - 40, 3.4), V(120, 14, 2), hot, 0, R(0, i * 40, 0)); } }
       for (let i = 0; i < 30; i++) { const x = ((i * 911) % (hx * 2 - 800)) - hx + 400, y = ((i * 677) % (hy * 2 - 1400)) - hy + 700; Oct(V(x, y, 2.6), V(150, 150, 3), i % 2 ? 0x0e0a0a : 0x3a2a26, false, false); if (i % 3 === 0) Glow(V(x, y, 5), V(40, 40, 2), yel, 7); }
       // embers adrift over the rivers, and blocks of cooled stone along their banks
-      for (const s of [-1, 1]) for (const [cx0, cy0, along] of [[s * 1300, -1800, false], [s * 1300, 1800, false], [-2650, s * 1700, true], [2650, s * 1700, true]]) for (let q = 0; q < 9; q++) { const t = (q - 4) * (along ? 170 : 250), e = q % 2 ? 1 : -1; const bx = cx0 + (along ? t : e * 300), by = cy0 + (along ? e * 280 : t), sz = 70 + (q % 3) * 30; Box(V(bx, by, sz * 0.3), V(sz, sz * 0.8, sz * 0.6), q % 3 ? basalt : dark, false, false, q * 29); Glow(V(cx0 + (along ? t : e * 90), cy0 + (along ? e * 80 : t), 120 + (q % 4) * 90), V(9, 9, 9), q % 2 ? yel : hot, 2); }
+      for (const s of [-1, 1]) for (const [cx0, cy0, along] of [[s * 1300, -1800, false], [s * 1300, 1800, false], [-2650, s * 1700, true], [2650, s * 1700, true]]) for (let q = 0; q < 9; q++) { const t = (q - 4) * (along ? 170 : 250), e = q % 2 ? 1 : -1; const bx = cx0 + (along ? t : e * 300), by = cy0 + (along ? e * 280 : t), sz = 70 + (q % 3) * 30; Box(V(bx, by, sz * 0.3), V(sz, sz * 0.8, sz * 0.6), q % 3 ? basalt : dark, false, false, q * 29); if (q % 2 === 0) Glow(V(bx, by, sz * 0.6 + 0.8), V(sz * 0.45, sz * 0.3, 2), q % 4 ? yel : hot, 1, R(0, q * 29, 0)); }   // still hot in the middle
       // cauldrons of the stuff hung over the altar's approaches
       for (const s of [-1, 1]) P.hung(s * 900, -s * 900, 620, (z) => { Cyl(V(s * 900, -s * 900, z - 70), 220, 140, dark, false, false); Cyl(V(s * 900, -s * 900, z - 4), 250, 14, basalt, false, false); Glow(V(s * 900, -s * 900, z + 4), V(190, 190, 6), hot, 1); });
       // vents: cracks that breathe light
@@ -101,7 +101,7 @@ export const ROOMS_C = [
       // the dock: a platform, a gantry crane over it with its hook hanging, pallets
       plat(0, 0, 1300, 1700, 80, 0x4a5056, iron, [[0, 500], [0, -500]]);
       for (const sy of [-1, 1]) { for (const sx of [-1, 1]) solid(sx * 600, sy * 800, 80, 70, 70, 900, yel, false); Box(V(0, sy * 800, 1010), V(1340, 80, 80), yel, false, false); }
-      Box(V(0, 0, 1040), V(160, 1700, 70), iron, false, false); Box(V(0, 200, 990), V(220, 220, 100), yel, false, false); for (let z = 620; z < 940; z += 44) Box(V(0, 200, z), V(10, 10, 30), iron, false, false); Box(V(0, 200, 580), V(70, 16, 70), iron, false, false);
+      Box(V(0, 0, 1040), V(160, 1700, 70), iron, false, false); Box(V(0, 200, 990), V(220, 220, 100), yel, false, false); for (let z = 620; z < 940; z += 44) Box(V(0, 200, z), V(10, 10, 48), iron, false, false); Box(V(0, 200, 580), V(70, 16, 70), iron, false, false);
       crate(-300, -300, 80, 110, 0x6a4e30, 0x2a2420, false); crate(-190, -330, 80, 100, 0x5a4630, 0x2a2420, false); crate(-250, -310, 190, 90, 0x6a4e30, 0x2a2420, false); barrel(1050, 620); barrel(1160, 570); L(0, 0, 720, T.lamp, 2600, 3); tall(0, 0, 900);
       // a fork truck in a street on each side, pallets, drums
       for (const s of [-1, 1]) {
@@ -127,7 +127,7 @@ export const ROOMS_C = [
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 600, y = sy * 420; solid(x, y, 120, 50, 50, 160, 0x2a2e30, false); Cyl(V(x, y, 284), 110, 10, 0x2a2e30, false, false); Glow(V(x, y, 310), V(60, 60, 50), 0xff9a4a, 3); }
       // the colonnade, with a banner between each pair and a guard's plate at every second column
       const ys = [-4200, -3000, -1800, 1800, 3000, 4200];
-      for (const sx of [-1, 1]) { ys.forEach((y, i) => { P.column(sx * 1700, y, 280, marble, gold, 'round'); if (i % 2 === 0) P.armor(sx * 1700 - sx * 240, y, 0x8a8e96); }); for (let i = 0; i < ys.length - 1; i++) { if (i === 2) continue; const y = (ys[i] + ys[i + 1]) / 2; P.banner(sx * 1700, y, 1100, 420, 700, hues[(i + (sx > 0 ? 0 : 2)) % 4], false); } }
+      for (const sx of [-1, 1]) { ys.forEach((y, i) => { P.column(sx * 1700, y, 280, marble, gold, 'round'); if (i % 2 === 0) P.armor(sx * 1700 - sx * 240, y, 0x8a8e96); }); for (let i = 0; i < ys.length - 1; i++) { if (i === 2) continue; const y = (ys[i] + ys[i + 1]) / 2; P.banner(sx * 1700, y, 1100, 420, 700, hues[(i + (sx > 0 ? 0 : 2)) % 4], false); Box(V(sx * 1700, y, 1100 + 12), V(16, ys[i + 1] - ys[i], 16), gold, false, false); } }   // each hung from a bar from column to column
       // the court's tables, pushed to the walls, and its chests
       for (const s of [-1, 1]) for (const e of [-1, 1]) { P.mess(e * 2750, s * 2400, false, 700, 0x4a3626); for (let q = -2; q <= 2; q++) { Cyl(V(e * 2750, s * 2400 + q * 120, 86), 30, 16, gold, false, false); } P.mess(e * 2750, s * 3900, false, 500, 0x4a3626);
         solid(e * 2800, s * 1000, 0, 130, 90, 70, 0x5a3e26); deco(e * 2800, s * 1000, 70, 134, 94, 24, gold); P.statue(e * 950, s * 1500, 280, marble, 0x8a8494, 1); }
@@ -137,7 +137,7 @@ export const ROOMS_C = [
   // Marble and steam. One great pool at the middle, knee deep, with a fountain island; two plunge pools at each end;
   // colonnades round all of them and screens of latticed stone between. You wade or you go round.
   mk(TH('The Bathhouse', 0x2a3234, 0x384448, 0x40504e, 0xd8d0b8, 0x7ae0d8, [0.7, 0.95, 0.92], 0x203432, [0.52, 0.64, 0.62]), [4600, 4800, 1300], { panel: 'arch', hang: 'lamp', corner: 'none', c1: 0xd8d0b8, c2: 0x2a6a70, n: 8 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, lowWall, AX, AY, P }) => {
+    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, plat, solid, deco, hit, tall, L, lowWall, AX, AY, P, group }) => {
       const marble = 0xd8d0b8, teal = 0x2a7a80, tile1 = 0x3a8a90, gold = 0xc8a03a;
       slabs(440, T.floor, T.floor2, 0x1a2426, (x, y) => (Math.abs(x) < 1650 && Math.abs(y) < 1350) || (Math.abs(x) < 2500 && Math.abs(Math.abs(y) - 3100) < 800 && Math.abs(x) > 700));
       P.pool(-1600, -1300, 1600, 1300, teal, marble, 0x7ae0d8);
@@ -145,7 +145,7 @@ export const ROOMS_C = [
       P.fountain(0, 0, 620, marble, 0x7ae0d8, T.lamp);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { P.pool(sx * 1600 - 800, sy * 3100 - 600, sx * 1600 + 800, sy * 3100 + 600, 0x2a6a8a, marble, 0x8ad0ff); P.column(sx * 2100, sy * 1800, 240, marble, gold, 'round'); P.column(sx * 2900, sy * 600, 240, marble, gold, 'round'); P.column(sx * 2900, sy * 3100, 240, marble, gold, 'round'); }
       // latticed screens between the halls
-      const screen = (x, y, len, along) => { const w = along ? len : 40, d = along ? 40 : len; solid(x, y, 0, w, d, 30, marble); deco(x, y, 250, w, d, 30, marble); for (let p = -len / 2 + 20; p <= len / 2; p += 60) deco(x + (along ? p : 0), y + (along ? 0 : p), 30, 14, 14, 220, marble); for (const z of [100, 180]) deco(x, y, z, along ? len : 10, along ? 10 : len, 10, gold); hit(x, y, 0, w, d, 280, true); };
+      const screen = (x, y, len, along) => group(() => { const w = along ? len : 40, d = along ? 40 : len; solid(x, y, 0, w, d, 30, marble); deco(x, y, 250, w, d, 30, marble); for (let p = -len / 2 + 20; p <= len / 2; p += 60) deco(x + (along ? p : 0), y + (along ? 0 : p), 30, 14, 14, 220, marble); for (const z of [100, 180]) deco(x, y, z, along ? len : 10, along ? 10 : len, 10, gold); hit(x, y, 0, w, d, 280, true); });
       for (const s of [-1, 1]) { screen(s * 1100, s * 2050, 1500, true); screen(-s * 2300, s * 2050, 900, true); screen(s * 3600, -s * 1400, 1100, false); }
       // benches, towels, urns, braziers of hot stones
       for (const s of [-1, 1]) {
