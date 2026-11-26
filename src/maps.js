@@ -136,7 +136,7 @@ export const MAPS = [
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
       // the village: a warm late afternoon, blue overhead and a golden haze on the hills
-      if (zone === 'village') { P.sky = C(0x6f86c4); P.fog = C(0xf4c08a); P.fogStart = 2000; P.fogDensity = 0.00007; P.fogMax = 0.8; P.sun = sun(-0.78, -0.32, 0.36); P.lit.set(1.14, 0.99, 0.8, 1.06); P.shadow.set(0.5, 0.48, 0.7, 0.86); P.sprite.setRGB(1.06, 0.96, 0.86); return P; }   // golden hour: a low sun in the west, peach haze, long warm light
+      if (zone === 'village') { P.sky = C(0x5c6aa8); P.fog = C(0xe0a070); P.fogStart = 1800; P.fogDensity = 0.00008; P.fogMax = 0.82; P.sun = sun(-0.82, -0.3, 0.24); P.lit.set(1.1, 0.9, 0.7, 1.04); P.shadow.set(0.42, 0.4, 0.62, 0.82); P.sprite.setRGB(1.06, 0.96, 0.86); return P; }   // golden hour: a low sun in the west, peach haze, long warm light
       const z = typeof zone === 'number' ? zone : 0, T = THEMES[z >= N_ROOMS ? [0, 7][(z - N_ROOMS) % 2] : z] || THEMES[0];
       P.sky = C(0x030406); P.fog = C(T.fog); P.fogStart = 1200; P.fogDensity = 0.00017; P.fogMax = 0.8; P.sun = sun(0.25, -0.3, 0.9);
       P.lit.set(1.04, 1.0, 0.96, 1.04); P.shadow.set(T.sh[0], T.sh[1], T.sh[2], 0.84);

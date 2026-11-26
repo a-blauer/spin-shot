@@ -73,3 +73,19 @@
 - Painted signs: village_signs.js (canvas boards: 'wood', 'marquee' with chasing bulbs, 'stone'); map pushes VSPOTS.signs, village.js hangs them after document.fonts load. VSPOTS.signs/smoke are reset at the start of buildVillage.
 - Way Down knoll: boulders sit wholly behind the arch (front > 60 behind the pillars) or wholly beside it (|x| > 340 + 1.2r); the slab behind is now an invisible Solid.
 - Golden hour palette; every cottage window lit; chimney smoke; fairy lights; campfire (VSPOTS.fire) with fx; lantern stakes; toadstool clusters; ~900 grass tufts.
+
+## (21) Live casino, the Hollow King raid, room quality, cozy village
+- Casino: games play on the tables in the world (casino_world.js CasinoRigs); the window is a bet bar docked at the bottom.
+  Each play is told to the party through presence `cz` {k, s, ...}; peers replay it on the same table with a name label.
+- Final boss (room 20, arena N_ROOMS+1 "The Bottom", now reserved for it; rooms 5/10/15 use arena N_ROOMS): raid.js.
+  Loop: rise -> gather (Bearers (elite Wraiths) climb up; each drops a cinder; carry it onto an unlit pyre plate) -> 3 lit
+  -> kneel -> 22s damage phase (heart exposed at the rim) -> purge shockwave (jump it), pyres out -> repeat. Under 12% HP:
+  30s final stand. Enrage clock 8:00 for the whole fight. Wipe = lethal markers over the island.
+  Heart = boss entry "The Hollow King" (raid: true, map 99) driven by raidHeart (fixed to the King's chest), immune via
+  raidImmune. Arms animate from SLAM markers in g.hazards (so guests match), beam from BEAM markers. Raid state rides
+  Descent.state()[9]. Off the island: the deep throws you back (25% HP). Abyss is nav-blocked row by row.
+  Hands only slam where they can reach (reach ~6600); further off, the King's gaze drops bolts instead.
+- Rooms: bookcase/pew/table/bench/car/guardian sculpted shapes (descent_shapes.js); floors are near-tone laid stone; inner
+  walls get plinths, coursing, pilasters with lamps.
+- Village: earthier ground, dusk palette, ferns, mossy logs, overgrown verges, lamp pools along the road.
+- HUD measures text in the village fonts; menus clamp/ellipsis long labels. /tmp/flow.json is obsolete (old one-step gate).

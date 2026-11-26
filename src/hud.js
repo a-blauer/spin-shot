@@ -140,7 +140,12 @@ export class Hud {
     if (segs > 1) { g.fillStyle = INK; for (let i = 1; i < segs; i++) g.fillRect(x + (w * i) / segs - 1, y, 2, h); }
   }
   measure(str, size, font = F_TXT, weight = 700) {
-    const g = this.g; size = this.fs(size);
+    const g = this.g;
+    // measured in the font it will be drawn in: up in the village the HUD's fonts are swapped (see text()), and a box
+    // sized for the other font is too small for this one
+    if (this.vfont) { if (font === F_BIG) { font = F_VIL; weight = 900; size *= 0.8; } else if (font === F_TXT) { font = F_VTXT; weight = Math.max(700, weight); size *= 0.9; } }
+    size = this.fs(size);
+    if (font === F_VIL || font === F_VTXT) { g.font = `${weight} ${Math.round(size)}px ${font}`; return g.measureText(str).width; }
     g.font = `${font === F_BIG ? '' : weight + ' '}${Math.round(size)}px ${font}`;
     return g.measureText(str).width;
   }

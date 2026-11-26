@@ -5,7 +5,7 @@
 // the square's west side, your own cottage (and its wardrobe) south-west, and the Lucky Toadstool, the casino under a
 // giant mushroom, stands to the east. Stations and people are added at run time (village.js) from VSPOTS.
 import { V, R } from './mapkit.js';
-import { shroomHouse, thatchCottage, tree, bush, flower, fence, lanternPost, well, windmill, rock, hill, cabbage, pumpkin, noticeBoard, wardrobeCab, mirror, toadstoolCap, rootPillar, slotMachine, rouletteTable, cardTable, diceTable, hatStand, grassTuft, toadstoolCluster, stemR, VC, dark, mix } from './village_shapes.js';
+import { shroomHouse, thatchCottage, tree, bush, flower, fence, lanternPost, well, windmill, rock, hill, cabbage, pumpkin, noticeBoard, wardrobeCab, mirror, toadstoolCap, rootPillar, slotMachine, rouletteTable, cardTable, diceTable, hatStand, grassTuft, toadstoolCluster, fern, mossLog, stemR, VC, dark, mix } from './village_shapes.js';
 import { awning, barrel, bunting, hay, rug } from './descent_shapes.js';
 
 export const VSIZE = 6000;   // the walkable square, half its side
@@ -42,10 +42,11 @@ export function buildVillage(M, cx, cy) {
   VSPOTS.signs.length = 0; VSPOTS.smoke.length = 0;   // a rebuilt village starts its lists again
   M.at({ x: cx, y: cy, z: 0, rot: 0 }, () => {
     // ---- the ground: grass, with soft patches of other greens and clover, and the far meadow beyond the fence of trees
-    Box(V(0, 0, -60), V(40000, 40000, 120), 0x76a646, true, false);
-    for (let i = 0; i < 70; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(600, 1800); Cyl(V(x, y, 0.4 + (i % 7) * 0.12), d, 1, [0x6e9e42, 0x82b450, 0x7aa84a, 0x8ab85a][i % 4], false, false); }
+    // mossy, not lawn-green: an earthy ground with darker and drier patches, bare earth under the trees
+    Box(V(0, 0, -60), V(40000, 40000, 120), 0x5f803a, true, false);
+    for (let i = 0; i < 130; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(500, 1700); Cyl(V(x, y, 0.4 + (i % 9) * 0.1), d, 1, [0x587838, 0x6a8a42, 0x4e6c34, 0x76804a, 0x6a6a3e, 0x5a6a36][i % 6], false, false); }
     // ---- the road and the paths: soft dirt laid as overlapping discs, edged with pebbles
-    const path = (pts, w, col = 0xb8996a) => {
+    const path = (pts, w, col = 0x9c7c54) => {
       for (let k = 0; k < pts.length - 1; k++) {
         const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 120));
         for (let i = 0; i < n; i++) {
@@ -231,7 +232,7 @@ export function buildVillage(M, cx, cy) {
       Ball(V(x, y, 100), V(46, 46, 40), 0x2a2a2e); Box(V(x, y, 140), V(2, 2, 40), VC.iron, false, false);
       for (let i = 0; i < 3; i++) { const [k, b] = hay(0xd8b060); Shape(k, b, V(x + 330 + i * 30, y - 260 + i * 140, 0), R(0, i * 40, 0)); } }
     // lantern stakes along the road, and toadstools and grass everywhere that is not path
-    for (const sd of [-1, 1]) for (const y of [-1500, -900, 1700, 2250, 2800, 3350, 3900, -4300, -5000, -5600]) { const x = sd * 250 + rr(-10, 10); Cyl(V(x, y, 30), 6, 60, VC.woodD, false, false); Glow(V(x, y, 68), V(15, 15, 19), 0xffcf7a, 2); Box(V(x, y, 80), V(18, 18, 4), VC.iron, false, false); }
+    for (const sd of [-1, 1]) for (const y of [-1500, -900, 1700, 2250, 2800, 3350, 3900, -4300, -5000, -5600]) { const x = sd * 250 + rr(-10, 10); Cyl(V(x, y, 30), 6, 60, VC.woodD, false, false); Glow(V(x, y, 68), V(15, 15, 19), 0xffcf7a, 2); Box(V(x, y, 80), V(18, 18, 4), VC.iron, false, false); if ((y / 50) % 2 === 0 || sd > 0) Lamp(V(x, y, 90), { r: 1, g: 0.72, b: 0.42 }, 1.5, 700, false); }
     // ---- scatter: trees, bushes, flowers, rocks, hay, all kept off the paths and the buildings
     const onPath = (x, y) => (Math.abs(x) < 380 && y > -6600 && y < GATE[1]) || Math.hypot(x, y) < 1700;
     const place = (n, pad, fn) => { for (let i = 0, t = 0; i < n && t < n * 30; t++) { const x = rr(-VSIZE - 2400, VSIZE + 2400), y = rr(-VSIZE - 2400, VSIZE + 2400); if (onPath(x, y) || !clear(x, y, pad)) continue; fn(x, y, i); avoid.push([x, y, pad * 0.6]); i++; } };
@@ -243,8 +244,14 @@ export function buildVillage(M, cx, cy) {
     place(14, 260, (x, y, i) => { const h = rr(180, 320); S(flower(h, [0xf08aa8, 0xf6d04a, 0x6a9ae0, 0xa070d0, 0xffffff][i % 5], 0xf6c43a, i, 5 + (i % 3)), x, y, 0, rr(0, 360)); Solid(V(x, y, h / 2), V(20, 20, h), false); });
     place(240, 40, (x, y, i) => { const [k, b] = flower(rr(26, 50), [0xf08aa8, 0xf6d04a, 0x6a9ae0, 0xa070d0, 0xffffff, 0xff8a4a][i % 6], [0xf6c43a, 0x5a3a22][i % 2], i, 5 + (i % 2)); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });
     place(5, 300, (x, y, i) => { const [k, b] = hay(0xd8b060); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); Solid(V(x, y, 60), V(150, 150, 120), true); });
-    place(60, 60, (x, y, i) => { const [k, b] = toadstoolCluster(0.8 + rnd() * 0.8, [0xc8392e, 0xd88a3a, 0xc8392e, 0x8a5a3a][i % 4], i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });
-    for (let i = 0, t = 0; i < 900 && t < 6000; t++) { const x = rr(-VSIZE - 1500, VSIZE + 1500), y = rr(-VSIZE - 1500, VSIZE + 1500); if (onPath(x, y) || !clear(x, y, 10)) continue; const [k, b] = grassTuft(rr(28, 55), i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); i++; }   // grass: not added to the keep-clear list
+    place(160, 50, (x, y, i) => { const [k, b] = fern(rr(55, 95), i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });   // ferns in the shade of everything
+    place(14, 220, (x, y, i) => { const L = rr(180, 300), [k, b] = mossLog(L, i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); Solid(V(x, y, 30), V(L * 0.8, 60, 60), true); });
+    place(70, 160, (x, y, i) => { S(bush(rr(80, 150), [0x4e7a32, 0x5e8a3a, 0x6a8a40][i % 3], i % 4 === 0 ? [0xf08aa8, 0xf6f0e0, 0xd8a03a][(i / 4) % 3 | 0] : 0, 300 + i), x, y, 0, rr(0, 360)); });
+    place(110, 60, (x, y, i) => { const [k, b] = toadstoolCluster(0.8 + rnd() * 0.8, [0xc8392e, 0xd88a3a, 0xc8392e, 0x8a5a3a][i % 4], i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });
+    // the road's verges grown over: tufts, ferns and the odd flower right up to the dirt
+    for (let y = -6400; y < GATE[1] - 300; y += 70) for (const sd of [-1, 1]) { if (Math.abs(y) < 1750) continue; const x = sd * rr(300, 520); if (!clear(x, y, 10)) continue; const r = rnd();
+      if (r < 0.55) { const [k, b] = grassTuft(rr(30, 60), Math.round(y)); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); } else if (r < 0.8) { const [k, b] = fern(rr(45, 80), Math.round(y)); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); } else { const [k, b] = flower(rr(26, 44), [0xf08aa8, 0xf6d04a, 0xffffff, 0xa070d0][Math.round(y / 70) & 3], 0xf6c43a, Math.round(y), 5); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); } }
+    for (let i = 0, t = 0; i < 1400 && t < 9000; t++) { const x = rr(-VSIZE - 1500, VSIZE + 1500), y = rr(-VSIZE - 1500, VSIZE + 1500); if (onPath(x, y) || !clear(x, y, 10)) continue; const [k, b] = grassTuft(rr(28, 55), i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); i++; }   // grass: not added to the keep-clear list
     // ---- the far hills, and a blue haze of distant ridges
     for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2 + rr(-0.1, 0.1), d = rr(13000, 17000); S(hill(rr(4000, 7000), rr(2500, 4000), rr(1600, 3200), [0x6e9a44, 0x7aa64c, 0x628c3e][i % 3]), Math.cos(a) * d, Math.sin(a) * d, -400, (a * 180) / Math.PI); }
     for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + 0.3, d = rr(21000, 26000); S(hill(rr(7000, 10000), rr(3000, 5000), rr(3500, 6000), 0x7a9aa8), Math.cos(a) * d, Math.sin(a) * d, -800, (a * 180) / Math.PI); }

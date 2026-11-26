@@ -359,3 +359,25 @@ export function toadstoolCluster(s = 1, cap = 0xc8392e, seed = 1) {
     }
   })];
 }
+// ---- a fern: fronds springing from a crown, arching out and down, each with its leaflets either side of the rib
+export function fern(h = 70, seed = 1) {
+  h = q(h, 5);
+  return ['vfern|' + [h, seed % 5].join('|'), shape((G) => {
+    const R = rng(seed * 71 + h), n = 7 + Math.floor(R() * 3);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + R() * 0.4, L = h * (0.8 + R() * 0.5), up = 0.9 + R() * 0.5, col = i % 2 ? 0x4e7a32 : 0x5e8a3a, tip = mix(col, 0x9aa850, 0.35);
+      const P = (t) => [Math.cos(a) * L * t, Math.sin(a) * L * t, L * up * Math.sin(t * Math.PI * 0.85) * 0.75];
+      G.surf((u, v) => { const t = v, [x, y, z] = P(t), w = L * 0.22 * Math.sin(Math.min(1, t * 1.15) * Math.PI) * (1 - t * 0.3), s = (u - 0.5) * 2; return [x - Math.sin(a) * w * s, y + Math.cos(a) * w * s, z - Math.abs(s) * w * 0.35]; }, 0, 1, 2, 0, 1, 8, (u, v) => (v > 0.75 ? tip : col));
+    }
+  })];
+}
+// ---- an old log gone to moss, a shelf fungus or two on its side
+export function mossLog(len = 220, seed = 1) {
+  len = q(len, 10);
+  return ['vlog|' + [len, seed % 4].join('|'), shape((G) => {
+    const R = rng(seed * 13 + len), r = 26 + R() * 10;
+    G.tube([[-len / 2, 0, r * 0.8], [0, R() * 20 - 10, r * 0.85], [len / 2, 0, r * 0.75]], r, (t, a) => (Math.sin(a) > 0.35 ? VC.moss : Math.sin(a) > 0.1 ? mix(VC.moss, VC.woodD, 0.5) : VC.woodD), { S: 12 });
+    for (const e of [-1, 1]) G.lathe([[r * 0.9, 0], [r * 0.6, 2], [0, 3]], 0xc8a878, 12, [e * len / 2, 0, r * 0.8], [0.05, 1]);
+    for (let k = 0; k < 3; k++) { const x = -len * 0.3 + k * len * 0.25; G.blob(x, -r * 0.95, r * (0.9 + k * 0.15), 14, 9, 3, 0xd8b070, { e: 2.5, nu: 10, nv: 4 }); }
+  })];
+}
