@@ -43,7 +43,7 @@ export class Puppet {
   // modifier looks: each one tints the cut-out and adds its own gear or effect in draw()
   setMods(names) {
     this.mods = names;
-    const T = { Blazing: [0.62, 0.42, 0.36], Frozen: [0.62, 0.86, 1.12], Vampiric: [0.9, 0.82, 0.95], Splitting: [0.72, 1.05, 0.6], Hasted: [1.08, 1.04, 0.72], Armored: [0.86, 0.88, 0.92], Blinking: [0.82, 0.62, 1.12], Gilded: [1.3, 1.02, 0.42], Volatile: [1.1, 0.62, 0.55], Shielded: [0.9, 0.98, 1.1] };
+    const T = { Blazing: [0.62, 0.42, 0.36], Frozen: [0.62, 0.86, 1.12], Vampiric: [0.9, 0.82, 0.95], Splitting: [0.72, 1.05, 0.6], Hasted: [1.08, 1.04, 0.72], Armored: [0.93, 0.9, 0.86], Blinking: [0.82, 0.62, 1.12], Gilded: [1.3, 1.02, 0.42], Volatile: [1.1, 0.62, 0.55], Shielded: [0.9, 0.98, 1.1] };
     for (const n of names) { const m = T[n]; if (m) this.tint = [this.tint[0] * m[0], this.tint[1] * m[1], this.tint[2] * m[2]]; }
   }
   hurt(strength) { this.hurtSide = Math.random() < 0.5 ? -1 : 1; this.hurtT = Math.max(this.hurtT, Math.min(1, Math.max(0.2, strength))); this.flashT = 0.085; }
@@ -212,6 +212,7 @@ export class Puppet {
     const flame = (P, u, v0, i, size, r, g, b) => { const t = (T * 1.5 + i * 0.37 + sd) % 1; pin(P, u + Math.sin(T * 5 + i) * 0.04, v0 + t * 0.55, 5); const z = size * s * (1 - t * 0.7); _t.copy(Cam.right).negate(); add.pushBasis(FLAME(), _c, Cam.up, _t, z * 1.5, z, r, g, b, 1 - t, 0, 0, 1.6); };
     for (const m of this.mods) switch (m) {
       case 'Armored': {
+        if (this.is3D) break;   // a solid body grows its bark in 3D (Body3D.drawBark)
         pin(body, 0, 0.02, 3); const w = pw, h = ph;
         fx.pushBasis(DISC(), _c, _x, _y, w * 0.86, h * 0.74, 0.34, 0.37, 0.42, 1, 0, 0, 0);                    // breastplate rim
         pin(body, 0, 0.04, 4); fx.pushBasis(DISC(), _c, _x, _y, w * 0.74, h * 0.62, 0.58, 0.62, 0.68, 1, 0, 0, 0);

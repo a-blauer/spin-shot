@@ -17,7 +17,8 @@
 //  COST       Each part of each kind of creature is one instanced mesh, so a room of sixty enemies of eight kinds is some
 //             sixty draw calls and no per-frame geometry work; a creature is two to four thousand triangles.
 import * as THREE from 'three';
-import { Atlas, G as UNI } from './render.js';
+import { Atlas, G as UNI, toonMaterial } from './render.js';
+import { gearGeos, armorAnchors, barkShell } from './blight_gear.js';
 import { Puppet, getParts } from './puppet.js';
 import { IronhideRig } from './ironhide.js';
 import { BLIGHT, blightMaterial, blightOutlineMaterial, strainRGB } from './blight.js';
@@ -163,8 +164,22 @@ function material(atlas) {
 const KINDS = new Map();   // creature -> [{ mesh, tint, n, cap, D }]
 let SCENE = null, PARTS = null;
 export function bodies3dInit(scene, parts) {
-  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (K.line && K.line.parent) K.line.parent.remove(K.line); if (!K.blight) K.mesh.geometry.dispose(); }
+  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.shellM && K.shellM.parent) K.shellM.parent.remove(K.shellM); if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (K.line && K.line.parent) K.line.parent.remove(K.line); if (!K.blight) K.mesh.geometry.dispose(); }
   KINDS.clear(); MATS.clear(); SCENE = scene; PARTS = parts || getParts();
+  if (GEAR) { for (const k in GEAR) { if (GEAR[k].mesh.parent) GEAR[k].mesh.parent.remove(GEAR[k].mesh); GEAR[k].mesh.dispose(); } GEAR = null; }
+}
+// the Armored Blight's bark (blight_gear.js): one instanced mesh per piece, filled each frame like the bodies
+let GEAR = null, GEARMAT = null;
+function gear(type) {
+  if (!GEAR) GEAR = {};
+  let G = GEAR[type]; if (G) return G;
+  if (!GEARMAT) GEARMAT = toonMaterial({ vcol: true, instanced: true });
+  G = GEAR[type] = { n: 0, cap: 0, mesh: null }; growGear(G, type, 64); return G;
+}
+function growGear(G, type, cap) {
+  const old = G.mesh, m = new THREE.InstancedMesh(gearGeos()[type], GEARMAT, cap); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.count = 0; m.renderOrder = 3;
+  if (old) { m.instanceMatrix.array.set(old.instanceMatrix.array); SCENE.remove(old); old.dispose(); }
+  G.mesh = m; G.cap = cap; SCENE.add(m);
 }
 function makeMesh(K, cap) {
   const old = K.mesh, mesh = new THREE.InstancedMesh(K.geo, K.blight ? blightMaterial() : material(K.atlas), cap);
@@ -187,8 +202,10 @@ function kindFor(creature) {
     const S = sculpt(D, D.role), K = { geo: S.geo, thick: S.thick, tris: S.tris, atlas: m.atlas, n: 0 }; makeMesh(K, 24); list.push(K); }
   KINDS.set(creature, list); return list;
 }
-export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); }
+export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); if (GEAR) for (const k in GEAR) GEAR[k].n = 0; for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) K.shellN = 0; }
 export function bodies3dEnd() {
+  if (GEAR) for (const k in GEAR) { const G = GEAR[k]; G.mesh.count = G.n; if (G.n) G.mesh.instanceMatrix.needsUpdate = true; }
+  for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) { K.shellM.count = K.shellN; if (K.shellN) K.shellM.instanceMatrix.needsUpdate = true; }
   for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.line) K.line.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; if (K.blight) { K.iCap.needsUpdate = true; K.iFlesh.needsUpdate = true; K.iGlow.needsUpdate = true; } } }
 }
 export function bodies3dStats() { let calls = 0, tris = 0, kinds = 0; for (const list of KINDS.values()) { kinds++; for (const K of list) if (K && K.n) { calls++; tris += K.tris * K.n; } } return { kinds, calls, tris }; }
@@ -214,6 +231,7 @@ export class Body3D extends Puppet {
   setStrain(i) { if (this.creature === 'B_Furnace') i = 4; this.strain = i; this.strainC = strainRGB(i); }   // the Furnace burns: it is Char whatever stretch it turns up in
   // a sculpted part knocked off: it flies on its own (spinning, falling, bouncing on the floor) and lies where it lands
   fling(P, at, vel) {
+    if (!this.feet) return;   // hit before it was ever drawn: nothing placed yet to throw
     this.rootMatrix(); this.partMatrix(P, _m); _m.premultiply(_root); const q = new THREE.Quaternion(); _m.decompose(_v, q, _s);
     const ax = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
     P.fly = { p: at.clone(), v: vel.clone(), q, ax, w: 6 + Math.random() * 8, rest: false };
@@ -330,6 +348,23 @@ export class Body3D extends Puppet {
       const a = K.tint.array, o = K.n * 4; a[o] = t[0]; a[o + 1] = t[1]; a[o + 2] = t[2]; a[o + 3] = flash;
       if (K.blight) { const sc = this.strainC, o3 = K.n * 3; K.iCap.array.set(sc[0], o3); K.iFlesh.array.set(sc[1], o3); K.iGlow.array.set(sc[2], o3); }
       K.n++;
+    }
+    if (alive && !this.dying && this.mods && this.mods.includes('Armored')) this.drawBark();
+  }
+  // Armored: bark plates and shelves on this creature's own surface (anchors worked out once per kind and part)
+  drawBark() {
+    for (let i = 0; i < this.parts.length; i++) {
+      const P = this.parts[i], K = this.kind[i]; if (!K || !P.visible || P.fly) continue;
+      const side = P.rest[0] < 0 || P.role === 'ArmBack' ? -1 : 1;
+      if (!K.bark) K.bark = [];   // armorAnchors() could stand shelves out of the shoulders; they read as floating discs, so the shell alone carries it
+      if (K.shell === undefined) K.shell = barkShell(K.geo, P.role, side, this.beast);                         // and the bark itself, on the part's own surface
+      if (!K.bark.length && !K.shell) continue;
+      this.partMatrix(P, _m); _m.premultiply(_root);
+      if (K.shell) {
+        if (!K.shellM || K.shellN >= K.shellCap) { const cap = K.shellM ? K.shellCap * 2 : 16, old = K.shellM; gear('shelf'); const m = new THREE.InstancedMesh(K.shell, GEARMAT, cap); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.count = 0; m.renderOrder = 3; if (old) { m.instanceMatrix.array.set(old.instanceMatrix.array); SCENE.remove(old); old.dispose(); } K.shellM = m; K.shellCap = cap; K.shellN = K.shellN || 0; SCENE.add(m); }
+        _m.toArray(K.shellM.instanceMatrix.array, K.shellN * 16); K.shellN++;
+      }
+      for (const A of K.bark) { const G = gear(A.type); if (G.n >= G.cap) growGear(G, A.type, G.cap * 2); _a.multiplyMatrices(_m, A.m); _a.toArray(G.mesh.instanceMatrix.array, G.n * 16); G.n++; }
     }
   }
 }
