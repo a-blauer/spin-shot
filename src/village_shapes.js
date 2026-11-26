@@ -36,7 +36,7 @@ export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
     G.surf((u, v) => { const a = Math.PI * u, rr = dw / 2 + 4 + v * 14, y = Math.cos(a) * rr, z = dh - dw / 2 + Math.sin(a) * rr; return [skin(y, z, 9), y, z]; }, 0, 1, 16, 0, 1, 1, VC.stone);
     for (const s of [-1, 1]) G.blob(skin(s * (dw / 2 + 11), (dh - dw / 2) / 2, 3), s * (dw / 2 + 11), (dh - dw / 2) / 2, 8, 7, (dh - dw / 2) / 2, VC.stone, { e: 6 });
     G.blob(skin(34, dh * 0.45, 12), 34, dh * 0.45, 5, 5, 5, VC.brass);
-    G.blob(fx + 40, 0, 6, 46, 80, 8, VC.stoneD, { e: 6 });
+    G.blob(skin(0, 0, 18), 0, 5, 26, 54, 6, VC.stone, { e: 4 }); G.blob(skin(0, 0, 40), 0, 2, 22, 46, 3, VC.stoneD, { e: 4 });   // a worn stone step, not a plank
     // round windows round the stem, each with a frame, a cross and a glow behind; flower boxes under two of them
     for (const [a, z] of [[50, h * 0.42], [-50, h * 0.42], [130, h * 0.62], [-150, h * 0.3], [0, h * 0.78]]) {
       const ar = (a * Math.PI) / 180, rr = stemR(h, r, z) + 1, b = G.n, wr = 34;

@@ -10,7 +10,9 @@ export const SYM = {
   shroom: '<svg viewBox="0 0 64 64"><path d="M6 34C6 18 18 8 32 8s26 10 26 26z" fill="#c8281e"/><circle cx="20" cy="24" r="5" fill="#fbf4e6"/><circle cx="38" cy="16" r="4" fill="#fbf4e6"/><circle cx="46" cy="28" r="4" fill="#fbf4e6"/><circle cx="30" cy="27" r="3" fill="#fbf4e6"/><path d="M24 34h16l2 22H22z" fill="#fbf4e6"/><path d="M6 34h52" stroke="#8a1a14" stroke-width="3"/></svg>',
   hat: '<svg viewBox="0 0 64 64"><path d="M32 4 50 46H14z" fill="#b8281e"/><path d="M32 4 41 25" stroke="#e0503c" stroke-width="4" stroke-linecap="round"/><rect x="8" y="44" width="48" height="9" rx="4.5" fill="#8a1a14"/><circle cx="32" cy="5" r="5" fill="#ffcd5a"/><rect x="26" y="44" width="12" height="9" fill="#ffcd5a"/></svg>',
 };
-export const SYM_ORDER = ['berry', 'acorn', 'bell', 'clover', 'star', 'shroom', 'hat'];
+// the wild: a fairy ring of light round a gold W - it stands in for any symbol to make three of a kind
+SYM.wild = '<svg viewBox="0 0 64 64"><defs><radialGradient id="wg" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#c890ff"/><stop offset="1" stop-color="#5a2aa8"/></radialGradient></defs><circle cx="32" cy="32" r="27" fill="url(#wg)" stroke="#ffcd5a" stroke-width="4"/><g fill="#ffcd5a"><circle cx="32" cy="3.5" r="3"/><circle cx="60.5" cy="32" r="3"/><circle cx="32" cy="60.5" r="3"/><circle cx="3.5" cy="32" r="3"/></g><path d="M13 21h8l4 18 7-18 7 18 4-18h8l-9 25h-7l-6-15-6 15h-7z" fill="#ffcd5a" stroke="#8a5a14" stroke-width="2" stroke-linejoin="round"/><text x="32" y="58" font-family="Georgia,serif" font-weight="900" font-size="9" text-anchor="middle" fill="#fff6c8">WILD</text></svg>';
+export const SYM_ORDER = ['berry', 'acorn', 'bell', 'clover', 'star', 'shroom', 'hat', 'wild'];
 // the seven symbols stacked on one canvas, one cell each (for the reels in the world)
 let atlas = null;
 export function symbolAtlas(cell = 128) {

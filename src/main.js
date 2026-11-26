@@ -397,6 +397,35 @@ function ensureLock() {
     const fl = new THREE.Mesh(new THREE.CylinderGeometry(110, 120, 8, 32), new THREE.MeshBasicMaterial({ color: 0x2a1820 })); fl.position.y = -4; lockScene.add(fl); lockerRebuild();
   } catch (err) { lockR = null; }
 }
+// ---- a little picture of each piece in the wardrobe: your own gnome wearing it, framed on the part it goes on. Drawn a
+// few a frame after the page opens (so the page never stalls), cached against your current look.
+let cosR = null; const cosCache = new Map(); let cosQ = [];
+const COS_FRAME = { hat: [34, 230, 0.45], hatcol: [34, 230, 0.45], hatpat: [34, 230, 0.45], hattip: [40, 230, 0.6], hair: [4, 190, 2.3], haircol: [0, 190, 0.5], nose: [-10, 140, 0.35], blush: [-10, 140, 0.35], tone: [-10, 160, 0.35],
+  beard: [-22, 170, 0.35], stache: [-12, 140, 0.35], face: [-6, 140, 0.3], neck: [-40, 170, 0.35], outfit: [-62, 250, 0.95], shoulder: [-50, 230, 0.6], waist: [-88, 200, 0.4], back: [-60, 250, Math.PI - 0.55], gloves: [-80, 230, 0.7], legs: ['legs', 220, 0.4], boots: ['feet', 160, 0.45] };
+const cosKey = (slot, id) => slot + ':' + id + ':' + Meta.lookStr();
+function cosThumbDraw() {
+  if (!cosQ.length || locker.style.display === 'none') { cosQ.length = 0; return; }
+  const t0 = performance.now();
+  while (cosQ.length && performance.now() - t0 < 14) {
+    const [slot, id, key] = cosQ.shift(); if (cosCache.has(key)) continue;
+    try {
+      const TW = 160, TH = 160;
+      if (!cosR) { cosR = new THREE.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: true, alpha: true, preserveDrawingBuffer: true }); cosR.setPixelRatio(1); cosR.setSize(TW, TH, false); cosR.setClearColor(0x000000, 0); }
+      const look = Object.assign({}, Meta.look(), { [slot]: id }); look.shape = Object.assign({}, DEFAULT_SHAPE, Meta.look().shape);
+      const c3 = buildCharacter(look); animateCharacter(c3, 0, 0, { preview: true, rest: true }); const R = c3.userData.rig;
+      const F = COS_FRAME[slot] || [0, 220, 0.4], hy = F[0] === 'legs' ? (R.hipY || 62) * 0.55 : F[0] === 'feet' ? 14 : (R.headY || 130) + F[0];
+      c3.rotation.y = F[2]; const sc = new THREE.Scene(); sc.add(c3);
+      const cam = new THREE.PerspectiveCamera(30, 1, 10, 3000); cam.position.set(0, hy + 12, F[1]); cam.lookAt(0, hy, 0);
+      cosR.render(sc, cam); cosCache.set(key, cosR.domElement.toDataURL('image/png'));
+    } catch (e) { cosCache.set(key, ''); }
+    const url = cosCache.get(key), el = locker.querySelector(`img.lth[data-k="${slot}:${id}"]`); if (el && url) { el.src = url; el.classList.add('in'); }
+  }
+  if (cosQ.length) requestAnimationFrame(cosThumbDraw);
+}
+function cosThumbs() {
+  cosQ = []; locker.querySelectorAll('img.lth').forEach((el) => { const [slot, id] = el.dataset.k.split(':'), key = cosKey(slot, id); const u = cosCache.get(key); if (u) { el.src = u; el.classList.add('in'); } else cosQ.push([slot, id, key]); });
+  if (cosQ.length) requestAnimationFrame(cosThumbDraw);
+}
 function lockerRebuild() { if (!lockScene) return; if (lockChar) lockScene.remove(lockChar); lockChar = buildCharacter(Meta.look()); lockScene.add(lockChar); }
 // The character creator. A page of the body's sliders (three of them change how you play, and say so as you drag), then
 // pages for the face, the hair and what is worn. The figure on the left is the real one, rebuilt on every change.
@@ -420,7 +449,8 @@ function renderLocker() {
     for (const I of COSMETICS[slot]) {
       if (!Meta.cosOwned(slot, I.id)) continue;   // the wardrobe holds what you own; the shop shows the rest
       const ok = true, c1 = I.c ?? I.a, c2 = I.b ?? I.c ?? I.a;
-      h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''}" data-slot="${slot}" data-id="${I.id}"><div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx6(c1)}"></i><i style="background:${hx6(c2)}"></i>`}</div><b>${I.name}</b>${ok ? '' : `<span>${needText(I)}</span>`}</div>`;
+      const pic = !COSMETICS[slot].every((J) => J.c !== undefined && J.a === undefined) && COS_FRAME[slot];   // colour-only slots keep their swatches
+      h += `<div class="litem ${ok ? '' : 'locked'} ${cur === I.id ? 'sel' : ''} ${pic ? 'pic' : ''}" data-slot="${slot}" data-id="${I.id}">${pic ? `<img class="lth" data-k="${slot}:${I.id}" alt="">` : ''}<div class="lsw">${c1 === undefined ? '' : `<i style="background:${hx6(c1)}"></i><i style="background:${hx6(c2)}"></i>`}</div><b>${I.name}</b>${ok ? '' : `<span>${needText(I)}</span>`}</div>`;
     }
     h += '</div></div>';
   }
@@ -434,6 +464,7 @@ function renderLocker() {
   lockerStats();
   locker.querySelector('#lclose').onclick = (e) => { e.stopPropagation(); locker.style.display = 'none'; Net.refreshPresence(); if (game && game.round === 0) game.player.setBody(Meta.look()); renderLobby(); if (vmode === 'wardrobe') { vmode = ''; panelOut(); } };
   locker.querySelectorAll('.ltab').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); lockPage = el.dataset.page; const sc = locker.querySelector('.lscroll'); if (sc) sc.scrollTop = 0; renderLocker(); }; });
+  cosThumbs();
   locker.querySelectorAll('.litem').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; if (el.dataset.face !== undefined) Meta.setLooks(FACE_PRESETS[+el.dataset.face].set); else Meta.setLook(el.dataset.slot, el.dataset.id); lockerRebuild(); renderLocker(); }; });
   locker.querySelectorAll('input[data-shape]').forEach((el) => {
     const say = () => { const v = +el.value, K = SHAPES.find((q) => q.id === el.dataset.shape), o = locker.querySelector(`#lsv-${K.id}`); if (o) o.textContent = K.zero === -1 ? (v > -10 ? `${(v + 10) * 5}%` : '') : v === 0 ? '' : `${v > 0 ? K.hi : K.lo} ${Math.abs(v) * 10}%`; };

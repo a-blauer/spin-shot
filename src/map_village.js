@@ -4,6 +4,7 @@
 // in its middle, the challenge board on its east side), and on north to the Way Down, an arch in the hill. The shop is on
 // the square's west side, your own cottage (and its wardrobe) south-west, and the Lucky Toadstool, the casino under a
 // giant mushroom, stands to the east. Stations and people are added at run time (village.js) from VSPOTS.
+import * as THREE from 'three';
 import { V, R } from './mapkit.js';
 import { shroomHouse, thatchCottage, tree, bush, flower, fence, lanternPost, well, windmill, rock, hill, cabbage, pumpkin, noticeBoard, wardrobeCab, mirror, toadstoolCap, rootPillar, slotMachine, rouletteTable, cardTable, diceTable, hatStand, grassTuft, toadstoolCluster, fern, mossLog, stemR, VC, dark, mix } from './village_shapes.js';
 import { awning, barrel, bunting, hay, rug } from './descent_shapes.js';
@@ -44,17 +45,19 @@ export function buildVillage(M, cx, cy) {
     // ---- the ground: grass, with soft patches of other greens and clover, and the far meadow beyond the fence of trees
     // mossy, not lawn-green: an earthy ground with darker and drier patches, bare earth under the trees
     Box(V(0, 0, -60), V(40000, 40000, 120), 0x5f803a, true, false);
-    for (let i = 0; i < 130; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(500, 1700); Cyl(V(x, y, 0.4 + (i % 9) * 0.1), d, 1, [0x587838, 0x6a8a42, 0x4e6c34, 0x76804a, 0x6a6a3e, 0x5a6a36][i % 6], false, false); }
+    for (let i = 0; i < 130; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(500, 1700); Cyl(V(x, y, 0.5 + (i % 9) * 0.55), d, 1, [0x587838, 0x6a8a42, 0x4e6c34, 0x76804a, 0x6a6a3e, 0x5a6a36][i % 6], false, false); }
     // ---- the road and the paths: soft dirt laid as overlapping discs, edged with pebbles
+    // a path is one ribbon of dirt laid along its line (one surface: nothing overlaps, so nothing flickers), wavering
+    // in width, two tones of earth blotched through it, edged with pebbles; it sits above every grass patch
     const path = (pts, w, col = 0x9c7c54) => {
-      for (let k = 0; k < pts.length - 1; k++) {
-        const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 120));
-        for (let i = 0; i < n; i++) {
-          const t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t, d = w * (0.92 + 0.16 * Math.sin(i * 1.7 + k));
-          Cyl(V(x, y, 1.6 + (i % 3) * 0.05), d, 1, i % 4 ? col : dark(col, 0.94), false, false);
-          if (i % 2 === 0) for (const s of [-1, 1]) { const nx = -(y1 - y0) / L, ny = (x1 - x0) / L, e = s * (w / 2 + rr(-10, 10)); Oct(V(x + nx * e, y + ny * e, 4), V(rr(24, 44), rr(20, 36), 10), mix(VC.stone, VC.stoneD, rnd()), false, false, R(0, rr(0, 90), 0)); }
-        }
-      }
+      const segs = []; for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 60)); for (let i = 0; i < n; i++) segs.push([x0 + (x1 - x0) * (i / n), y0 + (y1 - y0) * (i / n), -(y1 - y0) / L, (x1 - x0) / L]); }
+      { const [x1, y1] = pts[pts.length - 1], q = segs[segs.length - 1]; segs.push([x1, y1, q[2], q[3]]); }
+      const x0 = segs[0][0], y0 = segs[0][1], key = 'vpath|' + pts.flat().map(Math.round).join(',') + '|' + w + '|' + col, dk = dark(col, 0.88), lt = mix(col, 0xc8a878, 0.25);
+      Shape(key, () => { const pos = [], cl = [], idx = [], C = new THREE.Color(); const M = segs.length;
+        for (let i = 0; i < M; i++) { const [x, y, nx, ny] = segs[i], hw = w * 0.5 * (0.9 + 0.12 * Math.sin(i * 0.7) + 0.06 * Math.sin(i * 2.3)); for (let j = 0; j <= 4; j++) { const e = (j / 4 - 0.5) * 2 * hw * (j === 0 || j === 4 ? 1.0 : 1), px = x + nx * e - x0, py = y + ny * e - y0, n = Math.sin(px * 0.011 + py * 0.007) + Math.sin(px * 0.023 - py * 0.017); pos.push(px, py, 0); C.setHex(n > 0.9 ? lt : n < -0.8 ? dk : col, THREE.NoColorSpace); cl.push(C.r, C.g, C.b); } }
+        for (let i = 0; i < M - 1; i++) for (let j = 0; j < 4; j++) { const a = i * 5 + j, b2 = a + 1, c = a + 5, d = c + 1; idx.push(a, c, b2, b2, c, d); }
+        return { pos, col: cl, idx }; }, V(x0, y0, 7), R(0, 0, 0));
+      for (let i = 0; i < segs.length; i += 2) { const [x, y, nx, ny] = segs[i]; for (const sd of [-1, 1]) { const e = sd * (w / 2 + rr(-10, 10)); Oct(V(x + nx * e, y + ny * e, 9), V(rr(24, 44), rr(20, 36), 10), mix(VC.stone, VC.stoneD, rnd()), false, false, R(0, rr(0, 90), 0)); } }
     };
     path([[0, -6500], [0, STREAM_Y - 700], [0, -1500]], 430);
     path([[0, 1500], [0, GATE[1] - 400]], 430);
@@ -192,10 +195,9 @@ export function buildVillage(M, cx, cy) {
     // campfire with log seats, lantern stakes along the road, toadstools at the foot of things and grass in tufts
     const shroomExtras = (x, y, h, r, yaw) => {
       const ya = (yaw * Math.PI) / 180;
-      for (const [a, zk] of [[50, 0.42], [-50, 0.42], [130, 0.62], [-150, 0.3], [0, 0.78]]) { const z = h * zk, ar = ya + (a * Math.PI) / 180, R2 = stemR(h, r, z) + 1.6; Glow(V(x + Math.cos(ar) * R2, y + Math.sin(ar) * R2, z), V(3, 64, 64), 0xffc870, 2, R(0, yaw + a, 0)); }
+      // (the windows' own glass is lit in the house's shape; a second glow laid on it only flickered against it)
       const CR = r * 2.15, CH = r * 1.35, cx = -CR * 0.35, cy = CR * 0.25; VSPOTS.smoke.push([x + cx * Math.cos(ya) - cy * Math.sin(ya), y + cx * Math.sin(ya) + cy * Math.cos(ya), h - 20 + CH * 0.72 + 146]);
       const fx = stemR(h, r, 40) + 70; for (const sd of [-1, 1]) { const px = x + Math.cos(ya) * fx - Math.sin(ya) * sd * 100, py = y + Math.sin(ya) * fx + Math.cos(ya) * sd * 100; Cyl(V(px, py, 18), 42, 36, 0xb8643a, false, false); Cyl(V(px, py, 37), 48, 5, 0x8a4a2a, false, false); S(bush(30, VC.leaf2, sd > 0 ? 0xf6d04a : 0xf08aa8, 70 + sd + Math.round(x) % 5), px, py, 30, 0); }
-      Glow(V(x + Math.cos(ya) * (stemR(h, r, 200) + 30), y + Math.sin(ya) * (stemR(h, r, 200) + 30) + 70, 226), V(16, 16, 20), 0xffd27a, 2);   // a lamp by the door
     };
     shroomExtras(-2700, 700, 520, 330, 0);
     houses.forEach(([x, y, h, r, , yaw]) => shroomExtras(x, y, h, r, yaw));

@@ -23,11 +23,15 @@ const SHOP_TABS = [
 ];
 const STAKES = [5, 10, 25, 50, 100, 250, 500, 1000];
 const CHIP_COL = { 5: '#5a7a9a', 10: '#3a6aa8', 25: '#3a8a4a', 50: '#c8962a', 100: '#1a1a1a', 250: '#8a3aa8', 500: '#b8392e', 1000: '#2a8a8a' };
-const REEL = { berry: 7, acorn: 6, bell: 5, clover: 4, star: 3, shroom: 2, hat: 1 };
-const PAY3 = { berry: 8, acorn: 14, bell: 24, clover: 40, star: 75, shroom: 180, hat: 700 };
-const PAY2 = { berry: 1, acorn: 1.5, bell: 2, clover: 2.5, star: 3, shroom: 5, hat: 10 };   // the first two reels alike
-const spinReel = () => { let r = Math.random() * 28; for (const k of Object.keys(REEL)) { r -= REEL[k]; if (r < 0) return k; } return 'berry'; };
-const slotPay = (a, b, c) => (a === b && b === c ? PAY3[a] : a === b ? PAY2[a] : 0);
+// The reels: 57 stops each, the wild on one of them. The wild stands in for any symbol to make three of a kind (three
+// wilds is the top prize); it does not make pairs. With these pays a spin returns about 97 in 100 (worked out exactly over
+// every combination).
+const REEL = { berry: 14, acorn: 12, bell: 10, clover: 8, star: 6, shroom: 4, hat: 2, wild: 1 };
+const PAY3 = { berry: 6, acorn: 10, bell: 17, clover: 28, star: 52, shroom: 126, hat: 490, wild: 1400 };
+const PAY2 = { berry: 1, acorn: 1.5, bell: 2, clover: 2.5, star: 3, shroom: 5, hat: 10, wild: 10 };   // the first two reels alike
+const STOPS = Object.values(REEL).reduce((a, b) => a + b, 0);
+const spinReel = () => { let r = Math.random() * STOPS; for (const k of Object.keys(REEL)) { r -= REEL[k]; if (r < 0) return k; } return 'berry'; };
+const slotPay = (a, b, c) => { const nw = [a, b, c].filter((x) => x !== 'wild'); if (!nw.length) return PAY3.wild; if (nw.every((x) => x === nw[0])) return PAY3[nw[0]]; return a === b ? PAY2[a] : 0; };
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
@@ -185,7 +189,7 @@ export function makeVillageUI(H) {
   let seq = 0;
   const tell = (k, o) => { seq++; H.broadcast(Object.assign({ k, s: seq }, o)); };
   function renderCasino() {
-    const T = { slots: ['Toadstool Slots', 'Line up the first two reels, or all three. Returns about 97 in 100.'], roulette: ['Pip’s Roulette', 'One zero. Click the layout to put chips down, then spin.'], blackjack: ['Dame Fennel’s Blackjack', '3 to 2 on a natural. The dealer stands on every 17.'], dice: ['Clatterby’s High-Low', 'Two dice make a roll from 1 to 100. Pick a line and a side.'] }[kind];
+    const T = { slots: ['Toadstool Slots', 'Line up the first two reels, or all three. The wild makes any three. Returns about 97 in 100.'], roulette: ['Pip’s Roulette', 'One zero. Click the layout to put chips down, then spin.'], blackjack: ['Dame Fennel’s Blackjack', '3 to 2 on a natural. The dealer stands on every 17.'], dice: ['Clatterby’s High-Low', 'Two dice make a roll from 1 to 100. Pick a line and a side.'] }[kind];
     let ctl = '';
     if (kind === 'slots') ctl = `<button class="vp-btn" id="spin">Spin  ${coin()} ${stake}</button><div class="paytab">${Object.keys(PAY3).reverse().slice(0, 4).map((k) => `<div class="sy">${SYM[k]}${SYM[k]}${SYM[k]}</div><b>×${PAY3[k]}</b>`).join('')}</div>`;
     else if (kind === 'roulette') { const R = C.rou, tot = Object.values(R.bets).reduce((a, b) => a + b, 0); ctl = `<div class="layout">${layoutHtml()}</div><div class="col"><button class="vp-btn" id="rspin" ${tot && !R.busy ? '' : 'disabled'}>Spin  ${coin()} ${fmt(tot)}</button><button class="vp-btn alt" id="rclear" ${tot && !R.busy ? '' : 'disabled'}>Clear</button><div class="hist">${R.hist.slice(0, 8).map((n) => `<span style="background:${n === 0 ? '#2a8a3a' : RED.has(n) ? '#b82a2a' : '#1a1a1a'}">${n}</span>`).join('')}</div></div>`; }

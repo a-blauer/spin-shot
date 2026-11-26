@@ -102,3 +102,8 @@
   Body3D uses it when creature === 'Ironhide' (this.custom). New mechanic ('front'): 4 plates; armoured takes 20-100% by
   plates left; a missed charge winds it 4s; damage while winded cracks a plate per 6% max HP.
 - Light show: removed at the user's request (lightshow.js deleted, settings sliders gone).
+- (23) Wardrobe: each piece has a picture (main.js cosThumbs: your gnome wearing it, framed by COS_FRAME, drawn a few a
+  frame, cached per piece + Meta.lookStr()); colour-only slots keep swatches.
+  Village flicker: paths are one ribbon Shape each (were overlapping coplanar discs); ground patches 0.55 apart in height;
+  the extra window Glows laid on the houses' own lit glass removed; the floating door-lamp dot removed; the door step is stone.
+  Slots: a WILD (1 stop in 57) completes any three of a kind (three wilds x1400); pays re-tuned, RTP 96.7% (exact).
