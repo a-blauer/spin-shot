@@ -231,7 +231,7 @@ export function BuildMainStreet(M, GM) {
 
 	// North row (faces -X), leaving the two doorways clear.
 	Building(V2(-3000., -1800.), V2(-2050., -450.), 450., Pal.Cream, Pal.RoofRed, Pal.Teal, -1, "BARBER");
-	Cyl(V(-3040., -1600., 220.), 30., 160., 0xFFFFFF, false, false);
+	Cyl(V(-3040., -1600., 220.), 30., 160., 0xFFFFFF, false, false); M.Hang(V(-3040., -1600., 300.), 4., 0x3a3a3a, 300.);
 	Glow(V(-3040., -1600., 220.), V(32., 32., 30.), 0xFF3030, 1);
 	Building(V2(-3000., 450.), V2(-2050., 2000.), 550., 0xB5893C, Pal.RoofDark, Pal.WoodDark, -1, "SHERIFF");
 	Building(V2(-3000., 2100.), V2(-2050., 3550.), 500., 0x4A3A4A, Pal.RoofDark, Pal.StoneDark, -1, "UNDERTAKER");
@@ -363,7 +363,7 @@ export function BuildChapel(M, GM) {
 	}
 	Box(V(1300., -5500., 1475.), V(440., 440., 30.), Pal.RoofRed, true, false);
 	ConeShape(V(1300., -5500., 1600.), V(420., 420., 220.), Pal.RoofRed, true, R(0., 45., 0.));
-	ConeShape(V(1300., -5500., 1340.), V(140., 140., 140.), Pal.Gold, false);
+	ConeShape(V(1300., -5500., 1340.), V(140., 140., 140.), Pal.Gold, false); M.Hang(V(1300., -5500., 1420.), 6., 0x3a3a3a, 200.);   // the bell hangs from the belfry roof
 	Box(V(1300., -5500., 1400.), V(20., 20., 40.), Pal.MetalDark, false, false);
 	Lamp(V(1300., -5500., 1300.), LC(1., 0.8, 0.4), 12., 900., false);
 	Ramp(V(1800., -5000., 0.), V(1800., -5700., 420.), 220., Pal.Wood);
@@ -687,7 +687,8 @@ export function BuildVault(M, GM, TH) {
   for (let i = 0; i < 5; ++i)
   {
     const a = i / 4 * Math.PI * 2, r = i === 4 ? 0. : 760., P = C.add(V(Math.cos(a) * r, Math.sin(a) * r, 880.));
-    Cyl(P, 260., 16., T.chand, false, false); Glow(P.add(V(0, 0, -30.)), V(180., 180., 40.), T.chandGlow, 1);
+    Cyl(P, 260., 16., T.chand, false, false); for (let k = 0; k < 3; k++) { const b = k * Math.PI * 2 / 3; M.Hang(P.add(V(Math.cos(b) * 110., Math.sin(b) * 110., 8.)), 3., 0x2a2a2e, 2400.); }   // on three chains from the roof
+    Glow(P.add(V(0, 0, -30.)), V(180., 180., 40.), T.chandGlow, 1);
     Lamp(P.add(V(0, 0, -80.)), LC(T.chandLamp[0], T.chandLamp[1], T.chandLamp[2]), 16., 1800., false);
   }
   Sign(C.add(V(-R0 + 60., 0, 620.)), 0., T.sign, FC(T.signCol[0], T.signCol[1], T.signCol[2]), 90.);

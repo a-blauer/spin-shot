@@ -26,7 +26,7 @@ export function buildCarnival(M) {
     Box(L(x, y, yaw, -150, 0, 170), V(20, 520, 340), WOOD, true, false, yaw); for (const s of [-1, 1]) Box(L(x, y, yaw, -20, s * 250, 170), V(280, 20, 340), WOOD, true, false, yaw);
     Box(L(x, y, yaw, 110, 0, 52), V(44, 516, 104), col, true, false, yaw); Box(L(x, y, yaw, 110, 0, 108), V(70, 540, 10), WOOD_D, false, false, yaw);
     BoxRot(L(x, y, yaw, 20, 0, 372), V(400, 580, 12), col, R(-10, yaw, 0), false); for (let i = -2; i <= 2; i++) if (i % 2) BoxRot(L(x, y, yaw, 20, i * 116, 379), V(400, 116, 4), CREAM, R(-10, yaw, 0), false);
-    for (let i = -4; i <= 4; i++) Box(L(x, y, yaw, 222, i * 60, 300 - (i & 1) * 14), V(6, 60, 40), i % 2 ? CREAM : col, false, false, yaw);
+    for (let i = -4; i <= 4; i++) { const h = 40 + (i & 1) * 14; Box(L(x, y, yaw, 220, i * 60, 340 - h / 2), V(6, 60, h), i % 2 ? CREAM : col, false, false, yaw); }   // hung from the awning's edge
     Box(L(x, y, yaw, 150, 0, 440), V(12, 440, 76), WOOD_D, false, false, yaw); Sign(L(x, y, yaw, 158, 0, 440), yaw, name, { r: 0.92, g: 0.82, b: 0.55 }, name.length > 12 ? 30 : 38);
     for (let i = -2; i <= 2; i++) { Box(L(x, y, yaw, -134, i * 90, 230), V(8, 70, 8), WOOD_D, false, false, yaw); if (prize === 1) Glow(L(x, y, yaw, -130, i * 90, 262), V(24, 30, 44), BULB[(i + 2) % 3]); else if (prize === 2) Cyl(L(x, y, yaw, -130, i * 90, 256), 30, 44, [0xb8322a, 0xcfc6ac, 0x3a5a7a][(i + 2) % 3], false, false); else Ball(L(x, y, yaw, -130, i * 90, 262), V(44, 44, 50), [0xc8b83a, 0x7a2a5a, 0x3a6a9a][(i + 2) % 3]); }
     Glow(L(x, y, yaw, 60, 0, 350), V(14, 14, 20), WARM, 2); Lamp(L(x, y, yaw, 150, 0, 300), LC(1, 0.7, 0.4), 8, 700, false);
@@ -81,7 +81,7 @@ export function buildCarnival(M) {
     // wagons drawn up along the back fence, the calliope among them
     Wagon(V(-1700, -5500, 0), 8); Wagon(V(1800, -5450, 0), 172); Wagon(V(-2100, -4400, 0), 80);
     { const x = 1900, y = -4300; Box(V(x, y, 130), V(520, 260, 180), RED, true, true); Box(V(x, y, 226), V(540, 280, 14), GOLD, false, false); for (let i = 0; i < 9; i++) Cyl(V(x - 200 + i * 50, y, 300 + (4 - Math.abs(i - 4)) * 26), 30, 150 + (4 - Math.abs(i - 4)) * 52, 0xb8923a, false, false); for (const sx of [-1, 1]) for (const sy of [-1, 1]) Ring(V(x + sx * 170, y + sy * 136, 66), V(130, 14, 130), GOLD, R(0, 0, 0)); Sign(V(x, y - 134, 150), -90, 'CALLIOPE', { r: 0.95, g: 0.8, b: 0.4 }, 34); }
-    for (const [x, y, t] of [[-2380, -5000, 'SEE THE TWINS'], [-2380, -3900, 'ZORA KNOWS'], [2380, -5200, 'GRIN'], [2380, -3600, 'THE HUMAN CANNONBALL']]) { Box(V(x, y, 300), V(16, 520, 420), 0xbcb49a, false, false); Box(V(x, y, 300), V(22, 540, 30), RED, false, false); Sign(V(x - Math.sign(x) * 12, y, 330), x < 0 ? 0 : 180, t, { r: 0.5, g: 0.12, b: 0.1 }, t.length > 12 ? 30 : 44); }
+    for (const [x, y, t] of [[-2380, -5000, 'SEE THE TWINS'], [-2380, -3900, 'ZORA KNOWS'], [2380, -5200, 'GRIN'], [2380, -3600, 'THE HUMAN CANNONBALL']]) { Box(V(x, y, 300), V(16, 520, 420), 0xbcb49a, false, false); for (const e of [-1, 1]) Box(V(x, y + e * 272, 260), V(20, 20, 520), WOOD_D, false, false); Box(V(x, y, 300), V(22, 540, 30), RED, false, false); Sign(V(x - Math.sign(x) * 12, y, 330), x < 0 ? 0 : 180, t, { r: 0.5, g: 0.12, b: 0.1 }, t.length > 12 ? 30 : 44); }   // on two poles
     for (const [x, y] of [[-700, -5400], [700, -5400], [-900, -4600], [900, -4600], [-400, -3700], [400, -3700]]) pole(x, y);
     bulbs(-700, -5400, 520, -900, -4600, 520); bulbs(-900, -4600, 520, -400, -3700, 520); bulbs(700, -5400, 520, 900, -4600, 520); bulbs(900, -4600, 520, 400, -3700, 520); bulbs(-700, -5400, 520, 700, -5400, 520, 13);
     Crate(V(-1500, -3500, 0), 120); Crate(V(-1640, -3540, 0), 90); Barrel(V(1500, -5000, 0), 0x5a2a26); Barrel(V(1380, -5080, 0), 0x3a3634); Barrel(V(-1200, -5700, 0), 0x3a3634);
@@ -159,8 +159,8 @@ export function buildCarnival(M) {
     }
     // the trick glass along the outer walls, the bulbs strung gallery to gallery
     for (let y = 300; y <= 3500; y += 800) { Glow(V(-6896, y, 240), V(6, 300, 380), 0x1c4a5a); Box(V(-6892, y, 240), V(8, 330, 410), GOLD, false, false); }
-    for (let x = -6500; x <= -3000; x += 700) { Glow(V(x, 3896, 240), V(300, 6, 380), 0x2a2a5a); Box(V(x, 3892, 240), V(330, 8, 410), GOLD, false, false); }
-    for (const y of [-200, 3650]) for (let x = -6700; x < -2900; x += 950) bulbs(x, y, 470, x + 950, y, 470, 8);
+    for (let x = -6500; x <= -3000; x += 700) { Glow(V(x, 3897, 240), V(300, 6, 380), 0x2a2a5a); Box(V(x, 3896, 223), V(330, 8, 446), GOLD, false, false); }
+    for (const y of [-200, 3650]) { for (let x = -6700; x < -2900; x += 950) bulbs(x, y, 470, x + 950, y, 470, 8); Box(V(-6700, y, 244), V(16, 16, 488), WOOD_D, false, false); }
     for (const [x, y] of [[-6700, 1700], [-5460, 1200], [-4750, 2300], [-4200, 800], [-3650, 3000], [-2950, 2500]]) K.lantern(x, y, 460, 0x2a8a8a, 900);
     // a barrel walk nobody turned off, and a mannequin or two
     Cyl(V(-5460, 2500, 130), 260, 500, 0x7a2a5a, true, false, R(90, 90, 0)); K.solid(-5460, 2500, 90, 500, 260, 150); for (const k of [-180, 0, 180]) Cyl(V(-5460, 2500 + k, 130), 272, 30, CREAM, false, false, R(90, 90, 0));

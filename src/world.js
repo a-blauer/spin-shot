@@ -179,6 +179,51 @@ export class World {
       }
     }
   }
+  // a hanger: a rod (or chain) of width w from `top` straight up to the underside of whatever is over it. Where that
+  // is gets settled once the whole map is built (the roof may not exist yet when the lamp is placed); nothing over it
+  // within `reach` and nothing is added (the scan then reports the lamp as floating)
+  Hang(top, w, color, reach = 1600) {
+    const m = this._matrix(top, V(1, 1, 1), null), p = new THREE.Vector3().setFromMatrixPosition(m);
+    (this.hangs || (this.hangs = [])).push({ p, w, c: hex(color), ch: this.chunk === undefined || this.chunk === null ? -1 : this.chunk, reach });
+  }
+  _hangAll() {
+    const H = this.hangs; this.hangs = null; if (!H || !H.length) return;
+    const boxes = [];
+    for (const [key, list] of this.inst) { const [id, glow, ch] = key.split('|').map(Number); if (glow) continue; const gg = GEOS[id]; if (!gg.boundingBox) gg.computeBoundingBox(); for (const it of list) boxes.push([ch, gg.boundingBox.clone().applyMatrix4(it.m)]); }
+    let miss = 0;
+    for (const h of H) {
+      const { p } = h, r = h.w * 0.5; let best = Infinity;
+      for (const [ch, b] of boxes) {
+        if (ch !== h.ch || p.x < b.min.x - r || p.x > b.max.x + r || p.z < b.min.z - r || p.z > b.max.z + r) continue;
+        if (b.max.y <= p.y + 0.5) continue;                       // ends at or below the top: the lamp itself, or the floor
+        const y = b.min.y <= p.y + 0.5 ? p.y : b.min.y;          // already touching: no rod needed
+        if (y - p.y <= h.reach && y < best) best = y;
+      }
+      const put = (x0, y0, z0, x1, y1, z1, w) => {   // an axis-aligned bar between two points
+        const m = new THREE.Matrix4().compose(new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), new THREE.Quaternion(), new THREE.Vector3(Math.max(w, Math.abs(x1 - x0)), Math.max(w, Math.abs(y1 - y0)), Math.max(w, Math.abs(z1 - z0))));
+        const key = '0|0|' + h.ch; if (!this.inst.has(key)) this.inst.set(key, []); this.inst.get(key).push({ m, c: h.c });
+        if (SCAN) { const gg = GEOS[0]; (this.scanAll || (this.scanAll = [])).push([0, 0, h.ch < 0 ? null : h.ch, gg.boundingBox.clone().applyMatrix4(m), m.elements.slice(), 'hang', h.c]); }
+      };
+      if (isFinite(best)) { if (best - p.y > 0.5) put(p.x, p.y - 1, p.z, p.x, best + 1, p.z, h.w); continue; }
+      // nothing over it: a bracket out of the nearest wall at that height, or failing that a post of its own beside it
+      let wall = null, wd = 170;
+      for (const [ch, b] of boxes) {
+        if (ch !== h.ch || b.min.y > p.y - 4 || b.max.y < p.y + 4 || (b.max.x - b.min.x) * (b.max.z - b.min.z) < 400) continue;
+        const qx = Math.max(b.min.x, Math.min(p.x, b.max.x)), qz = Math.max(b.min.z, Math.min(p.z, b.max.z)), d = Math.hypot(qx - p.x, qz - p.z);
+        if (d > 0.5 && d < wd) { wd = d; wall = [qx, qz]; }
+      }
+      if (wall) { const [qx, qz] = wall; put(p.x, p.y - 1, p.z, p.x, p.y + 10, p.z, h.w); const ex = qx + Math.sign(qx - p.x), ez = qz + Math.sign(qz - p.z); if (Math.abs(qx - p.x) > 0.5) put(p.x, p.y + 10, p.z, ex, p.y + 10, p.z, h.w); if (Math.abs(qz - p.z) > 0.5) put(Math.abs(qx - p.x) > 0.5 ? ex : p.x, p.y + 10, p.z, Math.abs(qx - p.x) > 0.5 ? ex : p.x, p.y + 10, ez, h.w); continue; }   // out along one axis, then the other, to the wall
+      let ground = -Infinity, px = p.x, pz = p.z;
+      for (const [ox, oz] of [[34, 0], [-34, 0], [0, 34], [0, -34]]) {
+        let gy = -Infinity; const qx = p.x + ox, qz = p.z + oz;
+        for (const [ch, b] of boxes) if (ch === h.ch && qx >= b.min.x && qx <= b.max.x && qz >= b.min.z && qz <= b.max.z && b.max.y <= p.y - 20 && b.max.y > gy) gy = b.max.y;
+        if (gy > ground) { ground = gy; px = qx; pz = qz; }
+      }
+      if (!isFinite(ground)) { if (p.y < 40) { miss++; continue; } ground = 0; px = p.x + 34; pz = p.z; }   // over open water or bare ground: a post down to the waterline
+      put(px, ground - 1, pz, px, p.y + 12, pz, Math.max(h.w, 6)); put(p.x, p.y + 10, p.z, px, p.y + 10, pz, h.w); put(p.x, p.y - 1, p.z, p.x, p.y + 10, p.z, h.w);
+    }
+    if (SCAN && miss) console.warn('hang: ' + miss + ' with nothing over them');
+  }
   Box(center, size, color, collide = true, nav = true, yaw = 0) { this.AddInstance(0, center, size, R(0, yaw, 0), color, collide, false, nav); }
   BoxRot(center, size, color, rot, collide = true) { this.AddInstance(0, center, size, rot, color, collide, false, false); }
   Glow(center, size, color, meshId = 0, rot = null) { this.AddInstance(meshId, center, size, rot || R(0, 0, 0), color, false, true, false); }
@@ -789,7 +834,7 @@ export class World {
     const M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp',
       'Barrel', 'Crate', 'Cactus', 'PalmTree', 'DeadTree', 'Car', 'Wagon', 'Headstone', 'Boxcar', 'Mesa', 'JumpPad', 'Billboard', 'Station',
-      'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'Mausoleum', 'Fountain', 'GasPump', 'BoxYaw']) {
+      'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'Mausoleum', 'Fountain', 'GasPump', 'BoxYaw', 'Hang']) {
       const f = this[k].bind(this);
       M[k] = (...args) => { const loc = args.find((x) => x && x.X !== undefined); if (loc && !['Box', 'AddInstance', 'Cyl', 'Ball', 'Glow', 'BoxRot', 'ConeShape', 'Blocker', 'Foliage', 'SurfaceDecal', 'Floor', 'Wall', 'Ramp'].includes(k)) this.debugLog.push({ k, x: loc.X, y: loc.Y, z: loc.Z, a: args.filter((x) => typeof x === 'string' || typeof x === 'number').slice(0, 3) }); return f(...args); };
     }
@@ -822,7 +867,7 @@ export class World {
   buildMap(MAP) {
     const GM = this.game, M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
-      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross']) M[k] = this[k].bind(this);
+      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross', 'Hang']) M[k] = this[k].bind(this);
     M.RotFromXY = RotFromXY; M.world = this; M.at = this.at.bind(this);
     // the map sees the game through a window that puts its nav boxes through the same transform as its geometry
     M.GM = new Proxy(GM, { get: (g, k) => (k === 'NavBlockBox' ? (b, d) => g.NavBlockBox(this.Tbox(b), d) : typeof g[k] === 'function' ? g[k].bind(g) : g[k]), set: (g, k, v) => { g[k] = v; return true; } });
@@ -887,6 +932,7 @@ export class World {
   // draw only one chunk of a chunked map (the room you are in); -1 shows them all
   showChunk(c) { for (const m of this.chunkMeshes || []) m.visible = c < 0 || m.userData.chunk === c; }
   finish() {
+    this._hangAll();
     // instanced render batches
     for (const [key, list] of this.inst) {
       const [meshId, glow, chunk] = key.split('|').map(Number);

@@ -310,7 +310,7 @@ function craftRoomB(kind, K, Q) {
           crate(cx - 70, cy - 60, z, 110, 0x6a4e30, 0x2a2420, false); crate(cx + 60, cy + 50, z, 100, 0x5a4630, 0x2a2420, false); crate(cx - 20, cy - 10, z + 110, 90, 0x6a4e30, 0x2a2420, false);
           barrel(cx + 190, cy - 120, z); barrel(cx - 200, cy + 130, z); barrel(cx - 110, cy + 190, z);
           // a hand truck stood on end
-          deco(cx + 330, cy + 180, z - 3, 60, 12, 133, iron); deco(cx + 330, cy + 196, z, 60, 44, 8, iron); for (const e of [-1, 1]) Cyl(V(cx + 330 + e * 36, cy + 200, z + 16), 32, 10, tdark, false, false, AX);
+          deco(cx + 150, cy + 60, z, 60, 12, 130, iron); deco(cx + 150, cy + 76, z, 60, 44, 8, iron); for (const e of [-1, 1]) Cyl(V(cx + 150 + e * 36, cy + 80, z + 16), 32, 10, tdark, false, false, AX);   // in among the freight, on the platform (it was hung out over the edge)
         }
       }
       // two short trains of ore carts stand on the line

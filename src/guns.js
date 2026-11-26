@@ -8,7 +8,20 @@ import { URot } from './mapkit.js';
 
 const V = (x, y, z) => ({ X: x, Y: y, Z: z });
 const R = (p, y, r) => new URot(p, y, r);
-const C = (h) => hex(h);
+// Every colour on a gun is pulled into the game's own palette: the families the world is painted in (oxblood, rust,
+// brass, gold, mold green, verdigris, gunmetal), never past their saturation, nothing whiter than old bone. A gun keeps
+// its own colours, just in the town's version of them: a toy-box blue becomes gunmetal, a pink becomes oxblood.
+const FAM = [[352, 0.62], [18, 0.62], [36, 0.66], [47, 0.72], [86, 0.5], [168, 0.34], [212, 0.26]];
+const fitHex = (h) => {
+  const c = new THREE.Color().setHex(h, THREE.NoColorSpace), o = {}; c.getHSL(o, THREE.NoColorSpace);
+  if (o.s < 0.08 || o.l < 0.06) return h;   // greys, blacks and near-blacks stay as they are
+  let H = o.h * 360; if (H >= 250 && H < 345) H = H < 300 ? 335 : 352;   // violet and pink have no place here: plum and oxblood
+  let best = FAM[0], bd = 1e9; for (const f of FAM) { const d = Math.abs(((H - f[0] + 540) % 360) - 180); if (d < bd) { bd = d; best = f; } }
+  const dh = ((best[0] - H + 540) % 360) - 180; H = (H + dh * 0.75 + 360) % 360;
+  const cool = best[0] > 150 && best[0] < 260, S = Math.min(o.s, best[1] + (H > 300 && H < 340 ? -0.2 : 0) - (cool ? 0.08 : 0)), L = Math.min(o.l, cool ? 0.5 : o.s > 0.25 ? 0.62 : 0.8);   // cool colours sit back as gunmetal and verdigris, never as sky
+  return c.setHSL(H / 360, S, best[0] === 352 ? Math.min(L, 0.46) : L, THREE.NoColorSpace).getHex(THREE.NoColorSpace);   // a light red is a pink: reds stay deep
+};
+const C = (h) => hex(fitHex(h));
 const d2r = (d) => d * Math.PI / 180;
 
 // How each gun handles. Class defaults, then per-gun overrides.
@@ -130,7 +143,7 @@ const TIER_PAL = [
   // IV, fully evolved: white-gold and pearl over a deep teal, everything that glows burns cold and bright
   { steelL: 0xFFF2C0, brass: 0xFFF0A8, steel: 0x10303a, steelD: 0x0a1c24, wood: 0xE8E2D6, woodD: 0xC8BFB0, woodL: 0xF6F2EA, black: 0x061418, bone: 0xFFFFFF },
 ];
-const TIER_GLOW = [0, 0xF2C43A, 0xFF4FD0, 0xFF4FD0, 0x7FF6FF];
+const TIER_GLOW = [0, 0xF2C43A, 0xFF9A3A, 0xFF6A2A, 0xB8F06A];   // gold, lantern amber, ember, and the Blight's own green when it has fully turned
 
 export function buildGun(vm, W, tier, mastered = false) {
   const N = W.name;
@@ -1630,9 +1643,9 @@ function buildGunWith(vm, W, tier, PAL) {
         if (t3) { for (let i = 0; i < 6; i++) Ty(9, -9 - i * 1.3, 6, 3.4, i % 2 ? gold : C(0xFFE27A), 0, 0.8); Cone(mx + 2.4, mz, 4.6, 5, gold, false, 0, 1.2); }   // III gold-bar magazine, trumpet muzzle
         break;
       case 'Sawbuck':
-        both((s) => T(36, 44, 3.9, 8.4, PAL.steelD, s * 2));                                                            // I longer barrels
+        on('barrels', () => both((s) => T(36, 44, 3.9, 8.4, PAL.steelD, s * 2)));                                       // I longer barrels (on the barrels, so they open with them)
         if (t2) for (let i = 0; i < 4; i++) T(-16 + i * 3, -13 + i * 3, 2.6, 2.6, PAL.red, 2.6);                        // II shell loops on the stock
-        if (t3) { both((s) => { T(44, 45, 4.6, 8.4, g, s * 2, 2.6); }); B(12, 0, 11.4, 14, 1.4, 0.6, gold, null, 1); }  // III glowing bores, gold rib
+        if (t3) on('barrels', () => { both((s) => { T(44, 45, 4.6, 8.4, g, s * 2, 2.6); }); B(22, 0, 10.8, 26, 1.4, 0.6, gold, null, 1); });  // III glowing bores, gold rib along the barrels
         break;
       case "Homesteader":
         T(50, 56, 3.2, 5, PAL.steel); T(44, 56, 3.2, 5, PAL.steel);                                                     // I magazine extension
@@ -1807,7 +1820,7 @@ function buildGunWith(vm, W, tier, PAL) {
         break;
       case 'Live Wire': {
         const cop = C(0xB87333);
-        for (let i = 0; i < 5; i++) Ring(15.6 + i * 5, 7.4, 5.3, 0.5, cop);                                            // I a copper coil
+        for (let i = 0; i < 4; i++) Ring(15.6 + i * 5, 7.4, 5.3, 0.5, cop);                                            // I a copper coil, all of it on the tube
         if (t2) both((s) => { B(3, s * 2.7, 7, 8, 0.2, 4, C(0xE8C81E)); for (let i = 0; i < 3; i++) B(0.4 + i * 2.6, s * 2.82, 7, 0.8, 0.1, 4, PAL.black); });   // II warning plates
         if (t3) for (let i = 0; i < 2; i++) Tz(-2 + i * 7, 11, 14.2, 2, g, 0, 2.4);                                    // III the jars' cores burn
         break; }

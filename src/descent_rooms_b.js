@@ -149,7 +149,7 @@ export const ROOMS_B = [
         cy.forEach((y, i) => {
           const open = i % 3 === 1;
           for (let p = -300; p <= 300; p += 60) { if (open && Math.abs(p) < 110) continue; Cyl(V(sx * 2500, y + p, 230), 12, 460, iron, false, false); }
-          deco(sx * 2500, y, 440, 20, 640, 20, iron); deco(sx * 2500, y, 0, 20, 640, 16, iron);
+          group(() => { deco(sx * 2500, y, 440, 20, 640, 20, iron); Box(V(sx * 2495, y, 420), V(10, 110, 60), paint, false, false); Box(V(sx * 2486, y, 420), V(8, 70 - (i % 3) * 14, 30), iron, false, false); }); deco(sx * 2500, y, 0, 20, 640, 16, iron);   // the number plate goes with the rail it is fixed to
           if (open) { for (const e of [-1, 1]) hit(sx * 2500, y + e * 215, 0, 24, 210, 460, true); for (let p = -90; p <= 90; p += 60) Cyl(V(sx * 2500 - sx * 110, y - 210 + (p + 90) * 0.1, 230), 12, 440, iron, false, false); }
           else hit(sx * 2500, y, 0, 24, 640, 460, true);
           P.bed(sx * 3500, y - 200, true, 0x5a5e56); Cyl(V(sx * 3650, y + 220, 24), 44, 48, 0xc8ccd0, false, false);
@@ -164,7 +164,7 @@ export const ROOMS_B = [
       // a bridge between the two galleries, over the cage, railed; lamps under it
       Box(V(0, 0, 475), V(4840, 260, 20), conc, false, false); for (const e of [-1, 1]) { Box(V(0, e * 124, 540), V(4840, 10, 10), iron, false, false); for (let x = -2400; x <= 2400; x += 300) Box(V(x, e * 124, 512), V(10, 10, 60), iron, false, false); for (const x of [-1500, 1500]) Box(V(x, e * 100, 475 + (H - 475) / 2), V(14, 14, H - 475), iron, false, false); } for (const x of [-1500, 1500]) { Box(V(x, 0, 450), V(60, 60, 30), iron, false, false); Glow(V(x, 0, 432), V(44, 44, 8), T.glow, 0); }
       // every cell has its number, painted over the door, and the block's stripe runs the length of the hall
-      for (const sx of [-1, 1]) { cy.forEach((y, i) => { Box(V(sx * 2492, y, 420), V(8, 110, 60), paint, false, false); Box(V(sx * 2486, y, 420), V(8, 70 - (i % 3) * 14, 30), iron, false, false); }); tile(sx * 1700 - 40, -hy + 500, sx * 1700 + 40, hy - 500, 2.4, 0x8a2a22); }
+      for (const sx of [-1, 1]) {  tile(sx * 1700 - 40, -hy + 500, sx * 1700 + 40, hy - 500, 2.4, 0x8a2a22); }
       // riot barricades: mess tables thrown on their sides, across the hall from each door
       for (const s of [-1, 1]) for (const e of [-1, 1]) { const x = e * 500, y = s * 4300; Box(V(x, y, 48), V(420, 12, 92), steel, true, true, e * s * 12); Box(V(x, y + s * 30, 20), V(380, 40, 8), steel, false, false, e * s * 12); for (const q of [-1, 1]) Box(V(x + q * 180, y + s * 40, 46), V(10, 68, 10), 0x3a2c20, false, false, e * s * 12); }
       // the yard phone, the bins, a notice board on the cage

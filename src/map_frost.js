@@ -174,7 +174,7 @@ export function buildFrost(M) {
     // the fire tower: four legs, a cab, a stair, and the only long view on the map
     { const x = 5600, y = -3000; Box(V(x, y, 210), V(420, 420, 420), TIMBER_D, true, true); for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) Box(V(x + sx * 196, y + sy * 196, 300), V(34, 34, 600), TIMBER, false, false);
       Box(V(x, y, 428), V(560, 560, 16), TIMBER, true, false); for (const s of [-1, 1]) { Box(V(x, y + s * 272, 480), V(560, 10, 90), TIMBER_D, false, false); Box(V(x + s * 272, y, 480), V(10, 560, 90), TIMBER_D, false, false); }
-      Box(V(x, y, 640), V(600, 600, 16), 0x2e2a30, false, false); Box(V(x, y, 656), V(560, 560, 14), SNOW, false, false);
+      Box(V(x, y, 640), V(600, 600, 16), 0x2e2a30, false, false); for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) Box(V(x + sx * 272, y + sy * 272, 534), V(16, 16, 200), TIMBER, false, false); Box(V(x, y, 656), V(560, 560, 14), SNOW, false, false);   // corner posts carry the cab roof
       Ramp(V(x - 1200, y + 150, 0), V(x - 280, y + 150, 428), 240, TIMBER); K.lantern(x, y, 620, LAMP, 1200); }
     // a trapper's cabin under the north wall, smoke still going
     K.cabin(5300, 3500, 6100, 4100, 300, TIMBER, 0x2e2a30, { door: -90, snow: SNOW, logs: TIMBER_D, glow: LAMP });

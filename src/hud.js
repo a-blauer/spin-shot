@@ -24,6 +24,10 @@ const F_VIL = '"Fraunces", Georgia, serif', F_VTXT = '"Nunito", Arial, sans-seri
 const toCss = (c) => (typeof c === 'string' ? c : cssRGB(c));
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const _v = new THREE.Vector3();
+// world point to screen; true when it is behind the eye. (Depth is reversed now, so the projected z no longer says it:
+// ask the camera's own frame instead, where everything in front has a negative z.)
+const _cv = new THREE.Vector3();
+function projectB(v, cam) { _cv.copy(v).applyMatrix4(cam.matrixWorldInverse); const b = _cv.z > -1; if (b) { _cv.negate(); _cv.z = Math.min(_cv.z, -1); v.copy(_cv).applyMatrix4(cam.matrixWorld); } v.project(cam); return b; }   // behind: mirrored through the eye, so x and y land where the old projection put them
 
 export class Hud {
   constructor(canvas) {
@@ -752,9 +756,9 @@ export class Hud {
     for (const E of L) {
       _v.set(E.pos.x, E.pos.y + E.half + 40, E.pos.z);
       const d = _v.distanceTo(game.player.pos);
-      _v.project(game.camera);
+      const _bh = projectB(_v, game.camera);
       let x = (_v.x * 0.5 + 0.5) * W, y = (-_v.y * 0.5 + 0.5) * H;
-      const behind = _v.z > 1; if (behind) { x = W - x; y = H - m - 130 * S; }
+      const behind = _bh; if (behind) { x = W - x; y = H - m - 130 * S; }
       const on = !behind && x > m && x < W - m && y > m + 70 * S && y < H - m - 130 * S;
       x = clamp(x, m, W - m); y = clamp(y, m + 70 * S, H - m - 130 * S);
       const r = (on ? 9 : 13) * S, bob = on ? Math.sin(this.time * 6) * 3 * S : 0;
@@ -772,9 +776,9 @@ export class Hud {
     _v.set(0, 380, 0);
     if (gate) _v.set(gate.x, gate.y + 300, gate.z); else _v.set(box.pos.x, box.pos.y + 260, box.pos.z);
     const d = _v.distanceTo(game.player.pos);
-    _v.project(game.camera);
+    const _bh = projectB(_v, game.camera);
     let x = (_v.x * 0.5 + 0.5) * W, y = (-_v.y * 0.5 + 0.5) * H;
-    const behind = _v.z > 1;
+    const behind = _bh;
     if (behind) { x = W - x; y = H - 40 * S; }
     const m = 60 * S;
     x = clamp(x, m, W - m); y = clamp(y, m + 80 * S, H - m - 120 * S);
@@ -800,7 +804,7 @@ export class Hud {
     const S = this.S, W = this.W, H = this.H, P = game.player, g = this.g;
     const mark = (pos, lift, label, sub, col, big) => {
       _v.copy(pos); _v.y += lift; const d = Math.round(pos.distanceTo(P.pos) / 100);
-      _v.project(game.camera); if (_v.z > 1) return;
+      const _bh = projectB(_v, game.camera); if (_bh) return;
       const x = clamp((_v.x * 0.5 + 0.5) * W, 60 * S, W - 60 * S), y = clamp((-_v.y * 0.5 + 0.5) * H, 70 * S, H - 160 * S), r = (big ? 13 : 9) * S;
       g.save(); g.translate(x, y); g.rotate(Math.PI / 4); g.fillStyle = col; g.strokeStyle = 'rgba(10,6,10,0.85)'; g.lineWidth = 3 * S; g.fillRect(-r, -r, r * 2, r * 2); g.strokeRect(-r, -r, r * 2, r * 2); g.restore();
       this.text(`${label}${label ? '  ' : ''}${d}m`, x, y - r - 12 * S, (big ? 20 : 17) * S, col, 'center', F_TXT, 700, 0.06);
@@ -821,8 +825,8 @@ export class Hud {
     for (const f of this.floaters) {
       f.t += dt;
       _v.copy(f.pos); _v.y += f.t * 90;
-      _v.project(game.camera);
-      if (_v.z > 1) continue;
+      const _bh = projectB(_v, game.camera);
+      if (_bh) continue;
       const k = f.t / f.life;
       const pop = k < 0.12 ? 1 + (0.12 - k) * 5 : 1;
       const x = (_v.x * 0.5 + 0.5) * W + f.dx * S * k, y = (-_v.y * 0.5 + 0.5) * H;
@@ -837,8 +841,8 @@ export class Hud {
       const d = E.pos.distanceTo(P.pos);
       if (!(E.sinceHit < 3 || (E.elite && d < 2500))) continue;
       _v.set(E.pos.x, E.pos.y - E.feetOffset + E.puppet.heightCm + 30, E.pos.z);
-      _v.project(game.camera);
-      if (_v.z > 1 || Math.abs(_v.x) > 1.1 || Math.abs(_v.y) > 1.1) continue;
+      const _bh = projectB(_v, game.camera);
+      if (_bh || Math.abs(_v.x) > 1.1 || Math.abs(_v.y) > 1.1) continue;
       const sx = (_v.x * 0.5 + 0.5) * W, sy = (-_v.y * 0.5 + 0.5) * H;
       const k = clamp(1600 / Math.max(d, 1), 0.5, 1.4);
       const bw = 70 * k * S, bh = 7 * k * S;

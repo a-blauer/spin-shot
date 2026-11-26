@@ -36,7 +36,7 @@ export function buildMine(M) {
     face(x0, y0, x1, y0, 0, -1, h, cols); face(x0, y1, x1, y1, 0, 1, h, cols); face(x0, y0, x0, y1, -1, 0, h, cols); face(x1, y0, x1, y1, 1, 0, h, cols);
   };
   const lantern = (x, y, z, col = LAMP, rad = 900) => {
-    Box(V(x, y, z + 26), V(4, 4, 40), IRON, false, false); Box(V(x, y, z), V(22, 22, 8), IRON, false, false); Box(V(x, y, z - 34), V(22, 22, 6), IRON, false, false);
+    Box(V(x, y, z + 26), V(4, 4, 40), IRON, false, false); M.Hang(V(x, y, z + 46), 4, IRON, 400); Box(V(x, y, z), V(22, 22, 8), IRON, false, false); Box(V(x, y, z - 34), V(22, 22, 6), IRON, false, false);   // the rod goes on up to whatever it hangs from
     Glow(V(x, y, z - 16), V(16, 16, 28), col); Lamp(V(x, y, z - 16), LC(((col >> 16) & 255) / 255, ((col >> 8) & 255) / 255, (col & 255) / 255), 10, rad, false);
   };
   // a timber set: two posts and a cap across a tunnel, with wedges, and a lamp hung from one in three
@@ -182,7 +182,7 @@ export function buildMine(M) {
     for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) Box(V(sx * 150, sy * 150, 190), V(14, 14, 320), IRON, true, false);
     Box(V(0, 0, 352), V(330, 330, 12), IRON, true, false); for (const s of [-1, 1]) { Box(V(s * 150, 0, 120), V(8, 300, 8), STEEL, false, false); Box(V(s * 150, 0, 220), V(8, 300, 8), STEEL, false, false); Box(V(0, 150, 120 + (s + 1) * 50), V(300, 8, 8), STEEL, false, false); }
     Box(V(0, 0, 640), V(10, 10, 560), 0x1e1e22, false, false); Ring(V(0, 0, 860), V(230, 30, 230), IRON, R(0, 90, 0)); Box(V(0, 0, 860), V(30, 300, 30), TIMBER_D, false, false);
-    lantern(0, 0, 330, 0xFFD27A, 1100); Glow(V(0, -168, 300), V(120, 6, 40), 0xFFB45A);
+    lantern(0, 0, 330, 0xFFD27A, 1100);
     Box(V(0, -236, 680), V(620, 12, 170), TIMBER_D, false, false); Sign(V(0, -244, 705), -90, 'BLACKWATER MINING CO.', { r: 0.92, g: 0.82, b: 0.6 }, 50); Sign(V(0, -244, 640), -90, 'LEVEL 9  -  NIGHT SHIFT', { r: 0.9, g: 0.55, b: 0.3 }, 32);
     // four pillars left standing make the hall a loop at each end
     mass(-1050, 1650, -550, 2250, 900, ROCK); mass(550, 1650, 1050, 2250, 900, ROCK); mass(-1050, -2250, -550, -1650, 900, ROCK); mass(550, -2250, 1050, -1650, 900, ROCK);
@@ -337,7 +337,7 @@ export function buildMine(M) {
       Cyl(V(cx - 250, cy, 360), 520, 380, 0x5a4a3a, true, false, R(0, 0, 90)); for (const k of [-190, 190]) Cyl(V(cx - 250, cy + k, 360), 600, 20, IRON, false, false, R(0, 0, 90));
       Ring(V(cx + 330, cy, 430), V(700, 40, 700), IRON, R(0, 0, 0)); for (let k = 0; k < 4; k++) BoxRot(V(cx + 330, cy, 430), V(640, 18, 18), STEEL, R(k * 45, 0, 0), false); Cyl(V(cx + 330, cy, 430), 90, 120, STEEL, false, false, R(0, 0, 90));
       for (const s of [-1, 1]) { Box(V(cx + 330, cy + s * 90, 260), V(120, 40, 360), 0x4a3c30, true, false); Box(V(cx - 250, cy + s * 260, 240), V(140, 40, 320), 0x4a3c30, true, false); }
-      Box(V(cx - 250, cy + 420, 620), V(8, 8, 520), 0x1e1e22, false, false); lantern(cx, cy + 300, 640, LAMP, 1300); }
+      Box(V(cx - 250, cy + 420, 620), V(8, 8, 520), 0x1e1e22, false, false); M.Hang(V(cx - 250, cy + 420, 880), 8, 0x1e1e22, 1500); lantern(cx, cy + 300, 640, LAMP, 1300); }
     // four pillars carry the roof; the yard between them is open
     mass(-2500, -5650, -2000, -5150, 900, RUST); mass(2000, -5650, 2500, -5150, 900, RUST); mass(-800, -4500, -300, -4000, 900, RUST); mass(4000, -5200, 4500, -4700, 900, RUST);
     // the rail yard: a through line, a siding, trucks standing and one on its side
