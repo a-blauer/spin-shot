@@ -689,7 +689,8 @@ export class ViewModel {
     }
     const C = this.whipRest.P.map((p) => p.clone().applyMatrix4(this.gun.matrix)), A = C[0];
     // the frame it all happens in (the view's own: -z ahead, +y up): out ahead a little right and up, back over the shoulder
-    const L = 210, F = new THREE.Vector3(0.24, 0.17, -1).normalize(), Up = new THREE.Vector3(0, 1, 0), Nn = Up.clone().addScaledVector(F, -Up.dot(F)).normalize();
+    // out along the line of the crosshair: the tip lands dead on the view's centre line, a thong's length from the hand
+    const L = 210, Dt = -A.z + Math.sqrt(Math.max(1, L * L - A.x * A.x - A.y * A.y)), F = new THREE.Vector3(-A.x, -A.y, -Dt - A.z).normalize(), Up = new THREE.Vector3(0, 1, 0), Nn = Up.clone().addScaledVector(F, -Up.dot(F)).normalize();
     const BACK = new THREE.Vector3(0.12, 0.5, 0.86).normalize(), TOP = F.clone().negate().addScaledVector(Nn, 0.12).normalize();
     const T0 = 0.29, T1 = 0.405;   // the stroke starts, the loop reaches the end
     const Q = [];
@@ -710,7 +711,7 @@ export class ViewModel {
       if (t >= T1 && !this.cracked) { this.cracked = true; this.crackT = 0; if (this.game && this.game.audio) { this.game.audio.play('S_Crit', 0.7, 1.9); this.game.audio.play('S_HitWall', 0.5, 2.2); } }
     } else {
       // out straight in front for a moment, then it sags and is drawn back into the coil
-      const g = sstep(T1, 0.56, t), back = sstep(0.5, END, t);
+      const g = sstep(T1 + 0.05, 0.58, t), back = sstep(0.52, END, t);
       for (let i = 0; i < N; i++) { const u = i / (N - 1), wave = Math.sin(u * 9 - (t - T1) * 40) * 4 * u * (1 - g); const p = A.clone().addScaledVector(F, u * L * (1 - 0.12 * g)).addScaledVector(Nn, -g * 70 * u * u + wave); Q.push(p.lerp(C[i], back)); }
     }
     // the cracker turns over at the end of the loop
