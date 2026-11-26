@@ -85,6 +85,32 @@ function handMesh() {
   });
 }
 
+// the sculpted King (tools/sculpt_king.mjs -> king.bin): loaded once, shared by every fight
+let KING = null;
+function loadKing() {
+  if (KING) return KING;
+  KING = fetch('king.bin').then((r) => (r.ok ? r.arrayBuffer() : null)).then((buf) => {
+    if (!buf) return null;
+    const dv = new DataView(buf), n = dv.getUint32(0, true), meta = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, n))), base = 4 + n + ((4 - ((4 + n) % 4)) % 4), out = { UL: meta.UL, FL: meta.FL };
+    for (const m of meta.parts) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(buf, base + m.off[0], m.v * 3), 3));
+      g.setAttribute('normal', new THREE.BufferAttribute(new Int8Array(buf, base + m.off[1], m.v * 3), 3, true));
+      g.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(buf, base + m.off[2], m.v * 3), 3, true));
+      g.setIndex(new THREE.BufferAttribute(m.i32 ? new Uint32Array(buf, base + m.off[3], m.i) : new Uint16Array(buf, base + m.off[3], m.i), 1));
+      g.computeBoundingSphere(); out[m.name] = g;
+    }
+    return out;
+  }).catch(() => null);
+  return KING;
+}
+// the mantle: torn cloth from the shoulders down the back (cloth stays a surface; the sculpt is solids)
+function mantleMesh() {
+  return mesh((G) => {
+    G.surf((u, v) => { const x = (u - 0.5) * 2300, fold = Math.sin(u * 30) * 50 * v, z = 2050 - v * (1900 + wob(u * 9) * 300); return [x * (1 - 0.12 * v), -380 - 260 * v + fold, z]; }, 0, 1, 48, 0, 1, 12, (u, v) => (v > 0.82 && wob(u * 21) > 0 ? CAV : v < 0.06 ? CROWN : CLOTH));
+  });
+}
+
 export class Raid {
   constructor(g, D) {
     this.g = g; this.D = D; const A = D.A(); this.A = A; this.c = A.c;
@@ -101,14 +127,15 @@ export class Raid {
   build() {
     const S = (this.root = new THREE.Group()); this.g.scene.add(S);
     const K = (this.king = new THREE.Group()); S.add(K); this.SC = 1.7; K.scale.setScalar(this.SC);
-    this.torso = torsoMesh(); K.add(this.torso);
-    this.head = headMesh(); this.head.scale.setScalar(1.25); this.head.position.set(0, 2120, 60); this.torso.add(this.head);
+    this.torso = new THREE.Group(); K.add(this.torso); this.torsoOld = torsoMesh(); this.torso.add(this.torsoOld);
+    this.head = new THREE.Group(); this.head.scale.setScalar(1.25); this.head.position.set(0, 2120, 60); this.torso.add(this.head); this.headOld = headMesh(); this.head.add(this.headOld);
+    this.shoulder = V3(1150, 1680, 0); this.armA = 1550 * 2.2; this.armB = 1450 * 2.2;
     // eyes and heart: lights you see from across the dark
     this.eyes = []; for (const e of [-1, 1]) { const m = new THREE.Mesh(new THREE.SphereGeometry(52, 12, 8), glowMat([0.75, 0.55, 1])); m.scale.set(1.5, 0.42, 0.6); m.rotation.z = e * 0.3; m.position.set(e * 140, 385, 400); this.head.add(m); this.eyes.push(m); }
     this.heartAt = V3(0, 1300, 330);   // in the torso's frame (three: x, up, forward)
     this.heart = new THREE.Group(); this.heart.position.copy(this.heartAt); this.torso.add(this.heart);
     this.heartCore = new THREE.Mesh(new THREE.IcosahedronGeometry(150, 1), glowMat([0.7, 0.95, 1])); this.heart.add(this.heartCore);
-    this.heartHalo = new THREE.Mesh(new THREE.SphereGeometry(330, 16, 10), glowMat([0.35, 0.6, 1], 0.3)); this.heart.add(this.heartHalo);
+    this.heartHalo = new THREE.Mesh(new THREE.SphereGeometry(230, 16, 10), glowMat([0.35, 0.6, 1], 0.3)); this.heart.add(this.heartHalo);
     // the arms
     this.arms = [-1, 1].map((e) => { const A = { e, up: boneMesh(1550, 230, 190, true), lo: boneMesh(1450, 190, 150, false), hand: handMesh(), act: null, T: null, rest: null };
       A.up.scale.set(1.8, 2.2, 1.8); A.lo.scale.set(1.8, 2.2, 1.8); A.hand.scale.setScalar(2.1); S.add(A.up, A.lo, A.hand); return A; });
@@ -139,6 +166,17 @@ export class Raid {
     this.shafts = [];
     for (const [x, y, r] of [[-900, -4300, 1100], [1300, -5000, 800]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.4, r, 7000, 18, 1, true), glowMat([0.55, 0.45, 1], 0.07)); m.position.copy(this.w(x, y, 3500)); S.add(m); this.shafts.push(m); }
     this.pose(0);
+    // swap in the sculpted King once it has loaded
+    loadKing().then((K) => {
+      if (!K || !this.root) return;
+      const mat = () => toonMaterial({ vcol: true }), M = (g) => { const m = new THREE.Mesh(g, mat()); m.frustumCulled = false; return m; };
+      this.torso.remove(this.torsoOld); this.torso.add(M(K.torso)); this.torso.add(mantleMesh());
+      this.head.remove(this.headOld); this.head.add(M(K.head)); this.head.scale.setScalar(1); this.head.position.set(0, 2240, -60);
+      this.eyes.forEach((m, i) => { m.position.set((i ? 1 : -1) * 112, 340, 270); m.scale.set(1.3, 0.55, 0.6); });
+      this.heart.position.set(0, 1290, 170); this.shoulder.set(1000, 1900, -60); this.armA = K.UL; this.armB = K.FL;
+      for (const A of this.arms) { for (const [k, g] of [['up', K.upper], ['lo', K.fore], ['hand', K.hand]]) { A[k].geometry = g; A[k].material = mat(); A[k].scale.set(1, 1, 1); } }
+      this.reach = K.UL + K.FL; this.sculpted = true;
+    });
   }
   dispose() { if (!this.root) return; this.g.scene.remove(this.root); this.root.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); this.root = null; }
 
@@ -157,17 +195,19 @@ export class Raid {
   }
   heartWorld() { return this.heart.getWorldPosition(V3(0, 0, 0)); }
   // two bones from the shoulder to the hand: the elbow out and back, away from the island
-  ik(A, T) {
-    const sh = this.torso.localToWorld(V3(A.e * 1150, 1680, 0)), a = 1550 * 2.2, b = 1450 * 2.2;
+  ik(A, T0) {
+    // T0 is where the fingers come down; the wrist rides above it and back toward the shoulder, the hand reaching down from it
+    const sh0 = this.torso.localToWorld(V3(A.e * this.shoulder.x, this.shoulder.y, this.shoulder.z)), back = V3(sh0.x - T0.x, 0, sh0.z - T0.z).normalize(), T = this.sculpted ? T0.clone().add(V3(0, 1250, 0)).addScaledVector(back, 900) : T0;
+    const sh = this.torso.localToWorld(V3(A.e * this.shoulder.x, this.shoulder.y, this.shoulder.z)), a = this.armA, b = this.armB;
     let d = T.clone().sub(sh); const L = Math.max(Math.abs(a - b) + 10, Math.min(a + b - 10, d.length())); d.normalize();
     const pole = V3(A.e, 0.7, -0.6).normalize(), n = pole.clone().addScaledVector(d, -pole.dot(d)).normalize();
     const ca = (a * a + L * L - b * b) / (2 * a * L), sa = Math.sqrt(Math.max(0, 1 - ca * ca)), el = sh.clone().addScaledVector(d, a * ca).addScaledVector(n, a * sa), hand = sh.clone().addScaledVector(d, L);
     const seg = (m, p0, p1) => { m.position.copy(p0); const dir = p1.clone().sub(p0).normalize(); m.quaternion.setFromUnitVectors(V3(0, 1, 0), dir); };
-    seg(A.up, sh, el); seg(A.lo, el, hand); seg(A.hand, hand, hand.clone().add(hand.clone().sub(el).normalize().multiplyScalar(0.3).add(V3(0, -1, 0)).normalize()));
+    seg(A.up, sh, el); seg(A.lo, el, hand); if (this.sculpted) seg(A.hand, hand, T0); else seg(A.hand, hand, hand.clone().add(hand.clone().sub(el).normalize().multiplyScalar(0.55).add(V3(0, -1, 0)).normalize()));
   }
   // where a hand rests: on the lip of the island while it stands, planted on the island while it kneels
-  restOf(A) { const k = ss(this.kneel), x = A.e * (2700 - 400 * k), y = -2500 + k * 1200, z = (1 - ss(this.riseK)) * -4000 + 500 * (1 - k) + 60; return this.w(x, y, z); }
-  canReach(p) { const sh = this.torso.localToWorld(V3((p.x > this.c[0] ? 1 : -1) * 1150, 1680, 0)); return sh.distanceTo(p) < this.reach * 0.96; }
+  restOf(A) { const k = ss(this.kneel), x = A.e * (2500 - 300 * k), y = this.sculpted ? -2150 + k * 850 : -2500 + k * 1200, z = (1 - ss(this.riseK)) * -4000 + (this.sculpted ? 10 : 500 * (1 - k) + 60); return this.w(x, y, z); }
+  canReach(p) { const sh = this.torso.localToWorld(V3((p.x > this.c[0] ? 1 : -1) * this.shoulder.x, this.shoulder.y, this.shoulder.z)); return sh.distanceTo(p) < this.reach * 0.96; }
   // the arms follow the slams laid down on the floor (the hazards every machine already has)
   watchHazards() {
     for (const H of this.g.hazards.list) {
