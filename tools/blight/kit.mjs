@@ -21,8 +21,13 @@ export const setD = (d) => { D = d; };
 export const getP = () => Cc;
 export const setP = (c) => { Cc = c.slice(); };
 export const reset = () => { D = 1e9; Cc = [0, 0, 0, 0, 0, 0]; };
+// The calm pass (env CALM, UK): surface detail (bumps: fibres, ridges, pits, grooves) pushed in or out only CALM as far as
+// each creature asks, and every melt blended over UK times the radius it asks for, so the forms read clean and soft.
+// CALM=1 UK=1 bakes the creatures as first sculpted.
+const CALM = +(process.env.CALM ?? 0.35), UK = +(process.env.UK ?? 1.25);
 // melt d (in paint c) into what is there, with a blend radius k
 export function U(d, c, k = 10) {
+  if (k >= 4) k *= UK;   // the broad melts only: small ones (teeth, claws, eyes) keep their edges
   if (D === 1e9) { D = d; if (want) Cc = c.slice(); return; }
   const h = clamp(0.5 + 0.5 * (d - D) / k, 0, 1);
   if (want) for (let i = 0; i < 6; i++) Cc[i] = c[i] + (Cc[i] - c[i]) * h;
@@ -35,7 +40,7 @@ export function S(d, k = 6, c = null) { const h = clamp(0.5 - 0.5 * (D + d) / k,
 // paint without changing the shape: inside d (with a soft edge e) the paint becomes c
 export function P(d, c, e = 2) { if (!want) return; const t = clamp(0.5 - d / (2 * e), 0, 1); if (t > 0) for (let i = 0; i < 6; i++) Cc[i] += (c[i] - Cc[i]) * t; }
 // push the surface in or out (bumps, fibres, pits)
-export const bump = (a) => { D += a; };
+export const bump = (a) => { D += a * CALM; };
 
 export const len = (x, y, z) => Math.sqrt(x * x + y * y + z * z);
 export const sph = (p, c, r) => len(p[0] - c[0], p[1] - c[1], p[2] - c[2]) - r;

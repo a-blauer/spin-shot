@@ -11,6 +11,10 @@ const smooth = (a, b, t) => { t = clamp((t - a) / (b - a), 0, 1); return t * t *
 // ---------------------------------------------------------------- shared anatomy
 // A mushroom cap: a dome over (cx, cy, cz) of radius r and height h, its brim drooping by `droop`, wavy by `wave`,
 // gills underneath (radial ridges into the stalk), warts on top. Returns nothing: melts into the current field.
+// a soft-edged intersection: where two cuts meet, a rounded edge of about k instead of a knife edge (knife edges come out
+// stair-stepped on the sampling grid)
+function sminE(a, b, k) { const h = Math.max(0, Math.min(1, 0.5 + 0.5 * (b - a) / k)); return b + (a - b) * h - k * h * (1 - h); }
+const smax = (a, b, k) => -sminE(-a, -b, k), smax3 = (a, b, c, k) => smax(smax(a, b, k), c, k), smaxN = (k, ...a) => a.reduce((x, y) => smax(x, y, k));
 function capDome(p, o) {
   const { c, r, h, droop = 6, wave = 2, waves = 5, gills = 26, warts = 0, wartR = 4, seed = 1, under = 0.55, lop = 0, gillIn = r * 0.42, thick = 0.5, tilt = 0 } = o;
   // bend space so the brim sags, wave it, lop it to one side
@@ -21,7 +25,7 @@ function capDome(p, o) {
   // the underside: a broad shallow hollow up into the cap, leaving a brim of `thick` x h at the edge
   const und = ell(q, [c[0], c[1] - h * under, c[2]], [r * 1.02, h * (under + 0.04 - thick * 0.1), r * 1.02]);
   // and nothing of the dome below the hollow's middle: a lens of it left under there read as a loose plate round the stem
-  U(Math.max(top, -und, (c[1] - h * under) - q[1]), CAP(1), 3);
+  U(smax3(top, -und, (c[1] - h * under) - q[1], 1.8), CAP(1), 3);
   // gills: grooves under the brim, radial
   if (gills && rr > gillIn && und > -6 && und < 3) { const g = Math.abs(Math.sin(a * gills * 0.5)); if (g < 0.32) bump(1.2 * smooth(gillIn, gillIn + 6, rr) * smooth(r * k, r * k - 3, rr)); }
   const onCap = Math.max(top, -und, (c[1] - h * under) - q[1]) < 2.5;   // paint only the cap itself, not what it sits on
@@ -116,9 +120,9 @@ function rotcapBody(p) {
   U(cap(q, [0, 78, 0], [0, 118, 0], 22, 16), FLESH(1), 10);              // the stalk, ending under the head's own neck (taller, it rose up over the mouth)
   fibres(q, [0, 0, 0], 16, 0.65);
   // the ring: a ragged skirt hanging off the stalk at the chest, torn in places
-  { const a = Math.atan2(q[2], q[0]), rr = len(q[0], 0, q[2]), tear = Math.max(0, Math.sin(a * 3 + 1)) * 9 + Math.sin(a * 11) * 2.2;
+  { const a = Math.atan2(q[2], q[0]), rr = len(q[0], 0, q[2]), tear = Math.max(0, Math.sin(a * 3 + 1)) * 6 + Math.sin(a * 11) * 0.7;
     const y0 = 112, hang = (rr - 20) * 0.75;
-    const skirt = Math.max(Math.abs(q[1] - (y0 - hang)) - 2.4, rr - (34 - tear * 0.5), 19 - rr);
+    const skirt = smax3(Math.abs(q[1] - (y0 - hang)) - 2.4, rr - (34 - tear * 0.5), 19 - rr, 1.4);
     U(skirt, FLESH(0.88, 0x0e0a06), 2.5); }
   // shoulders: knots of root where the arms come out
   for (const s of [-1, 1]) U(ell(q, [s * 22, 122, 3], [9, 8, 9]), ROOT, 6);
@@ -339,7 +343,7 @@ function inkcapBody(p) {
   U(ell(p, [0, 74, 0], [17, 12, 16]), FLESH(1), 5);
   U(cap(p, [0, 74, 0], [0, 136, 3], 14.5, 11), FLESH(1), 6); fibres(p, [0, 0, 0], 14, 0.4);
   // a loose ring slipped down the stalk
-  { const rr = len(p[0], 0, p[2] - 1.5), y0 = 104 - (rr - 12) * 0.5; U(Math.max(Math.abs(p[1] - y0) - 1.6, rr - (21 + Math.sin(Math.atan2(p[2], p[0]) * 7) * 1.5), 11 - rr), FLESH(0.85), 1.5); }
+  { const rr = len(p[0], 0, p[2] - 1.5), y0 = 104 - (rr - 12) * 0.5; U(smaxN(1.2, Math.abs(p[1] - y0) - 1.6, rr - (21 + Math.sin(Math.atan2(p[2], p[0]) * 7) * 1.5), 11 - rr), FLESH(0.85), 1.5); }
   for (const s of [-1, 1]) U(ell(p, [s * 13, 119, 3], [5.5, 4.5, 5.5]), ROOT, 3);
   sprout(p, [-8, 96, -10], [-0.5, 0.4, -1], 7, 4.4, true); sprout(p, [6, 90, -12], [0.5, 0.3, -1], 5, 3.4);
   mold(p, 80, 130);
@@ -477,7 +481,7 @@ function drifterBody(p) {
   for (const s of [-1, 1]) eye(p, [s * 9, 76, 31], 3.2);
   // the skirt of gills: a frilled, scalloped ring flaring down and out under the pod
   { const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]), frill = Math.sin(a * 14) * 2.4, y0 = 62 - (rr - 20) * 0.55 + frill;
-    U(Math.max(Math.abs(p[1] - y0) - 1.7, rr - (40 + Math.sin(a * 7) * 2.5), 18 - rr), FLESH(0.9), 2); }
+    U(smaxN(1.2, Math.abs(p[1] - y0) - 1.7, rr - (40 + Math.sin(a * 7) * 2.5), 18 - rr), FLESH(0.9), 2); }
   U(ell(p, [0, 62, 0], [24, 9, 24]), FLESH(0.85), 6);
   { const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]); if (p[1] < 70 && rr > 10) { const g = Math.abs(Math.sin(a * 20)); if (g < 0.3) bump(0.9); } }
   S(p[1] - 52, 1);
@@ -604,7 +608,7 @@ function shriekerBody(p) {
   reset();
   U(ell(p, [0, 56, 0], [22, 14, 20]), FLESH(0.95), 6);
   U(cap(p, [0, 56, 0], [0, 162, 4], 15, 11), FLESH(1), 6); fibres(p, [0, 0, 0], 16, 0.5);
-  { const rr = len(p[0], 0, p[2] - 2), y0 = 112 - (rr - 12) * 0.6; U(Math.max(Math.abs(p[1] - y0) - 1.7, rr - (24 + Math.sin(Math.atan2(p[2], p[0]) * 5) * 3), 11 - rr), FLESH(0.85), 1.5); }
+  { const rr = len(p[0], 0, p[2] - 2), y0 = 112 - (rr - 12) * 0.6; U(smaxN(1.2, Math.abs(p[1] - y0) - 1.7, rr - (24 + Math.sin(Math.atan2(p[2], p[0]) * 5) * 3), 11 - rr), FLESH(0.85), 1.5); }
   for (const s of [-1, 1]) U(ell(p, [s * 12, 129, 2], [5, 4.5, 5]), ROOT, 3);
   for (const s of [-1, 1]) eye(p, [s * 5, 146, 11.6], 2.4);   // two small eyes on the stalk under the funnel
   sprout(p, [8, 84, -12], [0.5, 0.4, -1], 7, 4.4, true); sprout(p, [-6, 96, -12], [-0.5, 0.5, -1], 6, 3.6);
@@ -616,8 +620,8 @@ function shriekerHead(p) {
   U(cap(p, [0, 140, 4], [0, 166, 6], 10.5, 13), FLESH(1), 4);
   // the funnel, tipped forward: a cone opening up, its wall thin, its rim frilled
   const q = rotX(p, [0, 160, 4], -0.42), dy = q[1] - 160, rr = len(q[0], 0, q[2] - 4), a = Math.atan2(q[2] - 4, q[0]);
-  const R0 = (y) => 9 + y * 0.56 + Math.max(0, y - 40) * 0.22, R = R0(dy), frill = Math.sin(a * 9) * 2.6 + Math.sin(a * 23) * 0.9;
-  const wall = Math.max(Math.abs(rr - R) - 2.4, -dy - 1, dy - (54 + frill));
+  const R0 = (y) => 9 + y * 0.56 + Math.max(0, y - 40) * 0.22, R = R0(dy), frill = Math.sin(a * 9) * 1.8 + Math.sin(a * 23) * 0.3;
+  const wall = smax3(Math.abs(rr - R) - 2.4, -dy - 1, dy - (54 + frill), 1.4);
   U(wall, CAP(1), 2);
   // gills down the inside, lit deep in the throat
   if (rr < R && dy > 0) { const g = Math.abs(Math.sin(a * 16)); if (g < 0.35) bump(0.9 * smooth(R - 3, R, rr)); }
@@ -708,7 +712,7 @@ function callerBody(p) {
   for (const s of [-1, 1]) U(ell(p, [s * 13, 158, 2], [5.5, 4.6, 5.5]), ROOT, 3);
   // the veil: a lace skirt from the shoulders to the floor, flaring, its net of holes
   const rr = len(p[0], 0, p[2] - 2), a = Math.atan2(p[2] - 2, p[0]), t = clamp((170 - p[1]) / 150, 0, 1), R = 15 + t * 30 + Math.sin(a * 8 + t * 3) * 3 * t;
-  let veil = Math.max(Math.abs(rr - R) - 2.2, p[1] - 170, 22 - p[1] + Math.sin(a * 6) * 4);
+  let veil = smaxN(1.2, Math.abs(rr - R) - 2.2, p[1] - 170, 22 - p[1] + Math.sin(a * 6) * 4);
   U(veil, FLESH(1), 1.2);
   // a diamond lace: raised bars, the spaces between sunk and dark (a solid veil that reads as net)
   { const u = a * R, v = p[1], net = Math.min(Math.abs(Math.sin((u + v) * 0.3)), Math.abs(Math.sin((u - v) * 0.3))); if (Math.abs(rr - R) < 4 && p[1] < 168) { bump(smooth(0.2, 0.5, net) * 0.9); P(0.42 - net, mixP(FLESH(0.8), C(0x1c1410), 0.25), 0.3); } }
@@ -796,7 +800,7 @@ function wormBody(p) {
   reset();
   chainSeg(p, WPTS.slice(0, 5), 24, 20);
   // the broken floor round where it came up: a ring of upturned earth and stones
-  { const rr = len(p[0], 0, p[2] + 28); U(Math.max(Math.abs(p[1] - 4 + (rr - 34) * 0.15) - 4 - Math.sin(Math.atan2(p[2] + 28, p[0]) * 7) * 2, rr - 52, 26 - rr), C(0x3a2c1e), 4); }
+  { const rr = len(p[0], 0, p[2] + 28); U(smaxN(1.2, Math.abs(p[1] - 4 + (rr - 34) * 0.15) - 4 - Math.sin(Math.atan2(p[2] + 28, p[0]) * 7) * 2, rr - 52, 26 - rr), C(0x3a2c1e), 4); }
   for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, r = 40 + (i % 3) * 5; U(box(rotY(p, [Math.cos(a) * r, 6, -28 + Math.sin(a) * r], a), [Math.cos(a) * r, 6, -28 + Math.sin(a) * r], [6 + i % 3, 4 + i % 2 * 2, 5], 2), C(0x4a4a44), 1.5); }
   U(Math.max(len(p[0], 0, p[2] + 28) - 50, p[1] - 2, -p[1] - 14), C(0x2e2418), 3);   // the earth goes on down under the floor, so a lean never lifts the mound off it
   S(p[1] + 14, 1);
@@ -934,7 +938,7 @@ function broodBody(p) {
   for (const s of [-1, 1]) { U(ell(p, [s * 30, 148, 34], [12, 10, 12]), ROOT, 6); U(ell(p, [s * 26, 118, 40], [9, 8, 9]), ROOT, 5); }
   // a ragged ring
   { const q = [p[0], p[1], p[2] - 32], rr = len(q[0], 0, q[2]), a = Math.atan2(q[2], q[0]), y0 = 136 - (rr - 26) * 0.7, tear = Math.max(0, Math.sin(a * 3 + 2)) * 10;
-    U(Math.max(Math.abs(p[1] - y0) - 3, rr - (46 - tear * 0.4), 25 - rr), FLESH(0.85), 3); }
+    U(smaxN(1.2, Math.abs(p[1] - y0) - 3, rr - (46 - tear * 0.4), 25 - rr), FLESH(0.85), 3); }
   // the sac: huge, pale, veined, lying on the floor behind her
   const sc = [0, 62, -96], sac = ell(p, sc, [78, 60, 100]);
   U(sac, mixP(FLESH(0.95), C(0xe8dcc8), 0.3), 26);
@@ -1000,7 +1004,7 @@ function queenBody(p) {
   crown(p, [0, 176, 0], 22, 8, 26, 8, 0.1);
   // the skirt of gills
   { const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]), frill = Math.sin(a * 16) * 4, y0 = 100 - (rr - 34) * 0.5 + frill;
-    U(Math.max(Math.abs(p[1] - y0) - 2.6, rr - (76 + Math.sin(a * 7) * 4), 30 - rr), FLESH(0.9), 3); }
+    U(smaxN(1.2, Math.abs(p[1] - y0) - 2.6, rr - (76 + Math.sin(a * 7) * 4), 30 - rr), FLESH(0.9), 3); }
   // the hive: a cluster of lit buds hanging under her
   U(ell(p, [0, 96, 0], [42, 16, 42]), FLESH(0.85), 10);
   for (let i = 0; i < 13; i++) { const a = i * 0.483, r = 14 + (i % 3) * 9, b = [Math.cos(a) * r, 84 - (i % 2) * 5, Math.sin(a) * r], e = ell(p, b, [7, 9, 7]); U(e, CAP(0.9), 3); if (e < 2) P(ell(p, [b[0], b[1] - 4, b[2]], [4, 5, 4]), GLOW(1), 1.5); }
@@ -1048,7 +1052,7 @@ function lanternBody(p) {
   for (let i = -8; i <= 8; i++) { const a = i / 9, x = Math.sin(a * 1.2) * 40, z = 48 + Math.cos(a * 1.2) * 26 - 8, L = 14 + (i & 1) * 8 - Math.abs(i) * 0.6; U(cap(p, [x, 70, z], [x * 0.96, 70 + L, z + 3], 2.2, 0.4), TOOTH, 0.6); U(cap(p, [x * 0.97, 108, z - 2], [x * 0.93, 108 - L * 0.8, z + 2], 2, 0.4), TOOTH, 0.6); }
   for (const s of [-1, 1]) eye(p, [s * 24, 140, 46], 4);
   // the frill down the back, like a fin
-  { const q = [p[0], p[1] - 150, p[2] + 10]; U(Math.max(Math.abs(q[0]) - 2.2 - Math.sin(q[2] * 0.3) * 1, ell(q, [0, 0, -30], [8, 24, 50]), -q[1] - 6), FLESH(0.85), 3); }
+  { const q = [p[0], p[1] - 150, p[2] + 10]; U(smaxN(1.2, Math.abs(q[0]) - 2.2 - Math.sin(q[2] * 0.3) * 1, ell(q, [0, 0, -30], [8, 24, 50]), -q[1] - 6), FLESH(0.85), 3); }
   for (let i = 0; i < 10; i++) { const a = i * 0.628, y = 104 + Math.sin(i * 1.7) * 20; if (Math.sin(a) < 0.5) pore(p, [Math.cos(a) * 58, y, Math.sin(a) * 60], 3, [Math.cos(a), 0, Math.sin(a)]); }
   return getD();
 }
@@ -1065,7 +1069,7 @@ function lanternTail(p) {
   reset();
   // a ragged tail fin of gill-membrane
   const q = [p[0], p[1] - 96, p[2] + 60], u = -q[2];
-  U(Math.max(Math.abs(q[0]) - 2.2, ell(q, [0, 0, -30], [8, 24, 30]), -u - 4), mixP(FLESH(0.8), CAP(0.4), 0.3), 3);
+  U(smaxN(1.2, Math.abs(q[0]) - 2.2, ell(q, [0, 0, -30], [8, 24, 30]), -u - 4), mixP(FLESH(0.8), CAP(0.4), 0.3), 3);
   for (let i = -3; i <= 3; i++) U(cap(p, [0, 96, -62], [0, 96 + i * 7, -96], 1.4, 0.7), CAP(0.8), 1);
   // the tail's root: a fleshy stock from inside the body out into the fin, so the fin grows from the fish
   U(cap(p, [0, 102, -36], [0, 96, -82], 17, 4), CAP(0.66), 6);
@@ -1369,7 +1373,7 @@ function mirrorBody(p) {
   for (const s of [-1, 1]) U(ell(p, [s * 13, 170, 2], [5, 4.5, 5]), ROOT, 3);
   // the gown: gills falling from the shoulders to the floor in pleats
   const rr = len(p[0], 0, p[2] - 2), a = Math.atan2(p[2] - 2, p[0]), t = clamp((176 - p[1]) / 160, 0, 1), R = 14 + t * 40 + Math.sin(a * 18) * 2.6 * t;
-  U(Math.max(Math.abs(rr - R) - 2.2, p[1] - 176, 18 - p[1] + Math.sin(a * 7) * 3), mixP(FLESH(1), GLASS, 0.3), 2);
+  U(smaxN(1.2, Math.abs(rr - R) - 2.2, p[1] - 176, 18 - p[1] + Math.sin(a * 7) * 3), mixP(FLESH(1), GLASS, 0.3), 2);
   if (Math.abs(rr - R) < 4) P(-Math.abs(Math.sin(a * 18)) + 0.25, mixP(FLESH(0.7), CAP(0.3), 0.3), 0.45);
   return getD();
 }
@@ -1761,7 +1765,7 @@ function nameBody(p) {
   // a tall cone of a cloak, made of overlapping layers of cap, each a flared skirt
   const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]);
   for (let i = 0; i < 7; i++) { const y0 = 226 - i * 30, R0 = 20 + i * 9, t = clamp((y0 - p[1]) / 40, 0, 1), R = R0 + t * 16 + Math.sin(a * 9 + i) * 3 * t;
-    const sh = Math.max(Math.abs(rr - R) - 2.6, p[1] - y0, y0 - 42 - p[1]); U(sh, CAP(1 - (i % 2) * 0.25), 2);
+    const sh = smaxN(1.2, Math.abs(rr - R) - 2.6, p[1] - y0, y0 - 42 - p[1]); U(sh, CAP(1 - (i % 2) * 0.25), 2);
     if (sh < 3) P(y0 - 36 - p[1], mixP(CAP(0.55), C(0x140c08), 0.35), 3); }   // each layer darker at its hem
   U(cap(p, [0, 0, 0], [0, 230, 0], 16, 12), mixP(CAP(0.4), C(0x0e0a10), 0.5), 6);   // the stalk inside
   // eyes opening all over it
@@ -1853,8 +1857,8 @@ function garment(p, g) {
   const { top, bot, r0, r1, t = 2.6, open = 0, closed = false, ragged = 4, rag = 7, col = COAT(), cx = 0, cz = 0, back = 0 } = g;
   const y = p[1], u = clamp((top - y) / (top - bot), 0, 1), rx = r0[0] + (r1[0] - r0[0]) * u * u, rz = r0[1] + (r1[1] - r0[1]) * u * u;
   const x = p[0] - cx, z = p[2] - cz - back * u, a = Math.atan2(z, x), nr = len(x / rx, 0, z / rz), d = (nr - 1) * Math.min(rx, rz);
-  const hem = bot + Math.sin(a * rag + 1.3) * ragged * 0.5 + Math.abs(Math.sin(a * rag * 2.3)) * ragged * 0.5;
-  let s = Math.max(Math.abs(d) - t, hem - y, y - top);
+  const hem = bot + Math.sin(a * rag + 1.3) * ragged * 0.4 + Math.abs(Math.sin(a * rag * 2.3)) * ragged * 0.2;
+  let s = smaxN(1.2, Math.abs(d) - t, hem - y, y - top);
   if (!closed && open > 0) s = Math.max(s, Math.min(open * (0.4 + u) - Math.abs(x), z));   // the opening down the front
   U(s, col, 3);
   if (s < 3) { bump((Math.abs(Math.sin(a * (g.folds || 9) + y * 0.015)) < 0.22 ? -0.9 : 0) * u); P(y - (hem + 10), mixP(col, C(0x0a0806), 0.35), 6); }
@@ -1907,7 +1911,7 @@ let TRUNK = null;
 const smin = (a, b, k) => { const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return b + (a - b) * h - k * h * (1 - h); };
 // cloth worn close (a shirt, a waistcoat, tights): the trunk's own shapes let out by t, between two heights, a slit down the front if open
 function fitted(q, f) { const T = f.shapes || TRUNK; let d = 1e9; for (const [c, r] of T) d = smin(d, ell(q, c, [r[0] + f.t, r[1] + f.t, r[2] + f.t]), 10);
-  const y = q[1]; let s = Math.max(d, (f.bot + Math.sin(Math.atan2(q[2], q[0]) * 7) * (f.ragged || 0)) - y, y - f.top);
+  const y = q[1]; let s = Math.max(d, (f.bot + Math.sin(Math.atan2(q[2], q[0]) * 7) * (f.ragged || 0) * 0.5) - y, y - f.top);
   if (f.open) s = Math.max(s, Math.min(f.open - Math.abs(q[0]), (f.openFrom || 0) - q[2]));
   U(s, f.col, 2); if (s < 2) { const a = Math.atan2(q[2], q[0]); bump(Math.abs(Math.sin(a * (f.folds || 6) + y * 0.05)) < 0.18 ? -0.6 : 0); } return s; }
 function trunk(p, o) { const { chest, belly, neckY, lean = 0 } = o; const q = [p[0], p[1], p[2] - (p[1] - 80) * lean]; TRUNK = [chest, belly];
@@ -2121,7 +2125,7 @@ export const B_Deacon = hostRig({
     const q = trunk(p, { chest: [[0, 152, 4], [24, 22, 17]], belly: [[0, 120, 4], [21, 26, 16]], neckY: 182, lean: 0.06 });
     U(cap(q, [0, 86, 0], [0, 118, 0], 17, 19), SKIN, 8);
     garment(q, { top: 180, bot: 30, r0: [27, 21], r1: [34, 30], open: 7, ragged: 5, col: COAT(0.25, 0x0c0a0a, 0.7), folds: 12 });
-    U(Math.max(Math.abs(q[1] - 176) - 3, cap(q, [0, 170, 6], [0, 182, 6], 15) ), C(0xe0d8c4), 1.5);   // the white collar, the last clean thing on him
+    U(smaxN(1.2, Math.abs(q[1] - 176) - 3, cap(q, [0, 170, 6], [0, 182, 6], 15)), C(0xe0d8c4), 1.5);   // the white collar, the last clean thing on him
     sprout(q, [-14, 172, -14], [-0.4, 1, -0.6], 10, 6, true); sprout(q, [12, 158, -18], [0.4, 0.7, -0.8], 7, 4.4);
     mold(q, 40, 180, 0.55);
   },
@@ -2200,7 +2204,7 @@ export const B_Mourn = hostRig({
     // the bodice, tight, buttoned; the skirt a great bell to the floor, flounced in tiers like gills
     garment(q, { top: 192, bot: 120, r0: [17, 14], r1: [18, 15], closed: true, t: 2.4, ragged: 0, col: COAT(0.25, 0x0c080c, 0.7), folds: 14 });
     const sk = garment(q, { top: 124, bot: 2, r0: [22, 20], r1: [66, 62], closed: true, t: 3, ragged: 6, rag: 13, col: COAT(0.26, 0x0c080c, 0.7), folds: 16 });
-    for (const y of [96, 64, 34]) { const u = (124 - y) / 122, r = 22 + 44 * u * u; U(Math.max(Math.abs(len(q[0], 0, q[2]) - (r + 3)) - 2, Math.abs(q[1] - y) - 4 - Math.sin(Math.atan2(q[2], q[0]) * 18) * 1.5), COAT(0.34, 0x0c080c, 0.6), 2); }   // the flounces
+    for (const y of [96, 64, 34]) { const u = (124 - y) / 122, r = 22 + 44 * u * u; U(smaxN(1.2, Math.abs(len(q[0], 0, q[2]) - (r + 3)) - 2, Math.abs(q[1] - y) - 4 - Math.sin(Math.atan2(q[2], q[0]) * 18) * 1.5), COAT(0.34, 0x0c080c, 0.6), 2); }   // the flounces
     U(ell(q, [0, 100, 0], [30, 30, 28]), C(0x060506), 6); void sk;   // the dark inside, never seen
     for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.4; sprout(q, [Math.cos(a) * 52, 40 + (i & 1) * 12, Math.sin(a) * 48], [Math.cos(a), 0.5, Math.sin(a)], 8, 5, i % 2 === 0); }
     U(torus(q, [0, 188, 3], 11, 2.2), C(0x0a0808), 1.5); for (let i = 0; i < 5; i++) pore(q, [0, 178 - i * 10, 15.5], 1.4, [0, 0, 1]);
@@ -2237,7 +2241,7 @@ export const B_Cannonball = hostRig({
     const q = trunk(p, { chest: [[0, 112, 4], [36, 26, 26]], belly: [[0, 86, 4], [30, 22, 24]], neckY: 134 });
     fitted(q, { t: 1.6, top: 132, bot: 70, col: mixP(CAP(0.7), C(0xe8dcc0), 0.35), folds: 4 });   // the striped tights
     if (q[1] > 70 && q[1] < 134 && Math.abs(len(q[0] / 36, 0, q[2] / 27) - 1) < 0.15) P(-Math.abs(Math.sin(q[1] * 0.2)) + 0.5, C(0xe8dcc0), 0.2);
-    U(Math.max(Math.abs(q[1] - 78) - 6, len(q[0], 0, q[2]) - 33), LEATH, 2); U(ell(q, [0, 78, 32], [10, 8, 3]), BRASS, 1.5);
+    U(smaxN(1.2, Math.abs(q[1] - 78) - 6, len(q[0], 0, q[2]) - 33), LEATH, 2); U(ell(q, [0, 78, 32], [10, 8, 3]), BRASS, 1.5);
     garment(q, { top: 136, bot: 76, r0: [30, 22], r1: [42, 30], closed: true, back: -12, t: 1.8, ragged: 5, col: mixP(CAP(0.8), C(0x5a1a12), 0.3), folds: 6 });   // the cape (only behind)
     S(Math.max(-q[2] + 6, -(q[1] - 76)), 2);   // cut the cape away in front
     sprout(q, [-24, 130, -12], [-0.5, 1, -0.4], 9, 6, true);
@@ -2253,7 +2257,7 @@ export const B_Cannonball = hostRig({
     // the helmet: a big round shell coming down over the head to the jaw, a fin over the top, a lit seam round it
     const hm = ell(p, [0, 166, 10], [30, 34, 30]);
     U(Math.max(hm, 142 - p[1]), CAP(1), 4); { const [d1] = cells(p[0] * 0.18, p[1] * 0.18, p[2] * 0.18); if (hm < 2) bump(-Math.max(0, 0.32 - d1) * 3); }
-    U(Math.max(Math.abs(p[0]) - 2.6, ell(p, [0, 176, 4], [10, 34, 36]), -(p[1] - 168)), mixP(CAP(0.6), C(0x2a1a12), 0.4), 2);   // the fin
+    U(smaxN(1.2, Math.abs(p[0]) - 2.6, ell(p, [0, 176, 4], [10, 34, 36]), -(p[1] - 168)), mixP(CAP(0.6), C(0x2a1a12), 0.4), 2);   // the fin
     P(Math.abs(p[1] - 150) - 1.2, GLOW(0.8), 0.6);
     // the goggles: two big lit lenses in brass rings on the front of the shell
     for (const s of [-1, 1]) { const g = [s * 11, 164, 38]; U(torus(rotX(p, g, 1.5), g, 7, 2.4), BRASS, 1); S(sph(p, [g[0], g[1], g[2] + 3], 6.2), 1); U(sph(p, [g[0], g[1], g[2] - 2], 6.2), GLOW(1), 1); }
@@ -2310,13 +2314,13 @@ export const B_Grin = hostRig({
     for (let i = 0; i < 3; i++) U(sph(q, [0, 124 - i * 16, 26 + i * 2], 4.6), GLOW(0.9), 1.2);   // three big lit pom-poms down the front
     { const a = Math.atan2(q[2], q[0]); if (Math.abs(len(q[0] / 34, 0, q[2] / 27) - 1) < 0.15 && q[1] < 142 && q[1] > 60) P(Math.abs(Math.sin(a * 3)) - 0.5, mixP(CAP(1), C(0x000000), 0.2), 0.1); }
     // the ruff: a deep frill of gill round the neck
-    { const a = Math.atan2(q[2] - 4, q[0]), rr = len(q[0], 0, q[2] - 4), y0 = 142 + Math.sin(a * 16) * 4; U(Math.max(Math.abs(q[1] - y0) - 2.4 - (rr - 10) * 0.06, rr - 32, 9 - rr), mixP(C(0xf0e8d8), FLESH(0.4), 0.3), 2); }
+    { const a = Math.atan2(q[2] - 4, q[0]), rr = len(q[0], 0, q[2] - 4), y0 = 142 + Math.sin(a * 16) * 4; U(smaxN(1.2, Math.abs(q[1] - y0) - 2.4 - (rr - 10) * 0.06, rr - 32, 9 - rr), mixP(C(0xf0e8d8), FLESH(0.4), 0.3), 2); }
     sprout(q, [-20, 134, -18], [-0.5, 1, -0.6], 8, 5, true);
   },
   arm(p, s) {
     const sh = [s * 34, 140, 4], el = [s * 46, 112, 14], wr = [s * 48, 84, 26];
     sleeveArm(p, s, sh, el, wr, 8, mixP(CAP(0.8), C(0xe8dcc0), 0.4));
-    U(Math.max(Math.abs(len(p[0] - wr[0], 0, p[2] - wr[2]) - 9) - 2, Math.abs(p[1] - (wr[1] + 6 + Math.sin(Math.atan2(p[2] - wr[2], p[0] - wr[0]) * 10) * 2)) - 2), C(0xf0e8d8), 1.5);   // frilled cuffs
+    U(smaxN(1.2, Math.abs(len(p[0] - wr[0], 0, p[2] - wr[2]) - 9) - 2, Math.abs(p[1] - (wr[1] + 6 + Math.sin(Math.atan2(p[2] - wr[2], p[0] - wr[0]) * 10) * 2)) - 2), C(0xf0e8d8), 1.5);   // frilled cuffs
     hand(p, [wr[0], wr[1] - 4, wr[2] + 2], s, 7, 4, 14);
   },
   head(p) {
@@ -2398,7 +2402,7 @@ export const B_Harbourmaster = hostRig({
     if (s > 0) { hand(p, wr, s, 8, 4, 16); return; }
     // the hook: a cup over the stump and a great iron hook
     U(cap(p, [wr[0], wr[1] + 4, wr[2]], [wr[0], wr[1] - 8, wr[2] + 2], 9, 8), C(0x2a2018), 1.5);
-    { const c = [wr[0], wr[1] - 26, wr[2] + 6], q = rotY(p, c, 0.5), a = Math.atan2(q[1] - c[1], q[2] - c[2]); U(Math.max(Math.abs(len(0, q[1] - c[1], q[2] - c[2]) - 11) - 2.6, Math.abs(q[0] - c[0]) - 2.6, a > 0.7 && a < 2.4 ? 3 : -3), IRONC, 1);
+    { const c = [wr[0], wr[1] - 26, wr[2] + 6], q = rotY(p, c, 0.5), a = Math.atan2(q[1] - c[1], q[2] - c[2]); U(smaxN(1.2, Math.abs(len(0, q[1] - c[1], q[2] - c[2]) - 11) - 2.6, Math.abs(q[0] - c[0]) - 2.6, a > 0.7 && a < 2.4 ? 3 : -3), IRONC, 1);
       U(cap(p, [wr[0], wr[1] - 8, wr[2] + 2], [c[0], c[1] + 11, c[2]], 2.6), IRONC, 1); }
   },
   head(p) {
@@ -2426,7 +2430,7 @@ export const B_Hangman = hostRig({
     U(cap(q, [0, 98, 0], [0, 130, 0], 18, 19), SKIN, 8); fibres(q, [0, 0, 0], 18, 0.6);
     // the apron, leather, from the chest to the shin, strapped round the neck
     { const ap = box(q, [0, 120, 21], [26, 54, 4], 2); U(Math.max(ap, -(q[2] - 12)), LEATH, 2); if (ap < 2) P(-fbm(q[0] * 0.08, q[1] * 0.08, 3) - 0.1, mixP(LEATH, CAP(0.4), 0.4), 0.15); }
-    U(Math.max(Math.abs(q[1] - 104) - 3, len(q[0], 0, q[2]) - 26), LEATH2, 2);
+    U(smaxN(1.2, Math.abs(q[1] - 104) - 3, len(q[0], 0, q[2]) - 26), LEATH2, 2);
     // the coil of rope over the left shoulder, across the chest
     { const c = [-14, 168, 4], q2 = rotZ(rotX(q, c, 0.2), c, 0.75); for (let k = 0; k < 4; k++) U(torus(rotX(q2, c, 1.57), [c[0], c[1], c[2] + (k - 1.5) * 2.6], 26, 2.4), ROPE2, 1); }
     garment(q, { top: 120, bot: 52, r0: [24, 19], r1: [28, 22], open: 10, ragged: 5, col: COAT(0.3, 0x14100c, 0.6), folds: 9 });   // breeches, ragged
@@ -2450,7 +2454,7 @@ export const B_Hangman = hostRig({
     U(hd, mixP(CAP(0.35), C(0x14100e), 0.6), 4);
     { const a = Math.atan2(p[0], p[2] - 4); if (hd < 2) bump(Math.abs(Math.sin(a * 4 + p[1] * 0.05)) < 0.2 ? -0.8 : 0); }
     for (const s of [-1, 1]) { S(ell(p, [s * 6, 226, 19], [3.6, 2.6, 6]), 1.2, C(0x060505)); U(ell(p, [s * 6, 226, 15], [2.4, 1.8, 1.8]), GLOW(1), 0.6); }
-    U(Math.max(Math.abs(len(p[0], 0, (p[2] - 4) * 1.05) - 19) - 2, Math.abs(p[1] - 196 - Math.sin(Math.atan2(p[2], p[0]) * 7) * 3) - 3), mixP(CAP(0.35), C(0x14100e), 0.6), 2);   // the ragged hem on the shoulders
+    U(smaxN(1.2, Math.abs(len(p[0], 0, (p[2] - 4) * 1.05) - 19) - 2, Math.abs(p[1] - 196 - Math.sin(Math.atan2(p[2], p[0]) * 7) * 3) - 3), mixP(CAP(0.35), C(0x14100e), 0.6), 2);   // the ragged hem on the shoulders
     S(p[1] - 194, 1.5);
   },
 });
@@ -2467,7 +2471,7 @@ export const B_Graves = hostRig({
     // the peg: the leg ends at the knee in a wooden peg strapped on
     const hip = [-15, 82, 0], knee = [-17, 42, 5];
     U(cap(p, hip, knee, 11, 10), COAT(0.42, 0x16100a, 0.55), 4); U(cap(p, knee, [-17, 34, 5], 10, 9), mixP(LEATH, C(0x000000), 0.2), 2);
-    U(cap(p, [-17, 36, 5], [-16, 2, 3], 5.6, 3.6), WOOD, 1.5); for (const y of [40, 30]) U(Math.max(Math.abs(p[1] - y) - 1.5, len(p[0] + 17, 0, p[2] - 5) - 10.5), LEATH2, 1);
+    U(cap(p, [-17, 36, 5], [-16, 2, 3], 5.6, 3.6), WOOD, 1.5); for (const y of [40, 30]) U(smaxN(1.2, Math.abs(p[1] - y) - 1.5, len(p[0] + 17, 0, p[2] - 5) - 10.5), LEATH2, 1);
     S(p[1] + 0.5, 1);
   },
   torso(p) {
@@ -2475,7 +2479,7 @@ export const B_Graves = hostRig({
     const coat = mixP(CAP(0.45), C(0x1a1430), 0.5);
     garment(q, { top: 176, bot: 40, r0: [34, 24], r1: [40, 34], open: 12, ragged: 7, rag: 8, col: coat, folds: 10 });
     for (let i = 0; i < 5; i++) for (const s of [-1, 1]) U(sph(q, [s * 16, 160 - i * 14, 25], 2.2), BRASS, 1);
-    U(Math.max(Math.abs(q[1] - 108) - 4, len(q[0], 0, q[2]) - 30), LEATH, 2); U(box(q, [0, 108, 30], [6, 5, 2], 1), BRASS, 1);
+    U(smaxN(1.2, Math.abs(q[1] - 108) - 4, len(q[0], 0, q[2]) - 30), LEATH, 2); U(box(q, [0, 108, 30], [6, 5, 2], 1), BRASS, 1);
     U(Math.max(box(rotZ(q, [0, 140, 0], 0.6), [0, 140, 0], [4, 46, 32], 1), -(q[2] + 0)), LEATH2, 1.5);   // the baldric
     for (let i = 0; i < 14; i++) { const a = i * 0.45 + 0.3; strand(q, [Math.cos(a) * 38, 46, Math.sin(a) * 32], 10 + hashI(i, 9) * 10, 1.4, mixP(MOSS, CAP(0.3), 0.3), i, 1.4); }   // weed off the hem
     for (let i = 0; i < 14; i++) { const x = (hashI(i, 4) - 0.5) * 50, y = 120 + hashI(i, 5) * 50, z = -20 - hashI(i, 6) * 6, r = 2.4 + hashI(i, 7) * 2; U(cap(q, [x, y, z], [x, y, z - r], r, r * 0.6), C(0xa8a094), 1.2); }
@@ -2498,7 +2502,7 @@ export const B_Graves = hostRig({
     // the tricorn: a low crown, the brim turned up into three lobes, one at the front
     hat(p, { c: [0, 206, 11], crown: [15, 14, 7], dome: 6, col: CAP(1), warts: 4, seed: 23 });
     { const c = [0, 206, 11], rr = len(p[0] - c[0], 0, p[2] - c[2]), a = Math.atan2(p[2] - c[2], p[0] - c[0]), lobe = Math.cos((a - Math.PI / 2) * 3), up = 6 + lobe * 7, R = 24 + lobe * 3;
-      U(Math.max(Math.abs(p[1] - (c[1] + up * ((rr - 12) / 14))) - 1.8, rr - R, 13 - rr), CAP(1), 1.5); if (Math.abs(rr - R) < 2.5) P(-1, mixP(CAP(0.4), C(0xd8ccb4), 0.5), 0.5); }
+      U(smaxN(1.2, Math.abs(p[1] - (c[1] + up * ((rr - 12) / 14))) - 1.8, rr - R, 13 - rr), CAP(1), 1.5); if (Math.abs(rr - R) < 2.5) P(-1, mixP(CAP(0.4), C(0xd8ccb4), 0.5), 0.5); }
     S(p[1] - 160, 1.5);
   },
 });

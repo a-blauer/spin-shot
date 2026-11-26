@@ -13,6 +13,8 @@ class Heap {
 }
 
 // M: { pos Float32Array, nor Int8Array, rgb, w Uint8Array, ao Uint8Array, idx Array } -> same shape, fewer triangles
+// a face may turn by at most acos(FOLD) in one collapse: tight, so thin edges (a cap's brim) are not chewed into flaps
+const FOLD = +(process.env.FOLD ?? 0.8);
 export function decimate(M, targetTris, { paintW = 60, border = 70 } = {}) {
   const BORDER = border;
   const pos = M.pos, N = pos.length / 3, idx = Int32Array.from(M.idx), F = idx.length / 3;
@@ -48,7 +50,7 @@ export function decimate(M, targetTris, { paintW = 60, border = 70 } = {}) {
     let shared = 0, bad = false;
     const nb = neigh(b);
     for (const f of faces[a]) { if (!alive[f]) continue; const has = idx[f * 3] === b || idx[f * 3 + 1] === b || idx[f * 3 + 2] === b; if (has) { shared++; continue; }
-      const n0 = nrm(f, -1, -1), n1 = nrm(f, a, b); if (!n0 || !n1) { bad = true; break; } const l0 = Math.hypot(...n0), l1 = Math.hypot(...n1); if (l1 < 1e-9 || (n0[0] * n1[0] + n0[1] * n1[1] + n0[2] * n1[2]) / (l0 * l1) < 0.35) { bad = true; break; }
+      const n0 = nrm(f, -1, -1), n1 = nrm(f, a, b); if (!n0 || !n1) { bad = true; break; } const l0 = Math.hypot(...n0), l1 = Math.hypot(...n1); if (l1 < 1e-9 || (n0[0] * n1[0] + n0[1] * n1[1] + n0[2] * n1[2]) / (l0 * l1) < FOLD) { bad = true; break; }
       // no slivers: the new triangle's shortest height must stay a fair share of its longest side
       const g = (k) => { const v = idx[f * 3 + k]; return v === a ? b : v; }, A = g(0), B = g(1), Cc = g(2), e = (u, v) => Math.hypot(pos[u * 3] - pos[v * 3], pos[u * 3 + 1] - pos[v * 3 + 1], pos[u * 3 + 2] - pos[v * 3 + 2]), lmax = Math.max(e(A, B), e(B, Cc), e(Cc, A));
       if (l1 / (lmax * lmax) < 0.1) { bad = true; break; } }
