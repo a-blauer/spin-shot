@@ -139,7 +139,9 @@ const CSS = `
 #craft .press .dw { display:flex; flex-direction:column; align-items:center; gap:6px; } #craft .press .dw small { font:400 20px "Big Shoulders Display"; letter-spacing:2px; color:#7fffe0; } #craft .press .dw i { font:600 15px "Barlow Condensed"; font-style:normal; color:var(--a,#9a8f7c); min-height:18px; }
 #craft .press .dish.hot { border-color:#ffffff; }
 #craft .dim { color:#8f8574; }
-#craft .chip.slim { grid-template-columns:40px 1fr auto; padding:4px 8px; } #craft .chip.slim .gly { width:38px; height:38px; } #craft .chip.slim span i { font-style:normal; font-weight:700; }
+#craft .chip.slim { grid-template-columns:40px 1fr auto; padding:4px 8px; }
+#craft .eqh { margin-top:12px !important; } #craft .eqlist { flex:0 1 auto; max-height:38%; } #craft .chip.eq { cursor:pointer; background:rgba(0,0,0,0.25); position:relative; } #craft .chip.eq:hover::after { content:'TAKE OFF'; position:absolute; right:8px; bottom:3px; font:700 12px "Barlow Condensed"; color:#ff9a8a; }
+#craft .eqg { font:400 16px "Big Shoulders Display"; letter-spacing:1.5px; color:#9a8f7c; margin:6px 0 0 2px; } #craft .chip.slim .gly { width:38px; height:38px; } #craft .chip.slim span i { font-style:normal; font-weight:700; }
 #craft .press .res span { display:block; } #craft .press .res span.dim { font-size:15px; margin-top:4px; }
 #craft .guide { overflow-y:auto; display:flex; flex-direction:column; gap:12px; font-size:16px; } #craft .guide p { margin:0; line-height:1.25; }
 #craft .aspg { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
@@ -317,6 +319,19 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     h += `<div class="col"><h2>GUN PARTS <i>${inv.reduce((s2, u) => s2 + p.coreInv[u], 0)}</i></h2><div class="list">`;
     if (!inv.length) h += '<div class="empty">You are not carrying any gun parts.</div>';
     for (const u of inv) { const a = aspectsOf(U(u)); h += `<div class="chip slim" data-u="${u}" style="--c:${U(u).hex}"${tip(`<b style="color:${U(u).hex}">${esc(U(u).name)}</b>${fus && a.length ? `<em>${aspTag(a)}</em>` : ''}${esc(U(u).desc)}`)}>${gly(u)}<div><b>${esc(U(u).name)}</b>${fus && a.length ? `<span>${aspTag(a)}</span>` : ''}</div><em>x${p.coreInv[u]}</em></div>`; }
+    h += '</div>';
+    // what is fitted to your guns (and blade, and turret): click one and it comes off, straight onto a dish
+    const src = [];
+    for (const gi of guns()) { const S = p.weapons[gi]; if (S.cores && S.cores.length) src.push([`g${gi}`, DATA.weapons[S.def].name, S.cores]); }
+    if ((p.bladeCores || []).length) src.push(['blade', bladeW().name, p.bladeCores]);
+    if ((p.turretCores || []).length) src.push(['turret', 'Turret', p.turretCores]);
+    h += `<h2 class="eqh">ON YOUR GUNS <i>click to take off</i></h2><div class="list eqlist">`;
+    if (!src.length) h += '<div class="empty">Nothing fitted.</div>';
+    for (const [key, nm, cores] of src) {
+      h += `<div class="eqg">${esc(nm.toUpperCase())}</div>`;
+      const n = new Map(); for (const u of cores) if (U(u).kind === 'gun') n.set(u, (n.get(u) || 0) + 1);
+      for (const [u, c] of n) { const a = aspectsOf(U(u)); h += `<div class="chip slim eq" data-src="${key}" data-u="${u}" style="--c:${U(u).hex}"${tip(`<b style="color:${U(u).hex}">${esc(U(u).name)}</b>${fus && a.length ? `<em>${aspTag(a)}</em>` : ''}${esc(U(u).desc)}<em>Fitted to ${esc(nm)}. Click to take it off and put it on a dish.</em>`)}>${gly(u)}<div><b>${esc(U(u).name)}</b>${fus && a.length ? `<span>${aspTag(a)}</span>` : ''}</div><em>${c > 1 ? 'x' + c : ''}</em></div>`; }
+    }
     h += '</div></div><div class="mid"><div class="press" id="cpress"><div class="dishes">';
     for (let i = 0; i < nd; i++) {
       const u = dishes[i], a = u !== undefined ? aspectsOf(U(u)) : [];
@@ -356,7 +371,14 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     el.querySelector('#cclose').onclick = close;
     el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press[+d.dataset.d] = undefined; H.audio.play('S_Unfit', 0.6); hideTip(); render(false); }; });
     const go = el.querySelector('#cpgo'); if (go) go.onclick = () => { const r = p.compress(...dishes); for (let i = 0; i < 3; i++) press[i] = undefined; if (r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play('S_Bench', 0.9, plan ? 0.65 : 0.8); H.game().hud.toast(`${plan ? 'Forged' : 'Pressed'}: ${U(r).name}. Fit it at the workbench.`, U(r).hex); } render(false); };
-    el.querySelectorAll('.chip').forEach((cc) => { cc.onpointerdown = (e) => { hideTip(); startDrag(e, { kind: 'fit', u: +cc.dataset.u }); }; });
+    el.querySelectorAll('.chip:not(.eq)').forEach((cc) => { cc.onpointerdown = (e) => { hideTip(); startDrag(e, { kind: 'fit', u: +cc.dataset.u }); }; });
+    el.querySelectorAll('.chip.eq').forEach((cc) => { cc.onclick = () => {
+      const k = cc.dataset.src, u = +cc.dataset.u, S = k === 'blade' ? { blade: true, def: -1, cores: p.bladeCores, mods: [] } : k === 'turret' ? { turret: true, def: -1, cores: p.turretCores, mods: [] } : p.weapons[+k.slice(1)];
+      if (!p.pullCore(S, u)) { H.audio.play('S_Deny', 0.6); return; }
+      p.recompute(); hideTip(); H.audio.play('S_Unfit', 0.8);
+      for (let i = 0; i < nd; i++) if (press[i] === undefined) { press[i] = u; break; }   // and onto the first free dish
+      render(false);
+    }; });
   }
   // the hover box: one for the whole screen, filled from tips[] by whatever is under the pointer
   let tips = [], tipEl = null;
