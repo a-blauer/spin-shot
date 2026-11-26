@@ -6,7 +6,10 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import { mesh } from './blight/kit.mjs';
-import { CREATURES } from './blight/creatures.mjs';
+import { CREATURES as OLD } from './blight/creatures.mjs';
+import * as CHUNKY from './blight/chunky.mjs';
+// the chunky redraws (blight/chunky.mjs) replace the first sculpts creature by creature; OLD=1 bakes the first ones
+const CREATURES = process.env.OLD ? OLD : { ...OLD, ...Object.fromEntries(Object.entries(CHUNKY).filter(([, v]) => v && v.parts)) };
 import { decimate } from './blight/decimate.mjs';
 const BUDGET = { Head: +(process.env.HB || 6500), Body: 4500, ArmFront: 1500, ArmBack: 1500, LegFront: 1400, LegBack: 1400, Tail: 1200, WingFront: 900, WingBack: 900 };
 
@@ -52,7 +55,11 @@ for (const name of names) {
     const oct = new Int8Array(N * 2); for (let q = 0; q < N; q++) { let x = M.nor[q * 3] / 127, y = M.nor[q * 3 + 1] / 127, z = M.nor[q * 3 + 2] / 127; const l = Math.abs(x) + Math.abs(y) + Math.abs(z) || 1; x /= l; y /= l; z /= l; if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * Math.sign(ox || 1); y = (1 - Math.abs(ox)) * Math.sign(y || 1); } oct[q * 2] = Math.round(x * 127); oct[q * 2 + 1] = Math.round(y * 127); }
     const pad = (b) => { const r = b.length % 4; return r ? Buffer.concat([b, Buffer.alloc(4 - r)]) : b; };
     const bufs = [Buffer.from(pos.buffer), Buffer.from(oct.buffer), Buffer.from(M.rgb.buffer), Buffer.from(M.w.buffer), Buffer.from(M.ao.buffer), Buffer.from(idx.buffer)].map(pad);
-    parts.push({ role: pt.role, pivot: [pv[0], pv[1], pv[2] || 0], off: off.map((x) => +x.toFixed(2)), size: [+(mx[0] - mn[0]).toFixed(1), +(mx[1] - mn[1]).toFixed(1)], top: +mx[1].toFixed(1), v: N, i: M.idx.length, i32: N >= 65536, z: 3, b64: deflateRawSync(Buffer.concat(bufs), { level: 9 }).toString('base64') });
+    // eyes drawn by the game as their own meshes (blight/chunky.mjs E()): kept in the part's frame like its vertices
+    const eyes = pt.eyes ? pt.eyes.map((e) => ({ at: [+(e.at[0] - pv[0] - off[0]).toFixed(2), +(e.at[1] - pv[1] - off[1]).toFixed(2), +(e.at[2] - (pv[2] || 0)).toFixed(2)], r: e.r, out: e.out, s: e.s || 1 })) : undefined;
+    const loc = (v) => [+(v[0] - pv[0] - off[0]).toFixed(2), +(v[1] - pv[1] - off[1]).toFixed(2), +(v[2] - (pv[2] || 0)).toFixed(2)];
+    const teeth = pt.teeth ? pt.teeth.map((t) => ({ a: loc(t.a), b: loc(t.b), r: +t.r.toFixed(2) })) : undefined;
+    parts.push({ eyes, teeth, role: pt.role, pivot: [pv[0], pv[1], pv[2] || 0], off: off.map((x) => +x.toFixed(2)), size: [+(mx[0] - mn[0]).toFixed(1), +(mx[1] - mn[1]).toFixed(1)], top: +mx[1].toFixed(1), v: N, i: M.idx.length, i32: N >= 65536, z: 3, b64: deflateRawSync(Buffer.concat(bufs), { level: 9 }).toString('base64') });
     console.log(`  ${name}.${pt.role}: ${M0.tris} -> ${M.tris} tris`);
   }
   const rec = { height: K.height, beast: !!K.beast, scale: K.scale || 1, parts };

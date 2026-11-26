@@ -9,7 +9,7 @@
 //      run as curves instead of zig-zagging along the triangles;
 //   4. normals are rebuilt from the smoothed faces and shared across each group, so the light rolls round.
 // It costs nothing per frame.
-export const SMOOTH = { iters: 3, lambda: 0.5, mu: -0.53, paint: 0.35 };
+export const SMOOTH = { iters: 3, lambda: 0.5, mu: -0.53, paint: 0.2 };
 
 export function smoothPart(P, idx, col, w) {
   const n = P.length / 3, S = SMOOTH;

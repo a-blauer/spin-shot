@@ -65,7 +65,7 @@ function decodeFile(url) {
         g.setAttribute('aAo', new THREE.BufferAttribute(ao, 1, true));
         g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere();
         if (PARTS) PARTS.push({ creature: name, role: pt.role, tex: 'FX_Disc', pivot: [pt.pivot[0], pt.pivot[1], pt.pivot[2]], offset: pt.off, size: pt.size, layer, sculpted: true });
-        return { role: pt.role, pivot: pt.pivot, off: pt.off, size: pt.size, geo: g, tris: pt.i / 3 };
+        return { role: pt.role, pivot: pt.pivot, off: pt.off, size: pt.size, geo: g, tris: pt.i / 3, eyes: pt.eyes, teeth: pt.teeth };
       });
       BLIGHT.set(name, { height: K.height, beast: K.beast, parts });
     }
@@ -146,7 +146,7 @@ export function blightMaterial() {
         if (bStyle.x > 0.0) { float l = dot(base, vec3(0.3, 0.55, 0.15)); base = mix(base, max(mix(vec3(l), base, 1.3) * 1.08, 0.0), bStyle.x); }   // richer, a touch lighter
         // the room's air in them too, at half the strength the walls get: they belong to the room but still stand out of it
         if (uGrade.w > 0.0) { vec3 k = fogColor / max(1e-3, max(fogColor.r, max(fogColor.g, fogColor.b))); const vec3 W3 = vec3(0.299, 0.587, 0.114); base = mix(base, k * (dot(base, W3) / max(dot(k, W3), 1e-3)), uGrade.x * 0.5); }
-        float ndl = dot(n, sunDir), band = smoothstep(-0.03, 0.07, ndl);
+        float ndl = dot(n, sunDir), band = smoothstep(-0.1, 0.16, ndl);   // a soft edge to the shadow, so small dents in a sculpt do not tear it into ragged patches
         vec3 c = mix(base * shadowTint.rgb, base * litTint.rgb, band);
         if (bStyle.w > 0.0) c *= mix(1.0, mix(0.78, 1.0, smoothstep(-0.45, -0.35, ndl)), bStyle.w * (1.0 - band));   // a deeper step in the shadow
         float top = clamp((n.y - 0.55) / 0.35, 0.0, 1.0); c *= mix(1.0, litTint.a, top * band);

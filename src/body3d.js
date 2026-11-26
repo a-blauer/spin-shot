@@ -166,8 +166,56 @@ let SCENE = null, PARTS = null;
 export function bodies3dInit(scene, parts) {
   for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.shellM && K.shellM.parent) K.shellM.parent.remove(K.shellM); if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (K.line && K.line.parent) K.line.parent.remove(K.line); if (!K.blight) K.mesh.geometry.dispose(); }
   KINDS.clear(); MATS.clear(); SCENE = scene; PARTS = parts || getParts();
+  if (EYES) { for (const m of EYES.parts) { if (m.parent) m.parent.remove(m); m.dispose(); } EYES = null; }
+  if (TEETH) { if (TEETH.mesh.parent) TEETH.mesh.parent.remove(TEETH.mesh); TEETH.mesh.dispose(); TEETH = null; }
   if (GEAR) { for (const k in GEAR) { if (GEAR[k].mesh.parent) GEAR[k].mesh.parent.remove(GEAR[k].mesh); GEAR[k].mesh.dispose(); } GEAR = null; }
 }
+// Eyes (the redrawn Blight, tools/blight/chunky.mjs): not part of the sculpt, which can only colour its corners and
+// so blurs anything small, but three tiny meshes set in each socket, each one flat colour so its edges stay sharp: the
+// lit eye (the strain's glow, unshaded), a dark rim round it and a dark slit of a pupil. One instanced mesh each.
+let EYES = null;
+function eyeMats(list) {
+  if (!list || !list.length) return null;
+  return list.map((e) => { const o = new THREE.Vector3(...e.out).normalize(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), o);
+    const c = new THREE.Vector3(...e.at).addScaledVector(o, e.r * 0.1); return new THREE.Matrix4().compose(c, q, new THREE.Vector3(-(e.s || 1) * e.r, e.r, e.r)); });   // local +x toward the nose on both sides
+}
+function eyeMesh(geo, mat, cap) { const m = new THREE.InstancedMesh(geo, mat, cap); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.count = 0; return m; }
+function eyes() {
+  if (EYES) return EYES;
+  // a scowling eye: a lit ball with its top cut away along a lid line that drops toward the nose (local +x), a dark
+  // backing a little larger behind it for the rim (cut the same way), and a thin slit of a pupil
+  const lid = (g, k = 1) => { const P = g.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i) / k, y = P.getY(i) / k, top = 0.3 - 0.55 * x; if (y > top) P.setY(i, top * k); } g.computeVertexNormals(); return g; };
+  const ball = lid(new THREE.SphereGeometry(1, 24, 16)); ball.scale(1, 1, 0.8);
+  const back = lid(new THREE.SphereGeometry(1, 24, 16), 1); back.scale(1.2, 1.24, 0.8); back.translate(0, 0.02, -0.12);
+  const pupil = new THREE.SphereGeometry(1, 12, 10); pupil.scale(0.12, 0.5, 0.12); pupil.translate(0.05, -0.18, 0.76);
+  const side = THREE.DoubleSide, lit = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, side }), dark = new THREE.MeshBasicMaterial({ color: 0x0c0806, fog: false, side });
+  EYES = { n: 0, cap: 64, parts: [eyeMesh(ball, lit, 64), eyeMesh(pupil, dark, 64), eyeMesh(back, dark, 64)] };
+  EYES.parts[0].instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(64 * 3), 3); EYES.parts[0].instanceColor.setUsage(THREE.DynamicDrawUsage);
+  for (const m of EYES.parts) SCENE.add(m);
+  return EYES;
+}
+function growEyes() {
+  const E = EYES, cap = E.cap * 2;
+  E.parts = E.parts.map((old, i) => { const m = eyeMesh(old.geometry, old.material, cap); m.instanceMatrix.array.set(old.instanceMatrix.array);
+    if (i === 0) { m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); m.instanceColor.setUsage(THREE.DynamicDrawUsage); m.instanceColor.array.set(old.instanceColor.array); }
+    SCENE.remove(old); old.dispose(); SCENE.add(m); return m; });
+  E.cap = cap;
+}
+// teeth: the same idea, a cone per tooth along the lips, shaded like the rest of the body
+function toothMats(list) {
+  if (!list || !list.length) return null;
+  const up = new THREE.Vector3(0, 1, 0);
+  return list.map((t) => { const a = new THREE.Vector3(...t.a), b = new THREE.Vector3(...t.b), d = b.clone().sub(a), L = d.length(); return new THREE.Matrix4().compose(a, new THREE.Quaternion().setFromUnitVectors(up, d.normalize()), new THREE.Vector3(t.r, L, t.r * 0.7)); });
+}
+let TEETH = null;
+function teeth() {
+  if (TEETH) return TEETH;
+  const g = new THREE.ConeGeometry(1, 1, 10, 1); g.translate(0, 0.5, 0);   // base at 0, tip at +1
+  const n = g.attributes.position.count, col = new Float32Array(n * 3); for (let i = 0; i < n; i++) col.set([0.95, 0.91, 0.8], i * 3); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  TEETH = { n: 0, cap: 128, mesh: eyeMesh(g, toonMaterial({ vcol: true, instanced: true }), 128) }; SCENE.add(TEETH.mesh); return TEETH;
+}
+function growTeeth() { const T = TEETH, old = T.mesh, cap = T.cap * 2, m = eyeMesh(old.geometry, old.material, cap); m.instanceMatrix.array.set(old.instanceMatrix.array); SCENE.remove(old); old.dispose(); SCENE.add(m); T.mesh = m; T.cap = cap; }
+const _eye = new THREE.Matrix4();
 // the Armored Blight's bark (blight_gear.js): one instanced mesh per piece, filled each frame like the bodies
 let GEAR = null, GEARMAT = null;
 function gear(type) {
@@ -197,14 +245,16 @@ function kindFor(creature) {
   let list = KINDS.get(creature); if (list) return list;
   list = [];
   const BL = BLIGHT.get(creature);   // sculpted, not raised from art
-  if (BL) { for (const pt of BL.parts) { const K = { geo: pt.geo, thick: 0, tris: pt.tris, atlas: 'blight', blight: true, n: 0 }; makeMesh(K, 24); list.push(K); } KINDS.set(creature, list); return list; }
+  if (BL) { for (const pt of BL.parts) { const K = { geo: pt.geo, thick: 0, tris: pt.tris, atlas: 'blight', blight: true, n: 0, eyes: eyeMats(pt.eyes), teeth: toothMats(pt.teeth) }; makeMesh(K, 24); list.push(K); } KINDS.set(creature, list); return list; }
   for (const D of PARTS) { if (D.creature !== creature) continue; const m = Atlas.meta[D.tex]; if (!m || !Atlas.tex[m.atlas]) { list.push(null); continue; }
     const S = sculpt(D, D.role), K = { geo: S.geo, thick: S.thick, tris: S.tris, atlas: m.atlas, n: 0 }; makeMesh(K, 24); list.push(K); }
   KINDS.set(creature, list); return list;
 }
-export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); if (GEAR) for (const k in GEAR) GEAR[k].n = 0; for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) K.shellN = 0; }
+export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); if (EYES) EYES.n = 0; if (TEETH) TEETH.n = 0; if (GEAR) for (const k in GEAR) GEAR[k].n = 0; for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) K.shellN = 0; }
 export function bodies3dEnd() {
   if (GEAR) for (const k in GEAR) { const G = GEAR[k]; G.mesh.count = G.n; if (G.n) G.mesh.instanceMatrix.needsUpdate = true; }
+  if (TEETH) { TEETH.mesh.count = TEETH.n; if (TEETH.n) TEETH.mesh.instanceMatrix.needsUpdate = true; }
+  if (EYES) for (const m of EYES.parts) { m.count = EYES.n; if (EYES.n) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
   for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) { K.shellM.count = K.shellN; if (K.shellN) K.shellM.instanceMatrix.needsUpdate = true; }
   for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.line) K.line.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; if (K.blight) { K.iCap.needsUpdate = true; K.iFlesh.needsUpdate = true; K.iGlow.needsUpdate = true; } } }
 }
@@ -348,6 +398,10 @@ export class Body3D extends Puppet {
       const a = K.tint.array, o = K.n * 4; a[o] = t[0]; a[o + 1] = t[1]; a[o + 2] = t[2]; a[o + 3] = flash;
       if (K.blight) { const sc = this.strainC, o3 = K.n * 3; K.iCap.array.set(sc[0], o3); K.iFlesh.array.set(sc[1], o3); K.iGlow.array.set(sc[2], o3); }
       K.n++;
+      if (K.eyes && !this.dying) { const E = eyes(), g = this.strainC[2];
+        for (const M of K.eyes) { if (E.n >= E.cap) growEyes(); _eye.multiplyMatrices(_m, M); for (const m of E.parts) _eye.toArray(m.instanceMatrix.array, E.n * 16);
+          E.parts[0].instanceColor.array.set([Math.min(1, g[0] * 1.15 + flash), Math.min(1, g[1] * 1.15 + flash), Math.min(1, g[2] * 1.15 + flash)], E.n * 3); E.n++; } }
+      if (K.teeth && !this.dying) { const T = teeth(); for (const M of K.teeth) { if (T.n >= T.cap) growTeeth(); _eye.multiplyMatrices(_m, M); _eye.toArray(T.mesh.instanceMatrix.array, T.n * 16); T.n++; } }
     }
     if (alive && !this.dying && this.mods && this.mods.includes('Armored')) this.drawBark();
   }
