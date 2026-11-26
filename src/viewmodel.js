@@ -103,7 +103,7 @@ function gunGrade(color, glow) {
   const out = g.clone(); out.metal = color.metal; out.grain = color.grain; return out;
 }
 const ATK = {
-  lash: [[0, 0, 0, 0, 0, 0, 0], [0.13, -7, 2, 9, 62, -8, 12], [0.2, 9, -1, -5, -44, 6, -8], [0.3, 6, 0, -4, -30, 3, -4], [0.62, 0, 0, 0, 0, 0, 0]],   // back over the shoulder, then the snap forward
+  lash: [[0, 0, 0, 0, 0, 0, 0], [0.24, -6, 2, 10, 72, -10, 10], [0.29, -5, 2, 9, 66, -9, 9], [0.36, 7, -1, -5, -38, 6, -6], [0.46, 5, 0, -4, -26, 4, -3], [0.66, 0, 0, 0, 0, 0, 0]],   // up and back over the shoulder, a beat, then the stroke forward that stops dead
   smash: [[0, 0, 0, 0, 0, 0, 0], [0.13, -3, 0, 8, 48, 0, 4], [0.23, 5, 0, -7, -42, 0, -2], [0.34, 4, 0, -6, -36, 0, 0], [0.6, 0, 0, 0, 0, 0, 0]],
   throw: [[0, 0, 0, 0, 0, 0, 0], [0.08, -6, 2.5, 3, 22, -10, 6], [0.17, 9, -1.5, 1, -14, 8, -4], [0.42, 0, 0, 0, 0, 0, 0]],
   flick: [[0, 0, 0, 0, 0, 0, 0], [0.06, -1.5, 0, 1.5, 12, -12, -14], [0.13, 3, 0, -1, -16, 10, 16], [0.32, 0, 0, 0, 0, 0, 0]],
@@ -658,17 +658,19 @@ export class ViewModel {
   // The whip's thong. At rest it is the coil on the model. On a lash the coil is hidden and one tapering tube takes its
   // place: it starts in the coil's exact shape, unrolls from the handle outward with a wave running down it, snaps
   // straight at the crack, then falls and rolls back into the coil.
-  // A lash is a rope, not a stick: the thong is a chain of points (verlet), pinned to the top of the stock and held
-  // straight for its first few links by it, with gravity and a little drag. The arm takes the stock back over the shoulder
-  // (the thong uncoils and trails behind), then snaps it forward and stops: the loop that makes runs down the thong
-  // faster and faster to the cracker, which flicks over at the end - the crack. Then it falls and rolls back into the coil.
+  // The lash, the way a bullwhip is actually cracked. The arm takes the stock up and back over the shoulder and the
+  // thong uncoils and trails out straight behind. Then the stroke forward, stopped dead: that turns the thong over into a
+  // U-shaped loop by the handle, and the loop rolls out along it (the part it has passed lies straight out in front,
+  // the part still to come trails back above it), going faster and getting tighter as the thong thins, until it reaches
+  // the end and turns the cracker over: the crack. The thong hangs out in front for a moment, sags, and is drawn back
+  // into the coil. It is all worked out from the time, so every lash is the same clean shape.
   whipThong(t) {
     const pts = this.whipPts, coil = this.WhipCoil;
-    if (!pts || !coil) { if (this.thong) this.thong.visible = false; return; }
-    const END = 0.6, on = t >= 0 && t < END;
+    if (!pts || !coil) { if (this.thong) this.thong.visible = false; if (this.thongTip) this.thongTip.visible = false; return; }
+    const END = 0.66, on = t >= 0 && t < END;
     coil.visible = !on; if (this.thong) this.thong.visible = on; if (this.thongTip) this.thongTip.visible = on;
-    if (!on) { this.rope = null; return; }
-    const N = 30, SIDES = 7;
+    if (!on) { this.cracked = false; return; }
+    const N = 56, SIDES = 7;
     if (!this.thong) {
       const g = new THREE.BufferGeometry(), idx = [];
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * SIDES * 3), 3));
@@ -679,48 +681,50 @@ export class ViewModel {
     }
     { const M = []; coil.traverse((o) => { if (o.isMesh) M.push(o.material); }); if (M[0]) this.thong.material = M[0]; if (M[2]) this.thongTip.material = M[2]; }
     this.gun.updateMatrix();
-    // the coil, resampled evenly along its length, in the space the thong is drawn in
     if (!this.whipRest || this.whipRest.src !== pts) {
       const P = pts.map((q) => P3(V(q[0], q[1], q[2]))), cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + P[i].distanceTo(P[i - 1]));
       const tot = cum[cum.length - 1], out = [];
       for (let i = 0; i < N; i++) { const s = (i / (N - 1)) * tot; let k = 1; while (k < cum.length - 1 && cum[k] < s) k++; const f = (s - cum[k - 1]) / Math.max(1e-6, cum[k] - cum[k - 1]); out.push(P[k - 1].clone().lerp(P[k], f)); }
       this.whipRest = { src: pts, P: out, len: tot };
     }
-    const C = this.whipRest.P.map((p) => p.clone().applyMatrix4(this.gun.matrix));
-    // the stock's direction: from the fist up to the ferrule, where the thong is tied on
-    const base = P3(V(-2, 0, 4)).applyMatrix4(this.gun.matrix), tip0 = C[0], dir = tip0.clone().sub(base).normalize();
-    const L = 200, seg = L / (N - 1);
-    if (!this.rope || t < this.rope.t) {   // a new lash: the rope starts where the coil was
-      this.rope = { t, P: C.map((p) => p.clone()), O: C.map((p) => p.clone()), crack: 0 };
-    }
-    const R = this.rope, dt = Math.min(1 / 30, Math.max(0, (t - R.t) / Math.max(1, (this.atk && this.atk.spd) || 1))); R.t = t;
-    const P = R.P, O = R.O, G = new THREE.Vector3(0, -480, -90), sub = 3, h = dt / sub;
-    for (let s = 0; s < sub; s++) {
-      for (let i = 2; i < N; i++) { const v = P[i].clone().sub(O[i]).multiplyScalar(0.992); O[i].copy(P[i]); P[i].add(v).addScaledVector(G, h * h); }
-      // pinned: the first two links are the thong's root, held straight off the end of the stock
-      const a = tip0.clone().addScaledVector(dir, 0), b = tip0.clone().addScaledVector(dir, seg); O[0].copy(P[0]); O[1].copy(P[1]); P[0].copy(a); P[1].copy(b);
-      for (let it = 0; it < 10; it++) {
-        for (let i = 1; i < N; i++) { const d = P[i].clone().sub(P[i - 1]), l = d.length() || 1e-6, k = (l - seg) / l; if (i <= 1) P[i].addScaledVector(d, -k); else if (i === 2) P[i].addScaledVector(d, -k); else { P[i - 1].addScaledVector(d, k * 0.5); P[i].addScaledVector(d, -k * 0.5); } }
-        // a whip is stiffer near the handle: links there resist folding back on themselves
-        for (let i = 2; i < N; i++) { const st = 1 - i / N, d = P[i].clone().sub(P[i - 2]), l = d.length(), want = seg * (1.2 + 0.75 * st); if (l < want && l > 1e-6) { const k = (want - l) / l * 0.5 * st; P[i].addScaledVector(d, k); } }
-        P[0].copy(a); P[1].copy(b);
+    const C = this.whipRest.P.map((p) => p.clone().applyMatrix4(this.gun.matrix)), A = C[0];
+    // the frame it all happens in (the view's own: -z ahead, +y up): out ahead a little right and up, back over the shoulder
+    const L = 210, F = new THREE.Vector3(0.24, 0.17, -1).normalize(), Up = new THREE.Vector3(0, 1, 0), Nn = Up.clone().addScaledVector(F, -Up.dot(F)).normalize();
+    const BACK = new THREE.Vector3(0.12, 0.5, 0.86).normalize(), TOP = F.clone().negate().addScaledVector(Nn, 0.12).normalize();
+    const T0 = 0.29, T1 = 0.405;   // the stroke starts, the loop reaches the end
+    const Q = [];
+    if (t < T0) {
+      // up and back: the thong uncoils and trails out behind, sagging a little in the middle
+      const k = sstep(0.04, 0.22, t);
+      for (let i = 0; i < N; i++) { const u = i / (N - 1), p = A.clone().addScaledVector(BACK, u * L).addScaledVector(Up, -Math.sin(u * Math.PI) * 18 - u * u * 10); Q.push(C[i].clone().lerp(p, k)); }
+    } else if (t < T1 + 0.02) {
+      // the loop rolls out: s is how far it has got, faster and faster; r its radius, tightening toward the tip
+      const f = Math.min(1, (t - T0) / (T1 - T0)), s = L * Math.pow(f, 1.55), r = Math.max(1.2, 22 * Math.pow(1 - s / L, 0.8));
+      const top = TOP.clone().lerp(BACK, 1 - sstep(0, 0.35, f)).normalize(), base = A.clone().addScaledVector(F, s), ctr = base.clone().addScaledVector(Nn, r);
+      for (let i = 0; i < N; i++) {
+        const u = (i / (N - 1)) * L;
+        if (u <= s) Q.push(A.clone().addScaledVector(F, u).addScaledVector(Nn, -Math.sin((u / Math.max(s, 1)) * Math.PI) * 3 * (1 - f)));
+        else if (u <= s + Math.PI * r) { const th = (u - s) / r; Q.push(ctr.clone().addScaledVector(F, Math.sin(th) * r).addScaledVector(Nn, -Math.cos(th) * r)); }
+        else Q.push(ctr.clone().addScaledVector(Nn, r).addScaledVector(top, u - s - Math.PI * r));
       }
+      if (t >= T1 && !this.cracked) { this.cracked = true; this.crackT = 0; if (this.game && this.game.audio) { this.game.audio.play('S_Crit', 0.7, 1.9); this.game.audio.play('S_HitWall', 0.5, 2.2); } }
+    } else {
+      // out straight in front for a moment, then it sags and is drawn back into the coil
+      const g = sstep(T1, 0.56, t), back = sstep(0.5, END, t);
+      for (let i = 0; i < N; i++) { const u = i / (N - 1), wave = Math.sin(u * 9 - (t - T1) * 40) * 4 * u * (1 - g); const p = A.clone().addScaledVector(F, u * L * (1 - 0.12 * g)).addScaledVector(Nn, -g * 70 * u * u + wave); Q.push(p.lerp(C[i], back)); }
     }
-    // the crack: when the cracker moves fastest it flashes, and the tip flicks
-    const sp = dt > 0 ? P[N - 1].distanceTo(O[N - 1]) / Math.max(1e-4, h) : 0; if (sp > 2600 && t > 0.15 && t < 0.4 && R.crack <= 0) { R.crack = 1; if (this.mslash) { /* the slash sprite is the melee's; a crack is a puff at the tip */ } }
-    R.crack = Math.max(0, R.crack - dt * 6);
-    // the end: it drops and rolls back into the coil
-    const back = sstep(0.42, END, t), Q = P.map((p, i) => p.clone().lerp(C[i], back));
-    const pos = this.thong.geometry.attributes.position, T = new THREE.Vector3(), Nn = new THREE.Vector3(), B = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    // the cracker turns over at the end of the loop
+    this.crackT = this.cracked ? (this.crackT || 0) + 0.016 : 0;
+    const pos = this.thong.geometry.attributes.position, Tt = new THREE.Vector3(), Na = new THREE.Vector3(), Bb = new THREE.Vector3();
     for (let i = 0; i < N; i++) {
       const u = i / (N - 1), r = 1.05 * (1 - u) + 0.3;
-      T.copy(Q[Math.min(N - 1, i + 1)]).sub(Q[Math.max(0, i - 1)]).normalize();
-      Nn.crossVectors(T, Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : up).normalize(); B.crossVectors(T, Nn);
-      for (let j = 0; j < SIDES; j++) { const a = (j / SIDES) * Math.PI * 2, c = Math.cos(a) * r, s2 = Math.sin(a) * r; pos.setXYZ(i * SIDES + j, Q[i].x + Nn.x * c + B.x * s2, Q[i].y + Nn.y * c + B.y * s2, Q[i].z + Nn.z * c + B.z * s2); }
+      Tt.copy(Q[Math.min(N - 1, i + 1)]).sub(Q[Math.max(0, i - 1)]); if (Tt.lengthSq() < 1e-8) Tt.set(0, 0, -1); Tt.normalize();
+      Na.crossVectors(Tt, Math.abs(Tt.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : Up).normalize(); Bb.crossVectors(Tt, Na);
+      for (let j = 0; j < SIDES; j++) { const a = (j / SIDES) * Math.PI * 2, c = Math.cos(a) * r, s2 = Math.sin(a) * r; pos.setXYZ(i * SIDES + j, Q[i].x + Na.x * c + Bb.x * s2, Q[i].y + Na.y * c + Bb.y * s2, Q[i].z + Na.z * c + Bb.z * s2); }
     }
     pos.needsUpdate = true; this.thong.geometry.computeVertexNormals(); this.thong.geometry.computeBoundingSphere();
-    this.thongTip.position.copy(Q[N - 1]); this.thongTip.scale.setScalar(1.1 + R.crack * 2.2);
-    if (R.crack > 0.95 && this.game && this.game.audio) this.game.audio.play('S_Crit', 0.5, 1.6);
+    const fl = this.cracked ? Math.max(0, 1 - (t - T1) / 0.06) : 0;
+    this.thongTip.position.copy(Q[N - 1]); this.thongTip.scale.setScalar(1.1 + fl * 3);
   }
   fire(kick, continuous) {
     const K = Math.min(3, Math.max(0.05, kick));

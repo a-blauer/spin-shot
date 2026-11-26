@@ -95,10 +95,10 @@
   Rebuild the sculpt after editing it: node tools/sculpt_king.mjs (about 40s).
 - (22) Cowboy/white hat: one clothRing felt surface (brim curl, crown crease, front pinches). Villagers: animateCharacter
   opts.rest (arms at the sides, gun hidden). Mushroom doors sit on stemR's skin (the stem used to poke through the top).
-  Bullwhip lash: verlet rope pinned to the stock (vm.whipThong); the thongTip ball is hidden between lashes (it used to
+  Bullwhip lash: kinematic, not physics (vm.whipThong): raise back (thong trails along BACK), stroke at 0.29, a U loop rolls
+  out to the tip by 0.405 (the crack), hangs, sags, back into the coil by 0.66; ATK.lash pose matches those times; the thongTip ball is hidden between lashes (it used to
   float under the whip). Circus: SH.beastWagon replaces box cage + slab.
 - Old Ironhide: sculpted at run time by src/ironhide.js (src/sdf.js = the runtime SDF kit, same as tools/sculpt_king.mjs);
   Body3D uses it when creature === 'Ironhide' (this.custom). New mechanic ('front'): 4 plates; armoured takes 20-100% by
   plates left; a missed charge winds it 4s; damage while winded cracks a plate per 6% max HP.
-- Light show (lightshow.js): analyser on audio.musicBus -> kick/level/highs; 6 laser emitters x 7 beams, 4 moving heads,
-  strobes + a light screen wash; looks fan/scan/cross/tunnel/chase change every 16 beats. Settings: Light show, Strobe.
+- Light show: removed at the user's request (lightshow.js deleted, settings sliders gone).
