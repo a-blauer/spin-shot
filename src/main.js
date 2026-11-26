@@ -9,7 +9,7 @@ import { Net } from './net.js';
 import { makeVillageUI } from './village_ui.js';
 import { makeCraft } from './craft.js';
 import * as THREE from 'three';
-import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
+import { loadAtlas, loadCreaturePack, Atlas, G as UNI } from './render.js';
 import { MAPS } from './maps.js';
 import { setParts } from './puppet.js';
 import { loadBlight, loadBlightBoss } from './blight.js';
@@ -22,6 +22,7 @@ import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RA
 
 THREE.ColorManagement.enabled = false;
 const params = new URLSearchParams(location.search);
+if (params.has('grade')) { const v = params.get('grade').split(',').map(Number); UNI.grade.value.set(...[0, 1, 2, 3].map((i) => (isFinite(v[i]) ? v[i] : UNI.grade.value.getComponent(i)))); }   // test: ?grade=air,sat,knee,on
 const TEST = params.has('test');
 const URLMAP = params.has('map') ? +params.get('map') : -1;   // ?map=1 builds that map straight away (tests)
 Meta.load(); Meta.setUnlockAll(TEST);
@@ -34,7 +35,7 @@ const title = document.getElementById('title');
 const loading = document.getElementById('loading');
 const status = (t) => { if (loading) loading.textContent = t; };
 
-const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, powerPreference: 'high-performance', reversedDepthBuffer: true });   // float depth with a reversed range: far surfaces keep their precision, so layered map pieces stop fighting
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, TEST ? 1 : 1.5));
 const hud = new Hud(hudCanvas);

@@ -112,7 +112,7 @@ export function blightOutlineMaterial() {
 export function blightMaterial() {
   if (MAT) return MAT;
   MAT = new THREE.ShaderMaterial({
-    uniforms: { sunDir: UNI.sunDir, litTint: UNI.litTint, shadowTint: UNI.shadowTint, fogColor: UNI.fogColor, fogParams: UNI.fogParams, spriteTint: UNI.spriteTint, bStyle: BLIGHT_STYLE },
+    uniforms: { sunDir: UNI.sunDir, litTint: UNI.litTint, shadowTint: UNI.shadowTint, fogColor: UNI.fogColor, fogParams: UNI.fogParams, spriteTint: UNI.spriteTint, bStyle: BLIGHT_STYLE, uGrade: UNI.grade },
     vertexShader: /* glsl */`
       uniform vec4 bStyle; attribute vec3 color; attribute vec3 aW; attribute float aAo; attribute vec4 iTint; attribute vec3 iCap; attribute vec3 iFlesh; attribute vec3 iGlow;
       varying vec3 vN; varying vec3 vW; varying vec3 vBase; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
@@ -127,7 +127,7 @@ export function blightMaterial() {
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */`
-      uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 fogColor; uniform vec4 fogParams; uniform vec3 spriteTint; uniform vec4 bStyle;
+      uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 fogColor; uniform vec4 fogParams; uniform vec3 spriteTint; uniform vec4 bStyle; uniform vec4 uGrade;
       varying vec3 vN; varying vec3 vW; varying vec3 vBase; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
       void main() {
         float dist = distance(vW, cameraPosition);
@@ -137,6 +137,8 @@ export function blightMaterial() {
         if (bStyle.y > 0.5) { vec3 fn = normalize(cross(dFdx(vW), dFdy(vW))); n = dot(fn, n) < 0.0 ? -fn : fn; }   // faceted
         vec3 base = vBase * vAo;
         if (bStyle.x > 0.0) { float l = dot(base, vec3(0.3, 0.55, 0.15)); base = mix(base, max(mix(vec3(l), base, 1.3) * 1.08, 0.0), bStyle.x); }   // richer, a touch lighter
+        // the room's air in them too, at half the strength the walls get: they belong to the room but still stand out of it
+        if (uGrade.w > 0.0) { vec3 k = fogColor / max(1e-3, max(fogColor.r, max(fogColor.g, fogColor.b))); const vec3 W3 = vec3(0.299, 0.587, 0.114); base = mix(base, k * (dot(base, W3) / max(dot(k, W3), 1e-3)), uGrade.x * 0.5); }
         float ndl = dot(n, sunDir), band = smoothstep(-0.03, 0.07, ndl);
         vec3 c = mix(base * shadowTint.rgb, base * litTint.rgb, band);
         if (bStyle.w > 0.0) c *= mix(1.0, mix(0.78, 1.0, smoothstep(-0.45, -0.35, ndl)), bStyle.w * (1.0 - band));   // a deeper step in the shadow

@@ -63,7 +63,7 @@ export function BuildGroundAndBounds(M, GM) {
 				const deep = 320. - t * 50.;
 				const yaw = FMath.FRandRange(-14., 14.);
 				Box(V(cx, cy, z + h * 0.5), alongY ? V(deep, w, h) : V(w, deep, h), CliffCols[(i + t + s2) % 3], true, false, yaw);
-				Box(V(cx, cy, z + h - 6.), alongY ? V(deep + 12., w + 12., 12.) : V(w + 12., deep + 12., 12.), 0x7A3A22, false, false, yaw);
+				Box(V(cx, cy, z + h - 5.), alongY ? V(deep + 12., w + 12., 12.) : V(w + 12., deep + 12., 12.), 0x7A3A22, false, false, yaw);
 				z += h;
 			}
 			if ((i + s2) % 5 == 0)

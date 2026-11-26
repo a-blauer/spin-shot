@@ -102,9 +102,9 @@ export function mapKit(M) {
     for (const s of [-1, 1]) Pyramid(alongX ? V(cx + s * (w / 2 - 4), cy, h + rise / 2) : V(cx, cy + s * (d / 2 - 4), h + rise / 2), alongX ? V(10, span, rise) : V(span, 10, rise), wall);   // gable ends
     const door = o.door === undefined ? -90 : o.door, n = [Math.round(Math.cos(door * Math.PI / 180)), Math.round(Math.sin(door * Math.PI / 180))];
     const fx = n[0] ? (n[0] > 0 ? x1 : x0) : cx, fy = n[1] ? (n[1] > 0 ? y1 : y0) : cy, t = [-n[1], n[0]];
-    Box(V(fx + n[0] * 3, fy + n[1] * 3, 105), n[0] ? V(6, 100, 210) : V(100, 6, 210), o.doorCol || 0x2a1e18, false, false);
+    Box(V(fx + n[0] * 4, fy + n[1] * 4, 105), n[0] ? V(6, 100, 210) : V(100, 6, 210), o.doorCol || 0x2a1e18, false, false);
     const wo = (n[0] ? d : w) * 0.3;
-    for (const s of [-1, 1]) { Glow(V(fx + n[0] * 3 + t[0] * s * wo, fy + n[1] * 3 + t[1] * s * wo, 170), n[0] ? V(6, 80, 80) : V(80, 6, 80), s > 0 || !o.dark ? (o.glow || 0xFFB45A) : 0x2a2420); Box(V(fx + n[0] * 5 + t[0] * s * wo, fy + n[1] * 5 + t[1] * s * wo, 170), n[0] ? V(4, 8, 84) : V(8, 4, 84), 0x2a1e18, false, false); }
+    for (const s of [-1, 1]) { Glow(V(fx + n[0] * 4 + t[0] * s * wo, fy + n[1] * 4 + t[1] * s * wo, 170), n[0] ? V(6, 80, 80) : V(80, 6, 80), s > 0 || !o.dark ? (o.glow || 0xFFB45A) : 0x2a2420); Box(V(fx + n[0] * 6 + t[0] * s * wo, fy + n[1] * 6 + t[1] * s * wo, 170), n[0] ? V(4, 8, 84) : V(8, 4, 84), 0x2a1e18, false, false); }
     if (o.chimney !== false) { const px = x0 + w * 0.22, py = y0 + d * 0.3; Box(V(px, py, h + rise * 0.7 + 60), V(60, 60, 200), o.stone || 0x5a5a62, true, false); if (o.smoke !== false) Lamp(V(fx + n[0] * 80, fy + n[1] * 80, 200), rgb(o.glow || 0xFFB45A), 8, 700, false); }
   };
   // a drift or a mound: a flattened ball, no collision

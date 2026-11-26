@@ -82,7 +82,7 @@ export function props(K, Q) {
   P.container = (x, y, along, col, z = 0) => {
     const [w, d] = xy(along, 620, 250); solid(x, y, z, w, d, 250, col, z === 0);
     for (let p = -280; p <= 280; p += 70) for (const e of [-1, 1]) deco(x + (along ? p : e * 126), y + (along ? e * 126 : p), z + 14, along ? 14 : 6, along ? 6 : 14, 222, 0x202428);
-    deco(x, y, z, w + 8, d + 8, 14, 0x202428); deco(x, y, z + 236, w + 8, d + 8, 14, 0x202428);
+    deco(x, y, z, w + 8, d + 8, 14, 0x202428); deco(x, y, z + 238, w + 8, d + 8, 14, 0x202428);
     if (z + 250 > 400) tall(x, y, 380);
   };
   P.junk = (x, y, s = 320) => {

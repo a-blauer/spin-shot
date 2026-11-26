@@ -121,7 +121,7 @@ export function buildVillage(M, cx, cy) {
       Cyl(V(-2090, -1260, 120), 6, 240, VC.woodD, false, false); Glow(V(-2090, -1260, 250), V(20, 20, 24), 0xffd27a, 2); Lamp(V(-2090, -1260, 260), { r: 1, g: 0.8, b: 0.5 }, 2, 600, false);
       // the washing line, from the cottage corner to a post
       Cyl(V(-3500, -2300, 120), 12, 240, VC.woodD, true, false); Cyl(V(-3500, -1000, 120), 12, 240, VC.woodD, true, false); Box(V(-3500, -1650, 226), V(2, 1300, 2), 0xd8d0c0, false, false);
-      for (let i = 0; i < 6; i++) { const w = rr(70, 110), h = rr(60, 90); Box(V(-3500, -2150 + i * 200, 227 - h / 2), V(4, w, h), [0xc8392e, 0xf4ecd6, 0x3a7ac8, 0xf6d04a, 0x5a9a3a, 0xa070d0][i], false, false); }   // pegged on the line
+      for (let i = 0; i < 6; i++) { const w = rr(70, 110), h = rr(60, 90); Box(V(-3500, -2150 + i * 200, 226.5 - h / 2), V(4, w, h), [0xc8392e, 0xf4ecd6, 0x3a7ac8, 0xf6d04a, 0x5a9a3a, 0xa070d0][i], false, false); }   // pegged on the line
       // the garden: rows of cabbages and pumpkins in dark soil, a fence round it
       Box(V(-3400, -3000 + 700, 2), V(900, 500, 3), 0x5a3e2a, false, false);
       for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) { const px = -3780 + c * 150, py = -2460 + r * 140; if (r === 1) S(pumpkin(rr(32, 46)), px, py, 0, rr(0, 360)); else S(cabbage(rr(22, 30)), px, py, 0, rr(0, 360)); }

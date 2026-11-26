@@ -124,7 +124,7 @@ export const ROOMS_A = [
   mk(TH('Bone Orchard', 0x1a1f1a, 0x242a22, 0x2a2e2c, 0x6a6e70, 0x9ad8a0, [0.6, 0.9, 0.7], 0x121a16, [0.46, 0.56, 0.5]), [5000, 4800, 1500], { panel: 'arch', hang: 'vine', corner: 'rubble', c1: 0x4a4e50, c2: 0x1a1e1c, n: 26 },
     ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, Ball, Pyramid, slabs, tile, plat, solid, deco, hit, tall, L, candle, P }) => {
       const stone = 0x5a5e60, earth = 0x2a241c, path = 0x3a3a34;
-      for (let i = 0; i < 90; i++) { const x = ((i * 733) % (hx * 2 - 400)) - hx + 200, y = ((i * 419) % (hy * 2 - 400)) - hy + 200, w = 240 + (i % 5) * 90; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6, i % 3 ? T.floor2 : earth); }
+      for (let i = 0; i < 90; i++) { const x = ((i * 733) % (hx * 2 - 400)) - hx + 200, y = ((i * 419) % (hy * 2 - 400)) - hy + 200, w = 240 + (i % 5) * 90; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6 + i * 0.02, i % 3 ? T.floor2 : earth); }
       tile(-240, -hy, 240, hy, 2.4, path); tile(-hx + 300, -200, hx - 300, 200, 2.4, path);
       // the mausoleum
       plat(0, 0, 900, 1100, 40, stone, T.floor2);

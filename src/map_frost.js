@@ -90,7 +90,7 @@ export function buildFrost(M) {
       Cyl(V(x, y, 580), 420, 300, 0x6a4a36, true, false); for (const z of [470, 580, 690]) Cyl(V(x, y, z), 432, 12, 0x33363c, false, false); ConeShape(V(x, y, 790), V(460, 460, 120), 0x2e2a30, false); ConeShape(V(x, y, 820), V(330, 330, 90), SNOW, false);
       BoxRot(V(x + 250, y, 420), V(240, 16, 16), 0x33363c, R(-30, 0, 0), false); M.Blocker(V(x, y, 220), V(300, 300, 440)); GM.NavBlockBox({ min: V(x - 150, y - 150, 0), max: V(x + 150, y + 150, 300) }, 1); }
     { const x = -4300, y = -1100; Box(V(x, y, 80), V(700, 300, 160), TIMBER, true, true); for (let i = 0; i < 7; i++) Pyramid(V(x + rr(-280, 280), y + rr(-100, 100), 180 + rr(0, 30)), V(rr(140, 220), rr(140, 220), rr(60, 110)), 0x101014, R(0, rr(0, 90), 0)); Box(V(x, y + 154, 100), V(700, 8, 200), TIMBER_D, false, false); Box(V(x - 200, y - 90, 174), V(260, 110, 12), SNOW, false, false); }
-    for (const [x, y] of [[-5600, -700], [-3500, 250]]) { Box(V(x, y, 300), V(20, 20, 600), 0x33363c, true, false); Box(V(x + 70, y, 560), V(160, 8, 36), 0xc8322a, false, false); Box(V(x + 136, y, 560), V(28, 9, 36), 0xf2f4f6, false, false); Glow(V(x, y - 14, 500), V(26, 8, 26), 0xFF3A2A); Lamp(V(x, y - 40, 500), LC(1, 0.25, 0.2), 8, 600, false); Box(V(x, y, 606), V(30, 30, 12), SNOW, false, false); }
+    for (const [x, y] of [[-5600, -700], [-3500, 250]]) { Box(V(x, y, 300), V(20, 20, 600), 0x33363c, true, false); Box(V(x + 70, y, 560), V(160, 8, 36), 0xc8322a, false, false); Box(V(x + 135, y, 560), V(28, 9, 34), 0xf2f4f6, false, false); Glow(V(x, y - 14, 500), V(26, 8, 26), 0xFF3A2A); Lamp(V(x, y - 40, 500), LC(1, 0.25, 0.2), 8, 600, false); Box(V(x, y, 606), V(30, 30, 12), SNOW, false, false); }
     for (const [x, y] of [[-6600, 400], [-3350, 900], [-5000, -1150], [-3500, -1000], [-6700, -200]]) StreetLamp(V(x, y, 0), x < -5000 ? 0 : 180);
     for (const [x, y, w, d] of [[-6700, 1250, 500, 360], [-3400, 1300, 460, 300], [-6750, -700, 380, 520], [-5300, -1380, 700, 220], [-3900, -720, 300, 260]]) drift(x, y, w, d);
     Crate(V(-6250, 560, 0), 110); Crate(V(-6240, 430, 0), 90); Barrel(V(-3850, 1150, 0), 0x4a3a30); Barrel(V(-3960, 1180, 0), 0x3a4a5a);
@@ -224,7 +224,7 @@ export function buildFrost(M) {
     });
     // down the middle of the street: woodpiles, the wash line, the cookhouse bell
     for (const [x, n] of [[-6300, 5], [-4000, 4]]) { for (let k = 0; k < 3; k++) for (let j = 0; j < n - k; j++) Cyl(V(x + (j - (n - 1 - k) / 2) * 62, 3075, 30 + k * 54), 60, 300, k % 2 ? 0x6a4a2e : 0x5a3e28, false, false, R(0, 0, 90)); Box(V(x, 3075, 172), V(n * 62 + 30, 320, 12), SNOW, false, false); M.Blocker(V(x, 3075, 90), V(n * 62, 300, 180)); GM.NavBlockBox({ min: V(x - n * 31, 2925, 0), max: V(x + n * 31, 3225, 180) }, 1); }
-    for (const x of [-5500, -4700]) Box(V(x, 3075, 130), V(14, 14, 260), TIMBER_D, true, false); Box(V(-5100, 3075, 250), V(800, 4, 4), 0x1c1a1c, false, false);
+    for (const x of [-5500, -4700]) Box(V(x, 3075, 130), V(14, 14, 260), TIMBER_D, true, false); Box(V(-5100, 3075, 250), V(800, 3, 3), 0x1c1a1c, false, false);
     for (let i = 0; i < 6; i++) Box(V(-5420 + i * 128, 3075, 200), V(90, 4, 90 + (i % 3) * 20), [0xc8322a, 0xdfe8ee, 0x3a4a6a, 0xb8a888][i % 4], false, false);
     { const x = -5150, y = 2700; Box(V(x, y, 160), V(16, 16, 320), TIMBER_D, true, false); Box(V(x + 40, y, 316), V(100, 10, 10), TIMBER_D, false, false); ConeShape(V(x + 80, y, 283), V(60, 60, 60), 0xb9974a, false); }
     // an outhouse at the end of each alley, a sled, a chopping block

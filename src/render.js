@@ -13,7 +13,22 @@ export const G = {
   fogParams: { value: new THREE.Vector4(700, 0.0003, 0, 0.9) },
   skyTop: { value: new THREE.Color(0x10303a) },
   spriteTint: { value: new THREE.Color(1, 1, 1) },
+  // the grade every built surface goes through, so a room reads as one palette: x how much of the room's air
+  // (the fog's hue) is in everything, y the most saturated a painted surface may be, z the knee above which
+  // whites are pressed down (nothing painted outshines the lights), w on/off
+  grade: { value: new THREE.Vector4(0.14, 0.62, 0.72, 1) },
 };
+export const GRADE_GLSL = /* glsl */`
+  uniform vec4 uGrade;
+  vec3 gradeCol(vec3 c, vec3 air) {
+    if (uGrade.w <= 0.0) return c;
+    const vec3 W = vec3(0.299, 0.587, 0.114);
+    float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), s = mx > 1e-4 ? (mx - mn) / mx : 0.0;
+    if (s > uGrade.y) c = mix(vec3(dot(c, W)), c, (uGrade.y + (s - uGrade.y) * 0.35) / s);
+    mx = max(c.r, max(c.g, c.b)); if (mx > uGrade.z) c *= (uGrade.z + (mx - uGrade.z) * 0.4) / mx;
+    vec3 k = air / max(1e-3, max(air.r, max(air.g, air.b)));
+    return mix(c, k * (dot(c, W) / max(dot(k, W), 1e-3)), uGrade.x);
+  }`;
 
 export const hex = (h) => new THREE.Color().setHex(h, THREE.NoColorSpace);
 export const rgb = (r, g, b) => new THREE.Color(r, g, b);
@@ -33,7 +48,7 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false, do
     side: double ? THREE.DoubleSide : THREE.FrontSide, vertexColors: vcol,
     uniforms: {
       sunDir: G.sunDir, litTint: G.litTint, shadowTint: G.shadowTint, fogColor: G.fogColor, fogParams: G.fogParams,
-      uColor: { value: hex(color) }, uGlow: { value: glow },
+      uColor: { value: hex(color) }, uGlow: { value: glow }, uGrade: G.grade,
     },
     vertexShader: /* glsl */`
       varying vec3 vN; varying vec3 vW; varying vec3 vCol;
@@ -68,8 +83,10 @@ export function toonMaterial({ color = 0xffffff, glow = 0, instanced = false, do
       uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 uColor; uniform float uGlow;
       varying vec3 vN; varying vec3 vW; varying vec3 vCol;
       ${FOG}
+      ${GRADE_GLSL}
       void main() {
         vec3 col = uColor * vCol;
+        if (uGlow <= 0.0) col = gradeCol(col, fogColor);   // lights keep their colour; everything painted is graded
         vec3 n = normalize(vN);
         if (!gl_FrontFacing) n = -n;   // two-sided cloth, and sculpted shapes lit the same whichever way they are wound
         float ndl = dot(n, sunDir);
@@ -101,7 +118,8 @@ function spriteShaders(kind) {
   const common = /* glsl */`
     uniform sampler2D map; uniform vec3 spriteTint;
     varying vec2 vUv; varying vec4 vTint; varying vec4 vFx; varying vec3 vW;
-    ${FOG}`;
+    ${FOG}
+    ${GRADE_GLSL}`;
   let frag;
   if (kind === 'sprite') {
     frag = common + /* glsl */`
@@ -110,6 +128,7 @@ function spriteShaders(kind) {
         float a = t.a * vTint.a;
         if (a < 0.45) discard;
         vec3 c = t.rgb * vTint.rgb * spriteTint;
+        if (vFx.z <= 0.0) c = gradeCol(c, fogColor);   // foliage and decals take the room's grade like everything built
         c = mix(c, vec3(1.0, 0.98, 0.92), clamp(vFx.x, 0.0, 1.0));
         float f = fogAmount(vW) * (1.0 - vFx.y);
         gl_FragColor = vec4(mix(c, fogColor, f), 1.0);
@@ -140,7 +159,7 @@ function spriteShaders(kind) {
 export function spriteMaterial(kind, texture) {
   const s = spriteShaders(kind);
   const m = new THREE.ShaderMaterial({
-    uniforms: { map: { value: texture }, spriteTint: G.spriteTint, fogColor: G.fogColor, fogParams: G.fogParams },
+    uniforms: { map: { value: texture }, spriteTint: G.spriteTint, fogColor: G.fogColor, fogParams: G.fogParams, uGrade: G.grade },
     vertexShader: s.vertex,
     fragmentShader: s.frag,
     side: THREE.DoubleSide,

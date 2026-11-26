@@ -239,21 +239,29 @@ export const SIG2 = {
   },
   // ------------------------------------------------------------------ ropes, wires and traps for the other gun
   Lariat: {
-    name: 'Hogtie', short: 'Ropes up to four enemies together. Damage to one is felt by the others at half.',
-    text: 'It ropes what it hits, slowing it, and up to four can be on the rope at once. Whatever you do to one of them, with any weapon, the others feel half of. Roping a new one renews the rope on all.',
-    play: 'A set-up, not a killer. Rope the four worst things in the room, then put your biggest shot into any one of them.', fav: ['Extended Mag', 'Quick Hands', 'Cryo Cell'], aff: { ReloadSpeed: 1.5 }, proc: { Freeze: 2 },
+    name: 'Hogtie', short: 'Throws a loop that closes on up to four enemies, drags them together and slows them. Damage to one is felt by the others at half.',
+    text: 'The loop opens where it lands and closes on up to four enemies inside it: each takes the hit, is dragged in toward the middle and slowed. While they are on the rope, whatever you do to one of them, with any weapon, the others feel half of. A new throw renews the rope on all.',
+    play: 'Throw it into the thick of a pack, then hit the one in the middle with anything that splashes.', fav: ['Extended Mag', 'Quick Hands', 'Cryo Cell'], aff: { ReloadSpeed: 1.5 }, proc: { Freeze: 2 },
     snd: ['S_Swing', 0.7, 1.1],
     fire(p, S, W, g, C, F) {
-      const G = p.game, wall = G.phys.raycast(F.eye, F.dir, W.range); let best = null, bt = wall ? wall.distance : W.range;
-      for (const E of G.enemies) { if (E.dead || E.burrowed) continue; const t = G.rayEnemy(F.eye, F.dir, bt, E, 28); if (t !== null && t < bt) { bt = t; best = E; } }
-      const at = F.eye.clone().addScaledVector(F.dir, bt); G.fx.tracer(F.muzzle, at, [0.78, 0.66, 0.42], 3, 0.18);
-      if (!best) return;
-      p.dealDamage(best, F.damage, at, F.dir, false, 1, false);
-      if (best.dead) return;
-      const H = p.sgHerd = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > G.time);
-      if (!H.includes(best)) H.push(best); while (H.length > 4) H.shift().sgRope = 0;
-      for (const E of H) { E.sgRope = G.time + 8; E.applySlow(E === best ? W.slow : 0.25, 8); }
-      if (H.length > 1) say(p, best.pos, `ROPED  ${H.length}`, [0.9, 0.78, 0.5]);
+      const G = p.game, wall = G.phys.raycast(F.eye, F.dir, W.range), col = [0.86, 0.72, 0.46]; let best = null, bt = wall ? wall.distance : W.range;
+      // a loop, not a bullet: anything the throw passes close to is the target
+      for (const E of G.enemies) { if (E.dead || E.burrowed || E.emerging) continue; const t = G.rayEnemy(F.eye, F.dir, bt, E, 70); if (t !== null && t < bt) { bt = t; best = E; } }
+      const at = best ? best.pos.clone() : F.eye.clone().addScaledVector(F.dir, bt), R = 200, foot = best ? best.pos.y - (best.half || 60) : at.y;
+      G.fx.tracer(F.muzzle, at, col, 3, 0.22); G.fx.ring(V3(at.x, foot + 4, at.z), R, col, 0.35);
+      const eyeAt = V3(at.x, Math.max(at.y, foot + 60), at.z);
+      const caught = near(G, at, R + 40).filter((E) => !E.burrowed && (E === best || G.phys.lineOfSight(eyeAt, E.pos))).sort((a, b) => (a === best ? -1 : b === best ? 1 : a.pos.distanceTo(at) - b.pos.distanceTo(at))).slice(0, 4);
+      if (!caught.length) return;
+      // the throw itself lands on each of them in full (not shared: they are not on the rope yet)
+      for (const E of caught) { p.dealDamage(E, F.damage, E.pos, F.dir, false, 1, false); if (E !== best && !E.dead) G.fx.tracer(at, E.pos, col, 2, 0.3); }
+      const live = caught.filter((E) => !E.dead); if (!live.length) return;
+      const H = p.sgHerd = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > G.time && !live.includes(E));
+      H.push(...live); while (H.length > 4) H.shift().sgRope = 0;
+      for (const E of H) { E.sgRope = G.time + 8; E.applySlow(live.includes(E) ? W.slow : 0.25, live.includes(E) ? 6 : 8); }
+      // and the loop pulls tight: they are dragged in toward the middle of it
+      for (const E of live) { const d = V3(at.x - E.pos.x, 0, at.z - E.pos.z), L = d.length(); if (L > 40) E.applyKnock(d.multiplyScalar(Math.min(420, 160 + L * 1.6) / L).add(V3(0, 140, 0))); }
+      p.game.audio.playAt('S_Slide', at, 0.5, 0.7);
+      say(p, at, live.length > 1 ? `ROPED  ${live.length}` : 'ROPED', [0.9, 0.78, 0.5]);
     },
     hud: (p) => { const n = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > T_(p)).length; return n ? [`ON THE ROPE  ${n}/4`, '#d8b878'] : null; },
   },

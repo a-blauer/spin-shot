@@ -114,13 +114,13 @@ export function buildDescent(M) {
         roofSpots(46, (x, y) => { const L = rr(120, 460); ConeShape(V(x, y, H - L / 2), V(rr(40, 90), rr(40, 90), L), rnd() < 0.3 ? deep : ice, false, R(180, 0, 0)); });
         for (const sx of [-1, 1]) { for (let y = -hy + 300; y < hy - 200; y += 380) Ball(V(sx * (hx - 60), y + rr(-80, 80), 10), V(rr(300, 520), rr(420, 640), rr(120, 260)), snow); for (const y of ys) { for (let c = 0; c < 4; c++) { const h = rr(260, 620); Pyramid(V(sx * (hx - rr(60, 220)), y + rr(-160, 160), h / 2), V(rr(70, 130), rr(70, 130), h), c % 2 ? ice : deep, R(rr(-8, 8), rr(0, 90), rr(-8, 8))); } Glow(V(sx * (hx - 8), y, 520), V(6, 120, 220), 0xdff6ff, 0); } }
         corners((x, y) => { for (let i = 0; i < 6; i++) { const h = rr(300, 760); Pyramid(V(x + rr(-240, 240), y + rr(-240, 240), h / 2), V(rr(110, 200), rr(110, 200), h), i % 2 ? ice : deep, R(rr(-10, 10), rr(0, 90), rr(-10, 10))); } Ball(V(x, y, 0), V(760, 760, 200), snow); });
-        for (let i = 0; i < 26; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 600, hy - 600), w = rr(160, 420); Floor(V2(x - w, y - w * 0.6), V2(x + w, y + w * 0.6), 2.4, i % 3 ? 0x9fc4dc : snow); }
+        for (let i = 0; i < 26; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 600, hy - 600), w = rr(160, 420); Floor(V2(x - w, y - w * 0.6), V2(x + w, y + w * 0.6), 2.4 + i * 0.04, i % 3 ? 0x9fc4dc : snow); }
         break; }
       case 3: {   // MIRE CELLAR: hanging roots, glowing fungus, pools, barrels, moss
-        const root = 0x3a2a1c, moss = 0x3f6a2c, cap = 0x8a3a2a, slime = 0x7aff5a;
+        const root = 0x3a2a1c, moss = 0x33542a, cap = 0x8a3a2a, slime = 0x7aff5a;
         roofSpots(60, (x, y) => { const L = drop(140, 620); hang(x, y, L, root, rr(8, 22)); if (rnd() < 0.45) Glow(V(x, y, H - L - 12), V(26, 26, 26), slime, 2); });
-        for (let i = 0; i < 16; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 800, hy - 800), d = rr(260, 620); Cyl(V(x, y, 1.5), d, 3, 0x1e4a1e, false, false); Glow(V(x, y, 3.5), V(d * 0.18, d * 0.14, 2), slime, 1); }
-        for (let i = 0; i < 34; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 500, hy - 500), w = rr(140, 380); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 2.2, moss); }
+        for (let i = 0; i < 16; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 800, hy - 800), d = rr(260, 620); Cyl(V(x, y, 1.5), d, 3, 0x1e4a1e, false, false); Glow(V(x, y, 3.5), V(d * 0.16, d * 0.12, 2), 0x4ab83a, 1); }   // the pool's own faint light, not a lamp on the floor
+        for (let i = 0; i < 34; i++) { const x = rr(-hx + 200, hx - 200), y = rr(-hy + 500, hy - 500), w = rr(140, 380); Floor(V2(x - w, y - w * 0.7), V2(x + w, y + w * 0.7), 2.25 + i * 0.03, moss); }
         for (const sx of [-1, 1]) for (const y of ys) { for (let c = 0; c < 5; c++) { const px = sx * (hx - rr(50, 240)), py = y + rr(-190, 190), h = rr(60, 240), w = h * rr(0.9, 1.6); Cyl(V(px, py, h / 2), w * 0.22, h, 0xd8cfa8, false, false); ConeShape(V(px, py, h + w * 0.22), V(w, w, w * 0.5), c % 2 ? cap : 0x6a7a2a); Glow(V(px, py, h - 4), V(w * 0.8, w * 0.8, 4), slime, 1); } Box(V(sx * (hx - 3), y, 380), V(6, 260, 560), moss, false, false); for (let v = 0; v < 4; v++) Box(V(sx * (hx - 8), y + rr(-200, 200), H - rr(200, 500)), V(10, 14, rr(300, 800)), root, false, false); }
         corners((x, y) => { for (let i = 0; i < 4; i++) { const bx = x + rr(-220, 220), by = y + rr(-220, 220); Cyl(V(bx, by, 80), 120, 160, 0x5a3e26, true, true); Cyl(V(bx, by, 40), 126, 12, 0x2a2420, false, false); Cyl(V(bx, by, 120), 126, 12, 0x2a2420, false, false); } });
         break; }
@@ -134,7 +134,7 @@ export function buildDescent(M) {
             if (Math.abs(y) > 1000 && Math.round(y / 560) % 2) { Box(V(sx * (hx - 6), y + 280, 400), V(12, 300, 180), 0xd8c8a0, false, false); Box(V(sx * (hx - 5), y + 280, 400), V(12, 330, 210), tdark, false, false); for (let q = 0; q < 4; q++) Box(V(sx * (hx - 13), y + 280, 340 + q * 38), V(4, 240 - q * 30, 10), tdark, false, false); }
           }
         }
-        corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 6), V(sz + 6, sz + 6, 12), tdark, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), tdark, false, false); } });
+        corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 5), V(sz + 6, sz + 6, 12), tdark, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), tdark, false, false); } });
         break; }
       case 5: {   // DROWNED HALL: weed, coral, barnacles, chains and hooks, portholes, standing water
         const weed = 0x2a6a4a, coral = [0xd86a7a, 0xe8a04a, 0x9a6ad8], brass = 0xb8923a;
@@ -182,7 +182,7 @@ export function buildDescent(M) {
         break; }
       default: {   // NULL CHAMBER: monoliths, drifting blocks, rings of script in the floor, stars in the roof
         const voidc = 0x0c0a14, pur = T.glow;
-        for (const sx of [-1, 1]) for (const y of ys) { const h = rr(520, H - 120); Box(V(sx * (hx - 90), y, h / 2), V(120, 200, h), voidc, false, false); Glow(V(sx * (hx - 156), y, h * 0.55), V(6, 26, h * 0.7), pur, 0); for (let g = 0; g < 5; g++) Glow(V(sx * (hx - 156), y + rr(-70, 70), rr(80, h - 80)), V(6, rr(30, 70), 14), 0xffffff, 0); }
+        for (const sx of [-1, 1]) for (const y of ys) { const h = rr(520, H - 120); Box(V(sx * (hx - 90), y, h / 2), V(120, 200, h), voidc, false, false); Glow(V(sx * (hx - 156), y, h * 0.55), V(6, 26, h * 0.7), pur, 0); for (let g = 0; g < 5; g++) Glow(V(sx * (hx - 157.5), y + rr(-70, 70), rr(80, h - 80)), V(6, rr(30, 70), 14), 0xffffff, 0); }
         
         for (let i = 0; i < 40; i++) { const a = rnd() * 6.283, r = rr(500, 2500) * k; Glow(V(Math.cos(a) * r, Math.sin(a) * r, 3), V(rr(40, 120), 14, 2), i % 4 ? pur : 0xffffff, 0, R(0, rr(0, 180), 0)); }
         roofSpots(boss ? 120 : 70, (x, y) => Glow(V(x, y, H - 8), V(rr(8, 22), rr(8, 22), 6), rnd() < 0.3 ? pur : 0xffffff, 2));
@@ -234,7 +234,7 @@ export function buildDescent(M) {
       default:
     }
     switch (W.corner) {
-      case 'crates': corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 6), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, sz / 2), V(sz + 4, 14, sz - 28), 0x2a2420, false, false); } Box(V(x - 50, y - 20, 120 + 45), V(90, 90, 90), 0x5a4630, false, false, 20); });break;
+      case 'crates': corners((x, y) => { for (const [dx, dy, sz] of [[-80, -60, 120], [70, 40, 110], [-30, 90, 100]]) { Box(V(x + dx, y + dy, sz / 2), V(sz, sz, sz), 0x6a4e30, true, true); Box(V(x + dx, y + dy, sz - 5), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, 6), V(sz + 6, sz + 6, 12), 0x2a2420, false, false); Box(V(x + dx, y + dy, sz / 2), V(sz + 4, 14, sz - 28), 0x2a2420, false, false); } Box(V(x - 50, y - 20, 120 + 45), V(90, 90, 90), 0x5a4630, false, false, 20); });break;
       case 'rubble': corners((x, y) => { M.Solid(V(x, y, 90), V(380, 380, 180), true); for (let q = 0; q < 9; q++) { const s = rr(110, 240), a = q * 0.7, r = rr(0, 170); Box(V(x + Math.cos(a) * r, y + Math.sin(a) * r, s * 0.32 + (q > 5 ? 60 : 0)), V(s, s * 0.8, s * 0.64), q % 3 ? c2 : T.wall, false, false, q * 31); } });break;
       case 'barrels': corners((x, y) => { for (const [dx, dy] of [[-90, -40], [60, -70], [10, 80]]) { M.Solid(V(x + dx, y + dy, 55), V(82, 82, 110), true); const [k, b] = SH.barrel(0x5a3e26, 0x2a2420); M.Shape(k, b, V(x + dx, y + dy, 0), R(0, dx * 3, 0)); } }); break;
       default:
@@ -290,7 +290,7 @@ export function buildDescent(M) {
       for (let y = -hy + 800; y < hy; y += 800) Floor(V2(-hx, y - 5), V2(hx, y + 5), 1.2, T.floor2);
       Floor(V2(-260, -hy), V2(260, hy), 1.6, T.floor2); Floor(V2(-230, -hy), V2(230, hy), 2, T.floor);
       }
-      for (const s of [-1, 1]) { Floor(V2(-hx, s * (hy - 90) - 90), V2(hx, s * (hy - 90) + 90), 1.8, T.floor2); Floor(V2(s * (hx - 90) - 90, -hy), V2(s * (hx - 90) + 90, hy), 1.8, T.floor2); }
+      for (const s of [-1, 1]) { Floor(V2(-hx, s * (hy - 90) - 90), V2(hx, s * (hy - 90) + 90), 2.3, T.floor2); Floor(V2(s * (hx - 90) - 90, -hy), V2(s * (hx - 90) + 90, hy), 2.3, T.floor2); }
       // the walls are dressed flush (nothing here collides, so nothing catches a wall-run): a skirting, a band of light, a dark frieze under the roof
       for (const s of [-1, 1]) {
         Box(V(0, s * (hy - 2), 40), V(hx * 2, 4, 80), T.trim, false, false); Box(V(s * (hx - 2), 0, 40), V(4, hy * 2, 80), T.trim, false, false);

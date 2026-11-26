@@ -36,7 +36,7 @@ export class Game {
     this.data = DATA;
     this.settings = { fov: 100, sens: 0.12, shake: 1, volume: 0.8 };
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(70, 16 / 9, 5, 200000);
+    this.camera = new THREE.PerspectiveCamera(70, 16 / 9, 10, 200000);   // near 10 (the player is 38 wide, so it never clips a wall) doubles depth precision where the reversed buffer isn't supported
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
     this.phys = new Physics();

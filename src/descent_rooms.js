@@ -134,7 +134,7 @@ export function craftRoom(kind, K) {
       out.avoid = (x, y) => Math.abs(Math.abs(x) - 1500) < 160 || rows.some((r) => Math.abs(y - r) < 170);
       // the crossing: a dais of two steps, a stone tomb with its lid pushed aside, a candle stand at each corner
       plat(0, 0, 900, 700, 80, T.trim, T.floor2);
-      solid(0, 0, 80, 130, 300, 100, stone, false); deco(0, 0, 80, 150, 320, 16, T.trim); deco(0, 0, 164, 150, 320, 16, T.trim);
+      solid(0, 0, 80, 130, 300, 100, stone, false); deco(0, 0, 80, 150, 320, 16, T.trim); deco(0, 0, 166, 150, 320, 16, T.trim);
       BoxRot(V(52, 14, 196), V(140, 310, 22), 0x4a5a60, R(0, 12, -12), false); Glow(V(-12, 0, 181), V(84, 250, 6), T.glow, 0); L(0, 0, 380, T.lamp, 1500, 2.4);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 380, y = sy * 280; hit(x, y, 80, 44, 44, 130, false); Cyl(V(x, y, 140), 16, 120, 0x2a2e30, false, false); Cyl(V(x, y, 203), 56, 8, 0x2a2e30, false, false); for (let q = 0; q < 3; q++) candle(x + Math.cos(q * 2.1) * 17, y + Math.sin(q * 2.1) * 17, 207, 20 + q * 9); }
       // the aisles: stone tombs in pairs (each a man long), and a low charnel wall between the bays
@@ -264,7 +264,7 @@ export function craftRoom(kind, K) {
         for (const sy of [-1, 1]) { barrel(sx * 620, sy * 2600); barrel(sx * 4300, sy * 1050); }
       }
       // the floor is half under water: dark pools with a glint, laid between the lanes
-      for (const [x, y, w, d] of [[-1200, 975, 700, 500], [1200, -975, 700, 500], [-3600, -975, 600, 700], [3600, 975, 600, 700], [-1200, -2925, 800, 500], [1200, 2925, 800, 500], [0, 2500, 500, 400], [0, -2500, 500, 400]]) { tile(x - w / 2, y - d / 2, x + w / 2, y + d / 2, 2.2, 0x15301a); Glow(V(x, y, 3.6), V(w * 0.5, d * 0.4, 2), slime, 0); }
+      for (const [x, y, w, d] of [[-1200, 975, 700, 500], [1200, -975, 700, 500], [-3600, -975, 600, 700], [3600, 975, 600, 700], [-1200, -2925, 800, 500], [1200, 2925, 800, 500], [0, 2500, 500, 400], [0, -2500, 500, 400]]) { tile(x - w / 2, y - d / 2, x + w / 2, y + d / 2, 2.0, 0x15301a); Glow(V(x, y, 3.6), V(w * 0.5, d * 0.4, 2), slime, 0); }
       break;
     }
     default: return craftRoomB(kind, K, Q);
@@ -283,7 +283,7 @@ function craftRoomB(kind, K, Q) {
     case 4: {
       const timber = 0x4a3626, tdark = 0x2e2218, iron = 0x3a3e46, gravel = 0x2a2622, flag = 0x6e6454, lampc = [1, 0.85, 0.55];
       slabs(520, T.floor, T.floor2, 0x15120f, (x) => Math.abs(x) < 510);
-      tile(-510, -hy, 510, hy, 1.4, gravel);
+      tile(-510, -hy, 510, hy, 1.6, gravel);
       for (let y = -hy + 90; y < hy; y += 180) tile(-230, y - 28, 230, y + 28, 2.4, tdark);
       for (const e of [-1, 1]) { deco(e * 120, 0, 3, 14, hy * 2, 11, 0x8a8e96); deco(e * 120, 0, 2, 30, hy * 2, 3, iron); }
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {

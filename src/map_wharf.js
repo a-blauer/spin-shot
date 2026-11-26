@@ -178,7 +178,7 @@ export function buildWharf(M) {
     // the Providence: a whaler, down by the head, her try-works still alight
     const sx = 980, sy = 3350, HULL = 0x2a2420, DECK = 0x6a5a44;
     Box(V(sx, sy, 75), V(700, 2100, 150), HULL, true, true); Box(V(sx, sy, 153), V(680, 2080, 8), DECK, false, false); BoxRot(V(sx, sy + 1050, 75), V(495, 495, 150), HULL, R(0, 45, 0), true); BoxRot(V(sx, sy + 1050, 153), V(480, 480, 8), DECK, R(0, 45, 0), false);
-    Box(V(sx, sy - 800, 235), V(700, 500, 170), HULL, true, false); Box(V(sx, sy - 800, 324), V(700, 500, 10), DECK, false, false); Ramp(V(sx - 200, sy - 240, 154), V(sx - 200, sy - 550, 322), 200, PLANK_D);   // the quarterdeck
+    Box(V(sx, sy - 800, 235), V(700, 500, 170), HULL, true, false); Box(V(sx, sy - 800, 324), V(704, 504, 10), DECK, false, false); Ramp(V(sx - 200, sy - 240, 154), V(sx - 200, sy - 550, 322), 200, PLANK_D);   // the quarterdeck
     Box(V(sx + 345, sy, 200), V(12, 2100, 90), HULL, true, false); for (const [yc, len] of [[2595, 590], [3500, 780], [4255, 290]]) Box(V(sx - 345, yc, 200), V(12, len, 90), HULL, true, false);   // bulwarks, open at the two gangways
     Ramp(V(420, 3000, 0), V(640, 3000, 152), 190, PLANK_D); Ramp(V(420, 4000, 0), V(640, 4000, 152), 190, PLANK_D);
     for (const [my, h] of [[sy + 500, 1700], [sy - 300, 1900]]) { Cyl(V(sx, my, h / 2 + 150), 60, h, PLANK_D, true, false); for (const z of [0.5, 0.78]) { Box(V(sx, my, 150 + h * z), V(900 - z * 300, 20, 20), PLANK_D, false, false); Box(V(sx, my, 150 + h * z - 50), V(820 - z * 300, 40, 80), 0xbcb49a, false, false); } Box(V(sx, my, 150 + h * 0.95), V(140, 140, 14), PLANK_D, false, false);
