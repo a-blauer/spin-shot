@@ -179,3 +179,13 @@
   Not done (design): bosses that share bodies (Hound x7, Mirror Queen x6, King Puff x5 in content), sphere-with-
   tentacles bosses, bark creatures showing little strain colour, Mirror Queen cap top, Shrieker throat from below.
   Gotcha: a trailing // comment added by a replace swallowed the rest of the line twice (mantis legs, moss, wires).
+- (30) The Hosts: 15 new boss bodies for the survival maps (creatures.mjs "THE HOSTS", B_Foreman, B_Abomination,
+  B_Founder, B_ShiftBoss, B_Baron, B_Deacon, B_Ferryman, B_Mourn, B_Cannonball, B_Twins, B_Grin, B_Ringmaster,
+  B_Harbourmaster, B_Hangman, B_Graves): the town's people the Blight took, dressed as they were (hats become caps of
+  the strain). hostRig(o) builds the 6-part biped (boxes padded 12 all round); helpers garment() (hanging coats/
+  dresses/cloaks), fitted() (close cloth = the trunk's own ellipsoids let out; trunk() records them), hat(), hostFace(),
+  hand() (with grip), sleeveArm(), strand(). Process: shape language per host, silhouette test (review/sil.py: render
+  with and without the creature, diff to a black mask; /tmp/silhouettes.png) before detail. content bosses: those 15
+  survival bosses use their own host; White Widow -> B_DriftQueen, Old Scratch -> B_Titan, Madame Zora ->
+  B_Unblinking, Net-Mender -> B_BroodMother; no body now serves more than two bosses. Rotcap: body stalk shortened to
+  118 (it rose over the mouth). Boss files ~10 MB total, fetched in the background.

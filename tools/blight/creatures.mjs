@@ -113,7 +113,7 @@ function rotcapBody(p) {
   const lean = (p[1] - 60) * 0.1;
   const q = [p[0], p[1], p[2] - lean];
   U(ell(q, [0, 72, 0], [25, 17, 23]), FLESH(1), 8);                       // the bulb at the base
-  U(cap(q, [0, 78, 0], [0, 140, 0], 22, 17), FLESH(1), 10);              // the stalk
+  U(cap(q, [0, 78, 0], [0, 118, 0], 22, 16), FLESH(1), 10);              // the stalk, ending under the head's own neck (taller, it rose up over the mouth)
   fibres(q, [0, 0, 0], 16, 0.65);
   // the ring: a ragged skirt hanging off the stalk at the chest, torn in places
   { const a = Math.atan2(q[2], q[0]), rr = len(q[0], 0, q[2]), tear = Math.max(0, Math.sin(a * 3 + 1)) * 9 + Math.sin(a * 11) * 2.2;
@@ -1793,4 +1793,715 @@ function nameArm(p, s) {
   return getD();
 }
 
-export const CREATURES = { Rotcap, Sporeling, Creeper, Puffball, Inkcap, BlightRat, Drifter, Bracketback, Shrieker, Shelfshield, Sporecaller, GoldenTruffle, Rootworm, SporePod, GraspingMycel, B_BroodMother, B_KingPuff, B_DriftQueen, B_Lantern, B_Carapace, B_Wyrm, B_Thunderhead, B_Hound, B_Furnace, B_Hydra, B_MirrorQueen, B_Unblinking, B_Reaper, B_Toad, B_Rotwing, B_Titan, B_Leviathan, B_Devourer, B_Nameless };
+// ================================================================ THE HOSTS (survival bosses)
+// Out on the survival maps the bosses are not new things the Blight grew: they are people it took. Each was somebody
+// the town knew (the foreman, the baron, the deacon, the hangman), and the mold wears them the way they dressed. Every
+// hat has become a cap of the strain, coats and dresses have gone to gill and mycelium, faces are pale stalk-flesh with
+// the Blight's lit eyes. One rule held for all fifteen, from the usual practice for game characters: the silhouette
+// first (each must read as a solid black shape, at a distance, and not be mistaken for another), then the big forms
+// (proportion: big, medium, small), then the secondary forms (garments, props, limbs), and only then the small detail,
+// kept on the face, the hands and the one thing that names them (the pick, the pole, the noose, the book).
+//
+// Shape language, so no two read alike from across a map:
+//   square and heavy  Big Tony (gorilla stance, a sledge for a fist), The Harbourmaster (a wall of greatcoat, a hook)
+//   round             Baron Blackwater (a barrel of a belly, a tiny top hat, a cane), The Human Cannonball (a shell of a head)
+//   tall and thin     The Founder (stovepipe, beard to the belt), The Ferryman (hood, a pole twice his height),
+//                     The Hangman (pointed hood, arms to the knee, the noose), Mother Mourn (veil and a bell of a dress),
+//                     The Ringmaster (shoulders like a coat-hanger, a tower of a hat, tails)
+//   broken            The Abomination (a heap of joined bodies, three heads), The Twins (one pair of legs, two of everything else)
+//   small and sharp   The Shift Boss (stooped, a lamp on his brow, a pick), Grin (a ruff, a cone, a grin), Deacon Moss (a
+//                     brim like a cartwheel, the book held up), Captain Graves (tricorn, a peg leg, a cutlass)
+
+const COAT = (k = 0.5, d = 0x1a120c, t = 0.45) => mixP(CAP(k), C(d), t);   // a garment the strain has soaked into
+const SKIN = FLESH(0.92), SKIN2 = FLESH(0.74, 0x120a06), LEATH = C(0x2e2219), LEATH2 = C(0x1e1610), IRONC = C(0x3a3a3c), BRASS = C(0x8a6a2e), ROPE2 = C(0x8a7656), BONEC = C(0xd8ccae);
+
+// --- the rig: two legs, a body, two arms, a head. Each host gives its own shapes; the boxes are mirrored for the arms.
+function hostRig(o) {
+  const hy = o.hipY, hx = o.hipX || 15, sh = o.sh, a = o.armBox, mir = (b) => [-b[0], b[1], b[2]];
+  const part = (fn) => (p) => { reset(); fn(p); return getD(); };
+  const pad = (P) => ({ ...P, lo: P.lo.map((v) => v - 12), hi: P.hi.map((v, i) => v + (i === 1 && P.role.startsWith('Leg') ? 16 : 12)) });   // room round every part, so nothing is ever cut flat by its box
+  return {
+    height: o.height, budget: o.budget || 1.25,
+    parts: [
+      { role: 'LegBack', pivot: [-hx, hy, 0], lo: [-hx - 36, -4, -44], hi: [-hx + 28, hy + 18, 46], h: o.legH || 1.5, f: part((p) => (o.leg || hostLeg)(p, -1, o)), tris: o.legTris || 2600 },
+      { role: 'LegFront', pivot: [hx, hy, 0], lo: [hx - 28, -4, -44], hi: [hx + 36, hy + 18, 46], h: o.legH || 1.5, f: part((p) => (o.leg || hostLeg)(p, 1, o)), tris: o.legTris || 2600 },
+      { role: 'Body', pivot: [0, hy, 0], lo: o.bodyLo, hi: o.bodyHi, h: o.bodyH || 1.7, f: part(o.torso), tris: o.bodyTris || 12000 },
+      { role: 'ArmBack', pivot: [-sh[0], sh[1], sh[2]], lo: [-a[1][0], a[0][1], a[0][2]], hi: [-a[0][0], a[1][1], a[1][2]], h: o.armH || 1.4, f: part((p) => o.arm(p, -1)), tris: o.armTris ? o.armTris[0] : 4000 },
+      { role: 'ArmFront', pivot: [sh[0], sh[1], sh[2]], lo: a[0], hi: a[1], h: o.armH || 1.4, f: part((p) => o.arm(p, 1)), tris: o.armTris ? o.armTris[1] : 4000 },
+      { role: 'Head', pivot: o.neck, lo: o.headLo, hi: o.headHi, h: o.headH || 1.3, f: part(o.head), tris: o.headTris || 9000 },
+    ].map(pad),
+  };
+}
+// a leg: a thigh and shin of root under the trousers, a boot (or the root foot of the rank and file)
+function hostLeg(p, s, o) {
+  const L = o.legs || {}, hy = o.hipY, hx = o.hipX || 15, w = L.w || 1, hip = [s * hx, hy + 4, 0], knee = [s * (hx + (L.splay || 3)), hy * 0.52, 5], ank = [s * (hx + (L.splay || 3) * 0.6), 11, 1];
+  const r0 = (L.r || 11) * w, cloth = L.cloth || COAT(0.42, 0x16100a, 0.55);
+  U(cap(p, hip, knee, r0 * 1.15, r0), cloth, 4); U(cap(p, knee, ank, r0, r0 * 0.78), cloth, 4);
+  { const a = Math.atan2(p[2] - knee[2], p[0] - knee[0]); bump(Math.abs(Math.sin(a * 5 + p[1] * 0.08)) < 0.2 ? -0.6 : 0); }   // creases in the cloth
+  if (L.boot === false) { rootLeg(p, [ank[0], ank[1] + 16, ank[2]], [ank[0], ank[1] + 8, ank[2] + 1], ank, r0 * 0.7, r0 * 0.75, [[-0.35, 1, 16], [0.05, 1, 19], [0.45, 0.9, 15], [0.1, -1, 10]], s); return; }
+  // the boot: a shaft to mid-shin, a heel, a toe, cracked and grown through
+  const bt = L.bootTop || 34;
+  U(cap(p, [ank[0], bt, ank[2] + 1], [ank[0], 12, ank[2] + 1], r0 * 0.95, r0 * 0.9), LEATH, 3);
+  U(ell(p, [ank[0], 7, ank[2] + 6], [r0 * 0.85, 7, r0 * 1.7]), LEATH, 4); U(ell(p, [ank[0], 5, ank[2] + r0 * 1.4], [r0 * 0.7, 5, r0 * 0.8]), LEATH2, 3);
+  U(Math.max(cap(p, [ank[0], bt - 2, ank[2] + 1], [ank[0], bt + 3, ank[2] + 1], r0 * 1.08), -cap(p, [ank[0], bt - 8, ank[2] + 1], [ank[0], bt + 8, ank[2] + 1], r0 * 0.7)), LEATH2, 1.5);   // the turned-down top
+  rootlets(p, [ank[0], 4, ank[2] + r0 * 1.6], [0, -0.2, 1], 3, 9, 1.3, s + 3);   // the root has come through the toe
+  S(p[1] + 0.5, 1); P(p[1] - 12, mixP(LEATH2, C(0x0a0806), 0.4), 5);
+}
+// a coat, a cloak or a dress: a tapering elliptic shell from shoulders to hem, open down the front unless closed,
+// hem ragged into gills, grooves running down it
+function garment(p, g) {
+  const { top, bot, r0, r1, t = 2.6, open = 0, closed = false, ragged = 4, rag = 7, col = COAT(), cx = 0, cz = 0, back = 0 } = g;
+  const y = p[1], u = clamp((top - y) / (top - bot), 0, 1), rx = r0[0] + (r1[0] - r0[0]) * u * u, rz = r0[1] + (r1[1] - r0[1]) * u * u;
+  const x = p[0] - cx, z = p[2] - cz - back * u, a = Math.atan2(z, x), nr = len(x / rx, 0, z / rz), d = (nr - 1) * Math.min(rx, rz);
+  const hem = bot + Math.sin(a * rag + 1.3) * ragged * 0.5 + Math.abs(Math.sin(a * rag * 2.3)) * ragged * 0.5;
+  let s = Math.max(Math.abs(d) - t, hem - y, y - top);
+  if (!closed && open > 0) s = Math.max(s, Math.min(open * (0.4 + u) - Math.abs(x), z));   // the opening down the front
+  U(s, col, 3);
+  if (s < 3) { bump((Math.abs(Math.sin(a * (g.folds || 9) + y * 0.015)) < 0.22 ? -0.9 : 0) * u); P(y - (hem + 10), mixP(col, C(0x0a0806), 0.35), 6); }
+  return s;
+}
+// a mushroom hat: a crown (tapered, round topped), a brim with gills under it, warts on top
+function hat(p, h) {
+  const { c, crown: [rB, rT, H], brim = 0, brimT = 3, tilt = 0, droop = 0, col = CAP(1), gills = true, warts = 0, seed = 1, band = null } = h;
+  const q = tilt ? rotZ(p, c, tilt) : p, qq = h.pitch ? rotX(q, c, h.pitch) : q, rr = len(qq[0] - c[0], 0, qq[2] - c[2]);
+  const crownD = cap(qq, [c[0], c[1], c[2]], [c[0], c[1] + H, c[2]], rB, rT);
+  U(crownD, col, 3);
+  if (h.dome) U(ell(qq, [c[0], c[1] + H, c[2]], [rT, h.dome, rT]), col, 4);
+  if (brim) { const by = c[1] + droop * (rr / brim) ** 2; U(Math.max(ell(qq, [c[0], by, c[2]], [brim, brimT, brim * (h.brimZ || 1)]), -(rr - rB * 0.6)), col, 2.5);
+    if (gills && qq[1] < by && rr < brim) { const g = Math.abs(Math.sin(Math.atan2(qq[2] - c[2], qq[0] - c[0]) * 20)); P(by - qq[1] - 0.4, FLESH(0.8), 0.8); if (g < 0.3) bump(-0.5); } }
+  if (band) P(Math.abs(qq[1] - (c[1] + band[0])) - band[1], band[2], 0.6);
+  if (warts) for (let i = 0; i < warts; i++) { const a = i * 2.399 + seed, y = c[1] + H * (0.2 + 0.75 * hashI(i, seed)), r = rB + (rT - rB) * ((y - c[1]) / H); U(ell(qq, [c[0] + Math.cos(a) * r, y, c[2] + Math.sin(a) * r], [2.6, 1.8, 2.6]), mixP(CAP(0.55), FLESH(0.4), 0.5), 1.5); }
+  P(-fbm(qq[0] * 0.08 + seed, qq[1] * 0.08, qq[2] * 0.08) - 0.3, CAP(0.78), 0.12);
+}
+// a face on stalk-flesh: sockets with lit eyes, a brow, a nose ridge, a mouth slot of gill-teeth
+function hostFace(p, f) {
+  const { c, eyeX = 7, eyeY = 4, eyeR = 3, mouthY = -11, mouthW = 10, brow = true, teeth = true, nose = true, z = 0 } = f;
+  for (const s of [-1, 1]) eye(p, [c[0] + s * eyeX, c[1] + eyeY, c[2] + z], eyeR, [s * 0.15, 0, 1]);
+  if (brow) U(ell(p, [c[0], c[1] + eyeY + eyeR * 1.4, c[2] + z - 1], [eyeX + eyeR * 2.2, eyeR * 0.9, eyeR * 1.5]), SKIN2, 2.5);
+  if (nose) U(cap(p, [c[0], c[1] + eyeY, c[2] + z], [c[0], c[1] - 4, c[2] + z + 3.5], 2.2, 2.8), SKIN, 2);
+  S(ell(p, [c[0], c[1] + mouthY, c[2] + z - 1], [mouthW, 3, 6]), 1.5, GUM);
+  if (teeth) for (let i = -3; i <= 3; i++) { const x = c[0] + i * mouthW * 0.27; U(cap(p, [x, c[1] + mouthY + 2.6, c[2] + z + 1], [x, c[1] + mouthY - 0.4 - (i & 1), c[2] + z + 1.6], 0.9, 0.3), TOOTH, 0.4); }
+  S(sph(p, [c[0] - 6, c[1] - 4, c[2] + z + 2], 3.2), 2); S(sph(p, [c[0] + 6, c[1] - 4, c[2] + z + 2], 3.2), 2);   // hollow cheeks
+}
+// a hand: a knot of root, n fingers curled round a grip (if grip) or hanging
+function hand(p, wr, s, r, n = 4, L = 16, grip = null) {
+  U(ell(p, wr, [r * 1.15, r, r * 1.15]), ROOT2, r * 0.5);
+  for (let i = 0; i < n; i++) {
+    const sp = (i - (n - 1) / 2) * 0.5;
+    if (grip) { const g = grip, b = [wr[0] + s * sp * 3, wr[1] - r * 0.4, wr[2] + r * 0.6 + sp * 4]; rootFinger(p, [b, [g[0] + s * 4, g[1] + sp * 4.2, g[2] + 4], [g[0], g[1] + sp * 4.2 - 1, g[2] + 6], [g[0] - s * 3, g[1] + sp * 4.2 - 2, g[2] + 3]], r * 0.45, ROOT2); }
+    else rootFinger(p, [[wr[0] + s * sp * 3, wr[1] - 2, wr[2] + 2], [wr[0] + s * sp * 6, wr[1] - L * 0.5, wr[2] + 4], [wr[0] + s * sp * 7, wr[1] - L, wr[2] + 7]], r * 0.42, ROOT2);
+  }
+  rootFinger(p, [[wr[0] - s * r * 0.6, wr[1], wr[2] + r * 0.7], [wr[0] - s * r, wr[1] - L * 0.35, wr[2] + r * 1.6], [wr[0] - s * r * 0.8, wr[1] - L * 0.55, wr[2] + r * 2.2]], r * 0.38, ROOT2);
+}
+// an arm in a sleeve: upper arm and forearm in cloth to a cuff, then the hand
+function sleeveArm(p, s, sh, el, wr, r, col, cuff = null) {
+  U(cap(p, sh, el, r * 1.25, r * 1.05), col, 3); U(cap(p, el, wr, r * 1.05, r * 0.9), col, 3); U(sph(p, el, r * 1.1), col, 2);
+  { const a = Math.atan2(p[2] - el[2], p[0] - el[0]); bump(Math.abs(Math.sin(a * 4 + p[1] * 0.12)) < 0.15 ? -0.6 : 0); }
+  if (cuff) U(cap(p, [wr[0] + (el[0] - wr[0]) * 0.12, wr[1] + (el[1] - wr[1]) * 0.12, wr[2] + (el[2] - wr[2]) * 0.12], [wr[0] + (el[0] - wr[0]) * 0.02, wr[1] + (el[1] - wr[1]) * 0.02, wr[2] + (el[2] - wr[2]) * 0.02], r * 1.25, r * 1.2), cuff, 1.5);
+  P(sph(p, sh, r * 2), mixP(col, C(0x000000), 0.2), r);
+}
+// a hanging strand (a beard, seaweed, a veil): a wavering chain from a down by L
+function strand(p, a, L, r, col, seed, sway = 3) { const pts = []; for (let k = 0; k <= 5; k++) { const t = k / 5; pts.push([a[0] + Math.sin(t * 4 + seed) * sway * t, a[1] - L * t, a[2] + Math.cos(t * 3 + seed) * sway * 0.6 * t + t * 2]); } chain(p, pts, r, r * 0.45, col, 1.2); }
+// a little torso of stalk-flesh: chest, belly, a waist, a neck stub; the garment goes over it
+let TRUNK = null;
+const smin = (a, b, k) => { const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return b + (a - b) * h - k * h * (1 - h); };
+// cloth worn close (a shirt, a waistcoat, tights): the trunk's own shapes let out by t, between two heights, a slit down the front if open
+function fitted(q, f) { const T = f.shapes || TRUNK; let d = 1e9; for (const [c, r] of T) d = smin(d, ell(q, c, [r[0] + f.t, r[1] + f.t, r[2] + f.t]), 10);
+  const y = q[1]; let s = Math.max(d, (f.bot + Math.sin(Math.atan2(q[2], q[0]) * 7) * (f.ragged || 0)) - y, y - f.top);
+  if (f.open) s = Math.max(s, Math.min(f.open - Math.abs(q[0]), (f.openFrom || 0) - q[2]));
+  U(s, f.col, 2); if (s < 2) { const a = Math.atan2(q[2], q[0]); bump(Math.abs(Math.sin(a * (f.folds || 6) + y * 0.05)) < 0.18 ? -0.6 : 0); } return s; }
+function trunk(p, o) { const { chest, belly, neckY, lean = 0 } = o; const q = [p[0], p[1], p[2] - (p[1] - 80) * lean]; TRUNK = [chest, belly];
+  U(ell(q, chest[0], chest[1]), SKIN, 10); U(ell(q, belly[0], belly[1]), SKIN, 12); U(cap(q, [0, chest[0][1], chest[0][2]], [0, neckY, chest[0][2] + 2], 10, 8), SKIN, 6); mold(p, 60, neckY); return q; }
+
+// ---------------------------------------------------------------- BIG TONY (The Foreman)
+// A gorilla of a man: short bowed legs, a chest like a boiler, a small head sunk between the shoulders under a hard hat
+// that has grown into a bracket fungus. The right fist has fused round his sledgehammer, head and all.
+export const B_Foreman = hostRig({
+  height: 230, hipY: 66, hipX: 21, sh: [42, 150, 10], neck: [0, 156, 26], legs: { r: 15, splay: 6, bootTop: 38 },
+  bodyLo: [-80, 40, -60], bodyHi: [80, 196, 72], headLo: [-46, 140, -18], headHi: [46, 222, 70], headH: 1.2,
+  armBox: [[18, -6, -40], [100, 170, 96]], armTris: [4500, 7000],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 136, 10], [52, 40, 38]], belly: [[0, 98, 14], [40, 34, 34]], neckY: 160, lean: 0.18 });
+    for (const s of [-1, 1]) U(ell(q, [s * 40, 150, 6], [22, 20, 22]), SKIN, 10);   // the shoulders, a yoke of muscle
+    // the shirt: sleeves rolled, the front torn open; braces over the shoulders
+    fitted(q, { shapes: [[[0, 136, 10], [52, 40, 38]], [[0, 98, 14], [40, 34, 34]], [[-40, 150, 6], [22, 20, 22]], [[40, 150, 6], [22, 20, 22]]], t: 2, top: 168, bot: 76, ragged: 2, open: 9, openFrom: 20, col: COAT(0.35, 0x3a2c20, 0.6), folds: 7 });
+    // braces painted on over the shirt, belt to shoulder, front and back; a belt worn on the belly, its buckle
+    for (const s of [-1, 1]) P(Math.abs(Math.abs(q[0]) - 20 - Math.abs(q[1] - 150) * 0.06) - 4 + (q[1] > 82 && q[1] < 176 ? 0 : 99), LEATH, 0.6);
+    fitted(q, { shapes: [[[0, 98, 14], [40, 34, 34]], [[0, 136, 10], [52, 40, 38]]], t: 3.4, top: 86, bot: 76, col: LEATH2, folds: 3 }); U(box(q, [0, 81, 49], [7, 5, 2.4], 1), BRASS, 1.5);
+    shelf(q, [-44, 162, -6], [-1, 0, -0.4], 14, 4); shelf(q, [-38, 168, -18], [-0.7, 0, -0.8], 11, 3.4);   // a clutch of bracket on one shoulder only
+    sprout(q, [-20, 168, -14], [-0.3, 1, -0.5], 11, 7, true); sprout(q, [-36, 160, -6], [-0.8, 0.6, -0.3], 8, 5);
+    pore(q, [18, 120, 48], 3, [0.3, 0, 1]); pore(q, [-26, 104, 44], 2.6, [-0.4, 0, 1]);
+  },
+  arm(p, s) {
+    if (s < 0) { const sh = [-42, 150, 10], el = [-60, 112, 20], wr = [-62, 78, 30];
+      U(cap(p, sh, el, 17, 14), SKIN, 5); U(cap(p, el, wr, 15, 12), SKIN, 5); U(cap(p, [-56, 138, 14], [-62, 112, 20], 18, 15), COAT(0.35, 0x3a2c20, 0.6), 3); mold(p, 70, 150);
+      hand(p, wr, -1, 10, 4, 20); return; }
+    const sh = [42, 150, 10], el = [62, 112, 24], wr = [64, 80, 40];
+    U(cap(p, sh, el, 18, 15), SKIN, 5); U(cap(p, el, wr, 16, 15), SKIN, 5); U(cap(p, [56, 138, 14], [62, 112, 24], 19, 16), COAT(0.35, 0x3a2c20, 0.6), 3); mold(p, 70, 150);
+    // the sledge: a haft through the fist, the head grown over with shelf and mold
+    const g0 = [64, 78, 44], g1 = [64, 18, 66];
+    U(cap(p, [64, 96, 34], g1, 4.2, 3.6), WOOD, 1.5);
+    U(box(rotX(p, g1, -0.34), g1, [12, 12, 22], 4), IRONC, 3); { const [d1] = cells(p[0] * 0.15, p[1] * 0.15, p[2] * 0.15); if (box(rotX(p, g1, -0.34), g1, [13, 13, 23], 4) < 2) P(0.3 - d1, mixP(CAP(0.6), C(0x3a2a1a), 0.3), 0.08); }
+    shelf(p, [76, 22, 66], [1, 0, 0.2], 11, 3.4); shelf(p, [52, 16, 70], [-1, 0, 0.1], 9, 3);
+    U(ell(p, g0, [15, 13, 15]), SKIN, 6); for (let i = 0; i < 4; i++) U(cap(p, [56 + i * 5, 84, 38], [56 + i * 5, 74, 50], 4.2, 3.6), ROOT2, 2);   // the fist, closed on it
+  },
+  head(p) {
+    U(cap(p, [0, 150, 22], [0, 176, 30], 16, 15), SKIN, 6); U(ell(p, [0, 172, 34], [17, 16, 15]), SKIN, 6);
+    U(ell(p, [0, 160, 40], [15, 7, 9]), SKIN2, 4);   // a heavy jaw
+    hostFace(p, { c: [0, 174, 46], eyeX: 6.5, eyeR: 2.8, mouthY: -14, mouthW: 8 });
+    // the hard hat: a low dome with a peak, gone over to bracket fungus, shelves fanning off one side
+    hat(p, { c: [0, 182, 31], crown: [19, 17, 6], dome: 10, brim: 23, brimT: 2.4, brimZ: 1.15, col: CAP(1), warts: 6, seed: 4 });
+    shelf(p, [-16, 192, 26], [-1, 0, 0.1], 13, 3.6); shelf(p, [-14, 200, 32], [-0.8, 0, 0.5], 10, 3);
+    S(p[1] - 146, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE ABOMINATION (Stitched Mass)
+// What the Blight made when it ran out of patience: three or four of them pressed into one heap, joined with mycelium
+// stitches, three heads at three heights, one huge arm and a bundle of small ones.
+export const B_Abomination = hostRig({
+  height: 240, hipY: 70, hipX: 22, sh: [44, 150, 4], neck: [6, 170, 12], legs: { r: 16, splay: 8, boot: false },
+  bodyLo: [-90, 40, -76], bodyHi: [90, 214, 80], bodyTris: 15000, headLo: [-40, 150, -30], headHi: [52, 236, 60], headH: 1.3,
+  armBox: [[16, -6, -50], [110, 170, 90]], armTris: [6000, 6000],
+  torso(p) {
+    const blobs = [[0, 108, 4, 40], [-26, 136, -6, 34], [24, 148, 2, 32], [-8, 170, -14, 24], [36, 116, 12, 26], [-40, 104, 10, 22], [10, 84, 18, 24], [-36, 172, 10, 18]];
+    for (const [x, y, z, r] of blobs) U(ell(p, [x, y, z], [r, r * 0.92, r * 0.9]), SKIN, 9);
+    // seams where they were joined: stitched with cords of mycelium
+    for (let i = 0; i < blobs.length - 1; i++) { const [x, y, z, r] = blobs[i], [x2, y2, z2] = blobs[i + 1], m = [(x + x2) / 2, (y + y2) / 2, (z + z2) / 2], d = sph(p, m, r * 0.9);
+      if (d < 4) { P(Math.abs(d) - 1.2, mixP(GUM, FLESH(0.3), 0.3), 0.8); for (let k = -3; k <= 3; k++) { const a = k * 0.35; U(cap(p, [m[0] + Math.cos(a) * r * 0.8, m[1] + Math.sin(a) * r * 0.8 - 3, m[2] + r * 0.45], [m[0] + Math.cos(a) * r * 0.8, m[1] + Math.sin(a) * r * 0.8 + 3, m[2] + r * 0.5], 0.9), MYC, 0.6); } } }
+    // two more heads half-swallowed into the heap: on the left shoulder and low on the belly
+    U(ell(p, [-36, 182, 18], [13, 14, 12]), SKIN, 6); hostFace(p, { c: [-36, 182, 29], eyeX: 4.6, eyeR: 2.2, mouthY: -8, mouthW: 5 });
+    U(ell(p, [18, 92, 38], [12, 11, 8]), SKIN, 6); for (const s of [-1, 1]) eye(p, [18 + s * 4.6, 95, 45], 2.2); S(ell(p, [18, 87, 45], [5, 2.4, 4]), 1.2, GUM);
+    hat(p, { c: [-36, 192, 16], crown: [9, 6, 6], dome: 6, brim: 14, brimT: 2, col: CAP(0.9), tilt: 0.4, warts: 3, seed: 7 });
+    // a bundle of small arms coming out of the back, hanging
+    for (let i = 0; i < 3; i++) { const b = [-30 + i * 14, 150 - i * 12, -40]; rootArm(p, b, [b[0] - 10, b[1] - 26, -52], [b[0] - 8, b[1] - 52, -46], 4.2, 3, 12, -1); }
+    sprout(p, [20, 172, -10], [0.3, 1, -0.4], 12, 7, true); sprout(p, [-12, 186, -20], [-0.3, 1, -0.6], 9, 5); sprout(p, [44, 128, -10], [1, 0.4, -0.5], 8, 5, true);
+    mold(p, 70, 200, 0.5); warts(p, 1.4, 0.1);
+  },
+  arm(p, s) {
+    if (s < 0) { rootArm(p, [-40, 150, 4], [-58, 112, 12], [-60, 82, 22], 7.5, 4, 22, -1); U(ell(p, [-48, 136, 6], [14, 18, 14]), SKIN, 6); return; }
+    // the one huge arm: swollen, bulging, a club of a fist dragging nearly to the floor
+    const sh = [44, 150, 4], el = [74, 104, 18], wr = [78, 50, 30], SK = mixP(SKIN, CAP(0.7), 0.3);
+    U(cap(p, sh, el, 22, 18), SK, 8); U(cap(p, el, wr, 18, 22), SK, 8); U(ell(p, [78, 34, 34], [24, 22, 24]), SK, 8);
+    warts(p, 2, 0.12); for (let k = 0; k < 4; k++) U(cap(p, [64 + k * 8, 20, 48], [62 + k * 9, 6, 52], 6, 5), ROOT2, 3);
+    for (const [y, r] of [[128, 9], [92, 8], [64, 9]]) U(ell(p, [70, y, 26], [r * 1.4, r, r]), SK, 6);   // muscle knotted under the skin
+    mold(p, 10, 150, 0.5); { const n = fbm(p[0] * 0.05 + 2, p[1] * 0.05, p[2] * 0.05); P(Math.abs(n) * 34 - 1.1, mixP(GUM, CAP(0.4), 0.4), 0.7); }   // veins
+    { const m = [60, 128, 10], d = sph(p, m, 20); if (d < 3) P(Math.abs(d) - 1.2, GUM, 0.8); }
+    sprout(p, [86, 110, 4], [1, 0.6, -0.3], 9, 6, true);
+  },
+  head(p) {
+    U(cap(p, [6, 160, 8], [6, 186, 14], 15, 16), SKIN, 6); U(ell(p, [8, 196, 16], [19, 20, 17]), SKIN, 6);
+    hostFace(p, { c: [8, 196, 31], eyeX: 7, eyeR: 3, mouthY: -12, mouthW: 9 });
+    // one eye sewn shut with mycelium
+    for (let k = -2; k <= 2; k++) U(cap(p, [1 + k * 1.6, 202, 32], [1 + k * 1.6, 196, 33], 0.7), MYC, 0.4);
+    hat(p, { c: [8, 210, 12], crown: [14, 8, 8], dome: 8, brim: 22, brimT: 2.6, droop: 4, col: CAP(1), tilt: -0.25, warts: 5, seed: 3 });
+    S(p[1] - 156, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE FOUNDER (Father of Deadwater Gulch)
+// The town's first man and its last word: very tall, very thin, a frock coat to the shin, a stovepipe hat gone to a tall
+// inky cap, and a beard of hyphae hanging to his belt. He walks upright; everything about him points down.
+export const B_Founder = hostRig({
+  height: 275, hipY: 88, hipX: 12, sh: [24, 196, 2], neck: [0, 200, 6], legs: { r: 8, splay: 2, bootTop: 44 },
+  bodyLo: [-54, 22, -50], bodyHi: [54, 214, 50], headLo: [-46, 190, -40], headHi: [46, 300, 52], headH: 1.2, headTris: 11000,
+  armBox: [[4, 50, -30], [56, 204, 50]],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 176, 2], [24, 22, 15]], belly: [[0, 132, 2], [18, 30, 14]], neckY: 206 });
+    U(cap(q, [0, 96, 0], [0, 130, 0], 16, 17), SKIN, 8);
+    // the frock coat: narrow shoulders, buttoned to the waist, open below, tails to the shin
+    garment(q, { top: 204, bot: 34, r0: [27, 19], r1: [33, 27], open: 9, ragged: 4, col: COAT(0.32, 0x14100c, 0.6), folds: 11 });
+    garment(q, { top: 206, bot: 182, r0: [16, 14], r1: [28, 20], closed: true, t: 2, col: COAT(0.3, 0x14100c, 0.62) });   // the high collar
+    for (let i = 0; i < 5; i++) pore(q, [0, 168 - i * 10, 21 - i * 0.4], 1.6, [0, 0, 1]);   // the buttons are pores now
+    // the watch chain across the waistcoat, still bright
+    { const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([-12 + t * 24, 140 - Math.sin(t * Math.PI) * 6, 19 + Math.sin(t * Math.PI) * 1.5]); } chain(q, pts, 0.9, 0.9, BRASS, 0.4); U(sph(q, [12, 140, 19], 2.6), GLOW(0.8), 0.6); }
+    sprout(q, [-10, 196, -14], [-0.3, 1, -0.6], 10, 6, true); sprout(q, [8, 186, -17], [0.3, 0.8, -0.8], 7, 4.4);
+  },
+  arm(p, s) {
+    const sh = [s * 24, 196, 2], el = [s * 32, 152, 6], wr = [s * 34, 112, 12];
+    sleeveArm(p, s, sh, el, wr, 6, COAT(0.32, 0x14100c, 0.6), C(0xc8bca0));
+    hand(p, [wr[0], wr[1] - 5, wr[2] + 1], s, 4.5, 4, 26);   // long fingers, hanging
+  },
+  head(p) {
+    U(cap(p, [0, 200, 4], [0, 226, 8], 9, 10), SKIN, 5); U(ell(p, [0, 232, 10], [12, 17, 13]), SKIN, 5);   // a long gaunt face
+    hostFace(p, { c: [0, 236, 21], eyeX: 5, eyeR: 2.6, mouthY: -12, mouthW: 6, teeth: false });
+    U(ell(p, [0, 238, 22], [9, 2.4, 2.5]), SKIN2, 2);
+    // the beard: dozens of hyphae hanging from the jaw to the belt, the longest in the middle
+    for (let i = 0; i < 15; i++) { const a = (i / 14 - 0.5) * 2.4, x = Math.sin(a) * 11, z = 10 + Math.cos(a) * 11, L = 50 - Math.abs(i - 7) * 4.2 + hashI(i, 5) * 8; strand(p, [x, 226, z], L, 1.8, mixP(MYC2, FLESH(0.3), 0.3), i * 1.3, 2.5); }
+    U(ell(p, [0, 224, 18], [12, 6, 7]), MYC2, 4);
+    // the stovepipe: tall, a hair narrower at the top, a band, a narrow brim curled up at the sides
+    hat(p, { c: [0, 248, 10], crown: [14, 13, 42], dome: 3, brim: 20, brimT: 2, droop: -3, col: CAP(1), band: [7, 3.5, CAP(0.45, 0x0a0806)], warts: 4, seed: 9 });
+    S(p[1] - 196, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE SHIFT BOSS (Overseer of the Night Shift)
+// Stooped from a life under low roofs: a round helmet with a lamp on the brow (the lamp is a glowing mushroom now), a
+// pick on his shoulder, a sack of ore on his back.
+export const B_ShiftBoss = hostRig({
+  height: 205, hipY: 62, hipX: 15, sh: [30, 140, 18], neck: [0, 148, 30], legs: { r: 11, splay: 4, bootTop: 36 },
+  bodyLo: [-62, 40, -70], bodyHi: [62, 180, 80], headLo: [-36, 130, 6], headHi: [36, 204, 80],
+  armBox: [[8, 20, -60], [70, 200, 72]], armTris: [4000, 6000],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 122, 16], [30, 26, 24]], belly: [[0, 92, 10], [26, 24, 22]], neckY: 150, lean: 0.35 });
+    fitted(q, { t: 2.6, top: 152, bot: 68, ragged: 2, open: 7, openFrom: 22, col: COAT(0.35, 0x3a3020, 0.62), folds: 8 });   // the jacket, worn open
+    for (const s of [-1, 1]) P(Math.abs(Math.abs(q[0]) - 13) - 3 + (q[1] > 70 && q[1] < 154 ? 0 : 99), LEATH, 0.5);   // braces, painted on the jacket
+    // the ore sack on his back, lumpy, roped
+    U(ell(q, [0, 120, -30], [26, 30, 18]), C(0x6a5a42), 8); { const [d1] = cells(q[0] * 0.12, q[1] * 0.12, q[2] * 0.12); if (ell(q, [0, 120, -30], [27, 31, 19]) < 2) bump(-Math.max(0, 0.3 - d1) * 6); }
+    U(torus(q, [0, 146, -26], 14, 2), ROPE2, 1.5); for (const s of [-1, 1]) U(cap(q, [s * 12, 146, -20], [s * 18, 156, 14], 1.8), ROPE2, 1);
+    for (let i = 0; i < 4; i++) sprout(q, [-14 + i * 9, 146 + (i & 1) * 4, -36], [0, 1, -0.4], 8 - i, 5 - i * 0.6, i === 1);   // mushrooms fruiting out of the ore
+  },
+  arm(p, s) {
+    const sh = [s * 30, 140, 18], el = [s * 40, 112, 28], wr = [s * 40, 86, 40];
+    sleeveArm(p, s, sh, el, wr, 6.5, COAT(0.35, 0x3a3020, 0.62));
+    if (s < 0) { hand(p, wr, s, 6, 4, 16); return; }
+    // the pick: a haft held at the end, the head a curved spike of bone-hard fungus
+    const g = [40, 84, 46], top = [36, 176, 6];
+    U(cap(p, [41, 60, 56], top, 3.4, 3), WOOD, 1.2);
+    { const pts = [[36, 176, 6], [34, 186, -16], [32, 182, -40], [30, 168, -56]], pts2 = [[36, 176, 6], [38, 184, 26], [38, 180, 40]]; chain(p, pts, 5, 1.2, IRONC, 2); chain(p, pts2, 5, 2, IRONC, 2); U(box(p, [36, 176, 6], [6, 7, 7], 2), IRONC, 2); }
+    P(-fbm(p[0] * 0.1, p[1] * 0.1, p[2] * 0.1) - 0.15, mixP(CAP(0.5), C(0x2a1a10), 0.4), 0.15);
+    hand(p, wr, s, 6.5, 4, 16, g);
+  },
+  head(p) {
+    U(cap(p, [0, 142, 26], [0, 164, 36], 12, 13), SKIN, 5); U(ell(p, [0, 168, 40], [14, 14, 13]), SKIN, 5);
+    hostFace(p, { c: [0, 166, 51], eyeX: 5.5, eyeR: 2.6, mouthY: -10, mouthW: 7 });
+    for (let i = 0; i < 9; i++) { const a = (i / 8 - 0.5) * 2, x = Math.sin(a) * 9; strand(p, [x, 160, 46 + Math.cos(a) * 4], 10 + hashI(i, 3) * 6, 1.6, MYC2, i, 1.5); }   // a short beard of hyphae
+    // the helmet: a round dome with a short brim all round, and on the brow the lamp, a lit mushroom in a brass ring
+    hat(p, { c: [0, 176, 38], crown: [16, 15, 4], dome: 13, brim: 19, brimT: 2, droop: 2, col: CAP(1), warts: 4, seed: 2 });
+    U(torus(rotX(p, [0, 182, 56], 1.4), [0, 182, 56], 6, 2), BRASS, 1); U(sph(p, [0, 182, 56], 5.4), GLOW(1), 1); sprout(p, [0, 184, 55], [0, 0.4, 1], 5, 4, true);
+    S(p[1] - 138, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- BARON BLACKWATER (Owner of Everything Down Here)
+// Round: a belly like a cask in a waistcoat, short legs, a tiny top hat perched on a big head, a monocle that glows, a
+// moustache of gills, coat tails, a silver-topped cane.
+export const B_Baron = hostRig({
+  height: 235, hipY: 60, hipX: 22, sh: [46, 150, 4], neck: [0, 154, 10], legs: { r: 13, splay: 5, bootTop: 30 },
+  bodyLo: [-80, 20, -78], bodyHi: [80, 186, 84], bodyTris: 14000, headLo: [-44, 140, -30], headHi: [44, 236, 60], headH: 1.2,
+  armBox: [[18, -6, -40], [86, 170, 80]], armTris: [4000, 5500],
+  torso(p) {
+    U(ell(p, [0, 112, 10], [56, 56, 52]), SKIN, 14); U(ell(p, [0, 148, 4], [44, 22, 34]), SKIN, 12);
+    // the waistcoat over the belly, buttons straining (pores), a chain; the coat open over it with tails behind
+    fitted(p, { shapes: [[[0, 112, 10], [56, 56, 52]], [[0, 148, 4], [44, 22, 34]]], t: 2, top: 164, bot: 72, col: mixP(CAP(0.6), C(0x5a1a12), 0.4), folds: 5 });
+    garment(p, { top: 168, bot: 40, r0: [48, 38], r1: [62, 50], open: 34, ragged: 3, col: COAT(0.3, 0x100c0a, 0.65), folds: 8, cz: 2, back: -8 });
+    for (let i = 0; i < 5; i++) pore(p, [0, 150 - i * 15, 62 - Math.abs(i - 2) * 2.5], 2.2, [0, 0.1, 1]);
+    { const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([-24 + t * 48, 118 - Math.sin(t * Math.PI) * 10, 58 + Math.sin(t * Math.PI) * 4]); } chain(p, pts, 1, 1, BRASS, 0.4); }
+    U(torus(p, [0, 160, 6], 24, 4), mixP(C(0xd8ccb4), FLESH(0.3), 0.3), 2);   // a cravat gone to a ring of gill
+    sprout(p, [-30, 160, -26], [-0.4, 1, -0.6], 11, 7, true); sprout(p, [26, 154, -30], [0.4, 0.8, -0.8], 8, 5);
+  },
+  arm(p, s) {
+    const sh = [s * 46, 150, 4], el = [s * 60, 118, 14], wr = [s * 62, 88, 28];
+    sleeveArm(p, s, sh, el, wr, 9, COAT(0.3, 0x100c0a, 0.65), C(0xd8ccb4));
+    if (s < 0) { hand(p, wr, s, 7.5, 4, 14); return; }
+    // the cane: black, a silver knob, planted forward
+    const g = [62, 84, 32];
+    U(cap(p, [62, 92, 30], [64, 2, 58], 2.6, 2.4), C(0x141012), 1); U(sph(p, [62, 94, 30], 4.6), C(0xb8b4a8), 1.2); U(sph(p, [64, 2, 58], 3), BRASS, 1);
+    hand(p, wr, s, 7.5, 4, 14, g);
+  },
+  head(p) {
+    U(cap(p, [0, 150, 8], [0, 170, 12], 20, 20), SKIN, 8); U(ell(p, [0, 182, 14], [24, 22, 21]), SKIN, 8); U(ell(p, [0, 168, 20], [22, 12, 16]), SKIN, 8);   // jowls
+    hostFace(p, { c: [0, 186, 33], eyeX: 8, eyeR: 2.8, mouthY: -15, mouthW: 9 });
+    U(torus(rotX(p, [8, 190, 34], 1.5), [8, 190, 34], 4.8, 0.9), BRASS, 0.5); U(cap(p, [12, 188, 34], [16, 160, 32], 0.4), BRASS, 0.3);   // the monocle
+    for (const s of [-1, 1]) chain(p, [[s * 2, 178, 34], [s * 12, 176, 34], [s * 22, 180, 30], [s * 26, 186, 26]], 2.6, 0.6, mixP(MYC2, C(0x3a2a1a), 0.4), 1);   // a moustache of gills
+    // the top hat: comically small on that head, tipped to one side
+    hat(p, { c: [6, 200, 12], crown: [10, 11, 22], dome: 1.5, brim: 15, brimT: 1.6, droop: -2, tilt: -0.22, col: CAP(1), band: [4, 2.6, CAP(0.4, 0x0a0806)], warts: 3, seed: 6 });
+    S(p[1] - 146, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- DEACON MOSS (Still Preaching)
+// A preacher in a long black coat with a brim as wide as a cartwheel, a beard of moss to his chest, the book held up
+// open in front of him. Its pages are gills now, and they glow.
+export const B_Deacon = hostRig({
+  height: 240, hipY: 78, hipX: 13, sh: [26, 172, 6], neck: [0, 176, 10], legs: { r: 9, splay: 2, bootTop: 36 },
+  bodyLo: [-56, 20, -50], bodyHi: [56, 192, 54], headLo: [-60, 168, -54], headHi: [60, 250, 70], headH: 1.3, headTris: 10000,
+  armBox: [[6, 60, -30], [60, 182, 90]], armTris: [4000, 6500],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 152, 4], [24, 22, 17]], belly: [[0, 120, 4], [21, 26, 16]], neckY: 182, lean: 0.06 });
+    U(cap(q, [0, 86, 0], [0, 118, 0], 17, 19), SKIN, 8);
+    garment(q, { top: 180, bot: 30, r0: [27, 21], r1: [34, 30], open: 7, ragged: 5, col: COAT(0.25, 0x0c0a0a, 0.7), folds: 12 });
+    U(Math.max(Math.abs(q[1] - 176) - 3, cap(q, [0, 170, 6], [0, 182, 6], 15) ), C(0xe0d8c4), 1.5);   // the white collar, the last clean thing on him
+    sprout(q, [-14, 172, -14], [-0.4, 1, -0.6], 10, 6, true); sprout(q, [12, 158, -18], [0.4, 0.7, -0.8], 7, 4.4);
+    mold(q, 40, 180, 0.55);
+  },
+  arm(p, s) {
+    if (s < 0) { const sh = [-26, 172, 6], el = [-34, 136, 12], wr = [-34, 102, 18]; sleeveArm(p, s, sh, el, wr, 6, COAT(0.25, 0x0c0a0a, 0.7)); hand(p, wr, s, 5, 4, 18); return; }
+    // the book arm: forearm raised, the book open on the palm, held up to be read from
+    const sh = [26, 172, 6], el = [34, 140, 22], wr = [26, 152, 52];
+    sleeveArm(p, s, sh, el, wr, 6, COAT(0.25, 0x0c0a0a, 0.7));
+    U(ell(p, [24, 150, 58], [8, 4, 8]), ROOT2, 2);
+    const bk = [20, 158, 62], q = rotX(rotZ(p, bk, -0.25), bk, -0.5);
+    for (const sd of [-1, 1]) { const qq = rotZ(q, bk, sd * 0.22); U(box(qq, [bk[0] + sd * 11, bk[1], bk[2]], [10, 1.6, 14], 0.8), C(0x1a120e), 0.8);   // the boards
+      U(box(qq, [bk[0] + sd * 10.5, bk[1] + 2.6, bk[2]], [9.5, 1.6, 13], 0.6), mixP(FLESH(0.9), C(0xe8dcc0), 0.4), 0.6);   // the pages
+      if (box(qq, [bk[0] + sd * 10.5, bk[1] + 2.6, bk[2]], [9.5, 2, 13], 0.6) < 0.8) { const g = Math.abs(Math.sin(qq[2] * 1.4)); P(g - 0.25, GLOW(0.55), 0.15); } }
+    for (let i = 0; i < 4; i++) rootFinger(p, [[22 + i * 2, 148, 56], [18 + i * 4, 152, 62], [14 + i * 4, 156, 66]], 1.8, ROOT2);
+  },
+  head(p) {
+    U(cap(p, [0, 176, 8], [0, 196, 12], 10, 11), SKIN, 5); U(ell(p, [0, 204, 14], [13, 16, 14]), SKIN, 5);
+    hostFace(p, { c: [0, 206, 26], eyeX: 5.2, eyeR: 2.7, mouthY: -11, mouthW: 6.5 });
+    // the beard: a mat of moss from the jaw to the chest, a little sprout in it
+    U(ell(p, [0, 188, 20], [13, 16, 9]), MOSS, 5); { const n = fbm(p[0] * 0.3, p[1] * 0.3, p[2] * 0.3); if (ell(p, [0, 188, 20], [14, 17, 10]) < 2) bump(n * 1.6); }
+    for (let i = 0; i < 7; i++) strand(p, [-9 + i * 3, 178, 22], 12 + hashI(i, 2) * 8, 1.6, MOSS, i * 1.7, 2);
+    // the brim: wide and flat, a low round crown, curling down at the edge
+    hat(p, { c: [0, 216, 12], crown: [14, 13, 9], dome: 7, brim: 44, brimT: 2, droop: 6, col: CAP(1), band: [2, 2.4, CAP(0.4, 0x0a0806)], warts: 5, seed: 11 });
+    sprout(p, [18, 222, 20], [0.4, 1, 0.3], 9, 5, true); sprout(p, [-30, 220, -10], [-0.5, 1, -0.2], 7, 4);
+    S(p[1] - 172, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE FERRYMAN (Everyone Goes Across)
+// A thin black figure in a hooded cloak to the ground, nothing of him showing but two lit eyes and one long hand, and
+// a pole twice his height with a lit pod hung from the top of it.
+export const B_Ferryman = hostRig({
+  height: 250, hipY: 84, hipX: 11, sh: [22, 184, 4], neck: [0, 186, 6], legs: { r: 8, splay: 1, bootTop: 30 },
+  bodyLo: [-60, 2, -60], bodyHi: [60, 200, 56], bodyTris: 13000, headLo: [-34, 172, -36], headHi: [34, 252, 48],
+  armBox: [[4, -8, -30], [60, 300, 70]], armTris: [3500, 6000],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 162, 2], [20, 20, 15]], belly: [[0, 126, 2], [16, 26, 13]], neckY: 190 });
+    garment(q, { top: 196, bot: 6, r0: [24, 19], r1: [42, 36], open: 5, ragged: 7, rag: 9, col: COAT(0.2, 0x08070a, 0.75), folds: 13, t: 2.4 });
+    garment(q, { top: 198, bot: 150, r0: [22, 18], r1: [38, 30], closed: true, ragged: 6, rag: 6, col: COAT(0.22, 0x0a080a, 0.72), t: 2 });   // a short cape over the shoulders
+    for (let i = 0; i < 4; i++) sprout(q, [-16 + i * 10, 186 - (i & 1) * 6, -22], [i * 0.1 - 0.15, 0.9, -0.6], 8, 5, i === 2);
+    // wet weed hanging off the hem
+    for (let i = 0; i < 10; i++) { const a = i * 0.63 + 0.2; strand(q, [Math.cos(a) * 38, 22, Math.sin(a) * 33], 14 + hashI(i, 4) * 8, 1.5, mixP(MOSS, CAP(0.3), 0.3), i, 1.5); }
+  },
+  arm(p, s) {
+    const sh = [s * 22, 184, 4], el = [s * 30, 146, 14], wr = [s * 30, 120, 30];
+    // a wide sleeve, hanging open
+    U(cap(p, sh, el, 8, 9), COAT(0.2, 0x08070a, 0.75), 3); U(Math.max(cap(p, el, [wr[0], wr[1] + 6, wr[2] - 4], 9, 12), -cap(p, el, [wr[0], wr[1] + 2, wr[2] - 2], 6, 10)), COAT(0.2, 0x08070a, 0.75), 2.5);
+    if (s < 0) { hand(p, wr, s, 4.4, 4, 22); return; }
+    // the pole: a long pale shaft, held at the middle; at the top a crook with a lit pod hanging off it
+    const g = [30, 118, 34], t = [34, 292, 20], b = [26, -4, 46];
+    U(cap(p, b, t, 2.6, 2.2), mixP(BONEC, C(0x4a4030), 0.4), 1);
+    chain(p, [t, [38, 300, 14], [44, 296, 6], [46, 286, 4]], 2.2, 1.6, mixP(BONEC, C(0x4a4030), 0.4), 1);
+    U(cap(p, [46, 286, 4], [46, 276, 4], 0.8), MYC2, 0.4); U(ell(p, [46, 268, 4], [6, 8, 6]), mixP(CAP(0.6), C(0x2a2010), 0.3), 1.5); P(ell(p, [46, 268, 4], [6.4, 8.4, 6.4]) + 1.2, GLOW(1), 1.2);
+    hand(p, wr, s, 4.6, 4, 14, g);
+  },
+  head(p) {
+    // the hood: deep, pointed at the back, the face lost in it but for the eyes
+    const hood = Math.max(ell(p, [0, 212, 6], [19, 24, 22]), -ell(p, [0, 208, 18], [13, 18, 16]));
+    U(Math.min(hood, cap(p, [0, 224, -6], [0, 238, -22], 9, 2)), COAT(0.22, 0x0a080a, 0.72), 4);
+    U(ell(p, [0, 206, 8], [12, 16, 12]), C(0x060507), 4);
+    for (const s of [-1, 1]) U(ell(p, [s * 4.6, 210, 19], [2.2, 1.4, 1.4]), GLOW(1), 0.6);
+    { const a = Math.atan2(p[0], p[2] - 6); if (hood < 3) bump((Math.abs(Math.sin(a * 5 + p[1] * 0.04)) < 0.25 ? -1 : 0)); }
+    S(p[1] - 180, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- MOTHER MOURN (The Lagoon's Own)
+// A widow in a bell of a mourning dress, swept along the ground; a narrow bodice, long thin arms, and over the face a
+// veil hung from a tall comb, the veil gone to a curtain of dark gill through which her eyes still show.
+export const B_Mourn = hostRig({
+  height: 260, hipY: 84, hipX: 10, sh: [22, 186, 2], neck: [0, 190, 4], legs: { r: 7, splay: 0, bootTop: 18 },
+  bodyLo: [-76, 0, -76], bodyHi: [76, 204, 76], bodyTris: 15000, headLo: [-40, 178, -46], headHi: [40, 270, 46], headTris: 11000,
+  armBox: [[4, 60, -30], [70, 196, 60]],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 164, 2], [18, 20, 14]], belly: [[0, 136, 2], [13, 18, 11]], neckY: 196 });
+    // the bodice, tight, buttoned; the skirt a great bell to the floor, flounced in tiers like gills
+    garment(q, { top: 192, bot: 120, r0: [17, 14], r1: [18, 15], closed: true, t: 2.4, ragged: 0, col: COAT(0.25, 0x0c080c, 0.7), folds: 14 });
+    const sk = garment(q, { top: 124, bot: 2, r0: [22, 20], r1: [66, 62], closed: true, t: 3, ragged: 6, rag: 13, col: COAT(0.26, 0x0c080c, 0.7), folds: 16 });
+    for (const y of [96, 64, 34]) { const u = (124 - y) / 122, r = 22 + 44 * u * u; U(Math.max(Math.abs(len(q[0], 0, q[2]) - (r + 3)) - 2, Math.abs(q[1] - y) - 4 - Math.sin(Math.atan2(q[2], q[0]) * 18) * 1.5), COAT(0.34, 0x0c080c, 0.6), 2); }   // the flounces
+    U(ell(q, [0, 100, 0], [30, 30, 28]), C(0x060506), 6); void sk;   // the dark inside, never seen
+    for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.4; sprout(q, [Math.cos(a) * 52, 40 + (i & 1) * 12, Math.sin(a) * 48], [Math.cos(a), 0.5, Math.sin(a)], 8, 5, i % 2 === 0); }
+    U(torus(q, [0, 188, 3], 11, 2.2), C(0x0a0808), 1.5); for (let i = 0; i < 5; i++) pore(q, [0, 178 - i * 10, 15.5], 1.4, [0, 0, 1]);
+  },
+  leg(p, s) {   // only the toes of her shoes ever show under the hem
+    U(cap(p, [s * 10, 86, 0], [s * 11, 12, 2], 7, 6), C(0x060506), 3); U(ell(p, [s * 11, 6, 8], [6, 6, 11]), LEATH2, 3); S(p[1] + 0.5, 1);
+  },
+  arm(p, s) {
+    const sh = [s * 22, 186, 2], el = [s * 30, 146, 10], wr = [s * 32, 108, 20];
+    sleeveArm(p, s, sh, el, wr, 4.8, COAT(0.25, 0x0c080c, 0.7));
+    U(Math.max(cap(p, el, [wr[0], wr[1] + 8, wr[2] - 2], 6, 9), -cap(p, el, [wr[0], wr[1] + 4, wr[2]], 4, 7)), COAT(0.25, 0x0c080c, 0.7), 2);   // lace at the wrist, ragged
+    hand(p, [wr[0], wr[1] - 3, wr[2] + 2], s, 3.8, 4, 30);   // fingers too long
+  },
+  head(p) {
+    U(cap(p, [0, 190, 4], [0, 212, 6], 7, 8), SKIN, 4); U(ell(p, [0, 220, 8], [11, 14, 11]), SKIN, 4);
+    hostFace(p, { c: [0, 222, 18], eyeX: 4.6, eyeR: 2.4, mouthY: -10, mouthW: 5, teeth: false });
+    // the comb: a tall crest at the back of the head, the veil hung from it, falling in strips over the face to the chest
+    U(Math.max(ell(p, [0, 238, 2], [14, 22, 8]), -(p[1] - 226)), COAT(0.3, 0x0a080a, 0.65), 3);
+    for (let i = 0; i < 19; i++) { const a = (i / 18) * Math.PI * 1.25 - Math.PI * 0.12, x = Math.cos(a) * 15, z = 8 + Math.sin(a) * 15, L = 44 + hashI(i, 8) * 10 - (Math.sin(a) > 0.9 ? 10 : 0);
+      if (Math.abs(x) < 6 && z > 18) continue;   // a gap over the eyes
+      const pts = []; for (let k = 0; k <= 5; k++) { const t = k / 5; pts.push([x * (1 + t * 0.5), 240 - L * t, z * (1 + t * 0.35) + 2 * t]); } chain(p, pts, 1.6, 1.1, mixP(COAT(0.3, 0x0a080a, 0.65), C(0x000000), 0.2), 0.8); }
+    S(p[1] - 186, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE HUMAN CANNONBALL (Fired Twice Nightly)
+// Short and solid, built to be shot from a gun: a round shell of a helmet (a puffball now) with goggles that glow, a
+// little cape, a strongman's belt, bowed legs braced for the landing.
+export const B_Cannonball = hostRig({
+  height: 200, hipY: 58, hipX: 18, sh: [34, 128, 4], neck: [0, 132, 8], legs: { r: 13, splay: 6, bootTop: 34 },
+  bodyLo: [-66, 30, -60], bodyHi: [66, 170, 60], headLo: [-46, 120, -42], headHi: [46, 214, 56], headH: 1.2,
+  armBox: [[14, 30, -30], [76, 140, 60]],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 112, 4], [36, 26, 26]], belly: [[0, 86, 4], [30, 22, 24]], neckY: 134 });
+    fitted(q, { t: 1.6, top: 132, bot: 70, col: mixP(CAP(0.7), C(0xe8dcc0), 0.35), folds: 4 });   // the striped tights
+    if (q[1] > 70 && q[1] < 134 && Math.abs(len(q[0] / 36, 0, q[2] / 27) - 1) < 0.15) P(-Math.abs(Math.sin(q[1] * 0.2)) + 0.5, C(0xe8dcc0), 0.2);
+    U(Math.max(Math.abs(q[1] - 78) - 6, len(q[0], 0, q[2]) - 33), LEATH, 2); U(ell(q, [0, 78, 32], [10, 8, 3]), BRASS, 1.5);
+    garment(q, { top: 136, bot: 76, r0: [30, 22], r1: [42, 30], closed: true, back: -12, t: 1.8, ragged: 5, col: mixP(CAP(0.8), C(0x5a1a12), 0.3), folds: 6 });   // the cape (only behind)
+    S(Math.max(-q[2] + 6, -(q[1] - 76)), 2);   // cut the cape away in front
+    sprout(q, [-24, 130, -12], [-0.5, 1, -0.4], 9, 6, true);
+  },
+  arm(p, s) {
+    const sh = [s * 34, 128, 4], el = [s * 52, 104, 8], wr = [s * 56, 80, 18];
+    U(cap(p, sh, el, 13, 11), SKIN, 5); U(cap(p, el, wr, 11, 9), SKIN, 5); mold(p, 70, 130);
+    U(cap(p, [wr[0], wr[1] + 10, wr[2] - 2], [wr[0], wr[1] - 2, wr[2] + 1], 10, 10), LEATH, 1.5);   // wrist straps
+    hand(p, [wr[0], wr[1] - 4, wr[2] + 1], s, 8, 4, 12);
+  },
+  head(p) {
+    U(cap(p, [0, 126, 6], [0, 146, 10], 13, 14), SKIN, 5);
+    // the helmet: a big round shell coming down over the head to the jaw, a fin over the top, a lit seam round it
+    const hm = ell(p, [0, 166, 10], [30, 34, 30]);
+    U(Math.max(hm, 142 - p[1]), CAP(1), 4); { const [d1] = cells(p[0] * 0.18, p[1] * 0.18, p[2] * 0.18); if (hm < 2) bump(-Math.max(0, 0.32 - d1) * 3); }
+    U(Math.max(Math.abs(p[0]) - 2.6, ell(p, [0, 176, 4], [10, 34, 36]), -(p[1] - 168)), mixP(CAP(0.6), C(0x2a1a12), 0.4), 2);   // the fin
+    P(Math.abs(p[1] - 150) - 1.2, GLOW(0.8), 0.6);
+    // the goggles: two big lit lenses in brass rings on the front of the shell
+    for (const s of [-1, 1]) { const g = [s * 11, 164, 38]; U(torus(rotX(p, g, 1.5), g, 7, 2.4), BRASS, 1); S(sph(p, [g[0], g[1], g[2] + 3], 6.2), 1); U(sph(p, [g[0], g[1], g[2] - 2], 6.2), GLOW(1), 1); }
+    U(ell(p, [0, 140, 24], [14, 6, 8]), SKIN, 4); S(ell(p, [0, 138, 31], [8, 2.6, 4]), 1.2, GUM);   // the jaw under the shell
+    S(p[1] - 122, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE TWINS (Billed as Inseparable)
+// One pair of legs and everything else twice: two bodies leaning apart from one pair of hips, two heads (one round,
+// one long), an arm each on the outside and the two inner arms grown together into one.
+export const B_Twins = hostRig({
+  height: 230, hipY: 70, hipX: 17, sh: [56, 150, 2], neck: [0, 150, 6], legs: { r: 12, splay: 5, bootTop: 34 },
+  bodyLo: [-90, 40, -50], bodyHi: [90, 196, 56], bodyTris: 15000, headLo: [-80, 140, -34], headHi: [80, 240, 50], headTris: 12000,
+  armBox: [[30, 30, -30], [100, 160, 60]],
+  torso(p) {
+    U(ell(p, [0, 84, 2], [30, 20, 22]), SKIN, 10);
+    for (const s of [-1, 1]) { const q = rotZ(p, [0, 90, 0], s * -0.32); U(ell(q, [0, 122, 2], [22, 30, 18]), SKIN, 10); U(ell(q, [0, 146, 2], [26, 16, 18]), SKIN, 10); U(cap(q, [0, 146, 4], [0, 168, 6], 9, 8), SKIN, 6);
+      fitted(q, { shapes: [[[0, 122, 2], [22, 30, 18]], [[0, 146, 2], [26, 16, 18]]], t: 2, top: 158, bot: 94, ragged: 2, col: s < 0 ? mixP(CAP(0.7), C(0x3a1a2a), 0.4) : mixP(CAP(0.7), C(0x1a2a3a), 0.4), folds: 7 }); }
+    garment(p, { top: 98, bot: 62, r0: [32, 22], r1: [34, 24], closed: true, ragged: 4, col: COAT(0.4, 0x2a1a10, 0.55), folds: 8 });   // the shared skirt of a costume
+    // the inner arms, grown into one, hanging between them
+    chain(p, [[-14, 146, 12], [-6, 122, 22], [0, 100, 28]], 6, 5, ROOT, 3); chain(p, [[14, 146, 12], [6, 122, 22], [0, 100, 28]], 6, 5, ROOT2, 3); hand(p, [0, 96, 30], 1, 6.5, 5, 14);
+    for (let k = -2; k <= 2; k++) U(cap(p, [k * 2.4, 150 + k * 2, 18], [k * 2.4, 140 + k * 2, 22], 0.7), MYC, 0.4);   // stitched where they meet
+    sprout(p, [-30, 164, -10], [-0.6, 1, -0.4], 9, 6, true); sprout(p, [30, 162, -12], [0.6, 1, -0.4], 8, 5);
+  },
+  arm(p, s) {
+    const sh = [s * 56, 150, 2], el = [s * 70, 118, 10], wr = [s * 72, 88, 22];
+    sleeveArm(p, s, sh, el, wr, 7, s < 0 ? mixP(CAP(0.7), C(0x3a1a2a), 0.4) : mixP(CAP(0.7), C(0x1a2a3a), 0.4), C(0xe8dcc0)); hand(p, wr, s, 6.5, 4, 16);
+  },
+  head(p) {
+    for (const s of [-1, 1]) { const c = [s * 40, 186, 8]; U(cap(p, [s * 34, 156, 6], [c[0], c[1] - 8, c[2]], 9, 10), SKIN, 5);
+      if (s < 0) { U(ell(p, c, [15, 15, 14]), SKIN, 5); hostFace(p, { c: [c[0], c[1], c[2] + 13], eyeX: 5, eyeR: 2.5, mouthY: -9, mouthW: 6 });
+        hat(p, { c: [c[0], c[1] + 10, c[2]], crown: [13, 12, 3], dome: 11, brim: 20, brimT: 2.4, droop: 5, col: CAP(1), warts: 5, seed: 13 }); }   // the round one under a toadstool
+      else { U(ell(p, c, [11, 18, 12]), SKIN, 5); hostFace(p, { c: [c[0], c[1] - 2, c[2] + 11], eyeX: 4.2, eyeR: 2.3, mouthY: -10, mouthW: 5 });
+        hat(p, { c: [c[0], c[1] + 10, c[2]], crown: [14, 9, 20], dome: 9, brim: 15, brimT: 1.6, droop: 7, col: CAP(1), warts: 4, seed: 14, tilt: 0.15 }); } }   // the long one under a bell
+    S(p[1] - 148, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- GRIN (The Last Clown)
+// Baggy and bright: a ruff like a frilled gill round the neck, a tall cone hat with a puffball on its tip, a round lit
+// nose, a grin too wide for the face, pantaloons and long shoes.
+export const B_Grin = hostRig({
+  height: 220, hipY: 66, hipX: 18, sh: [34, 140, 4], neck: [0, 144, 6], legs: { r: 14, splay: 6, bootTop: 26, cloth: mixP(CAP(0.8), C(0xe8dcc0), 0.4) },
+  bodyLo: [-60, 30, -50], bodyHi: [60, 172, 56], headLo: [-52, 130, -40], headHi: [52, 262, 60], headTris: 10000,
+  armBox: [[14, 40, -30], [72, 150, 60]],
+  leg(p, s, o) {
+    hostLeg(p, s, o);
+    U(ell(p, [s * 22, 6, 24], [9, 6, 22]), C(0x6a1a14), 3); U(sph(p, [s * 22, 8, 44], 7), C(0x6a1a14), 2);   // the long shoes, round toed
+  },
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 120, 4], [26, 22, 19]], belly: [[0, 92, 6], [30, 26, 24]], neckY: 146 });
+    garment(q, { top: 142, bot: 60, r0: [30, 23], r1: [40, 32], closed: true, t: 2.2, ragged: 3, col: mixP(CAP(0.8), C(0xe8dcc0), 0.4), folds: 6 });
+    for (let i = 0; i < 3; i++) U(sph(q, [0, 124 - i * 16, 26 + i * 2], 4.6), GLOW(0.9), 1.2);   // three big lit pom-poms down the front
+    { const a = Math.atan2(q[2], q[0]); if (Math.abs(len(q[0] / 34, 0, q[2] / 27) - 1) < 0.15 && q[1] < 142 && q[1] > 60) P(Math.abs(Math.sin(a * 3)) - 0.5, mixP(CAP(1), C(0x000000), 0.2), 0.1); }
+    // the ruff: a deep frill of gill round the neck
+    { const a = Math.atan2(q[2] - 4, q[0]), rr = len(q[0], 0, q[2] - 4), y0 = 142 + Math.sin(a * 16) * 4; U(Math.max(Math.abs(q[1] - y0) - 2.4 - (rr - 10) * 0.06, rr - 32, 9 - rr), mixP(C(0xf0e8d8), FLESH(0.4), 0.3), 2); }
+    sprout(q, [-20, 134, -18], [-0.5, 1, -0.6], 8, 5, true);
+  },
+  arm(p, s) {
+    const sh = [s * 34, 140, 4], el = [s * 46, 112, 14], wr = [s * 48, 84, 26];
+    sleeveArm(p, s, sh, el, wr, 8, mixP(CAP(0.8), C(0xe8dcc0), 0.4));
+    U(Math.max(Math.abs(len(p[0] - wr[0], 0, p[2] - wr[2]) - 9) - 2, Math.abs(p[1] - (wr[1] + 6 + Math.sin(Math.atan2(p[2] - wr[2], p[0] - wr[0]) * 10) * 2)) - 2), C(0xf0e8d8), 1.5);   // frilled cuffs
+    hand(p, [wr[0], wr[1] - 4, wr[2] + 2], s, 7, 4, 14);
+  },
+  head(p) {
+    U(cap(p, [0, 140, 6], [0, 160, 10], 11, 13), SKIN, 5); U(ell(p, [0, 170, 12], [21, 20, 19]), SKIN, 6);
+    // the grin: ear to ear, full of teeth; the nose a round lit ball; the eyes small and wide apart
+    S(Math.max(ell(p, [0, 160, 28], [18, 8, 10]), -(p[1] - 154 + Math.abs(p[0]) * 0.25)), 1.5, GUM);
+    for (let i = -6; i <= 6; i++) { const x = i * 2.6, y = 162 - Math.abs(i) * 0.2; U(cap(p, [x, y + 3, 28 - Math.abs(i) * 0.3], [x, y - 1.5, 29 - Math.abs(i) * 0.3], 1.1, 0.3), TOOTH, 0.4); }
+    U(sph(p, [0, 172, 33], 5.6), mixP(GLOW(1), C(0xff3020), 0.25), 1.2);
+    for (const s of [-1, 1]) { eye(p, [s * 9, 180, 26], 2.6); P(ell(p, [s * 9, 180, 27], [5, 8, 3]), C(0xe8e0d0), 1); }   // greasepaint over the eyes
+    // the cone hat, tall and leaning, a lit puffball on the tip
+    hat(p, { c: [0, 186, 10], crown: [15, 2.5, 52], col: CAP(1), tilt: 0.28, warts: 6, seed: 17, band: [4, 3, mixP(CAP(0.4), C(0xe8dcc0), 0.5)] });
+    { const tip = [14, 236, 10]; U(sph(p, tip, 7), mixP(C(0xe8dcc0), FLESH(0.4), 0.3), 2); { const [d1] = cells(p[0] * 0.4, p[1] * 0.4, p[2] * 0.4); if (sph(p, tip, 7.5) < 1) bump(-Math.max(0, 0.3 - d1) * 1.5); } }
+    S(p[1] - 136, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE RINGMASTER (The Show Must Go On)
+// A coat-hanger of a man: shoulders out to here with fringed epaulettes, a waist you could close your hand round, a
+// tower of a top hat, a tailcoat whose tails reach his knees, tall boots, and the whip coiled in his fist.
+export const B_Ringmaster = hostRig({
+  height: 265, hipY: 86, hipX: 12, sh: [38, 186, 2], neck: [0, 190, 6], legs: { r: 9, splay: 2, bootTop: 58 },
+  bodyLo: [-70, 30, -56], bodyHi: [70, 204, 50], headLo: [-40, 180, -36], headHi: [40, 300, 50], headTris: 10000,
+  armBox: [[18, 20, -30], [84, 198, 70]], armTris: [4000, 6500],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 166, 2], [34, 22, 17]], belly: [[0, 128, 2], [15, 22, 13]], neckY: 196 });
+    U(cap(q, [0, 92, 0], [0, 122, 0], 15, 14), SKIN, 8);
+    // the tailcoat: cut away in front at the waist, two long tails behind to the knee; a waistcoat, buttons
+    const coat = mixP(CAP(0.75), C(0x6a1410), 0.35);
+    fitted(q, { t: 2.2, top: 194, bot: 118, col: coat, folds: 6 });
+    { const tl = Math.max(garment(q, { top: 124, bot: 50, r0: [19, 16], r1: [24, 20], closed: true, t: 2, ragged: 3, rag: 3, col: coat, folds: 4 }), q[2] + 4); void tl; }
+    S(Math.max(-q[2] - 2, 124 - q[1], q[1] - 40), 2);   // cut the long coat away in front of the legs: tails behind only
+    for (let i = 0; i < 4; i++) pore(q, [0, 178 - i * 12, 18], 1.8, [0, 0, 1]);
+    // the epaulettes: shelf-fungus fringed with hyphae
+    for (const s of [-1, 1]) { U(ell(q, [s * 36, 194, 0], [14, 4, 13]), BRASS, 2); for (let i = 0; i < 9; i++) { const a = i * 0.7 - 2.8; strand(q, [s * (36 + Math.cos(a) * 12), 191, Math.sin(a) * 11], 9, 1.1, BRASS, i, 0.5); } }
+    sprout(q, [-14, 192, -14], [-0.3, 1, -0.6], 10, 6, true);
+  },
+  arm(p, s) {
+    const sh = [s * 38, 186, 2], el = [s * 48, 152, 10], wr = [s * 50, 120, 22];
+    sleeveArm(p, s, sh, el, wr, 6.4, mixP(CAP(0.75), C(0x6a1410), 0.35), BRASS);
+    if (s < 0) { hand(p, wr, s, 5.2, 4, 18); return; }
+    // the whip: a short handle in the fist, the lash coiled in loops hanging from it
+    const g = [50, 116, 28];
+    U(cap(p, [50, 124, 24], [52, 100, 34], 2.6, 2.2), LEATH, 1);
+    for (let k = 0; k < 4; k++) U(torus(rotZ(p, [56, 84 - k * 3, 36], 1.35 + k * 0.1), [56, 84 - k * 3, 36], 14 - k * 1.5, 1.4), LEATH2, 0.8);
+    chain(p, [[52, 100, 34], [54, 92, 36], [56, 72, 40], [52, 50, 46], [58, 36, 52]], 1.4, 0.6, LEATH2, 0.6);
+    hand(p, wr, s, 5.4, 4, 14, g);
+  },
+  head(p) {
+    U(cap(p, [0, 190, 4], [0, 212, 8], 9, 10), SKIN, 5); U(ell(p, [0, 220, 10], [12, 15, 12]), SKIN, 5);
+    hostFace(p, { c: [0, 222, 21], eyeX: 5, eyeR: 2.6, mouthY: -11, mouthW: 6 });
+    for (const s of [-1, 1]) chain(p, [[s * 1.5, 214, 22], [s * 10, 213, 21], [s * 18, 216, 17], [s * 21, 222, 14]], 2.2, 0.5, mixP(MYC2, C(0x2a1a10), 0.5), 1);   // the moustache, waxed
+    hat(p, { c: [0, 230, 9], crown: [13, 15, 54], dome: 2, brim: 19, brimT: 1.8, droop: -3, col: CAP(1), band: [8, 4.5, mixP(CAP(0.3), C(0x6a1410), 0.5)], warts: 5, seed: 19 });
+    S(p[1] - 186, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE HARBOURMASTER (Nothing Leaves Without His Say)
+// A wall of greatcoat: wide, deep, collar up, a peaked cap low over his eyes, barnacles grown thick on his shoulders,
+// a hook where his left hand was, a pipe clamped in a beard of weed.
+export const B_Harbourmaster = hostRig({
+  height: 240, hipY: 74, hipX: 18, sh: [44, 166, 4], neck: [0, 170, 8], legs: { r: 12, splay: 4, bootTop: 40 },
+  bodyLo: [-80, 20, -66], bodyHi: [80, 196, 68], bodyTris: 14000, headLo: [-40, 156, -34], headHi: [40, 238, 60],
+  armBox: [[18, 30, -40], [90, 180, 70]], armTris: [4500, 5500],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 146, 4], [40, 28, 26]], belly: [[0, 112, 6], [36, 30, 28]], neckY: 176 });
+    const coat = mixP(CAP(0.4), C(0x1a2430), 0.55);
+    garment(q, { top: 172, bot: 30, r0: [40, 31], r1: [54, 44], open: 6, ragged: 4, col: coat, folds: 9, t: 3.2 });
+    for (const s of [-1, 1]) U(ell(q, [s * 36, 168, 4], [18, 14, 22]), coat, 8);   // the shoulders of it, rounded
+    garment(q, { top: 184, bot: 160, r0: [20, 18], r1: [40, 30], closed: true, t: 2.4, col: coat });   // the collar turned up
+    for (let i = 0; i < 6; i++) for (const s of [-1, 1]) U(sph(q, [s * 12, 160 - i * 18, 38 + (i > 2 ? 2 : 0)], 2.8), BRASS, 1);   // two rows of buttons
+    // barnacles: cones crowded on the shoulders and down the back, each with a dark pit
+    for (let i = 0; i < 26; i++) { const a = i * 2.399, side = i % 2 ? 1 : -1, x = side * (26 + hashI(i, 1) * 22), y = 150 + hashI(i, 2) * 30, z = -10 + Math.sin(a) * 18, r = 3 + hashI(i, 3) * 3;
+      U(cap(q, [x, y - 2, z], [x * 1.04, y + r * 1.2, z], r, r * 0.6), C(0xa8a094), 1.5); S(sph(q, [x * 1.04, y + r * 1.3, z], r * 0.4), 0.6, C(0x1a1612)); }
+    sprout(q, [-18, 178, -20], [-0.3, 1, -0.6], 9, 6, true);
+  },
+  arm(p, s) {
+    const sh = [s * 44, 166, 4], el = [s * 56, 128, 12], wr = [s * 56, 96, 26];
+    sleeveArm(p, s, sh, el, wr, 9.5, mixP(CAP(0.4), C(0x1a2430), 0.55), mixP(CAP(0.3), C(0x101418), 0.6));
+    if (s > 0) { hand(p, wr, s, 8, 4, 16); return; }
+    // the hook: a cup over the stump and a great iron hook
+    U(cap(p, [wr[0], wr[1] + 4, wr[2]], [wr[0], wr[1] - 8, wr[2] + 2], 9, 8), C(0x2a2018), 1.5);
+    { const c = [wr[0], wr[1] - 26, wr[2] + 6], q = rotY(p, c, 0.5), a = Math.atan2(q[1] - c[1], q[2] - c[2]); U(Math.max(Math.abs(len(0, q[1] - c[1], q[2] - c[2]) - 11) - 2.6, Math.abs(q[0] - c[0]) - 2.6, a > 0.7 && a < 2.4 ? 3 : -3), IRONC, 1);
+      U(cap(p, [wr[0], wr[1] - 8, wr[2] + 2], [c[0], c[1] + 11, c[2]], 2.6), IRONC, 1); }
+  },
+  head(p) {
+    U(cap(p, [0, 164, 6], [0, 186, 10], 13, 14), SKIN, 5); U(ell(p, [0, 194, 12], [16, 17, 15]), SKIN, 5);
+    hostFace(p, { c: [0, 194, 26], eyeX: 5.8, eyeR: 2.7, mouthY: -12, mouthW: 7 });
+    // the beard of weed, thick; the pipe
+    U(ell(p, [0, 180, 20], [15, 12, 9]), mixP(MOSS, CAP(0.3), 0.3), 5); for (let i = 0; i < 9; i++) strand(p, [-10 + i * 2.5, 174, 22], 10 + hashI(i, 6) * 10, 1.6, mixP(MOSS, CAP(0.3), 0.3), i, 1.5);
+    chain(p, [[6, 184, 28], [12, 180, 36], [16, 182, 42]], 1.4, 1.4, C(0x2a1a10), 0.6); U(cap(p, [16, 180, 42], [16, 190, 42], 3.4, 3.8), C(0x3a2416), 1); U(sph(p, [16, 191, 42], 2.6), GLOW(0.9), 0.6);
+    // the peaked cap: a flat round top, a band, a short visor out over the eyes
+    hat(p, { c: [0, 204, 12], crown: [17, 19, 8], dome: 3, col: CAP(1), band: [2, 3, mixP(CAP(0.3), C(0x101418), 0.6)], warts: 4, seed: 21, pitch: 0.12 });
+    U(Math.max(ell(p, [0, 203, 30], [16, 1.8, 12]), -(p[2] - 20)), mixP(CAP(0.35), C(0x0a0808), 0.6), 1.5);
+    S(p[1] - 160, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- THE HANGMAN (The Wharf Is Named for His Work)
+// Tall, long in the arm, bare-armed and aproned, a pointed hood over the whole head with two holes for the light to come
+// out of; a coil of rope over one shoulder and the noose hanging from his hand.
+export const B_Hangman = hostRig({
+  height: 280, hipY: 92, hipX: 14, sh: [34, 196, 2], neck: [0, 200, 4], legs: { r: 10, splay: 3, bootTop: 46 },
+  bodyLo: [-64, 40, -50], bodyHi: [64, 214, 56], headLo: [-30, 190, -30], headHi: [30, 290, 38],
+  armBox: [[14, 0, -36], [70, 204, 66]], armTris: [4500, 6500],
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 172, 2], [32, 26, 20]], belly: [[0, 136, 4], [24, 26, 18]], neckY: 204 });
+    U(cap(q, [0, 98, 0], [0, 130, 0], 18, 19), SKIN, 8); fibres(q, [0, 0, 0], 18, 0.6);
+    // the apron, leather, from the chest to the shin, strapped round the neck
+    { const ap = box(q, [0, 120, 21], [26, 54, 4], 2); U(Math.max(ap, -(q[2] - 12)), LEATH, 2); if (ap < 2) P(-fbm(q[0] * 0.08, q[1] * 0.08, 3) - 0.1, mixP(LEATH, CAP(0.4), 0.4), 0.15); }
+    U(Math.max(Math.abs(q[1] - 104) - 3, len(q[0], 0, q[2]) - 26), LEATH2, 2);
+    // the coil of rope over the left shoulder, across the chest
+    { const c = [-14, 168, 4], q2 = rotZ(rotX(q, c, 0.2), c, 0.75); for (let k = 0; k < 4; k++) U(torus(rotX(q2, c, 1.57), [c[0], c[1], c[2] + (k - 1.5) * 2.6], 26, 2.4), ROPE2, 1); }
+    garment(q, { top: 120, bot: 52, r0: [24, 19], r1: [28, 22], open: 10, ragged: 5, col: COAT(0.3, 0x14100c, 0.6), folds: 9 });   // breeches, ragged
+    sprout(q, [16, 196, -14], [0.4, 1, -0.6], 10, 6, true); sprout(q, [24, 186, -16], [0.6, 0.8, -0.6], 7, 4.4);
+  },
+  arm(p, s) {
+    const sh = [s * 34, 196, 2], el = [s * 42, 148, 10], wr = [s * 44, 100, 18];
+    U(cap(p, sh, el, 9, 7.5), SKIN, 4); U(cap(p, el, wr, 7.5, 6), SKIN, 4); fibres(p, el, 12, 0.5); mold(p, 90, 190);
+    if (s < 0) { hand(p, wr, s, 6, 4, 24); return; }
+    // the noose: a rope from the fist down to the loop and its knot
+    const g = [44, 96, 22];
+    chain(p, [[44, 104, 22], [46, 86, 24], [48, 64, 22], [48, 44, 20]], 2.4, 2.4, ROPE2, 1);
+    U(cap(p, [48, 48, 20], [48, 30, 20], 3.6, 3.6), ROPE2, 1); for (let k = 0; k < 6; k++) U(torus(p, [48, 30 + k * 3, 20], 4, 1.2), ROPE2, 0.6);
+    U(torus(rotZ(p, [48, 16, 20], 1.57), [48, 16, 20], 13, 2.4), ROPE2, 1);
+    hand(p, wr, s, 6.2, 4, 14, g);
+  },
+  head(p) {
+    U(cap(p, [0, 198, 4], [0, 222, 6], 10, 11), SKIN, 5);
+    // the hood: down over the whole head to the shoulders, a tall point, two ragged holes with the light behind them
+    const hd = Math.min(cap(p, [0, 204, 4], [0, 268, -6], 16, 3), ell(p, [0, 206, 4], [17, 14, 16]));
+    U(hd, mixP(CAP(0.35), C(0x14100e), 0.6), 4);
+    { const a = Math.atan2(p[0], p[2] - 4); if (hd < 2) bump(Math.abs(Math.sin(a * 4 + p[1] * 0.05)) < 0.2 ? -0.8 : 0); }
+    for (const s of [-1, 1]) { S(ell(p, [s * 6, 226, 19], [3.6, 2.6, 6]), 1.2, C(0x060505)); U(ell(p, [s * 6, 226, 15], [2.4, 1.8, 1.8]), GLOW(1), 0.6); }
+    U(Math.max(Math.abs(len(p[0], 0, (p[2] - 4) * 1.05) - 19) - 2, Math.abs(p[1] - 196 - Math.sin(Math.atan2(p[2], p[0]) * 7) * 3) - 3), mixP(CAP(0.35), C(0x14100e), 0.6), 2);   // the ragged hem on the shoulders
+    S(p[1] - 194, 1.5);
+  },
+});
+
+// ---------------------------------------------------------------- CAPTAIN GRAVES (Master of the Providence)
+// Drowned and still in command: a tricorn hat (three upturned lobes of cap), a long coat with deep cuffs streaming weed,
+// a peg leg, barnacles, and a cutlass of fungus-bone held out.
+export const B_Graves = hostRig({
+  height: 235, hipY: 78, hipX: 15, sh: [34, 166, 4], neck: [0, 170, 8], legs: { r: 10, splay: 3, bootTop: 44 },
+  bodyLo: [-66, 22, -56], bodyHi: [66, 194, 60], headLo: [-46, 156, -40], headHi: [46, 236, 52],
+  armBox: [[14, 40, -30], [80, 180, 110]], armTris: [4000, 6500],
+  leg(p, s, o) {
+    if (s > 0) { hostLeg(p, s, o); return; }
+    // the peg: the leg ends at the knee in a wooden peg strapped on
+    const hip = [-15, 82, 0], knee = [-17, 42, 5];
+    U(cap(p, hip, knee, 11, 10), COAT(0.42, 0x16100a, 0.55), 4); U(cap(p, knee, [-17, 34, 5], 10, 9), mixP(LEATH, C(0x000000), 0.2), 2);
+    U(cap(p, [-17, 36, 5], [-16, 2, 3], 5.6, 3.6), WOOD, 1.5); for (const y of [40, 30]) U(Math.max(Math.abs(p[1] - y) - 1.5, len(p[0] + 17, 0, p[2] - 5) - 10.5), LEATH2, 1);
+    S(p[1] + 0.5, 1);
+  },
+  torso(p) {
+    const q = trunk(p, { chest: [[0, 146, 4], [30, 24, 20]], belly: [[0, 116, 4], [26, 26, 19]], neckY: 176 });
+    const coat = mixP(CAP(0.45), C(0x1a1430), 0.5);
+    garment(q, { top: 176, bot: 40, r0: [34, 24], r1: [40, 34], open: 12, ragged: 7, rag: 8, col: coat, folds: 10 });
+    for (let i = 0; i < 5; i++) for (const s of [-1, 1]) U(sph(q, [s * 16, 160 - i * 14, 25], 2.2), BRASS, 1);
+    U(Math.max(Math.abs(q[1] - 108) - 4, len(q[0], 0, q[2]) - 30), LEATH, 2); U(box(q, [0, 108, 30], [6, 5, 2], 1), BRASS, 1);
+    U(Math.max(box(rotZ(q, [0, 140, 0], 0.6), [0, 140, 0], [4, 46, 32], 1), -(q[2] + 0)), LEATH2, 1.5);   // the baldric
+    for (let i = 0; i < 14; i++) { const a = i * 0.45 + 0.3; strand(q, [Math.cos(a) * 38, 46, Math.sin(a) * 32], 10 + hashI(i, 9) * 10, 1.4, mixP(MOSS, CAP(0.3), 0.3), i, 1.4); }   // weed off the hem
+    for (let i = 0; i < 14; i++) { const x = (hashI(i, 4) - 0.5) * 50, y = 120 + hashI(i, 5) * 50, z = -20 - hashI(i, 6) * 6, r = 2.4 + hashI(i, 7) * 2; U(cap(q, [x, y, z], [x, y, z - r], r, r * 0.6), C(0xa8a094), 1.2); }
+    sprout(q, [-14, 172, -16], [-0.4, 1, -0.6], 9, 6, true);
+  },
+  arm(p, s) {
+    const sh = [s * 34, 166, 4], el = [s * 44, 132, 14], wr = s > 0 ? [44, 112, 40] : [-46, 100, 22];
+    sleeveArm(p, s, sh, el, wr, 7, mixP(CAP(0.45), C(0x1a1430), 0.5), mixP(CAP(0.3), C(0x0a0818), 0.6));
+    U(cap(p, [wr[0], wr[1] + 2, wr[2]], [wr[0] + (el[0] - wr[0]) * 0.25, wr[1] + (el[1] - wr[1]) * 0.25, wr[2] + (el[2] - wr[2]) * 0.25], 11, 10), mixP(CAP(0.3), C(0x0a0818), 0.6), 1.5);   // deep cuffs
+    if (s < 0) { hand(p, wr, s, 6, 4, 16); return; }
+    // the cutlass: a basket hilt and a curved blade of pale fungus-bone, held out forward
+    const g = [44, 110, 46]; U(torus(rotX(p, [44, 110, 50], 0.2), [44, 110, 50], 6, 1.2), BRASS, 0.6);
+    { const pts = [[44, 112, 52], [44, 118, 70], [44, 120, 88], [44, 116, 104]]; chain(p, pts, 2, 0.6, BONEC, 0.6); U(Math.max(chainD(p, pts, 4, 1.2), Math.abs(p[0] - 44) - 0.9), BONEC, 0.6); }
+    hand(p, wr, s, 6, 4, 12, g);
+  },
+  head(p) {
+    U(cap(p, [0, 164, 6], [0, 186, 10], 11, 12), SKIN, 5); U(ell(p, [0, 194, 12], [14, 16, 14]), SKIN, 5);
+    hostFace(p, { c: [0, 194, 25], eyeX: 5.4, eyeR: 2.7, mouthY: -12, mouthW: 6.5 });
+    for (let i = 0; i < 8; i++) strand(p, [-8 + i * 2.3, 180, 22], 12 + hashI(i, 11) * 8, 1.4, mixP(MOSS, CAP(0.3), 0.3), i, 1.6);   // weed in the beard
+    // the tricorn: a low crown, the brim turned up into three lobes, one at the front
+    hat(p, { c: [0, 206, 11], crown: [15, 14, 7], dome: 6, col: CAP(1), warts: 4, seed: 23 });
+    { const c = [0, 206, 11], rr = len(p[0] - c[0], 0, p[2] - c[2]), a = Math.atan2(p[2] - c[2], p[0] - c[0]), lobe = Math.cos((a - Math.PI / 2) * 3), up = 6 + lobe * 7, R = 24 + lobe * 3;
+      U(Math.max(Math.abs(p[1] - (c[1] + up * ((rr - 12) / 14))) - 1.8, rr - R, 13 - rr), CAP(1), 1.5); if (Math.abs(rr - R) < 2.5) P(-1, mixP(CAP(0.4), C(0xd8ccb4), 0.5), 0.5); }
+    S(p[1] - 160, 1.5);
+  },
+});
+
+export const CREATURES = { Rotcap, Sporeling, Creeper, Puffball, Inkcap, BlightRat, Drifter, Bracketback, Shrieker, Shelfshield, Sporecaller, GoldenTruffle, Rootworm, SporePod, GraspingMycel, B_BroodMother, B_KingPuff, B_DriftQueen, B_Lantern, B_Carapace, B_Wyrm, B_Thunderhead, B_Hound, B_Furnace, B_Hydra, B_MirrorQueen, B_Unblinking, B_Reaper, B_Toad, B_Rotwing, B_Titan, B_Leviathan, B_Devourer, B_Nameless,
+  B_Foreman, B_Abomination, B_Founder, B_ShiftBoss, B_Baron, B_Deacon, B_Ferryman, B_Mourn, B_Cannonball, B_Twins, B_Grin, B_Ringmaster, B_Harbourmaster, B_Hangman, B_Graves };
