@@ -22,6 +22,7 @@ import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret, ShoulderTurret, turretStats } from './turret.js';
 import { isCore, coreKind, rollCoreAt, coreTier, BLADE, CORE0, fusionOf } from './cores.js';
+import { forgeHit, forgeEvent, tickForge, forgeIndex, forgePlan } from './forge.js';
 import { machine, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit, crowned } from './deeds.js';
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
@@ -65,6 +66,7 @@ export class Player {
     this.upgradeOrder = [];
     this.procCd = new Array(DATA.upgrades.length).fill(0);
     this.periodic = new Array(DATA.upgrades.length).fill(0);
+    this.forges = []; this.forgeAt = {}; this.forgeN = {}; this.forgeRof = 0; this.forgeRofT = 0; this.forgeDepth = 0;   // forged parts (forge.js)
     this.weapons = [0, 1, 2, 3].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
     this.coreInv = {};   // gun parts carried but not fitted: upgrade index -> how many
     this.bladeCores = [];   // parts fitted to the blade: they stay with the melee slot whatever blade is in it
@@ -216,7 +218,12 @@ export class Player {
     this.stats[STAT.MaxHealth] += this.killHP || 0;   // Trophy Rack: health earned by kills
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
-    for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) { for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val; eff.set(u, (eff.get(u) || 0) + 1); }
+    this.forges = [];
+    for (const u of ((this.slot && this.slot.mods) || []).concat((this.slot && this.slot.cores) || [])) {
+      const U = DATA.upgrades[u]; for (const [stat, val] of U.mods) this.stats[STAT[stat]] += val;
+      if (U.forged) { for (const c of U.forged.parts) if (DATA.upgrades[c].fx) eff.set(c, (eff.get(c) || 0) + 1); this.forges.push({ u, F: U.forged }); }   // a forged part: its parts' own effects, and its resonance
+      else eff.set(u, (eff.get(u) || 0) + 1);
+    }
     for (const u of this.bladeCores || []) { const T = BLADE[DATA.upgrades[u].name]; if (T) for (const [k, v] of T[0]) this.stats[STAT[k]] += v; }
     this.eff = eff;
     // an ascended gun's temper: one strength traded for another (the Descent only)
@@ -942,7 +949,7 @@ export class Player {
   // ---- fused elemental parts (the Compressor's Fusion). d: the hit's worth for this part.
   fuseProc(kind, d, T, alive, at) {
     const G = this.game, near = (c, r, skip) => G.enemies.filter((E) => E !== skip && !E.dead && !E.emerging && E.pos.distanceTo(c) < r).sort((a, b) => a.pos.distanceTo(c) - b.pos.distanceTo(c));
-    const c = alive ? T.pos.clone() : at.clone(), zap = (from, E, col) => { G.fx.arc(from.clone().add(V3(0, 60, 0)), E.pos.clone().add(V3(0, 60, 0)), col); this.dealDamage(E, d * 0.6, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, col); };
+    const c = alive ? T.pos.clone() : at.clone(), zap = (from, E, col) => { G.fx.arc(from.clone().add(V3(0, 60, 0)), E.pos.clone().add(V3(0, 60, 0)), col); this.dealDamage(E, d * 0.6, E.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, col); if (!E.dead) forgeEvent(this, 'arc', E, E.pos); };
     (this.fzones || (this.fzones = []));
     switch (kind) {
       case 'fire+ice':   // Steam Vent
@@ -998,7 +1005,7 @@ export class Player {
     if (S.StaticBuild && this.procDepth < 1) {   // eight hits and it lets go
       E.statN = (E.statN || 0) + 1;
       if (E.statN >= 8) { E.statN = 0; this.procDepth++; let from = E, hitSet = new Set([E]), dmg = dealt * 0.6 * S.StaticBuild;
-        for (let j = 0; j < 3; j++) { let O = null, od = 520; for (const K of G.enemies) { if (hitSet.has(K) || K.dead || K.burrowed) continue; const d = K.pos.distanceTo(from.pos); if (d < od) { od = d; O = K; } } if (!O) break; hitSet.add(O); G.fx.tracer(from.pos.clone().add(V3(0, 60, 0)), O.pos.clone().add(V3(0, 60, 0)), [0.72, 0.66, 1], 3, 0.15); this.dealDamage(O, dmg, O.pos, V3(0, 0, 0), false, 0.3, true); O.shockT = G.time + 1.2; from = O; }
+        for (let j = 0; j < 3; j++) { let O = null, od = 520; for (const K of G.enemies) { if (hitSet.has(K) || K.dead || K.burrowed) continue; const d = K.pos.distanceTo(from.pos); if (d < od) { od = d; O = K; } } if (!O) break; hitSet.add(O); G.fx.tracer(from.pos.clone().add(V3(0, 60, 0)), O.pos.clone().add(V3(0, 60, 0)), [0.72, 0.66, 1], 3, 0.15); this.dealDamage(O, dmg, O.pos, V3(0, 0, 0), false, 0.3, true); O.shockT = G.time + 1.2; if (!O.dead) forgeEvent(this, 'arc', O, O.pos); from = O; }
         this.procDepth--; }
     }
     if (S.WoundStagger && E.bleedT > 0 && !E.isBoss && G.time - (E.woundT || -9) > 2) { E.woundT = G.time; this.stun(E, 0.35); G.hud.floater(at.clone().add(V3(0, 40, 0)), 'STAGGER', [1, 0.4, 0.45], 0.7); }
@@ -1464,7 +1471,7 @@ export class Player {
     const sig = sigOf(W), sg = sigState(S);
     const C = this.shotCtx = { sig, W, S, def: S.def, g: sg, echo, mult: 1, pierce: 0, chains: 0, last: wasLast, seen: new Set(), hits: 0, gen: 0 };
     if (sig && sig.shot && !echo) sig.shot(this, S, W, sg, C);
-    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
+    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0) + (this.forgeRofT > 0 ? this.forgeRof : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (!free && this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(this.game.descent ? 6 : 2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
@@ -1815,6 +1822,7 @@ export class Player {
       this.runProcs('OnHit', E, at, dealt, procCoef);
       if (crit) this.runProcs('OnCrit', E, at, dealt, procCoef);
       if (head) this.runProcs('OnHeadshot', E, at, dealt, procCoef);
+      forgeHit(this, E, dealt, crit, head, at, procCoef);
     }
     return dealt;
   }
@@ -1830,6 +1838,7 @@ export class Player {
         done.add(next);
         this.game.fx.arc(prev.pos, next.pos, P.color);
         this.dealDamage(next, P.damage * 0.7, next.pos, V3(0, 0, 0), false, 0.3, true);
+        if (!next.dead) forgeEvent(this, 'arc', next, next.pos);
         prev = next;
       }
     }
@@ -1837,6 +1846,7 @@ export class Player {
   }
   explodeAt(at, radius, damage, procCoef, fromProc, selfKnock, color, ignore) {
     this.game.quest.blast(at, radius);
+    forgeEvent(this, 'blast', null, at);
     const G = this.game;
     G.fx.explosion(at, radius, color);
     G.audio.playAt('S_Explosion', at, clamp(radius / 300, 0.5, 1.2), 1, 0.1);
@@ -1910,6 +1920,7 @@ export class Player {
       if (this.multiT.length >= 3) { this.multiT.length = 0; this.runProcs('OnMultiKill', E, E.pos, 0, 1); }
       this.runProcs('OnKill', E, E.pos, 0, 1);
       if (E.elite || E.isBoss) this.runProcs('OnEliteKill', E, E.pos, 0, 1);
+      forgeEvent(this, 'kill', E, E.pos);
     }
   }
   runProcs(trigger, target, at, base, procCoef) {
@@ -1929,6 +1940,7 @@ export class Player {
     }
   }
   tickProcs(dt) {
+    tickForge(this, dt);
     if (this.swapBoost && this.game.time > this.swapBoost) this.swapBoost = 0;
     for (let i = 0; i < this.procCd.length; i++) this.procCd[i] = Math.max(0, this.procCd[i] - dt);
     if (this.game.phase !== 'Round') return;
@@ -1975,6 +1987,7 @@ export class Player {
           G.fx.arc(from, best.pos, cc);
           this.dealDamage(best, mag * base, best.pos, V3(0, 0, 0), false, 0, true, 0, 0, 0, 0, lin(0.55, 0.8, 1));
           best.shockT = G.time + 3; if (carry && !best.dead) { if (carry.burn) best.applyBurn(carry.burn, 3); if (carry.bleed) best.applyBleed(carry.bleed); }
+          if (!best.dead) forgeEvent(this, 'arc', best, best.pos);
           done.add(best); from = best.pos.clone();
         }
         G.audio.playAt('S_Zap', from, 0.5);
@@ -2488,18 +2501,32 @@ export class Player {
   // kind of part from the run altogether
   takePart(u) { if (!(this.coreInv[u] > 0)) return false; this.coreInv[u]--; return true; }
   // ---- the machines (see deeds.js). Parts in the pack are worth scrap by rarity; a pressed part is worth its two halves.
-  scrapOf(u) { const U = DATA.upgrades[u]; return U.fuse ? 12 : (U.pressed ? 2 : 1) * [1, 2, 4, 8][coreTier(u)]; }
+  scrapOf(u) { const U = DATA.upgrades[u]; if (U.forged) return 6 + U.forged.parts.reduce((s, c) => s + this.scrapOf(c), 0); return U.fuse ? 12 : (U.pressed ? 2 : 1) * [1, 2, 4, 8][coreTier(u)]; }
   makeCost(u) { return [4, 8, 16, 32][coreTier(u)]; }
   // the Compressor: two of the same part become one pressed part; with Fusion, two different elements become one
-  compress(a, b) {
-    const A = DATA.upgrades[a], B = DATA.upgrades[b]; if (!A || !B || A.kind !== 'gun' || B.kind !== 'gun') return -1;
-    if (a === b ? (this.coreInv[a] || 0) < 2 : !(this.coreInv[a] > 0 && this.coreInv[b] > 0)) return -1;
-    let out = -1;
-    if (a === b && !A.pressed && !A.fuse) out = DATA.upgrades.findIndex((U) => U.pressed === A.name);
-    else if (a !== b && machine('fusion')) { const F = fusionOf(A.name, B.name); if (F) out = DATA.upgrades.findIndex((U) => U.name === F.name); }
+  // what the Compressor makes of these dishes (2 or 3 parts, in order): [part index, how] or [-1, why]
+  compressOut(us) {
+    us = us.filter((u) => u !== undefined && u !== null);
+    const Us = us.map((u) => DATA.upgrades[u]); if (us.length < 2 || Us.some((U) => !U || U.kind !== 'gun')) return [-1, ''];
+    const crucible = machine('crucible');
+    if (us.length === 2) {
+      const [a, b] = us, A = Us[0], B = Us[1];
+      if (a === b && !A.pressed && !A.fuse && !A.forged) return [DATA.upgrades.findIndex((U) => U.pressed === A.name), 'press'];
+      if (a !== b && machine('fusion')) { const F = fusionOf(A.name, B.name); if (F) return [DATA.upgrades.findIndex((U) => U.name === F.name), 'fuse']; }
+    }
+    if (!machine('fusion') || (us.length === 3 && !crucible)) return [-1, us.length === 3 ? 'crucible' : 'none'];   // any two parts forge with Fusion; a third dish comes with the Crucible
+    const P = forgePlan(us); if (!P || P.why) return [-1, P ? P.why : ''];
+    return [-2, 'forge'];   // made when it is pressed (forgeIndex)
+  }
+  compress(...dishes) {
+    const us = dishes.filter((u) => u !== undefined && u !== null), need = {};
+    for (const u of us) need[u] = (need[u] || 0) + 1;
+    for (const u in need) if ((this.coreInv[u] || 0) < need[u]) return -1;
+    let [out, how] = this.compressOut(us);
+    if (how === 'forge') out = forgeIndex(us);
     if (out < 0) return -1;
-    this.takePart(a); this.takePart(b); this.coreInv[out] = (this.coreInv[out] || 0) + 1;
-    Meta.bump(a === b ? 'pressed' : 'fused'); this.play('S_Upgrade', 0.9, 0.9); return out;
+    for (const u of us) this.takePart(u); this.coreInv[out] = (this.coreInv[out] || 0) + 1;
+    Meta.bump(how === 'press' ? 'pressed' : how === 'fuse' ? 'fused' : 'forged'); this.play('S_Upgrade', 0.9, how === 'forge' ? 0.7 : 0.9); return out;
   }
   // the Recycler: break parts down for scrap, and spend scrap on a part of your choosing
   scrapPart(u, n = 1) { let got = 0, k = 0; while (n-- > 0 && this.takePart(u)) { got += this.scrapOf(u); k++; } this.scrap = (this.scrap || 0) + got; for (let i = 0; i < k; i++) Meta.bump('scrapped'); return got; }

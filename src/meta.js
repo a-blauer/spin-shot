@@ -32,7 +32,7 @@ export const DIFF_XP = [1, 1.5, 2];
 // The Descent is the game: renown from it climbs these ranks, and each rank opens something new to go down with. The
 // thirty ordinary guns and every part and buff found today are there from the start; ranks add the oddities (the strange
 // guns, roughly commonest first) and the machines (account-wide helpers that appear in the Descent).
-export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Showcase', recycler: 'The Recycler', fortune: 'The Fortune Teller', fusion: 'Compressor: Fusion' };
+export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Showcase', recycler: 'The Recycler', fortune: 'The Fortune Teller', fusion: 'Compressor: Fusion', crucible: 'Compressor: Crucible' };
 export const RANKS = [
   { name: 'Drifter' },
   { name: 'Greenhorn', machine: 'compressor' },
@@ -53,7 +53,7 @@ export const RANKS = [
   { name: 'Reaper', machine: 'fusion' },
   { name: 'Gravewalker', parts: ['Bank Shot', 'Lodestone', 'Heat Sink', 'Catalyst', 'Lantern'], guns: ['Loaded Dice'] },
   { name: 'Dead Shot', guns: ['Sawbones'] },
-  { name: 'Tunnel Rat', guns: ['Live Wire'] },
+  { name: 'Tunnel Rat', machine: 'crucible', guns: ['Live Wire'] },
   { name: 'Lamplighter', guns: ['Gusher'] },
   { name: 'Gravedigger', parts: ['Contagion', 'Shatter', 'Tether', 'Undertow'], guns: ['High Striker'] },
   { name: 'Undertaker', guns: ['Wrecking Ball'] },

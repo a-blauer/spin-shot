@@ -9,6 +9,7 @@ import { sigOf, sigProc } from './signatures.js';
 import { Meta } from './meta.js';
 import { TURRET_TYPES, turretStats, turretModel } from './turret.js';
 import { machine, MACHINES, ROMAN, ASC, TEMPERS, ATTUNES, temperOf, attuneOf } from './deeds.js';
+import { ASPECTS, ASPECT_ORDER, PART_ASPECT, aspectsOf, forgePlan, forgeText, forgeName, forgeRoles, forgeSym, forgeHolds } from './forge.js';
 
 const CSS = `
 #craft { display:none; position:fixed; inset:0; z-index:9; cursor:default; color:#f2e8d5; font-family:"Barlow Condensed",sans-serif;
@@ -135,9 +136,12 @@ const CSS = `
 #craft .press .dish { width:120px; height:120px; border:3px dashed rgba(127,255,224,.55); border-radius:50%; display:flex; align-items:center; justify-content:center; color:rgba(127,255,224,.6); font:400 40px "Big Shoulders Display"; }
 #craft .press .dish.f { border:3px solid var(--c); cursor:pointer; background:rgba(0,0,0,.45); }
 #craft .press .dish svg { width:84px; height:84px; }
+#craft .press .dw { display:flex; flex-direction:column; align-items:center; gap:6px; } #craft .press .dw small { font:400 20px "Big Shoulders Display"; letter-spacing:2px; color:#7fffe0; } #craft .press .dw i { font:600 15px "Barlow Condensed"; font-style:normal; color:var(--a,#9a8f7c); min-height:18px; }
+#craft .press .dish.hot { border-color:#ffffff; }
+#craft .asp { display:grid; grid-template-columns:auto 1fr; gap:2px 8px; font-size:15px; line-height:1.2; margin:6px 0 10px; } #craft .asp b { font:400 18px "Big Shoulders Display"; letter-spacing:1px; } #craft .asp span { color:#d8cdb8; } #craft .asp em { font-style:normal; color:#9a8f7c; }
 #craft .press .eq { font:400 46px "Big Shoulders Display"; color:#7fffe0; }
 #craft .press .res { min-height:120px; display:flex; gap:14px; align-items:center; max-width:560px; }
-#craft .press .res .dish { border-style:solid; }
+#craft .press .res .dish { border-style:solid; flex-shrink:0; }
 #craft .press .res b { display:block; font:400 30px "Big Shoulders Display"; color:var(--c); } #craft .press .res span { font-size:18px; color:#e6dcc8; }
 #craft .press button { font:400 30px "Big Shoulders Display"; letter-spacing:2px; padding:8px 40px; background:#7fffe0; color:#0a1a18; border:0; border-radius:6px; box-shadow:0 4px 0 #000; cursor:pointer; }
 #craft .press button:hover:not(:disabled) { filter:brightness(1.1); } #craft .press button:disabled { background:#1d3a36; color:#5e8f86; box-shadow:none; cursor:default; }
@@ -272,35 +276,48 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     let fx = ''; for (const [u, c] of n) fx += `<div style="--c:${U(u).hex}"><b>${esc(U(u).name)}${c > 1 ? ' x' + c : ''}</b>  ${esc(partText(u))}${c > 1 ? ' (each)' : ''}</div>`;
     return h + `<div class="fx">${fx || '<div style="color:#9a8f7c">Nothing fitted yet.</div>'}</div>`;
   }
-  // ---- the Compressor's own screen: your gun parts, two dishes, and what will come out
+  // ---- the Compressor's own screen: your gun parts, two dishes (three with the Crucible), and what will come out
   function renderPress() {
     const p = P(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0 && U(u).kind === 'gun').sort((a, b) => a - b);
-    const c = {}; press = Object.assign(press.filter((u) => { c[u] = (c[u] || 0) + 1; return (p.coreInv[u] || 0) >= c[u]; }), { mode: true });
-    const fus = machine('fusion');
-    let out = -1, why = '';
-    if (press.length === 2) {
-      const [a, b] = press, A = U(a), B = U(b);
-      if (a === b) { if (A.pressed) why = 'A pressed part cannot be pressed again.'; else out = DATA.upgrades.findIndex((x) => x.pressed === A.name); }
-      else { const F = fusionOf(A.name, B.name); if (F && fus) out = DATA.upgrades.findIndex((x) => x.name === F.name); else why = F ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : fus ? 'Two of the same part, or two different elements (Incendiary, Cryo Cell, Serrated, Arc Coil).' : 'Two of the same part.'; }
+    const fus = machine('fusion'), cru = machine('crucible'), nd = cru ? 3 : 2;
+    { const c = {}; for (let i = 0; i < 3; i++) { const u = press[i]; if (u === undefined) continue; c[u] = (c[u] || 0) + 1; if (i >= nd || (p.coreInv[u] || 0) < c[u]) press[i] = undefined; } }
+    const dishes = press.slice(0, nd), filled = dishes.filter((u) => u !== undefined);
+    let out = -1, why = '', how = '', plan = null;
+    if (filled.length >= 2) {
+      [out, how] = p.compressOut(dishes);
+      if (how === 'forge') plan = forgePlan(filled);
+      else if (out < 0) why = how && how !== 'none' && how !== 'crucible' ? how : filled.length === 2 ? (fusionOf(U(filled[0]).name, U(filled[1]).name) ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : (filled[0] === filled[1] && (U(filled[0]).pressed || U(filled[0]).fuse)) ? 'A pressed or fused part cannot be pressed again.' : fus ? 'Two of the same part, or two different elements (Incendiary, Cryo Cell, Serrated, Arc Coil).' : 'Two of the same part.') : '';
     }
-    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">Two of the same part press into one, half as strong again.${fus ? ' Two different elements fuse into one.' : ''} <kbd>Click</kbd> a part or a dish to move it.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    const ROLE = ['WHEN', 'WHAT', 'HOW'];
+    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">${fus ? `Any ${cru ? 'two or three' : 'two'} gun parts forge into one: the first says when, the second what${cru ? ', the third how' : ''}. Two of the same part press; two elements fuse.` : 'Two of the same part press into one, half as strong again.'} <kbd>Click</kbd> a part or a dish to move it, or drag it onto a dish.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
     h += `<div class="col"><h2>GUN PARTS <i>${inv.reduce((s2, u) => s2 + p.coreInv[u], 0)} carried</i></h2><div class="list">`;
     if (!inv.length) h += '<div class="empty">You are not carrying any gun parts.</div>';
-    for (const u of inv) h += `<div class="chip" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${esc(U(u).desc)}</span></div><em>x${p.coreInv[u]}</em></div>`;
+    for (const u of inv) { const a = aspectsOf(U(u)); h += `<div class="chip" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${fus && a.length ? `<i style="font-style:normal;color:${ASPECTS[a[0]].hex}">${a.map((x) => ASPECTS[x].name).join(' + ')}</i>  ` : ''}${esc(U(u).desc)}</span></div><em>x${p.coreInv[u]}</em></div>`; }
     h += '</div></div><div class="mid"><div class="press" id="cpress"><div class="dishes">';
-    for (let i = 0; i < 2; i++) h += press[i] !== undefined ? `<div class="dish f" data-d="${i}" style="--c:${U(press[i]).hex}" title="${esc(U(press[i]).name)}">${gly(press[i])}</div>` : '<div class="dish">+</div>';
+    for (let i = 0; i < nd; i++) {
+      const u = dishes[i], a = u !== undefined ? aspectsOf(U(u)) : [];
+      const cap = fus ? `<small>${ROLE[i]}</small>` : '';
+      const asp = fus ? `<i style="--a:${a.length ? ASPECTS[a[0]].hex : '#9a8f7c'}">${a.length ? a.map((x) => ASPECTS[x].name).join(' + ') : i === 2 ? 'optional' : '&nbsp;'}</i>` : '';
+      h += `<div class="dw">${cap}` + (u !== undefined ? `<div class="dish f" data-d="${i}" style="--c:${U(u).hex}" title="${esc(U(u).name)}">${gly(u)}</div>` : `<div class="dish" data-d="${i}">+</div>`) + `${asp}</div>`;
+    }
     h += '</div><div class="eq">=</div><div class="res">';
-    h += out >= 0 ? `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>` : `<p>${press.length < 2 ? (press.length ? 'One more part.' : 'Put two parts on the dishes.') : esc(why)}</p>`;
-    h += `</div><button id="cpgo" ${out >= 0 ? '' : 'disabled'}>PRESS</button></div></div>`;
+    if (plan) { const nm = forgeName(plan), hx = ASPECTS[plan.what[0]].hex; h += `<div class="dish" style="--c:${hx};border-color:${hx}"><div class="gly" style="--c:${hx};width:84px;height:84px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color:#14100e">${forgeSym(plan)}</svg></div></div><div style="--c:${hx}"><b>${esc(nm)}</b><span>${esc(forgeHolds(plan))} ${esc(forgeText(plan))}</span></div>`; }
+    else if (out >= 0) h += `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>`;
+    else h += `<p>${filled.length < 2 ? (filled.length ? 'One more part.' : cru ? 'Put two or three parts on the dishes.' : 'Put two parts on the dishes.') : esc(why)}</p>`;
+    h += `</div><button id="cpgo" ${out >= 0 || plan ? '' : 'disabled'}>${plan ? 'FORGE' : 'PRESS'}</button></div></div>`;
     h += '<div class="col"><h2>WHAT IT MAKES</h2><div style="overflow-y:auto;font-size:16px;color:#d8cdb8;line-height:1.3">';
+    if (fus) {
+      h += `<p><b style="color:#7fffe0">Any ${cru ? 'two or three' : 'two'}:</b> forged into one part that keeps everything they did, at full strength, in one slot, and wakes a resonance. Dish 1 says <b>when</b> it happens, dish 2 <b>what</b> happens${cru ? ', dish 3 (if any) <b>how</b>' : ''}.` + ' Each part reads as its aspect; a fused part as both its elements. When the WHAT dish\'s aspect is on more than one dish, the resonance is stronger. A forged part cannot be forged again.</p>' + (cru ? '' : `<p style="opacity:.75">Rank ${Meta.machineRank('crucible')}, Compressor: Crucible: a third dish, for <b>how</b> it happens.</p>`);
+      for (const a of ASPECT_ORDER) { const R = forgeRoles(a), A = ASPECTS[a], parts = Object.keys(PART_ASPECT).filter((n) => PART_ASPECT[n] === a && !Meta.upgradeLocked(n)); h += `<p style="margin:10px 0 2px"><b style="color:${A.hex};font:400 20px 'Big Shoulders Display';letter-spacing:1px">${A.name.toUpperCase()}</b> <em style="font-style:normal;color:#9a8f7c">${esc(parts.join(', '))}</em></p><div class="asp"><b style="color:${A.hex}">WHEN</b><span>${esc(R.when)}</span><b style="color:${A.hex}">WHAT</b><span>${esc(R.what)}</span>${cru ? `<b style="color:${A.hex}">HOW</b><span>${esc(R.how)}</span>` : ''}</div>`; }
+    }
     h += '<p><b style="color:#7fffe0">Two of a kind:</b> one pressed part, every number half again: two Incendiary (20%) make one at 30%. A count (pierce, bounce, projectiles) rounds up to 2. Fits in one slot.</p>';
     if (fus) { h += '<p><b style="color:#7fffe0">Two elements:</b></p>'; const E = { fire: 'Incendiary', ice: 'Cryo Cell', blood: 'Serrated', shock: 'Arc Coil' }; for (const d of CORE_DEFS) if (d.fuse) { const [a, b] = d.fuse.split('+'); h += `<p><b style="color:${d.hex}">${esc(d.name)}</b> <i style="font-style:normal;color:#9a8f7c">${E[a]} + ${E[b]}</i><br>${esc(d.desc)}</p>`; } }
-    else h += `<p style="opacity:.75">Rank ${Meta.machineRank('fusion')}, Compressor: Fusion: two different elemental parts fuse into one with both elements and something new.</p>`;
+    else h += `<p style="opacity:.75">Rank ${Meta.machineRank('fusion')}, Compressor: Fusion: any two gun parts forge into one that keeps both and wakes something new.</p>`;
     h += '</div></div></div></div>';
     el.innerHTML = h;
     el.querySelector('#cclose').onclick = close;
-    el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press.splice(+d.dataset.d, 1); H.audio.play('S_Unfit', 0.6); render(false); }; });
-    const go = el.querySelector('#cpgo'); if (go) go.onclick = () => { const r = p.compress(press[0], press[1]); press = Object.assign([], { mode: true }); if (r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play('S_Bench', 0.9, 0.8); H.game().hud.toast(`Pressed: ${U(r).name}. Fit it at the workbench.`, U(r).hex); } render(false); };
+    el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press[+d.dataset.d] = undefined; H.audio.play('S_Unfit', 0.6); render(false); }; });
+    const go = el.querySelector('#cpgo'); if (go) go.onclick = () => { const r = p.compress(...dishes); for (let i = 0; i < 3; i++) press[i] = undefined; if (r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play('S_Bench', 0.9, plan ? 0.65 : 0.8); H.game().hud.toast(`${plan ? 'Forged' : 'Pressed'}: ${U(r).name}. Fit it at the workbench.`, U(r).hex); } render(false); };
     el.querySelectorAll('.chip').forEach((cc) => { cc.onpointerdown = (e) => startDrag(e, { kind: 'fit', u: +cc.dataset.u }); });
   }
   function render(flash) {
@@ -430,7 +447,12 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
       render(false); return;
     }
     if (d.kind === 'fit' && press.mode) {   // the Compressor: onto a dish
-      if (overPress(e) || !d.moved) { const have = press.filter((u) => u === d.u).length; if (press.length < 2 && (p.coreInv[d.u] || 0) > have && U(d.u).kind === 'gun') { press.push(d.u); H.audio.play('S_Fit', 0.7, 0.8); } else H.audio.play('S_Deny', 0.6); }
+      if (overPress(e) || !d.moved) {
+        const nd = machine('crucible') ? 3 : 2, under = document.elementFromPoint(e.clientX, e.clientY), dn = under && under.closest && under.closest('[data-d]');
+        let at = dn && d.moved ? +dn.dataset.d : -1; if (!(at >= 0 && at < nd)) { at = -1; for (let i = 0; i < nd; i++) if (press[i] === undefined) { at = i; break; } }
+        const have = press.filter((u, i) => u === d.u && i !== at).length;
+        if (at >= 0 && (p.coreInv[d.u] || 0) > have && U(d.u).kind === 'gun') { press[at] = d.u; H.audio.play('S_Fit', 0.7, 0.8); } else H.audio.play('S_Deny', 0.6);
+      }
       render(false); return;
     }
     if (d.kind === 'fit' && (on || !d.moved)) {
