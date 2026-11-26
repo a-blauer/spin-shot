@@ -119,7 +119,7 @@ export class Village {
       const want = d < 520 ? Math.atan2(-dx, -dz) : p.yaw0;   // a yaw faces (-sin, -cos): toward you
       let dy = ((want - p.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; p.yaw += dy * Math.min(1, dt * 4);
       p.root.rotation.y = p.yaw + Math.PI;
-      animateCharacter(p.root, p.t, 0, { preview: true });
+      animateCharacter(p.root, p.t, 0, { preview: true, rest: true });
       if (p.key !== 'folk' && d < 420 && t - p.said > 25 && HELLO[p.key]) { p.said = t; const L = HELLO[p.key]; g.hud.toast(`${p.name}: “${L[Math.floor(Math.random() * L.length)]}”`, '#f4e4c0'); }
     }
     // fireflies drifting over the grass and round the pond, and smoke from the chimneys

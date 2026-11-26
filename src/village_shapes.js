@@ -29,11 +29,13 @@ export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
     G.lathe(prof, (k) => (k === 0 ? dark(stem, 0.85) : stem), 22);
     // the door, on the front (+X): a round-topped plank door in a stone frame, with a brass knob and a step
     const dh = Math.min(240, h * 0.5), dw = 120, fx = r * 1.04;
-    const door = (u, v, inset) => { const x = (u - 0.5) * dw, top = dh - dw / 2, z = v * (top + Math.sqrt(Math.max(0, (dw / 2) ** 2 - x * x))); return [fx + inset, x, z]; };
-    G.surf((u, v) => door(u, v, 10), 0, 1, 8, 0, 1, 6, (u) => ((Math.floor(u * 4) % 2) ? VC.wood : dark(VC.wood, 0.9)));
-    G.surf((u, v) => { const a = Math.PI * u, rr = dw / 2 + 4 + v * 14; return [fx + 8, Math.cos(a) * rr, dh - dw / 2 + Math.sin(a) * rr]; }, 0, 1, 10, 0, 1, 1, VC.stone);
-    for (const s of [-1, 1]) G.blob(fx + 6, s * (dw / 2 + 11), (dh - dw / 2) / 2, 8, 7, (dh - dw / 2) / 2, VC.stone, { e: 6 });
-    G.blob(fx + 16, 34, dh * 0.45, 5, 5, 5, VC.brass);
+    // everything on the front sits on the stem's own skin (it bulges as it rises), so the stem never shows through the door
+    const skin = (x, z, inset) => Math.sqrt(Math.max(0, stemR(h, r, Math.max(0, z)) ** 2 - x * x)) + inset;
+    const door = (u, v, inset) => { const x = (u - 0.5) * dw, top = dh - dw / 2, z = v * (top + Math.sqrt(Math.max(0, (dw / 2) ** 2 - x * x))); return [skin(x, z, inset), x, z]; };
+    G.surf((u, v) => door(u, v, 6), 0, 1, 16, 0, 1, 10, (u) => ((Math.floor(u * 4) % 2) ? VC.wood : dark(VC.wood, 0.9)));
+    G.surf((u, v) => { const a = Math.PI * u, rr = dw / 2 + 4 + v * 14, y = Math.cos(a) * rr, z = dh - dw / 2 + Math.sin(a) * rr; return [skin(y, z, 9), y, z]; }, 0, 1, 16, 0, 1, 1, VC.stone);
+    for (const s of [-1, 1]) G.blob(skin(s * (dw / 2 + 11), (dh - dw / 2) / 2, 3), s * (dw / 2 + 11), (dh - dw / 2) / 2, 8, 7, (dh - dw / 2) / 2, VC.stone, { e: 6 });
+    G.blob(skin(34, dh * 0.45, 12), 34, dh * 0.45, 5, 5, 5, VC.brass);
     G.blob(fx + 40, 0, 6, 46, 80, 8, VC.stoneD, { e: 6 });
     // round windows round the stem, each with a frame, a cross and a glow behind; flower boxes under two of them
     for (const [a, z] of [[50, h * 0.42], [-50, h * 0.42], [130, h * 0.62], [-150, h * 0.3], [0, h * 0.78]]) {

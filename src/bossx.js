@@ -136,12 +136,18 @@ export function mechX(E, dt, C) {
 export function hitX(E, dmg, fromDir, headshot) {
   const B = E.boss, G = E.game, M = E.mx || {};
   switch (B.mech) {
-    case 'front':   // Old Ironhide: plate in front, hide behind
-      if (!(E.exposedT > 0) && fromDir && fromDir.lengthSq() > 0) {
-        const fwd = V3(Math.sin(E.yaw), 0, Math.cos(E.yaw));
-        if (fwd.dot(flat(fromDir).negate()) > 0.35) { if (!(E.xSay > G.time)) { E.xSay = G.time + 0.7; say(E, 'ARMOURED  -  GET BEHIND IT', [0.7, 0.75, 0.8]); } return dmg * 0.15; }
+    case 'front': {   // Old Ironhide: iron plate all over. Make it miss a charge and it stands winded; what you put into it then
+      // cracks the plates off one by one, and every plate gone lets more through for good
+      E.mx = M; if (M.plates === undefined) M.plates = 4;
+      const left = M.plates / 4, open = E.exposedT > 0;
+      if (open) {
+        M.chip = (M.chip || 0) + dmg;
+        if (M.plates > 0 && M.chip > E.maxHealth * 0.06) { M.chip = 0; M.plates--; if (E.puppet.plates !== undefined) E.puppet.plates = M.plates; say(E, M.plates ? `A PLATE CRACKS OFF  -  ${M.plates} LEFT` : 'THE LAST PLATE IS GONE', [1, 0.8, 0.4]); G.audio.playAt('S_ShieldBreak', E.pos, 1, 0.8); G.fx.sparks(E.pos.clone().add(V3(0, E.half * 0.6, 0)), V3(0, 1, 0), [1, 0.7, 0.3], 30); }
+        return dmg;
       }
-      return dmg;
+      if (!(E.xSay > G.time) && left > 0) { E.xSay = G.time + 0.9; say(E, 'ARMOURED  -  MAKE IT MISS A CHARGE', [0.7, 0.75, 0.8]); }
+      return dmg * (0.2 + 0.8 * (1 - left));   // plated: a fifth gets through; each plate lost lets more in
+    }
     case 'reflect':
       if (M.up > 0) { if (!(E.xSay > G.time)) { E.xSay = G.time + 0.25; say(E, 'REFLECTED', [0.7, 0.95, 1]); const P = G.player; if (!P.dead) P.receiveDamage(Math.min(P.maxHealth * 0.12, 6 + dmg * 0.02), E, false); } return 0; }
       return dmg;

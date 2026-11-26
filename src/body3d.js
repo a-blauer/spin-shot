@@ -19,6 +19,8 @@
 import * as THREE from 'three';
 import { Atlas, G as UNI } from './render.js';
 import { Puppet, getParts } from './puppet.js';
+import { IronhideRig } from './ironhide.js';
+const CUSTOM = new Set();   // creatures with a hand-sculpted body instead of one raised from their art
 
 const D2R = Math.PI / 180;
 const DEPTH = { Body: 0.82, Head: 1.0, ArmFront: 1.0, ArmBack: 1.0, LegFront: 1.0, LegBack: 1.0, Tail: 0.85, WingFront: 0.14, WingBack: 0.14, Prop: 0.4 };
@@ -177,7 +179,7 @@ function kindFor(creature) {
     const S = sculpt(D, D.role), K = { geo: S.geo, thick: S.thick, tris: S.tris, atlas: m.atlas, n: 0 }; makeMesh(K, 24); list.push(K); }
   KINDS.set(creature, list); return list;
 }
-export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; }
+export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); }
 export function bodies3dEnd() {
   for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; } }
 }
@@ -197,6 +199,7 @@ export class Body3D extends Puppet {
     const B = this.parts.find((p) => p.role === 'Body') || this.parts[0];
     this.bodyR = Math.max(18, B.size[0] * 0.42) * scale;
     this.yaw3 = Math.random() * 6.283;
+    if (creature === 'Ironhide' && SCENE) { try { this.custom = new IronhideRig(SCENE); CUSTOM.add(this.custom); this.plates = 4; } catch (e) { this.custom = null; if (typeof window !== 'undefined') window.__ihErr = String(e && e.stack || e).slice(0, 300); } }
   }
   tick(dt, feet, S) {
     super.tick(dt, feet, S);
@@ -289,6 +292,7 @@ export class Body3D extends Puppet {
     if (!this.is3D || !this.visible || !this.feet || !this.S) return;
     const flash = this.flashT > 0 ? 1 : 0, t = this.tint;
     this.rootMatrix();
+    if (this.custom) { this.custom.pose(this, _root, (this.heightCm / Math.max(1e-3, this.baseScale)) / 180); return; }
     for (let i = 0; i < this.parts.length; i++) {
       const P = this.parts[i], K = this.kind[i]; if (!K || !P.visible) continue;
       if (K.n >= K.cap) makeMesh(K, K.cap * 2);

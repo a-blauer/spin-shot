@@ -12,6 +12,7 @@ import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
 import { Raid } from './raid.js';
+import { LightShow } from './lightshow.js';
 // boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
 const BOSS_HP = [2.3, 2.5, 2.7, 2.9];
 
@@ -47,6 +48,8 @@ export class Descent {
   // ------------------------------------------------------------------ flow (host)
   tick(dt) {
     const g = this.g;
+    if (!this.lights && g.scene) this.lights = new LightShow(g);
+    if (this.lights) this.lights.tick(dt);
     this.tickFx(dt);
     if (this.raid) { this.raid.root.visible = g.phase !== 'Village'; if (g.phase !== 'Village') this.raid.tick(dt); }
     if (g.phase === 'Village') return;   // up in the village: nothing happens down here until the run starts

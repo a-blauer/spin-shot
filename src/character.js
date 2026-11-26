@@ -806,13 +806,22 @@ export function buildCharacter(look) {
     case 'horns': add(hat, G.dome, HA, 55, 46 * hh, 51, 0, 2, 0); add(hat, G.cyl, 0xc9a43a, 56.4, 6, 52.4, 0, 4, 0); add(hat, G.box, 0xc9a43a, 5, 24 * hh, 52.6, 0, 13 * hh, 0); for (const s of [-1, 1]) { const h = add(hat, G.cone, HB, 13, 30, 13, s * 30, 16, 0); h.rotation.z = -s * 0.75; add(hat, G.cyl, 0xc9a43a, 14, 4, 14, s * 24.6, 9.6, 0).rotation.z = -s * 0.75; } break;
     case 'visor': add(hat, G.dome, HB, 54, 40, 49, 0, 0, 0); add(hat, G.cyl, shade(HB, 1.4), 55, 5, 50, 0, 2.5, 0); { const v = add(hat, G.cyl, HA, 48, 2, 40, 0, 1.4, 27, 0.25); v.rotation.x = 0.16; } break;
     case 'cowboy': case 'whitehat': {
-      add(hat, G.cyl, HA, 82, 3, 70, 0, 2, 0);                                                                                   // brim, curled up at the sides and dipped front and back
-      for (const s of [-1, 1]) { const c = add(hat, G.ball, HA, 17, 9, 58, s * 36.5, 6, 0); c.rotation.z = s * 0.6; add(hat, G.ball, shade(HA, 0.8), 6, 4, 50, s * 40.5, 9.6, 0).rotation.z = s * 0.6; }
-      for (const z of [-1, 1]) add(hat, G.ball, HA, 44, 5, 15, 0, 1.4, z * 31).rotation.x = z * 0.14;
-      add(hat, taper(0.42, 0.5), HA, 50, 21, 44, 0, 13.5, 0); for (const s of [-1, 1]) add(hat, G.ball, HA, 19, 10, 39, s * 8.6, 24, -1); add(hat, G.ball, shade(HA, 0.72), 8, 4, 30, 0, 26.4, -1);   // a crown pinched into a crease
-      add(hat, G.cyl, HB, 51, 5, 45, 0, 6, 0);
-      if (H.id === 'whitehat') { for (let k = 0; k < 5; k++) add(hat, G.cone, HB, 3.4, 5, 1.6, Math.sin(k * 1.2566) * 3.6, 6 + Math.cos(k * 1.2566) * 3.6, 22.9).rotation.z = -k * 1.2566; }
-      else { add(hat, G.box, 0xc9a43a, 5.4, 4.4, 1.6, 13, 6, 21.4); const q = add(hat, G.cone, 0xf2e8d5, 5, 22, 2, -24, 17, 6); q.rotation.z = 0.5; add(hat, G.cone, 0xc8211b, 2.4, 9, 2.2, -27.4, 22.6, 6).rotation.z = 0.5; }   // a buckle, and a feather in the band
+      // one felt surface, the way a hat is blocked: under the brim, round its bound edge, over the top of it, up the crown and
+      // across the top. The brim curls up at the sides and dips front and back; the crown has its crease down the middle and
+      // two pinches at the front; a band sits round the bottom of the crown.
+      const P = [[27.6, 1.2], [36, 1.0], [43, 1.5], [45, 2.6], [43.6, 3.7], [36, 3.5], [29.2, 4], [28.8, 5.2], [28.6, 9.4], [28.6, 10.6], [28.2, 17], [27.4, 22.5], [25.6, 26.4], [22, 28.6], [16, 29.8], [9, 30.2], [0, 30.2]];
+      const isBand = (i) => i === 7 || i === 8, edge = (i) => i >= 2 && i <= 4;
+      clothRing(hat, 'cowboy2' + H.id + HA + HB, P, false, (t, ph, i) => (isBand(i) ? HB : edge(i) ? shade(HA, 0.72) : i <= 1 ? shade(HA, 0.78) : shade(HA, 0.95 + 0.05 * Math.cos(ph))), (t, ph, i) => {
+        const x = Math.sin(ph), z = Math.cos(ph), r = P[i][0], y = P[i][1];
+        if (i <= 6) { const u = Math.max(0, Math.min(1, (r - 28) / 17)); return [0, (x * x * 11 - z * z * 2.5) * u * u * 1.1]; }   // the brim's curl
+        const top = Math.max(0, Math.min(1, (y - 17) / 13)), dx = x * r;
+        const crease = -7.5 * Math.exp(-(dx * dx) / 40) * top * Math.max(0.35, 1 - Math.abs(z) * 0.4);
+        const pinch = (Math.exp(-Math.pow(ph - 0.62, 2) / 0.05) + Math.exp(-Math.pow(ph - (Math.PI * 2 - 0.62), 2) / 0.05)) * top * -5.5;
+        return [pinch, crease + (z > 0 ? -1.2 * top : 0)];
+      });
+      for (const s of [-1, 1]) add(hat, G.ball, HB, 3.6, 2.6, 2, s * 3.2, 7.8, 28.8);   // the band's knot
+      if (H.id === 'whitehat') { for (let k = 0; k < 5; k++) add(hat, G.cone, HB, 3.4, 5, 1.6, 9 + Math.sin(k * 1.2566) * 3.2, 9 + Math.cos(k * 1.2566) * 3.2, 27.4).rotation.z = -k * 1.2566; }   // a little star on the band
+      else { const b = add(hat, G.box, 0xc9a43a, 5, 4, 1.4, 10, 9, 27.2); b.rotation.y = 0.36; const q = add(hat, G.cone, 0xf2e8d5, 4.4, 18, 1.6, -27.6, 15, 6); q.rotation.z = 0.28; add(hat, G.cone, 0xc8211b, 2.2, 7, 1.8, -28.8, 21.5, 6).rotation.z = 0.28; }   // a buckle, and a feather tucked in the band
       break; }
     case 'cap': add(hat, G.dome, HA, 54, 38, 49, 0, 0, 0); add(hat, G.cyl, shade(HA, 0.8), 54.6, 3, 49.6, 0, 1.5, 0); { const b = add(hat, G.cyl, HA, 42, 2.4, 34, 0, 1.6, 26); b.rotation.x = 0.1; } add(hat, G.dome, HB, 30, 28, 49.6, 0, 1, 0.6); add(hat, G.ball, HB, 5, 3, 5, 0, 19, 0); break;
     case 'bowler': add(hat, G.cyl, HA, 70, 3, 62, 0, 2, 0); add(hat, G.tor, HA, 69, 61, 16, 0, 2.6, 0).rotation.x = Math.PI / 2; add(hat, G.dome, HA, 52, 50, 47, 0, 3, 0); add(hat, G.cyl, HB, 53, 5, 48, 0, 6, 0); add(hat, G.box, shade(HB, 0.7), 2, 6, 6, 26.6, 6, 0); break;
@@ -947,6 +956,9 @@ export function animateCharacter(root, t, speed, opts = {}) {
   R.armL.rotation.x = opts.preview ? -0.15 + Math.sin(t * 1.6) * 0.06 - s * 0.6 * k : -0.9 + s * 0.12 * k; R.armL.rotation.z = opts.preview ? -0.12 : 0.35;
   R.armR.rotation.x = -1.25 + Math.sin(t * 2.2) * 0.03 + s * 0.08 * k; R.armR.rotation.z = -0.1;
   R.gun.rotation.x = 1.25;
+  // at rest (the village's people): both arms hang easy at the sides, swinging a little, and nobody holds a gun
+  if (opts.rest) { R.armL.rotation.x = 0.05 + Math.sin(t * 1.6) * 0.05 - s * 0.45 * k; R.armL.rotation.z = -0.16; R.armR.rotation.x = 0.05 + Math.sin(t * 1.6 + 1.3) * 0.05 + s * 0.45 * k; R.armR.rotation.z = 0.16; }
+  if (R.gun && opts.rest) R.gun.visible = false;
   R.head.rotation.y = opts.preview ? Math.sin(t * 0.7) * 0.25 : 0; R.head.rotation.z = Math.sin(t * 1.3) * 0.03 + s * 0.04 * k;
   if (R.cape) R.cape.rotation.x = 0.12 + k * 0.5 + Math.sin(t * 3) * 0.05;
   if (R.bird) R.bird.rotation.z = Math.sin(t * 3.1) * 0.08;

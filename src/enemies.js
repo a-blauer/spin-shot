@@ -817,7 +817,7 @@ export class Enemy {
             P.applyKnockback(this.chargeDir.clone().multiplyScalar(1300).add(new THREE.Vector3(0, 500, 0)));
           }
           if (this.bossT > 1.3) {
-            if (!this.leapHit) { this.exposedT = 2.4; this.puppet.setTint([1.25, 1.15, 0.6]); G.hud.floater(Me.clone().add(new THREE.Vector3(0, this.half * 0.7, 0)), 'WINDED', [1, 0.9, 0.3], 1.6); }
+            if (!this.leapHit) { this.exposedT = this.boss.mech === 'front' ? 4 : 2.4; this.puppet.setTint([1.25, 1.15, 0.6]); G.hud.floater(Me.clone().add(new THREE.Vector3(0, this.half * 0.7, 0)), 'WINDED', [1, 0.9, 0.3], 1.6); }
             else if (this.enraged && !this.chargedTwice) { this.chargedTwice = true; this.bossStep = 0; this.bossT = 0.35; this.leapHit = false; break; }   // enraged: straight into a second one
             done(); this.leapHit = false; this.chargedTwice = false;
           }

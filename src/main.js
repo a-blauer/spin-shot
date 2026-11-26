@@ -828,7 +828,7 @@ document.addEventListener('fullscreenchange', holdKeys);
 // ---- pause / settings panel
 const pauseEl = document.getElementById('pause');
 function applySettings() {
-  if (game) { game.settings.fov = settings.fov || 100; game.settings.shake = settings.shake ?? 1; }
+  if (game) { game.settings.fov = settings.fov || 100; game.settings.shake = settings.shake ?? 1; game.settings.lights = settings.lights ?? 1; game.settings.strobe = settings.strobe ?? 0.6; }
   audio.setMasterVol(settings.volume ?? 0.8); audio.setSfxVol(settings.sfx ?? 1); audio.setMusicVol(settings.music ?? 0.5);
 }
 function setPaused(p) {
@@ -839,7 +839,7 @@ function setPaused(p) {
   const box = pauseEl.querySelector('#pdmg');
   if (box && p && game) { const R = game.player.damageReport().slice(0, 6); box.innerHTML = R.length ? '<h3>DAMAGE TAKEN THIS RUN</h3>' + R.map((r) => `<div><b>${r.pct}%</b> ${r.who.replace(/[<>&]/g, '')} <i>${r.total} over ${r.hits} hit${r.hits > 1 ? 's' : ''}, biggest ${r.max}</i></div>`).join('') : ''; }
 }
-const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1]];
+const SLIDERS = [['sens', 'Mouse sensitivity', 0.02, 0.5, 0.01, 0.11], ['fov', 'Field of view', 80, 120, 1, 100], ['volume', 'Master volume', 0, 1, 0.05, 0.8], ['sfx', 'Sound effects', 0, 1, 0.05, 1], ['music', 'Music', 0, 1, 0.05, 0.5], ['shake', 'Screen shake', 0, 1.5, 0.1, 1], ['lights', 'Light show', 0, 1, 0.05, 1], ['strobe', 'Strobe flashes', 0, 1, 0.05, 0.6]];
 const SET_GROUPS = [['CONTROLS', ['sens', 'fov']], ['AUDIO', ['volume', 'sfx', 'music']], ['FEEL', ['shake']]];
 const fmtSet = (k, v) => { v = parseFloat(v); return k === 'fov' ? `${Math.round(v)}°` : k === 'sens' ? (v * 100).toFixed(0) : `${Math.round(v * 100)}%`; };
 const sliderHtml = (k) => { const [, label, mn, mx, st] = SLIDERS.find((s) => s[0] === k); return `<label><span>${label}</span><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}"><b></b></label>`; };

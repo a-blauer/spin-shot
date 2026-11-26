@@ -172,7 +172,7 @@ export const ROOMS_A = [
       solid(-900, -850, 44, 150, 320, 80, wood, false); Cyl(V(-900, -800, 44 + 150), 120, 380, 0x2a2e30, false, false, R(0, 0, 62)); for (const e of [-1, 1]) Cyl(V(-900 + e * 84, -870, 44 + 60), 120, 14, red, false, false, AX); hit(-900, -800, 44, 160, 380, 250, false);
       // the wings: beast wagons (barred), props, a ticket wagon
       for (const s of [-1, 1]) {
-        const wx = s * 1200, wy = s * 3300; solid(wx, wy, 60, 520, 220, 16, wood, false); P.cage(wx, wy, 210, 230, 0x2a2e30); for (const e of [-1, 1]) for (const a of [-1, 1]) Cyl(V(wx + a * 200, wy + e * 118, 44), 88, 12, red, false, false, AY); deco(wx, wy, 300, 540, 240, 24, red); deco(wx, wy, 324, 480, 180, 14, gold); hit(wx, wy, 0, 520, 220, 76, true);
+        const wx = s * 1200, wy = s * 3300; { const [k, b] = SH.beastWagon(wood, red, gold, 0x2a2e30); M.Shape(k, b, V(wx, wy, 0), R(0, s > 0 ? 0 : 180, 0)); } hit(wx, wy, 0, 540, 250, 360, true);
         P.stall(-s * 1500, s * 3200, true, red, cream); crate(s * 2600, s * 2700, 0, 110, red, gold); crate(s * 2700, s * 2600, 0, 90, 0x2a6a8a, gold); barrel(s * 2500, s * 2580); Ball(V(s * 2400, s * 2760, 44), V(88, 88, 88), [red, 0x2a6a8a][s > 0 ? 0 : 1]); hit(s * 2400, s * 2760, 0, 80, 80, 86, false);
         P.hung(s * 700, -s * 700, 900, (z) => { Cyl(V(s * 700, -s * 700, z - 8), 12, 260, wood, false, false, AX); });
       }

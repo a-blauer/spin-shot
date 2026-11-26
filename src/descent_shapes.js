@@ -451,3 +451,37 @@ export function guardian(stone, gold, lapis, dkc) {
     G.blob(0, 96, 590, 18, 18, 14, gold, { e: 2, nu: 10, nv: 6 });                                       // the uraeus at the brow
   })];
 }
+
+// A circus beast wagon: a bed on four spoked wheels, a cage of bars standing on the bed (posts at the corners, a rail top
+// and bottom), painted boards along its foot, and an arched roof with gilt edges sitting on the cage. X along it, Y
+// across, Z up; 540 long, 240 wide, about 360 high.
+export function beastWagon(wood, red, gold, iron) {
+  return ['bwagon|' + [wood, red, gold, iron].map(hx).join('|'), shape((G) => {
+    const L2 = 260, W2 = 112, bed = 84, top = 300, wd = dark(wood, 0.7);
+    block(G, -L2 - 10, -W2 - 8, bed - 16, L2 + 10, W2 + 8, bed, wood, wood, wd);                      // the bed
+    for (const e of [-1, 1]) block(G, -L2 + 20, e * 70 - 10, bed - 40, L2 - 20, e * 70 + 10, bed - 16, wd);   // its beams
+    for (const a of [-1, 1]) { block(G, a * 170 - 8, -W2 + 6, 44 - 8, a * 170 + 8, W2 - 6, 44 + 8, iron); }   // axles
+    // the wheels: a rim, a hub and twelve spokes, standing upright across Y
+    for (const a of [-1, 1]) for (const e of [-1, 1]) {
+      const x = a * 170, y = e * (W2 + 14), R0 = 56;
+      let b = G.n; G.lathe([[R0 - 8, -6], [R0, -6], [R0, 6], [R0 - 8, 6]], red, 20); G.place(b, { x, y, z: R0, roll: 90 });
+      b = G.n; G.lathe([[16, -10], [16, 10], [0, 12]], gold, 10); G.place(b, { x, y, z: R0, roll: e > 0 ? -90 : 90 });
+      for (let k = 0; k < 12; k++) { const t = (k / 12) * Math.PI * 2; G.tube([[x, y, R0], [x + Math.cos(t) * (R0 - 6), y, R0 + Math.sin(t) * (R0 - 6)]], 3, gold, { S: 5, caps: false }); }
+    }
+    // painted boards along the foot of the cage, gilt-edged
+    for (const e of [-1, 1]) { block(G, -L2, e * W2 - 4, bed, L2, e * W2 + 4, bed + 46, red); block(G, -L2, e * W2 - 5, bed + 46, L2, e * W2 + 5, bed + 52, gold); }
+    for (const a of [-1, 1]) { block(G, a * L2 - 4, -W2, bed, a * L2 + 4, W2, bed + 46, red); block(G, a * L2 - 5, -W2, bed + 46, a * L2 + 5, W2, bed + 52, gold); }
+    // the cage: corner posts, a top rail, and bars all round
+    for (const a of [-1, 1]) for (const e of [-1, 1]) block(G, a * L2 - 9, e * W2 - 9, bed, a * L2 + 9, e * W2 + 9, top, red, gold);
+    for (const e of [-1, 1]) block(G, -L2, e * W2 - 7, top - 14, L2, e * W2 + 7, top, red);
+    for (const a of [-1, 1]) block(G, a * L2 - 7, -W2, top - 14, a * L2 + 7, W2, top, red);
+    for (let x = -L2 + 32; x < L2 - 20; x += 32) for (const e of [-1, 1]) G.tube([[x, e * W2, bed + 50], [x, e * W2, top - 12]], 3.2, iron, { S: 6, caps: false });
+    for (let y = -W2 + 32; y < W2 - 20; y += 32) for (const a of [-1, 1]) G.tube([[a * L2, y, bed + 50], [a * L2, y, top - 12]], 3.2, iron, { S: 6, caps: false });
+    // the roof: an arch along its length, its edges gilt, overhanging a little all round
+    G.surf((u, v) => { const x = (u - 0.5) * (2 * L2 + 40), y = (v - 0.5) * (2 * W2 + 50), z = top + 6 + 48 * Math.cos((v - 0.5) * Math.PI * 0.95); return [x, y, z]; }, 0, 1, 4, 0, 1, 10, (u, v) => (v < 0.08 || v > 0.92 ? gold : red));
+    G.surf((v, u) => { const x = (u - 0.5) * (2 * L2 + 40), y = (v - 0.5) * (2 * W2 + 50), z = top + 6 + 48 * Math.cos((v - 0.5) * Math.PI * 0.95); return [x, y, z - 4]; }, 0, 1, 10, 0, 1, 4, dark(red, 0.6));
+    for (const a of [-1, 1]) G.surf((u, v) => { const y = (u - 0.5) * (2 * W2 + 50), zt = top + 6 + 48 * Math.cos((u - 0.5) * Math.PI * 0.95); return [a * (L2 + 20), y, top + 2 + (zt - top - 2) * v]; }, 0, 1, 10, 0, 1, 1, gold);
+    G.blob(0, 0, top + 62, 26, 26, 26, gold, { e: 2 });                                                    // a gilt ball on top
+    G.tube([[L2 + 10, 0, bed - 20], [L2 + 140, 0, 40], [L2 + 200, 0, 30]], 6, wd, { S: 6 });               // the shaft
+  })];
+}
