@@ -633,9 +633,17 @@ export class Hud {
     this.drawBossCards(W, H, S, dt);
     if (!B || B.dead || B.emerging) { this.bossTrail = null; return; }
     // a new boss: its name goes up big before the bar does
-    if (B !== this.introFor) { this.introFor = B; const D = B.boss || {}; this.bossIntro = { t: 0, name: D.name || B.displayName(), title: D.title || '', desc: D.desc || '' }; this.bossTrail = 1; this.barIn = 0; }
+    if (B !== this.introFor) { this.introFor = B; if (!B.introDone && !B.splitRoot) { const D = B.boss || {}; this.bossIntro = { t: 0, name: D.name || B.displayName(), title: D.title || '', desc: D.desc || '' }; this.bossTrail = 1; this.barIn = 0; } }   // a piece of a boss that came apart is the same fight: no new entrance
+    // a boss that came apart: the bar is all its living pieces together, against the whole it started as
+    const root = B.splitRoot || (B.boss && B.boss.mech === 'split' ? B : null), pieces = root ? game.enemies.filter((O) => !O.dead && O.isBoss && O.bossIndex === B.bossIndex) : null;
     this.barIn = Math.min(1, (this.barIn || 0) + dt * 1.6);
-    const f = clamp(B.health / B.maxHealth, 0, 1);
+    let f = clamp(B.health / B.maxHealth, 0, 1);
+    if (pieces) {   // the whole King on one bar: itself, the two it comes apart into, and the four those come apart into
+      const m1 = root.hpMul ? (root.maxHealth * 0.4) / root.hpMul : root.maxHealth * 0.17, m2 = m1 * 0.55, all = root.maxHealth + 2 * m1 + 4 * m2;
+      const left = root.dead ? pieces.reduce((a, O) => a + O.health + ((O.gen || 0) < 2 ? 2 * O.maxHealth * 0.55 : 0), 0) : root.health + 2 * m1 + 4 * m2;
+      if (this.splitFor !== root) { this.splitFor = root; this.splitF = 1; }
+      f = this.splitF = Math.min(this.splitF, clamp(left / all, 0, 1));   // it never climbs back when it comes apart
+    }
     // the chip trail: what you just took off it hangs on in pale for a moment, then drains
     if (this.bossTrail == null || this.bossTrail < f) this.bossTrail = f;
     if (B.sinceHit > 0.5) this.bossTrail = Math.max(f, this.bossTrail - dt * 0.45);

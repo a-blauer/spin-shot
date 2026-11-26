@@ -110,3 +110,13 @@
 - (24) Shop cosmetics show the same pictures (H.cosThumbs(el), H.cosPic(slot)). Village collision: every meadow rock,
   bushes 90+, pond stones, hay by the fire and the gate bushes have bodies; a Blocker the width of the village sits just
   behind the Way Down (y = GATE + 260), so nobody walks past the portal.
+- (25) Crawler models: the crawler arm override (pitch -95..-150, root +8) bent the arms of every Crawler/Burrower
+  without legs up and over the body (Contortionist, Gutter/Pale/Rime Crawler, Burrower, Crab, Jack). Their art already has
+  the arms down on the ground as legs, so now they paw in a short stride and rise only into the strike. Matches the flat art.
+  King Ooze: split pieces carry splitRoot + introDone (no new entrance card, net.js too); one bar for the whole King
+  (root + 2 halves + 4 quarters, estimated from hpMul, never climbs back); every piece is noLoot except the last one alive,
+  which drops the boss buffs once (game.enemyKilled `rest`). Widowmaker First Blood: a headshot kill returns the round but
+  no longer works the bolt instantly. Scrapyard rebuilt: plan 'octagon' (rooms can name their plan: wall.plan), bales of
+  crushed cars (SH.crushedCar) 3-7 high making lanes, crusher on a pad, lattice crane with a wreck on the magnet,
+  SH.scrapHeap / SH.tyreStack cover, corrugated sheeting on the end walls, sodium floodlights. The old room's crusher sat
+  inside the 'ring' plan's central wall block, which is why the room read as flat walls.

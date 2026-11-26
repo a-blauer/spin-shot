@@ -127,6 +127,7 @@ export class Descent {
     // a boss is a fight, not a speed bump: deeper ones carry more, and each extra player adds most of another one
     const hpK = BOSS_HP[(B.tier || 1) - 1] || BOSS_HP[0], more = g.net.role === 'host' ? g.net.ghosts.size : 0;
     g.boss = g.spawnEnemy(B.minion, at, false, bi, 1, hpK * (1 + 0.6 * more), 0, false);
+    if (g.boss) g.boss.hpMul = hpK * (1 + 0.6 * more);
     if (B.mech === 'twin') { const T = g.spawnEnemy(B.minion, at.clone().add(V3(500, 0, 0)), false, bi, 1, hpK * 0.72 * (1 + 0.6 * more), 0, false); T.twin = g.boss; g.boss.twin = T; }
     // the entrance: the room holds its breath, the name goes up big, then it comes for you
     g.hitstop = Math.max(g.hitstop || 0, 0.45); g.shakeAt(at, 1400); g.fx.flash(at, [1, 0.3, 0.2], 900, 0.6, true);

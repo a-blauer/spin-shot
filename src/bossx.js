@@ -164,13 +164,13 @@ export function deathX(E) {
     for (const s of [-1, 1]) {
       const at = G.findFreeLocationNear(E.pos, 150, 500) || E.pos.clone();
       const K = G.spawnEnemy(B.minion, at.clone().add(V3(0, 120, 0)), false, E.bossIndex, Math.pow(0.66, (E.gen || 0) + 1), 0.4 * Math.pow(0.55, E.gen || 0), 0, false);
-      K.gen = (E.gen || 0) + 1; K.noLoot = true; K.money = Math.round(E.money * 0.2); K.emerge = 0.6; K.launch(V3(s * 500, 600, frandRange(-300, 300)));
+      K.gen = (E.gen || 0) + 1; K.noLoot = true; K.splitRoot = E.splitRoot || E; K.introDone = true; K.splitRoot.splitMax = (K.splitRoot.splitMax || 0) + K.maxHealth;   // a piece of the same King: no new entrance, one shared health bar K.money = Math.round(E.money * 0.2); K.emerge = 0.6; K.launch(V3(s * 500, 600, frandRange(-300, 300)));
       // the pieces leap and leave pools, but only the whole of it throws rings; and they do not all move at once
       const AT = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);   // the order enemies.js keeps them in
       K.attackMask = K.attackMask.filter((i) => !['Ring', 'Nova'].includes(AT[i])); if (!K.attackMask.length) K.attackMask = [AT.indexOf('Leap')]; K.bossTimer = 1.4 + Math.random() * 2.6 + (s > 0 ? 1 : 0);
     }
     if ((G.splitSaid || 0) <= (E.gen || 0)) { G.splitSaid = (E.gen || 0) + 1; G.banner((E.gen || 0) === 0 ? 'IT COMES APART' : 'AND AGAIN', lin(0.4, 1, 0.7), 2); }   // once for each time it splits, not once a piece
-    E.noLoot = (E.gen || 0) > 0;
+    E.noLoot = true;   // it came apart: the loot waits for the last piece
   }
   if (E.decoys) for (const K of E.decoys) if (!K.dead) { K.noLoot = true; K.takeHit(1e9, K.pos, V3(0, 1, 0), false); }
 }

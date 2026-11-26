@@ -266,7 +266,7 @@ export const Net = {
         E = new Enemy(g, def, new THREE.Vector3(num(r[5]), num(r[6]), num(r[7])), Math.max(1, g.round), !!(fl & 1), boss, fl & 2 ? 0.7 : 1, 1, num(r[4], 0, 1 << 20) | 0, !!(fl & 2));
         this.remoteSpawn = false;
         E.id = id; E.remote = true; E.netPos = E.pos.clone(); g.enemies.push(E);
-        if (E.isBoss) g.boss = E;
+        if (E.isBoss) { if (g.boss && !g.boss.dead && g.boss.bossIndex === E.bossIndex && g.boss.boss && g.boss.boss.mech === 'split') { E.splitRoot = g.boss.splitRoot || g.boss; E.introDone = true; E.splitRoot.splitMax = (E.splitRoot.splitMax || 0) + E.maxHealth; } else g.boss = E; }
       }
       if (E.dead) continue;
       E.netPos.set(num(r[5]), num(r[6]), num(r[7]));

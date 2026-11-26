@@ -485,3 +485,47 @@ export function beastWagon(wood, red, gold, iron) {
     G.tube([[L2 + 10, 0, bed - 20], [L2 + 140, 0, 40], [L2 + 200, 0, 30]], 6, wd, { S: 6 });               // the shaft
   })];
 }
+
+// A car through the crusher: a flat slab of its own body squashed to a fifth of its height. Hard edges, the panels
+// buckled in steps, the glass a crushed black band, the roof folded down on it, paint scraped through to rust, the wheel
+// hubs flush in the sides. 380 by 170, about 62 high.
+export function crushedCar(col, seed = 0) {
+  seed %= 4;
+  return ['ccar|' + hx(col) + '|' + seed, shape((G) => {
+    const R = rng(seed * 131 + 7), rust = 0x7a3e22, dk = dark(col, 0.55), b0 = G.n;
+    block(G, -186, -82, 0, 186, 82, 12, 0x2a2622);                                   // the floor pan
+    // the body in three buckled sections, each stepped a little out of line with the next
+    for (let k = 0; k < 3; k++) { const x0 = -190 + k * 127, dy = (R() - 0.5) * 10, dz = (R() - 0.5) * 6; block(G, x0, -85 + dy, 12, x0 + 127, 85 + dy, 40 + dz, k === seed % 3 ? dark(col, 0.85) : col); }
+    block(G, -120, -76, 40, 90, 76, 50, 0x121416);                                   // the glass, crushed to a black band
+    block(G, -110, -70, 50, 80, 70, 60, dark(col, 0.9));                             // the roof folded down on it
+    for (let i = 0; i < 6; i++) { const x = -170 + R() * 320, e = R() < 0.5 ? -1 : 1, w = 20 + R() * 50; block(G, x, e * 86 - 2, 16 + R() * 10, x + w, e * 86 + 2, 30 + R() * 10, R() < 0.6 ? rust : dk); }   // scrapes and rust
+    for (const e of [-1, 1]) { block(G, e * 186 - 4, -80, 14, e * 186 + 4, 80, 30, e > 0 ? 0x8a8e96 : 0x2a2a2a); for (const s2 of [-1, 1]) block(G, e * 188 - 2, s2 * 60 - 12, 30, e * 188 + 2, s2 * 60 + 12, 38, e > 0 ? 0xd8d0b0 : 0x8a1a14); }   // bumpers and lamps
+    for (const a of [-1, 1]) for (const e of [-1, 1]) { const b = G.n; G.lathe([[0, -3], [22, -3], [24, 0], [22, 3], [0, 3]], 0x17181c, 10); G.place(b, { x: a * 118, y: e * 85, z: 22, roll: 90 }); }   // the hubs, flush in the sides
+    G.place(b0, { pitch: (R() - 0.5) * 3, roll: (R() - 0.5) * 3 });
+  })];
+}
+// A stack of old tyres, each a fat torus, leaning a little as they go up.
+export function tyreStack(n = 5, seed = 0) {
+  return ['tyres|' + n + '|' + (seed % 3), shape((G) => {
+    const R = rng(seed * 17 + n);
+    for (let i = 0; i < n; i++) { const b = G.n; G.lathe([[34, -14], [52, -16], [60, -8], [60, 8], [52, 16], [34, 14], [32, 0]], i % 3 ? 0x1a1b1e : 0x222326, 18); G.place(b, { x: (R() - 0.5) * 16, y: (R() - 0.5) * 16, z: 16 + i * 31, pitch: (R() - 0.5) * 8 }); }
+  })];
+}
+// A heap of scrap: a lumpy mound of dark, oily junk spotted with rust, and things sticking out of it all over (pipes,
+// a car door, girders, a wheel rim, a drum on its side).
+export function scrapHeap(r = 300, seed = 0) {
+  r = q(r, 20); seed %= 4;
+  return ['scrap|' + r + '|' + seed, shape((G) => {
+    const R = rng(seed * 59 + r), tone = [0x3a342e, 0x2e2a26, 0x4a3e32, 0x6a3a22, 0x44403a];
+    const lump = (x, y, z) => { const n = Math.sin(x * 0.045 + seed) * Math.cos(y * 0.05) + Math.sin((x + y) * 0.09) * 0.5; return [x, y, z * (1 + n * 0.22)]; };
+    G.blob(0, 0, 0, r, r * 0.85, r * 0.75, (nx, ny, nz) => tone[Math.abs(Math.floor(nx * 9 + ny * 7 + nz * 11 + seed * 3)) % 5], { e: 2.2, nu: 26, nv: 12, warp: lump });
+    for (let i = 0; i < 14; i++) {
+      const a = R() * Math.PI * 2, d = (0.15 + R() * 0.6) * r, x = Math.cos(a) * d * 0.95, y = Math.sin(a) * d * 0.8, z = r * 0.75 * Math.sqrt(Math.max(0, 1 - (d / r) ** 2)) - 20, k = i % 5, yaw = (a * 180) / Math.PI;
+      if (k === 0) G.tube([[x, y, z - 30], [x + Math.cos(a) * 140, y + Math.sin(a) * 140, z + 70 + R() * 70]], 8 + R() * 6, [0x5a5e66, 0x6a3a22][i % 2], { S: 8 });
+      else if (k === 1) { const b = G.n; block(G, -55, -4, 0, 55, 4, 100, [0x7a3a2a, 0x3a5a6a, 0x5a6a3a, 0x8a8a84][i % 4]); block(G, -40, -5, 55, 30, 5, 90, 0x1a1c20); G.place(b, { x, y, z: z - 30, yaw, pitch: 25 + R() * 35 }); }
+      else if (k === 2) { const b = G.n; block(G, -120, -9, -14, 120, 9, 14, 0x4a4e56); block(G, -120, -22, 10, 120, 22, 16, 0x4a4e56); G.place(b, { x, y, z: z + 10, yaw, pitch: -15 - R() * 25 }); }
+      else if (k === 3) { const b = G.n; G.lathe([[20, -7], [36, -7], [38, 0], [36, 7], [20, 7]], 0x8a8e96, 14); G.place(b, { x, y, z: z + 12, roll: 50 + R() * 40, yaw }); }
+      else { const b = G.n; G.lathe([[34, -48], [36, -40], [36, 40], [34, 48], [0, 48]], [0x6a2a22, 0x2a4a5a, 0x5a5a2a][i % 3], 14); G.place(b, { x, y, z: z + 20, roll: 90, yaw }); }
+    }
+  })];
+}

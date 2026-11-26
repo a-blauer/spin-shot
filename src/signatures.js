@@ -191,10 +191,10 @@ export const SIG = {
   // ------------------------------------------------------------------ snipers
   Widowmaker: {
     name: 'First Blood', short: 'Double damage to anything at full health. A headshot kill returns the round.',
-    text: 'Double damage against anything still at full health. A headshot kill puts the round back in the rifle and works the bolt in an instant.',
+    text: 'Double damage against anything still at full health. A headshot kill puts the round back in the rifle.',
     play: 'One bullet, one body. It opens fights; it does not finish them. Never shoot the same thing twice.', fav: ['Marksman Scope', 'Heavy Rounds', 'Piercing Tip'], aff: { HeadshotDamage: 1.5, Damage: 1.25 },
     pre: (p, E, C) => (E.health >= E.maxHealth * 0.95 ? 2 : 1),
-    kill(p, E, C, g, h) { if (!h.head || C.fed) return; C.fed = true; const S = C.S; if (S.ammo < p.magSize(S)) S.ammo++; p.fireCd = Math.min(p.fireCd, 0.22); say(p, E.pos, 'CLEAN KILL', [0.85, 0.95, 1]); },
+    kill(p, E, C, g, h) { if (!h.head || C.fed) return; C.fed = true; const S = C.S; if (S.ammo < p.magSize(S)) S.ammo++; say(p, E.pos, 'CLEAN KILL', [0.85, 0.95, 1]); },
   },
   'Railroad Spike': {
     name: 'Skewer', short: 'Gains +25% damage for every enemy it has gone through, and pins them.',

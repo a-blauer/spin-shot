@@ -53,7 +53,8 @@ function chamfer(hx, hy, sx, sy, Lx, Ly) {   // cut the corner (sx, sy) on a lin
 }
 const PLAN_NAMES = ['cross', 'octagon', 'hourglass', 'ell', 'ring', 'serpent', 'tee', 'hex', 'diamond', 'ell2'];
 function roomPlan(i, hx, hy) {
-  const E = Math.max(1700, hx * 0.36), name = PLAN_NAMES[(i * 7 + 3) % PLAN_NAMES.length], W = [];
+  const own = i >= 8 && EXTRA[i - 8] && EXTRA[i - 8].wall && EXTRA[i - 8].wall.plan;   // a room built round its own layout says which plan it wants
+  const E = Math.max(1700, hx * 0.36), name = own || PLAN_NAMES[(i * 7 + 3) % PLAN_NAMES.length], W = [];
   const cut = (Lx, Ly) => { for (const sx of [-1, 1]) for (const sy of [-1, 1]) W.push(chamfer(hx, hy, sx, sy, Lx, Ly)); };
   const room = Math.min(hx - E, hy * 0.55);
   switch (name) {

@@ -38,27 +38,57 @@ export const ROOMS_D = [
     }),
 
   // ------------------------------------------------------------------------------------------------ THE SCRAPYARD
-  // Heaps. Stacked hulks make canyon walls, a crusher squats in the middle, and a magnet hangs over the lot. Nothing
-  // is square to anything else; the lanes wind, and there is always another heap to get behind.
-  mk(TH('The Scrapyard', 0x24221e, 0x302c26, 0x3a3630, 0x8a6a3a, 0xffb040, [1, 0.8, 0.5], 0x1e1a14, [0.6, 0.56, 0.48]), [5000, 4600, 1400], { panel: 'planks', hang: 'chain', corner: 'rubble', c1: 0x6a5a4a, c2: 0x5a4a3a, n: 10 },
+  // A breaker's yard at night. Bare earth churned by the forklifts, oil standing in the ruts. Crushed cars stacked
+  // three and four high in tight bales make the lanes (you cannot see over them, you can go round them); the crusher
+  // squats in the middle on its concrete pad; a crane leans over the yard with a wreck still hanging off its magnet;
+  // heaps of scrap and stacks of tyres are the cover in between. Sodium floodlights on poles throw orange pools.
+  mk(TH('The Scrapyard', 0x3a3024, 0x463a2c, 0x34302a, 0x8a6a3a, 0xffa040, [1, 0.72, 0.42], 0x1a1610, [0.56, 0.5, 0.42]), [5000, 4600, 1600], { panel: 'planks', hang: 'none', corner: 'rubble', c1: 0x5a5e66, c2: 0x4a3a2e, n: 10, plan: 'octagon' },
     ({ M, hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, barrel, AX, AY, P }) => {
-      const rust = 0x8a4a2a, iron = 0x3a3e46, yel = 0xc8a03a, body = [0x7a3a2a, 0x3a5a6a, 0x5a6a3a, 0x8a7a4a, 0x4a4e56];
-      for (let i = 0; i < 70; i++) { const x = ((i * 823) % (hx * 2 - 300)) - hx + 150, y = ((i * 467) % (hy * 2 - 300)) - hy + 150, w = 220 + (i % 5) * 100; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6, i % 3 ? T.floor2 : 0x1a1612); }
-      // a hulk: a boxy body with a cab, no wheels; stacked up to three high, each skewed on the last
-      let hi = 0; const hulk = (x, y, z, yaw) => { const c = body[(hi++) % 5]; M.Solid(V(x, y, z + 70), V(390, 176, 140), z === 0, yaw); const [k, b] = SH.car(c, hi); M.Shape(k, b, V(x, y, z), R(0, yaw, 0)); };
-      const stackOf = (x, y, n, yaw) => { for (let k = 0; k < n; k++) hulk(x + (k % 2) * 30, y - (k % 2) * 20, k * 166, yaw + k * 9); if (n > 2) tall(x, y, 320); };
-      for (const s of [-1, 1]) { stackOf(s * 1900, s * 600, 3, 80); stackOf(s * 1900, s * 1050, 2, 95); stackOf(s * 1900, s * 1500, 3, 86); stackOf(-s * 800, s * 2300, 2, 10); stackOf(-s * 1350, s * 2350, 3, -6); stackOf(s * 3300, -s * 1700, 3, 20); stackOf(s * 3800, -s * 1500, 2, 35); stackOf(s * 3400, s * 2900, 2, 70); stackOf(-s * 3500, s * 600, 1, 50); stackOf(s * 600, s * 3500, 1, -20); }
-      // the crusher
-      plat(0, 0, 900, 700, 40, 0x4a4e56, iron);
-      for (const e of [-1, 1]) { solid(e * 400, 0, 40, 100, 660, 520, yel, false); for (let z = 100; z < 520; z += 120) deco(e * 400, 0, 40 + z, 110, 670, 16, iron); }
-      solid(0, 0, 40, 700, 560, 60, iron, false); Box(V(0, 0, 40 + 470), V(720, 600, 110), iron, false, false); for (const e of [-1, 1]) Cyl(V(e * 200, 0, 40 + 320), 90, 240, 0x8a8e96, false, false); Box(V(0, 0, 40 + 96), V(520, 360, 70), body[0], false, false);
-      hit(0, 0, 40, 720, 560, 100, true); Glow(V(0, -334, 40 + 300), V(60, 4, 60), 0xff3a2a, 0); L(0, 0, 760, T.lamp, 2600, 3); tall(0, 0, 720);
-      // the magnet
-      P.hung(900, -1500, 640, (z) => { Cyl(V(900, -1500, z - 40), 360, 80, iron, false, false); Cyl(V(900, -1500, z - 90), 300, 30, 0x8a8e96, false, false); Box(V(900, -1500, z - 140), V(180, 120, 70), body[1], false, false, 25); });
-      // loose heaps, tyres, drums, an engine on a stand
-      for (const s of [-1, 1]) { P.junk(s * 700, s * 1400, 360); P.junk(-s * 2800, s * 2200, 420); P.junk(s * 4200, s * 400, 340); P.junk(-s * 400, s * 3900, 300);
-        for (let k = 0; k < 4; k++) Cyl(V(-s * 2600, -s * 600, 22 + k * 44), 150, 44, 0x17181c, k === 0, false); hit(-s * 2600, -s * 600, 0, 150, 150, 176, true);
-        barrel(s * 2700, s * 3900, 0, rust); barrel(s * 2810, s * 3860, 0, 0x3a5a6a); solid(-s * 3900, -s * 3000, 0, 120, 120, 80, iron); Box(V(-s * 3900, -s * 3000, 130), V(150, 100, 100), 0x4a4e56, false, false); Cyl(V(-s * 3900, -s * 3000, 190), 30, 40, iron, false, false); P.fence(s * 2500, -s * 3600, 1300, true, iron, 110); }
+      const dark = (c) => (((c >> 16) & 255) * 0.75 << 16) | (((c >> 8) & 255) * 0.75 << 8) | ((c & 255) * 0.75 | 0), rust = 0x7a3e22, iron = 0x3a3e46, yel = 0xd0a028, conc = 0x6a6660, body = [0x7a3a2a, 0x3a5a6a, 0x5a6a3a, 0x8a7a4a, 0x4a4e56, 0x6a2a3a, 0x8a8a84];
+      const sh = ([k, b], x, y, z = 0, yaw = 0) => M.Shape(k, b, V(x, y, z), R(0, yaw, 0));
+      // the ground: earth, darker where it has been worked, oil in the ruts, tyre tracks along the lanes
+      for (let i = 0; i < 26; i++) { const x = ((i * 823) % (hx * 2 - 400)) - hx + 200, y = ((i * 467) % (hy * 2 - 400)) - hy + 200, w = 200 + (i % 5) * 120; tile(x - w, y - w * 0.6, x + w, y + w * 0.6, 1.4 + (i % 4) * 0.5, [0x41362a, 0x3a2f23, 0x443829, 0x372c21][i % 4]); }
+      for (let i = 0; i < 16; i++) { const x = ((i * 1291) % (hx * 2 - 800)) - hx + 400, y = ((i * 733) % (hy * 2 - 800)) - hy + 400; Cyl(V(x, y, 4.2), 160 + (i % 3) * 90, 1, 0x0e0e10, false, false); Glow(V(x + 20, y - 10, 4.6), V(40, 14, 1), 0x6a5a8a, 0); }   // oil
+      for (const s of [-1, 1]) for (const e of [-1, 1]) tile(s * 1150 + e * 70 - 22, -hy + 200, s * 1150 + e * 70 + 22, hy - 200, 3.4, 0x2a2018);   // tracks
+      // bales of crushed cars, stacked tight in walls: n long, h high, each car slewed a little on the one below
+      let ci = 0; const bale = (x, y, n, h, yaw) => {
+        const c = Math.cos((yaw * Math.PI) / 180), sn = Math.sin((yaw * Math.PI) / 180);
+        for (let i = 0; i < n; i++) for (let k = 0; k < h; k++) { const u = (i - (n - 1) / 2) * 182 + ((k % 2) - 0.5) * 18, px = x - sn * u, py = y + c * u; ci++; sh(SH.crushedCar(body[ci % body.length], ci), px, py, k * 64, yaw + ((k * 7 + i * 3) % 11) - 5); }
+        M.Solid(V(x, y, h * 32), yaw % 180 === 0 ? V(400, n * 182 + 20, h * 64) : V(n * 182 + 20, 400, h * 64), true, 0); if (h >= 3) tall(x, y, n * 100); if (h >= 5) for (let i = 0; i < n; i += 2) { const u = (i - (n - 1) / 2) * 182; sh(SH.crushedCar(body[(ci + i) % body.length], ci + i + 1), x - sn * u, y + c * u, h * 64, yaw + 7); }
+      };
+      for (const s of [-1, 1]) {
+        bale(s * 2200, s * 900, 4, 7, 0); bale(s * 2200, -s * 1500, 3, 6, 0); bale(s * 600, s * 2600, 5, 6, 90); bale(-s * 1700, s * 3100, 3, 7, 90);
+        bale(s * 3900, s * 2400, 2, 5, 0); bale(s * 3800, -s * 300, 3, 4, 0); bale(-s * 600, -s * 2500, 2, 3, 90); bale(s * 1300, -s * 3000, 2, 2, 0);
+      }
+      // the crusher on its pad: a hopper between two yellow rams, a hydraulic head, a car half fed in
+      tile(-700, -560, 700, 560, 6, conc); for (let x = -650; x <= 650; x += 260) tile(x - 3, -560, x + 3, 560, 6.6, 0x4a4640);
+      plat(0, 0, 900, 700, 40, conc, 0x5a5650);
+      for (const e of [-1, 1]) { solid(e * 400, 0, 40, 110, 660, 520, yel, false); for (let z = 100; z < 520; z += 120) deco(e * 400, 0, 40 + z, 120, 670, 14, iron); for (let k = -1; k <= 1; k++) deco(e * 460, k * 220, 40, 14, 60, 400, 0x1a1a1a); }
+      solid(0, 0, 40, 700, 560, 60, iron, false); Box(V(0, 0, 40 + 470), V(720, 600, 110), yel, false, false); deco(0, 0, 40 + 520, 740, 620, 20, iron);
+      for (const e of [-1, 1]) { Cyl(V(e * 200, 0, 40 + 320), 90, 240, 0x8a8e96, false, false); Cyl(V(e * 200, 0, 40 + 460), 120, 30, iron, false, false); }
+      sh(SH.crushedCar(body[0], 3), 0, 60, 100, 90); sh(SH.car(body[3], 1), -80, -480, 40, 90);
+      for (let k = 0; k < 6; k++) Box(V(-360 + k * 144, -336, 40 + 30), V(70, 6, 50), k % 2 ? 0x1a1a1a : yel, false, false);   // hazard stripes
+      hit(0, 0, 40, 720, 560, 100, true); Glow(V(0, -334, 40 + 300), V(60, 4, 60), 0xff3a2a, 0); L(0, 0, 900, [1, 0.6, 0.3], 2400, 2.4); tall(0, 0, 720);
+      // the crane: a lattice mast, a jib out over the yard, its cable down to a magnet with a wreck stuck to it
+      { const mx = -3300, my = -3300; solid(mx, my, 0, 420, 420, 60, conc); for (const a of [-1, 1]) for (const b of [-1, 1]) Box(V(mx + a * 130, my + b * 130, 60 + 650), V(30, 30, 1300), yel, false, false);
+        for (let z = 160; z < 1300; z += 180) Box(V(mx, my, 60 + z), V(290, 290, 16), yel, false, false);
+        for (let z = 160; z < 1120; z += 180) for (const e of [-1, 1]) { BoxRot(V(mx + e * 130, my, 60 + z + 90), V(16, 16, 250), yel, R(0, 0, e * 45), false); BoxRot(V(mx, my + e * 130, 60 + z + 90), V(16, 16, 250), yel, R(e * 45, 0, 0), false); }
+        hit(mx, my, 0, 300, 300, 1360, false); tall(mx, my, 300);
+        const jx = mx + 1500, jy = my + 1500; BoxRot(V((mx + jx) / 2, (my + jy) / 2, 1380), V(2200, 60, 60), yel, R(0, 45, 0), false); Box(V(mx, my, 1400), V(220, 220, 140), iron, false, false);
+        P.hung(jx, jy, 760, (z) => { Cyl(V(jx, jy, z - 40), 300, 70, iron, false, false); Cyl(V(jx, jy, z - 80), 260, 20, 0x8a8e96, false, false); sh(SH.crushedCar(body[2], 2), jx, jy, z - 160, 30); });
+      }
+      // scrap heaps, tyre stacks, drums: the cover between the bales
+      for (const s of [-1, 1]) {
+        for (const [x, y, r] of [[s * 1000, s * 1300, 320], [-s * 3000, s * 1600, 380], [s * 3300, s * 3600, 300], [-s * 300, s * 3800, 260], [s * 4100, -s * 1600, 340]]) { sh(SH.scrapHeap(r, Math.abs(x + y)), x, y, -r * 0.12, Math.abs(x * 7) % 360); hit(x, y, 0, r * 1.5, r * 1.3, r * 0.6, true); }
+        for (const [x, y, n] of [[s * 1500, -s * 600, 5], [s * 1640, -s * 470, 3], [-s * 2600, -s * 600, 6], [s * 300, -s * 1700, 4], [-s * 3500, s * 400, 5]]) { sh(SH.tyreStack(n, Math.abs(x)), x, y); hit(x, y, 0, 120, 120, n * 31 + 10, n <= 3); }
+        barrel(s * 2700, s * 3900, 0, rust); barrel(s * 2810, s * 3860, 0, 0x3a5a6a); barrel(s * 2760, s * 3990, 0, 0x8a2a22); barrel(-s * 3700, -s * 3300, 0, rust);
+      }
+      // corrugated iron sheeting nailed up along the end walls, ridged, some sheets rusted through, a rail along the top
+      for (const s of [-1, 1]) for (let x = -2500; x < 2500; x += 120) { if (Math.abs(x + 60) < 560) continue; const k = Math.abs(Math.round(x / 120)), h = 470 + (k * 37) % 60, col = k % 7 === 3 ? rust : k % 5 === 1 ? 0x5a5e5a : 0x6a6e6a;
+        for (let r = 0; r < 4; r++) deco(x + 15 + r * 30, s * (hy - 14 - (r % 2) * 6), 0, 18, 8, h, r % 2 ? dark(col) : col); }
+      for (const s of [-1, 1]) for (const e of [-1, 1]) deco(e * 1530, s * (hy - 26), 520, 1940, 12, 16, iron);
+      // sodium floodlights on poles: orange pools over the yard
+      for (const [x, y] of [[-3000, 0], [3000, 0], [0, -3300], [0, 3300], [-1200, -1700], [1200, 1700]]) { solid(x, y, 0, 40, 40, 900, iron, false); Box(V(x, y, 920), V(160, 40, 30), iron, false, false); for (const e of [-1, 1]) { Box(V(x + e * 60, y, 895), V(50, 50, 30), 0x2a2a2a, false, false); Glow(V(x + e * 60, y, 878), V(40, 40, 6), 0xffb060, 1); } L(x, y, 860, [1, 0.62, 0.3], 2200, 2.6); hit(x, y, 0, 60, 60, 900, false); }
     }),
 
   // ------------------------------------------------------------------------------------------------ THE STABLES

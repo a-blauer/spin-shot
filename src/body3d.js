@@ -244,7 +244,9 @@ export class Body3D extends Puppet {
         // back and overhead on the wind-up, then chopped down in front of the body (never swung behind it)
         { const L = Math.min(1, this.lunge); pitch = pitch * (1 - this.windup) + -150 * this.windup; pitch = pitch * (1 - L) + -46 * L; }
         roll = side * (Math.sin(T * 0.9 + P.phase * 2 + this.seed) * 6 * idle - this.windup * 22 + this.lunge * 8);
-        if (S.crawler && !this.hasLegs) { pitch = -(95 + Math.max(0, -side * sw) * 55 * Math.max(st, 0.25)); oz = Math.max(0, -side * sw) * 6; }
+        // a crawler's arms are drawn already down on the ground, splayed: they are its legs. They paw along in a short
+        // stride and rise into the strike; they are never swung up off the ground (that bent them back over the body)
+        if (S.crawler && !this.hasLegs) { const L = Math.min(1, this.lunge); pitch = -side * sw * 18 * Math.min(st, 1.1) * (1 - this.windup) - 30 * this.windup * (1 - L) - 40 * L; roll = side * (Math.max(0, side * cw) * 6 * st - this.windup * 8); oz = Math.max(0, -side * cw) * 6 * st; }
         if (S.flying) pitch = -20 + Math.sin(T * 3 + P.phase) * 12 - this.windup * 60 + this.lunge * 40;
         if (this.dig > 0.01) { pitch = pitch * (1 - this.dig) - (165 + Math.sin(T * 14 + P.phase) * 18) * this.dig; }
         sc = 1 + this.lunge * 0.18;
@@ -262,7 +264,7 @@ export class Body3D extends Puppet {
   rootMatrix() {
     const f = this.feet, s = this.baseScale;
     let pitch = (this.leanF || 0) * 9 + this.lunge * 8 - this.windup * 8 - this.hurtT * 11, roll = this.bodyRot * 0.45, drop = 0;
-    if (this.S && this.S.crawler && !this.hasLegs) pitch += 8;
+
     if (this.dying) { const A = Math.min(1, this.deathT / 0.34), e = 1 - (1 - A) * (1 - A); pitch += (this.fall || 1) * -86 * e; roll *= 1 - e; drop = this.deathT > 0.9 ? (this.deathT - 0.9) * 120 : -Math.sin(A * Math.PI) * 14; }
     _e.set(pitch * D2R, this.yaw3, roll * D2R, 'YXZ'); _q.setFromEuler(_e);
     _p.set(f.x, f.y + (this.offZ || 0) * s - drop, f.z);

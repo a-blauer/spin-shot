@@ -643,8 +643,10 @@ export class Game {
     // tonics are permanent, so they are rare: about one every three rounds, never two in a round
     if (!E.isBoss && this.tonicsThisRound < 1 && Math.random() < sup(0.3, 0.02)) { this.tonicsThisRound++; this.pickups.spawn('Tonic', loc.clone().add(V3(-40, 0, 30)), P.rollTonic()); }
     // every boss leaves a buff; later bosses lean toward the higher rarities
-    if (this.descent) this.descent.dropBuff(E, loc);
-    if (E.isBoss && !E.boss.final && !E.noLoot) {
+    // the last piece of a boss that came apart drops what the whole of it would have
+    const lastPiece = E.isBoss && E.splitRoot && !rest; if (lastPiece) E.noLoot = false;
+    if (this.descent && !(E.isBoss && rest)) this.descent.dropBuff(E, loc);
+    if (E.isBoss && !E.boss.final && !E.noLoot && !rest) {
       const k = this.descent ? Math.min(4, Math.floor(this.round / 5)) : Math.min(4, Math.max(0, Math.floor(this.round / 3) - 1)), T = [[0, 60, 35, 5, 0], [0, 30, 50, 18, 2], [0, 0, 50, 40, 10], [0, 0, 25, 50, 25], [0, 0, 0, 50, 50]][k];
       let r = Math.random() * 100, ri = 1; for (let q = 0; q < 5; q++) { r -= T[q]; if (r <= 0) { ri = q; break; } }
       const u = rollBuff(ri, P.upgradeStacks, P.cls.id); if (u >= 0) this.pickups.spawn('Buff', loc.clone().add(V3(120, 0, 120)), u);
