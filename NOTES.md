@@ -90,6 +90,6 @@
 - Village: earthier ground, dusk palette, ferns, mossy logs, overgrown verges, lamp pools along the road.
 - HUD measures text in the village fonts; menus clamp/ellipsis long labels. /tmp/flow.json is obsolete (old one-step gate).
 - (21b) The Hollow King is sculpted: tools/sculpt_king.mjs (SDF smooth unions -> surface nets, baked AO in vertex colours)
-  writes public/king.bin (torso, head, upper, fore, hand). raid.js fetches it and swaps it in (old primitive King is the
+  writes public/king.json (torso, head, upper, fore, hand). raid.js fetches it and swaps it in (old primitive King is the
   fallback while it loads). IK targets are now where the fingertips land; the wrist rides 1250 up and 900 back.
   Rebuild the sculpt after editing it: node tools/sculpt_king.mjs (about 40s).

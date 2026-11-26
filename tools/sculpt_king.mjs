@@ -5,7 +5,7 @@
 // eye pits and the gaps between the ribs read dark from across the island without any lights.
 // Design (raid-boss rules): the silhouette carries it (a spiked crown with antlers, a fan of spikes behind the head,
 // shoulders like towers, a gaunt waist), triangles mean danger, and the weak point (the heart) is framed by the open
-// ribcage so you can read it from anywhere. Run: node tools/sculpt_king.mjs  ->  public/king.bin
+// ribcage so you can read it from anywhere. Run: node tools/sculpt_king.mjs  ->  public/king.json
 import { writeFileSync } from 'node:fs';
 
 // ---------------------------------------------------------------- the field
@@ -204,5 +204,7 @@ for (const [name, f, lo, hi, h] of parts) {
 }
 const js = Buffer.from(JSON.stringify({ UL, FL, parts: meta })), head4 = Buffer.alloc(4); head4.writeUInt32LE(js.length);
 const pad = (4 - ((4 + js.length) % 4)) % 4;
-writeFileSync(new URL('../public/king.bin', import.meta.url), Buffer.concat([head4, js, Buffer.alloc(pad), ...out.map((u) => Buffer.from(u.buffer, u.byteOffset, u.byteLength))]));
-console.log('wrote public/king.bin', off + 4 + js.length + pad, 'bytes');
+// shipped as JSON holding the bytes in base64 (a type every host will serve)
+const all = Buffer.concat([head4, js, Buffer.alloc(pad), ...out.map((u) => Buffer.from(u.buffer, u.byteOffset, u.byteLength))]);
+writeFileSync(new URL('../public/king.json', import.meta.url), JSON.stringify({ v: 1, b64: all.toString('base64') }));
+console.log('wrote public/king.json', off + 4 + js.length + pad, 'bytes');

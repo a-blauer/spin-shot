@@ -85,12 +85,13 @@ function handMesh() {
   });
 }
 
-// the sculpted King (tools/sculpt_king.mjs -> king.bin): loaded once, shared by every fight
+// the sculpted King (tools/sculpt_king.mjs -> king.json): loaded once, shared by every fight
 let KING = null;
 function loadKing() {
   if (KING) return KING;
-  KING = fetch('king.bin').then((r) => (r.ok ? r.arrayBuffer() : null)).then((buf) => {
-    if (!buf) return null;
+  KING = fetch('king.json').then((r) => (r.ok ? r.json() : null)).then((j) => {
+    if (!j || !j.b64) return null;
+    const bin = atob(j.b64), buf = new ArrayBuffer(bin.length), u8 = new Uint8Array(buf); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     const dv = new DataView(buf), n = dv.getUint32(0, true), meta = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, n))), base = 4 + n + ((4 - ((4 + n) % 4)) % 4), out = { UL: meta.UL, FL: meta.FL };
     for (const m of meta.parts) {
       const g = new THREE.BufferGeometry();
