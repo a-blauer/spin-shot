@@ -45,19 +45,21 @@ export function buildVillage(M, cx, cy) {
     // ---- the ground: grass, with soft patches of other greens and clover, and the far meadow beyond the fence of trees
     // mossy, not lawn-green: an earthy ground with darker and drier patches, bare earth under the trees
     Box(V(0, 0, -60), V(40000, 40000, 120), 0x5f803a, true, false);
-    for (let i = 0; i < 130; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(500, 1700); Cyl(V(x, y, 0.5 + (i % 9) * 0.55), d, 1, [0x587838, 0x6a8a42, 0x4e6c34, 0x76804a, 0x6a6a3e, 0x5a6a36][i % 6], false, false); }
+    for (let i = 0; i < 130; i++) { const x = rr(-9000, 9000), y = rr(-9000, 9000), d = rr(500, 1700); Cyl(V(x, y, 0.3 + i * 0.012), d, 1, [0x587838, 0x6a8a42, 0x4e6c34, 0x76804a, 0x6a6a3e, 0x5a6a36][i % 6], false, false); }
     // ---- the road and the paths: soft dirt laid as overlapping discs, edged with pebbles
     // a path is one ribbon of dirt laid along its line (one surface: nothing overlaps, so nothing flickers), wavering
     // in width, two tones of earth blotched through it, edged with pebbles; it sits above every grass patch
+    let pathN = 0;   // each path a hair above the last, so where two meet they do not fight
     const path = (pts, w, col = 0x9c7c54) => {
+      const pz = 7 + (pathN++) * 0.25;
       const segs = []; for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 60)); for (let i = 0; i < n; i++) segs.push([x0 + (x1 - x0) * (i / n), y0 + (y1 - y0) * (i / n), -(y1 - y0) / L, (x1 - x0) / L]); }
       { const [x1, y1] = pts[pts.length - 1], q = segs[segs.length - 1]; segs.push([x1, y1, q[2], q[3]]); }
       const x0 = segs[0][0], y0 = segs[0][1], key = 'vpath|' + pts.flat().map(Math.round).join(',') + '|' + w + '|' + col, dk = dark(col, 0.88), lt = mix(col, 0xc8a878, 0.25);
       Shape(key, () => { const pos = [], cl = [], idx = [], C = new THREE.Color(); const M = segs.length;
         for (let i = 0; i < M; i++) { const [x, y, nx, ny] = segs[i], hw = w * 0.5 * (0.9 + 0.12 * Math.sin(i * 0.7) + 0.06 * Math.sin(i * 2.3)); for (let j = 0; j <= 4; j++) { const e = (j / 4 - 0.5) * 2 * hw * (j === 0 || j === 4 ? 1.0 : 1), px = x + nx * e - x0, py = y + ny * e - y0, n = Math.sin(px * 0.011 + py * 0.007) + Math.sin(px * 0.023 - py * 0.017); pos.push(px, py, 0); C.setHex(n > 0.9 ? lt : n < -0.8 ? dk : col, THREE.NoColorSpace); cl.push(C.r, C.g, C.b); } }
         for (let i = 0; i < M - 1; i++) for (let j = 0; j < 4; j++) { const a = i * 5 + j, b2 = a + 1, c = a + 5, d = c + 1; idx.push(a, c, b2, b2, c, d); }
-        return { pos, col: cl, idx }; }, V(x0, y0, 7), R(0, 0, 0));
-      for (let i = 0; i < segs.length; i += 2) { const [x, y, nx, ny] = segs[i]; for (const sd of [-1, 1]) { const e = sd * (w / 2 + rr(-10, 10)); Oct(V(x + nx * e, y + ny * e, 9), V(rr(24, 44), rr(20, 36), 10), mix(VC.stone, VC.stoneD, rnd()), false, false, R(0, rr(0, 90), 0)); } }
+        return { pos, col: cl, idx }; }, V(x0, y0, pz), R(0, 0, 0));
+      for (let i = 0; i < segs.length; i += 2) { const [x, y, nx, ny] = segs[i]; for (const sd of [-1, 1]) { const e = sd * (w / 2 + rr(-10, 10)); Oct(V(x + nx * e, y + ny * e, 9 + rr(0, 2)), V(rr(24, 44), rr(20, 36), 10), mix(VC.stone, VC.stoneD, rnd()), false, false, R(0, rr(0, 90), 0)); } }
     };
     path([[0, -6500], [0, STREAM_Y - 700], [0, -1500]], 430);
     path([[0, 1500], [0, GATE[1] - 400]], 430);
