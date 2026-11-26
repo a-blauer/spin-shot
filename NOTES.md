@@ -133,3 +133,11 @@
   Totems SporePod / GraspingMycel. game.strainNow(): Descent every 4 rooms; survival per map. fx.withSap(): spores and
   sap instead of blood for Blight hits. Review sheets: dmh-test/rev.py NAME strain scale tag height -> /tmp/rev_tag.jpg.
   Bosses are still the old 2D-art bodies (stage 3).
+- (27) Blight bosses (stage 3). Every Descent boss has a sculpted body (content bosses[].model, B_* in creatures.mjs):
+  Brood Mother, Old Barkhide (Ironhide rig re-skinned: bracket plates, green slit, mushrooms), Drift Queen, King Puffcap,
+  Lamplighter (angler), Carapace, Great Rootworm, Thunderhead, Ash and Ember (hound), Furnace, Hydra, Mirror Queen,
+  Unblinking, Reaper (mantis), Grandfather Toad, Rotwing, Stump Titan, Leviathan, Devourer, Nameless. Survival bosses
+  borrow the nearest Descent boss body (names unchanged). Bosses ship one file each (public/bl_<name>.json), fetched in
+  the background at start; a boss spawned before its file arrives stands in its old painted body and swaps
+  (Enemy.bodyPending / makeBody()). Baker: vertices renumbered by first use, positions as deltas, indices as distance
+  from the next new vertex, normals octahedral (z:3); budgets x0.8 (BS env). blight.json 2.5 MB + bosses ~5 MB.

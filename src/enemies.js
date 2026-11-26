@@ -2,7 +2,7 @@
 // leapers pounce, screamers frenzy the horde, burrowers tunnel, priests heal, gilded ghouls flee with loot),
 // elite affixes, rooftop climbing, wind-up melee, and multi-phase boss attack patterns.
 import * as THREE from 'three';
-import { isBlight } from './blight.js';
+import { isBlight, blightPending } from './blight.js';
 import { DATA, AFFIX, ENEMY_CREATURES, BOSS_CREATURES, zombieHealth, effRound, payScale, hexRGB, lerp3, lin, frandRange, randInt } from './data.js';
 import { Puppet } from './puppet.js';
 import { Body3D } from './body3d.js';
@@ -97,22 +97,17 @@ export class Enemy {
     this.grounded = false;
     this.yaw = 0;
     // body
-    const creature = this.isBoss ? BOSS_CREATURES[bossIndex] : ENEMY_CREATURES[this.defIndex];
+    let creature = this.isBoss ? BOSS_CREATURES[bossIndex] : ENEMY_CREATURES[this.defIndex];
+    // a boss whose sculpt is still on its way stands in its old painted body until it arrives (update() swaps it)
+    if (blightPending(creature)) { this.bodyPending = creature; creature = DATA.bosses[bossIndex].art; }
     let tint = [1, 1, 1], aura = this.accent(), auraSize = 0;
     if (this.elite) { tint = lerp3([1, 1, 1], this.accent(), 0.22); auraSize = 230; }
     if (this.isBoss) { auraSize = 300; aura = lin(1, 0.25, 0.1); }
     if (splitChild) tint = lerp3(tint, [0.75, 1, 0.6], 0.25);
-    this.puppet = game.flatEnemies && !isBlight(creature) ? new Puppet(creature, this.bodyScale, tint, aura, auraSize) : new Body3D(creature, this.bodyScale, tint, aura, auraSize);
-    if (this.puppet.sculpted) {   // the Blight: this sector's strain, and the gibs and dust in its colours
-      const st = game.strainNow ? game.strainNow() : 0; this.puppet.setStrain(st); this.strain = st;
-      const [cap, flesh, glow] = this.puppet.strainC; this.bodyColor = lerp3(flesh, cap, 0.35); this.sap = { cap, flesh, glow };
-    }
-    this.ckind = game.fx.kindFor(this.puppet.atlas);
-    // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
-    { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
-      this.hitR = Math.max(this.radius, w * this.puppet.baseScale * 0.58); this.hitH = Math.max(this.half * 2, this.puppet.heightCm);
-      if (this.puppet.is3D) { this.hitR = Math.max(this.radius * 0.8, this.puppet.bodyR); this.hitH = this.puppet.heightCm; } }   // the 3D body is the hit shape
-    this.puppet.setMods(DATA.affixes.map((A, i) => (this.affixes & (1 << i) ? Object.keys(AFFIX).find((k) => AFFIX[k] === i) : null)).filter(Boolean));
+    this.look = [tint, aura, auraSize];
+    this.makeBody(creature);
+    this.affixesShown = DATA.affixes.map((A, i) => (this.affixes & (1 << i) ? Object.keys(AFFIX).find((k) => AFFIX[k] === i) : null)).filter(Boolean);
+    this.puppet.setMods(this.affixesShown);
     // timers
     this.emerge = this.ai === 'Flyer' ? 0.01 : 1.5;
     if (this.isBoss) this.emerge = 2.0;
@@ -278,8 +273,24 @@ export class Enemy {
   }
 
   // ------------------------------------------------------------------ tick
+  // the body: sculpted (the Blight) or raised from painted art; its strain, its colours, and the hit shape it gives
+  makeBody(creature) {
+    const game = this.game, [tint, aura, auraSize] = this.look;
+    this.puppet = game.flatEnemies && !isBlight(creature) ? new Puppet(creature, this.bodyScale, tint, aura, auraSize) : new Body3D(creature, this.bodyScale, tint, aura, auraSize);
+    if (this.puppet.sculpted) {   // the Blight: this sector's strain, and the gibs and dust in its colours
+      const st = game.strainNow ? game.strainNow() : 0; this.puppet.setStrain(st); this.strain = st;
+      const [cap, flesh, glow] = this.puppet.strainC; this.bodyColor = lerp3(flesh, cap, 0.35); this.sap = { cap, flesh, glow };
+    }
+    this.ckind = game.fx.kindFor(this.puppet.atlas);
+    // hit shape from the art itself: as tall as the drawn creature and as wide as its body (arms and claws stick out past it)
+    { let w = 0; for (const p of this.puppet.parts) w = Math.max(w, Math.abs(p.rest[0] + p.off[0]) + p.size[0] * 0.5);
+      this.hitR = Math.max(this.radius, w * this.puppet.baseScale * 0.58); this.hitH = Math.max(this.half * 2, this.puppet.heightCm);
+      if (this.puppet.is3D) { this.hitR = Math.max(this.radius * 0.8, this.puppet.bodyR); this.hitH = this.puppet.heightCm; } }   // the 3D body is the hit shape
+    if (this.affixesShown !== undefined) this.puppet.setMods(this.affixesShown);
+  }
   update(dt) {
     const G = this.game;
+    if (this.bodyPending && isBlight(this.bodyPending)) { const c = this.bodyPending; this.bodyPending = null; this.makeBody(c); }
     if (this.dead) {
       this.deathAge += dt;
       if (!this.gibbed) {

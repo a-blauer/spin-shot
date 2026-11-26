@@ -70,7 +70,7 @@ export function mesh(f, lo, hi, h, aoS = 1) {
     const ao = clamp(1 - occ * 1.1, 0.28, 1) * (0.92 + 0.08 * gy);
     want = true; f([x, y, z]); const c = Cc;
     nor[q * 3] = Math.round(gx * 127); nor[q * 3 + 1] = Math.round(gy * 127); nor[q * 3 + 2] = Math.round(gz * 127);
-    const glow = (c[2] > 0.95 && c[0] > 0.65) || (c[0] > 0.95 && c[1] < 0.5 && c[2] < 0.2) ? 1 : 0;   // violet veins and red-hot eyes are not shaded
+    const glow = (c[2] > 0.95 && c[0] > 0.65) || (c[0] > 0.95 && c[1] < 0.5 && c[2] < 0.2) || (c[1] > 0.95 && c[0] < 0.85 && c[2] < 0.45) ? 1 : 0;   // violet veins, red-hot eyes, the Blight's green   // violet veins and red-hot eyes are not shaded
     for (let a = 0; a < 3; a++) col[q * 3 + a] = Math.round(clamp(c[a] * (glow ? 1 : ao), 0, 1) * 255);
   }
   // make sure every face looks out (one check per triangle against the field's normal)

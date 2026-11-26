@@ -1,4 +1,4 @@
-// Old Ironhide, in the round: a great boar in riveted iron. Sculpted once (sdf.js) the first time it comes up:
+// Old Barkhide (was Old Ironhide), in the round: a great boar gone over to the Blight, its back armoured in bracket shelves. Sculpted once (sdf.js) the first time it comes up:
 // a barrel body under a hump of shoulder, four overlapping back plates ridged with spikes (the plates the fight breaks off,
 // each its own mesh), a helm over the face with a red-hot eye slit, a long snout and two curling tusks, four thick legs
 // in greaves on hooves, and a stub of a tail. Faces +z, feet at y 0, about 150 high and 240 long before it is scaled.
@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { C, U, H, S, reset, sph, ell, cap, chain, torus, fbm, mesh, wants, getCol, setCol } from './sdf.js';
 import { toonMaterial } from './render.js';
 
-const HIDE = C(0x5a3a28), HIDE2 = C(0x6e4a32), BRISTLE = C(0x2e2018), IRON = C(0x5c6068), IRON2 = C(0x464a52), RUST = C(0x8a4a2a), RIVET = C(0xb89a5a), TUSK = C(0xe6dcc4), SNOUT = C(0x8a5a4a), HOOF = C(0x1e1814), EYE = C(0xff5a20), DARK = C(0x140c08);
+const HIDE = C(0x5a4a3a), HIDE2 = C(0x6a5644), BRISTLE = C(0x2a2218), IRON = C(0x9a4a2c), IRON2 = C(0x6a3420), RUST = C(0xdccaa6), RIVET = C(0x4a2a1a), TUSK = C(0xe6dcc4), SNOUT = C(0x8a5a4a), HOOF = C(0x1e1814), EYE = C(0xc4ff58), DARK = C(0x140c08), CAPR = C(0xa4432a), STALK = C(0xe2d8c0);
 const grain = (p, k = 0.12) => { if (wants()) { const n = fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05); setCol(getCol().map((x) => Math.max(0, Math.min(1, x * (1 + n * k))))); } };
 function body(p) {
   reset();
@@ -17,6 +17,8 @@ function body(p) {
   // the bristle crest down the back, between the plates
   for (let i = 0; i < 9; i++) { const z = 70 - i * 18; U(cap(p, [0, 146 - i * 1.2, z], [0, 160 - i * 2, z - 14], 5, 1), BRISTLE, 4); }
   U(cap(p, [0, 92, -108], [0, 104, -128], 6, 2), BRISTLE, 6);            // the tail
+  // the Blight in it: little mushrooms up through the bristles
+  for (const [x, z, h] of [[-12, 40, 18], [10, -2, 14], [-6, -48, 16], [14, -80, 12], [-18, -20, 10]]) { U(cap(p, [x, 146, z], [x, 146 + h, z], 2.6, 2.2), STALK, 2); U(Math.max(ell(p, [x, 146 + h, z], [8, 5, 8]), 146 + h - 1.5 - p[1]), CAPR, 1.5); }
   grain(p);
   return D_();
 }

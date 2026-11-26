@@ -2,7 +2,7 @@
 // ArmBack, LegFront, LegBack, Tail, WingFront, WingBack. Everything is sculpted in the creature's own frame: feet at
 // y = 0, facing +z, x to its left. A part's field is written in that frame too; the baker cuts it out round its pivot.
 // Front/Back on limbs means the two sides (the walk swings them in opposite phase), not near and far.
-import { C, CAP, FLESH, GLOW, mixP, reset, U, H, S, P, bump, getD, sph, ell, cap, chain, chainD, torus, cyl, box, rotX, rotY, rotZ, along, fbm, noise, cells, len, clamp } from './kit.mjs';
+import { C, CAP, FLESH, GLOW, mixP, reset, U, H, S, P, bump, getD, setD, sph, ell, cap, chain, chainD, torus, cyl, box, rotX, rotY, rotZ, along, fbm, noise, cells, len, clamp } from './kit.mjs';
 
 // shared paints
 const ROOT = C(0x5e4a36), ROOT2 = C(0x463626), ROOTD = C(0x2e2218), MYC = C(0xe4dccb), MYC2 = C(0xc9bfa9), DARK = C(0x120c08), GUM = C(0x3a1e1a), TOOTH = C(0xd8ccae);
@@ -835,7 +835,7 @@ function pod(p, c, r, h, seed) {
   if (e < 3) P(-fbm(p[0] * 0.1, p[1] * 0.1, p[2] * 0.1) - 0.3, CAP(0.78), 0.12);
   // seams splitting from the top down the sides, lit inside: grooves only a few deep, not cuts through
   const a = Math.atan2(p[2] - c[2], p[0] - c[0]), rr = len(p[0] - c[0], 0, p[2] - c[2]);
-  for (let i = 0; i < 3; i++) { const sa = seed + i * 2.09, d = Math.abs(Math.sin((a - sa) * 0.5)) * rr * 2 - 1.3; if (p[1] > c[1] - h * 0.35) S(Math.max(d, -ell(p, c, [r - 3, h - 3, r - 3])), 1, GLOW(1)); }
+  for (let i = 0; i < 3; i++) { const sa = seed + i * 2.09, d = Math.abs(Math.sin((a - sa) * 0.5)) * rr * 2 - 1.3; if (p[1] > c[1] - h * 0.35) S(Math.max(d, -ell(p, c, [r - 3, h - 3, r - 3]), e - 1), 1, GLOW(1)); }
 }
 function podBody(p) {
   reset();
@@ -890,4 +890,880 @@ function mycelHead(p) {
   return getD();
 }
 
-export const CREATURES = { Rotcap, Sporeling, Creeper, Puffball, Inkcap, BlightRat, Drifter, Bracketback, Shrieker, Shelfshield, Sporecaller, GoldenTruffle, Rootworm, SporePod, GraspingMycel };
+
+
+// ================================================================ BOSSES
+// Each is the Blight grown huge round one idea. Sculpted around 200 high; the game scales a boss by its own size (to
+// about twice that).
+
+// a crown: a ring of caps standing up round a point, the middle ones tallest, some lit
+function crown(p, c, R, n, L, cr, seed = 0) {
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + seed, tall = 0.7 + 0.3 * Math.cos(a * 2) + hashI(i, 7) * 0.2; const b = [c[0] + Math.cos(a) * R, c[1], c[2] + Math.sin(a) * R]; sprout(p, b, [Math.cos(a) * 0.35, 1, Math.sin(a) * 0.35], L * tall, cr * (0.8 + 0.3 * tall), i % 2 === 0); }
+}
+
+// ---------------------------------------------------------------- THE BROOD MOTHER (eggs)
+// A queen that never stops laying: an upright front like a great Rotcap, two pairs of root arms, a crowned cap with a ring
+// of eyes, and behind her an enormous pale sac dragging on the floor, knobbed with pods splitting along lit seams.
+export const B_BroodMother = {
+  height: 205,
+  parts: [
+    { role: 'LegBack', pivot: [-22, 60, 26], lo: [-60, -4, -14], hi: [10, 80, 70], h: 1.8, f: (p) => { reset(); rootLeg(p, [-22, 64, 26], [-26, 34, 36], [-24, 12, 30], 13, 10, [[-0.4, 1, 20], [0.1, 1, 24], [0.5, 0.8, 20], [0, -1, 14]], -1); return getD(); } },
+    { role: 'LegFront', pivot: [22, 60, 26], lo: [-10, -4, -14], hi: [60, 80, 70], h: 1.8, f: (p) => { reset(); rootLeg(p, [22, 64, 26], [26, 34, 36], [24, 12, 30], 13, 10, [[-0.4, 1, 20], [0.1, 1, 24], [0.5, 0.8, 20], [0, -1, 14]], 1); return getD(); } },
+    { role: 'Body', pivot: [0, 60, 20], lo: [-96, -4, -200], hi: [96, 176, 76], h: 2.4, f: broodBody, tris: 14000 },
+    { role: 'ArmBack', pivot: [-34, 150, 34], lo: [-96, 40, -10], hi: [-14, 162, 96], h: 1.7, f: (p) => { reset(); rootArm(p, [-34, 150, 34], [-56, 118, 50], [-60, 86, 66], 9, 4, 34, -1); return getD(); } },
+    { role: 'ArmFront', pivot: [34, 150, 34], lo: [14, 40, -10], hi: [96, 162, 96], h: 1.7, f: (p) => { reset(); rootArm(p, [34, 150, 34], [56, 118, 50], [60, 86, 66], 9, 4, 34, 1); return getD(); } },
+    { role: 'ArmBack', pivot: [-28, 118, 40], lo: [-80, 40, 0], hi: [-10, 128, 90], h: 1.5, f: (p) => { reset(); rootArm(p, [-28, 118, 40], [-46, 98, 58], [-46, 74, 72], 6.5, 3, 24, -1); return getD(); } },
+    { role: 'ArmFront', pivot: [28, 118, 40], lo: [10, 40, 0], hi: [80, 128, 90], h: 1.5, f: (p) => { reset(); rootArm(p, [28, 118, 40], [46, 98, 58], [46, 74, 72], 6.5, 3, 24, 1); return getD(); } },
+    { role: 'Head', pivot: [0, 160, 38], lo: [-74, 142, -34], hi: [74, 236, 110], h: 1.8, f: broodHead, tris: 9000 },
+  ],
+};
+function broodBody(p) {
+  reset();
+  // the front: a thick stalk of a torso leaning back from the hips
+  U(ell(p, [0, 72, 24], [36, 22, 32]), FLESH(1), 10);
+  U(cap(p, [0, 74, 24], [0, 162, 38], 34, 24), FLESH(1), 14); fibres(p, [0, 0, 30], 18, 0.8);
+  for (const s of [-1, 1]) { U(ell(p, [s * 30, 148, 34], [12, 10, 12]), ROOT, 6); U(ell(p, [s * 26, 118, 40], [9, 8, 9]), ROOT, 5); }
+  // a ragged ring
+  { const q = [p[0], p[1], p[2] - 32], rr = len(q[0], 0, q[2]), a = Math.atan2(q[2], q[0]), y0 = 136 - (rr - 26) * 0.7, tear = Math.max(0, Math.sin(a * 3 + 2)) * 10;
+    U(Math.max(Math.abs(p[1] - y0) - 3, rr - (46 - tear * 0.4), 25 - rr), FLESH(0.85), 3); }
+  // the sac: huge, pale, veined, lying on the floor behind her
+  const sc = [0, 62, -96], sac = ell(p, sc, [78, 60, 100]);
+  U(sac, mixP(FLESH(0.95), C(0xe8dcc8), 0.3), 26);
+  U(ell(p, [0, 46, -40], [44, 36, 40]), FLESH(0.95), 20);   // where it joins her
+  if (sac < 6) { const n = fbm(p[0] * 0.04, p[1] * 0.04, p[2] * 0.04); P(Math.abs(n) * 40 - 1.4, mixP(CAP(0.7), FLESH(0.3), 0.3), 0.8); }   // veins
+  // pods bulging out of the sac, splitting along lit seams
+  for (const [x, y, z, r] of [[-40, 98, -80, 16], [30, 104, -110, 18], [0, 112, -60, 14], [-52, 70, -140, 15], [48, 64, -70, 13], [10, 96, -160, 15], [-22, 112, -120, 13], [58, 82, -130, 12]]) {
+    const e = ell(p, [x, y, z], [r, r * 1.2, r]); U(e, CAP(1), 5);
+    if (e < 3) { const a = Math.atan2(p[2] - z, p[0] - x), rr = len(p[0] - x, 0, p[2] - z); for (let k = 0; k < 2; k++) { const d = Math.abs(Math.sin((a - k * 1.57 - x) * 0.5)) * rr * 2 - 1.6; if (p[1] > y - r * 0.4) S(Math.max(d, -ell(p, [x, y, z], [r - 3, r * 1.2 - 3, r - 3]), e - 1), 1, GLOW(1)); } }
+  }
+  for (const [x, z] of [[-30, -40], [36, -160], [-60, -110]]) sprout(p, [x, 110, z], [x * 0.01, 1, 0], 12, 7, true);
+  S(p[1] + 1, 2);   // flat on the floor
+  P(p[1] - 14, mixP(FLESH(0.55), C(0x2a2016), 0.5), 8);
+  return getD();
+}
+function broodHead(p) {
+  reset();
+  U(cap(p, [0, 148, 36], [0, 186, 42], 23, 26), FLESH(1), 8);
+  capDome(p, { c: [0, 194, 44], r: 64, h: 30, droop: 12, wave: 3, waves: 7, gills: 40, warts: 30, wartR: 5.6, seed: 5, lop: 4, gillIn: 28, under: 0.42, tilt: 2, bites: 2 });
+  crown(p, [0, 220, 44], 26, 9, 22, 8, 0.3);
+  // a ring of eyes under the brim, and a wide mouth of gill-teeth
+  for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.32; eye(p, [Math.sin(a) * 25, 178 - Math.abs(i - 2) * 1.5, 42 + Math.cos(a) * 25], 3.6 - Math.abs(i - 2) * 0.4); }
+  S(ell(p, [0, 160, 66], [15, 6, 10]), 2, GUM);
+  for (let i = -5; i <= 5; i++) { const x = i * 2.8, l = 4 + (i & 1) * 2; U(cap(p, [x, 164.5, 64], [x, 164.5 - l, 66], 1.3, 0.35), TOOTH, 0.5); U(cap(p, [x + 1.4, 155.5, 63.5], [x + 1.4, 155.5 + l * 0.7, 65.5], 1.2, 0.35), TOOTH, 0.5); }
+  S(p[1] - 143, 2);
+  return getD();
+}
+
+// ---------------------------------------------------------------- KING PUFFCAP (split)
+// The Puffball grown regal and fit to burst: the same swollen body under a crown of caps; cut it and it comes apart into two
+// smaller ones, and those into four.
+export const B_KingPuff = {
+  height: 230,
+  parts: Puffball.parts.filter((pt) => pt.role !== 'Head').concat([{ role: 'Head', pivot: [0, 176, 0], lo: [-60, 162, -60], hi: [60, 250, 60], h: 1.5, f: kingPuffHead, tris: 8000 }]),
+};
+function kingPuffHead(p) {
+  reset();
+  U(ell(p, [0, 180, 0], [42, 16, 40]), CAP(0.95), 8);
+  crown(p, [0, 188, 0], 30, 11, 26, 8.5, 0.2);
+  S(cap(p, [0, 188, 0], [0, 212, 0], 13, 16), 3, GLOW(1));
+  S(p[1] - 166, 2);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE DRIFT QUEEN (swarm)
+// Mother of the Drifters: a vast floating pod crowned with tall caps, its underside a hive of lit buds that drop away as new
+// Drifters, a heavy toothed mouth on a stalk and a curtain of long glowing hyphae trailing under her.
+export const B_DriftQueen = {
+  height: 190,
+  parts: [
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-50, -6, -50], hi: [50, 76, 50], h: 1.4, f: queenTail, tris: 3500 },
+    { role: 'Body', pivot: [0, 110, 0], lo: [-86, 60, -86], hi: [86, 196, 86], h: 2.0, f: queenBody, tris: 14000 },
+    { role: 'Head', pivot: [0, 86, 12], lo: [-36, 36, -24], hi: [36, 96, 60], h: 1.4, f: queenHead, tris: 5000 },
+  ],
+};
+function queenBody(p) {
+  reset();
+  U(ell(p, [0, 132, 0], [62, 46, 62]), CAP(1), 6);
+  U(ell(p, [0, 166, 0], [30, 18, 30]), CAP(0.85), 14);
+  { const [d1] = cells(p[0] * 0.08, p[1] * 0.08, p[2] * 0.08); bump(-Math.max(0, 0.28 - d1) * 2.4); }
+  for (let i = 0; i < 14; i++) { const a = i * 0.4488, y = 130 + Math.sin(i * 2.1) * 6; pore(p, [Math.cos(a) * 61, y, Math.sin(a) * 61], 3.6, [Math.cos(a), 0, Math.sin(a)]); }
+  for (const s of [-1, 1]) eye(p, [s * 16, 124, 59], 5);
+  crown(p, [0, 176, 0], 22, 8, 26, 8, 0.1);
+  // the skirt of gills
+  { const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]), frill = Math.sin(a * 16) * 4, y0 = 100 - (rr - 34) * 0.5 + frill;
+    U(Math.max(Math.abs(p[1] - y0) - 2.6, rr - (76 + Math.sin(a * 7) * 4), 30 - rr), FLESH(0.9), 3); }
+  // the hive: a cluster of lit buds hanging under her
+  U(ell(p, [0, 96, 0], [42, 16, 42]), FLESH(0.85), 10);
+  for (let i = 0; i < 13; i++) { const a = i * 0.483, r = 14 + (i % 3) * 9, b = [Math.cos(a) * r, 84 - (i % 2) * 5, Math.sin(a) * r], e = ell(p, b, [7, 9, 7]); U(e, CAP(0.9), 3); if (e < 2) P(ell(p, [b[0], b[1] - 4, b[2]], [4, 5, 4]), GLOW(1), 1.5); }
+  S(p[1] - 64, 2);
+  return getD();
+}
+function queenHead(p) {
+  reset();
+  U(cap(p, [0, 92, 8], [0, 62, 22], 14, 17), FLESH(1), 4);
+  U(ell(p, [0, 54, 26], [20, 13, 20]), FLESH(0.9), 4);
+  S(ell(p, [0, 46, 30], [12, 10, 12]), 2, GUM); S(ell(p, [0, 52, 28], [6, 10, 6]), 1, GLOW(1));
+  for (let ring = 0; ring < 2; ring++) for (let i = 0; i < 14; i++) { const a = i * 0.4488 + ring * 0.2, r = 12 - ring * 4, x = Math.cos(a) * r, z = 30 + Math.sin(a) * r; U(cap(p, [x, 45 + ring * 3, z], [x * 0.6, 48 + ring * 3, 30 + (z - 30) * 0.6], 2, 0.4), TOOTH, 0.5); }
+  S(90 - p[1], 2);
+  return getD();
+}
+function queenTail(p) {
+  reset();
+  for (let i = 0; i < 12; i++) { const a = i * 0.5236 + 0.3, r = 22 + (i % 3) * 10, L = 40 + (i * 13) % 30; const b = [Math.cos(a) * r, 72, Math.sin(a) * r];
+    const pts = []; for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push([b[0] * (1 - t * 0.25) + Math.sin(t * 5 + i) * 4, b[1] - t * L, b[2] * (1 - t * 0.25) + Math.cos(t * 4 + i) * 4]); }
+    chain(p, pts, 2.6, 1, MYC2, 1.5); U(sph(p, pts[6], 2.4), GLOW(1), 0.8); }
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE LAMPLIGHTER (decoy)
+// An anglerfish grown out of a puffball: a dark bulb of a head that is mostly mouth, rows of long needle teeth, two small
+// eyes high up, a ragged frill of gills down its back like a fin, and arching over the front on a long stalk the lure, a
+// lit pod. In the dark you see three lights; only one has a mouth behind it.
+export const B_Lantern = {
+  height: 200,
+  parts: [
+    { role: 'Tail', pivot: [0, 96, -60], lo: [-40, 40, -150], hi: [40, 150, -40], h: 1.4, f: lanternTail, tris: 3000 },
+    { role: 'Body', pivot: [0, 100, 0], lo: [-80, 30, -80], hi: [80, 176, 96], h: 1.9, f: lanternBody, tris: 14000 },
+    { role: 'Head', pivot: [0, 160, 10], lo: [-26, 150, -10], hi: [26, 236, 130], h: 1.3, f: lanternLure, tris: 3000 },
+  ],
+};
+function lanternBody(p) {
+  reset();
+  U(ell(p, [0, 104, 0], [60, 58, 66]), CAP(0.7), 6);
+  { const [d1] = cells(p[0] * 0.07, p[1] * 0.07, p[2] * 0.07); bump(-Math.max(0, 0.3 - d1) * 3); }
+  P(-fbm(p[0] * 0.06, p[1] * 0.06, p[2] * 0.06) - 0.2, mixP(CAP(0.5), C(0x0e0a08), 0.3), 0.15);
+  // the mouth: a huge underbite gaping forward
+  const m = [0, 88, 48];
+  S(ell(p, m, [46, 28, 34]), 4, GUM); S(ell(p, [0, 84, 40], [30, 16, 24]), 3, GLOW(0.5));
+  U(ell(p, [0, 64, 46], [48, 14, 30]), CAP(0.65), 8);   // the jaw
+  for (let i = -8; i <= 8; i++) { const a = i / 9, x = Math.sin(a * 1.2) * 40, z = 48 + Math.cos(a * 1.2) * 26 - 8, L = 14 + (i & 1) * 8 - Math.abs(i) * 0.6; U(cap(p, [x, 70, z], [x * 0.96, 70 + L, z + 3], 2.2, 0.4), TOOTH, 0.6); U(cap(p, [x * 0.97, 108, z - 2], [x * 0.93, 108 - L * 0.8, z + 2], 2, 0.4), TOOTH, 0.6); }
+  for (const s of [-1, 1]) eye(p, [s * 24, 140, 46], 4);
+  // the frill down the back, like a fin
+  { const q = [p[0], p[1] - 150, p[2] + 10]; U(Math.max(Math.abs(q[0]) - 2.2 - Math.sin(q[2] * 0.3) * 1, ell(q, [0, 0, -30], [8, 24, 50]), -q[1] - 6), FLESH(0.85), 3); }
+  for (let i = 0; i < 10; i++) { const a = i * 0.628, y = 104 + Math.sin(i * 1.7) * 20; if (Math.sin(a) < 0.5) pore(p, [Math.cos(a) * 58, y, Math.sin(a) * 60], 3, [Math.cos(a), 0, Math.sin(a)]); }
+  return getD();
+}
+function lanternLure(p) {
+  reset();
+  // the stalk: up from the brow and arching forward and down
+  const pts = []; for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push([Math.sin(t * 3) * 3, 160 + Math.sin(t * Math.PI * 0.8) * 60, 10 + t * 100]); }
+  chain(p, pts, 4, 2.2, FLESH(0.9), 2);
+  const L = pts[10]; U(ell(p, [L[0], L[1] - 8, L[2]], [10, 13, 10]), GLOW(1), 2); U(ell(p, [L[0], L[1] + 1, L[2]], [8, 4, 8]), CAP(0.9), 2);
+  for (let i = 0; i < 5; i++) { const a = i * 1.257; chain(p, [[L[0], L[1] - 18, L[2]], [L[0] + Math.cos(a) * 5, L[1] - 26, L[2] + Math.sin(a) * 5]], 1, 0.4, MYC2, 0.6); }
+  return getD();
+}
+function lanternTail(p) {
+  reset();
+  // a ragged tail fin of gill-membrane
+  const q = [p[0], p[1] - 96, p[2] + 60], u = -q[2];
+  U(Math.max(Math.abs(q[0]) - 2.2, ell(q, [0, 0, -30], [8, 24, 30]), -u - 4), mixP(FLESH(0.8), CAP(0.4), 0.3), 3);
+  for (let i = -3; i <= 3; i++) U(cap(p, [0, 96, -62], [0, 96 + i * 7, -96], 1.4, 0.7), CAP(0.8), 1);
+  return getD();
+}
+
+
+
+// ---------------------------------------------------------------- CARAPACE (shell)
+// A tortoise that is mostly fungus: a vast domed bracket for a shell, ringed in bands, its underside pored and pale, four
+// stumps of legs, and a gnarled snout pushing out from under the front rim with two lit eyes. It spins in the shell, and
+// when it ends up on its back it is soft.
+export const B_Carapace = {
+  height: 170, beast: true,
+  parts: [
+    { role: 'LegBack', pivot: [-46, 46, -40], lo: [-84, -4, -80], hi: [-14, 70, 0], h: 1.8, f: (p) => carLeg(p, -1, -40) },
+    { role: 'LegFront', pivot: [46, 46, -40], lo: [14, -4, -80], hi: [84, 70, 0], h: 1.8, f: (p) => carLeg(p, 1, -40) },
+    { role: 'Body', pivot: [0, 50, 0], lo: [-128, 14, -140], hi: [128, 176, 140], h: 2.2, f: carBody, tris: 14000 },
+    { role: 'ArmBack', pivot: [-46, 46, 44], lo: [-84, -4, 4], hi: [-14, 70, 90], h: 1.8, f: (p) => carLeg(p, -1, 44) },
+    { role: 'ArmFront', pivot: [46, 46, 44], lo: [14, -4, 4], hi: [84, 70, 90], h: 1.8, f: (p) => carLeg(p, 1, 44) },
+    { role: 'Head', pivot: [0, 62, 118], lo: [-40, 30, 96], hi: [40, 100, 194], h: 1.4, f: carHead, tris: 6000 },
+  ],
+};
+function carBody(p) {
+  reset();
+  U(ell(p, [0, 54, 0], [74, 30, 90]), FLESH(0.85), 12);   // the body inside
+  // the shell: a broad dome over a thick lip, ringed in bands, the bands darkening to the rim
+  const a = Math.atan2(p[2], p[0]), wob = 1 + Math.sin(a * 9) * 0.03 + Math.sin(a * 3 + 1) * 0.025;
+  const q = [p[0] / wob, p[1], p[2] / wob], shell = Math.max(ell(q, [0, 58, 0], [106, 92, 122]), 60 - p[1]);
+  U(shell, CAP(1), 4);
+  U(torus([q[0], q[1], q[2] * 106 / 122], [0, 62, 0], 102, 7), CAP(0.6), 5);   // the lip
+  const rr = len(q[0], 0, q[2] * 106 / 122), top = 58 + 92 * Math.sqrt(Math.max(0, 1 - (rr / 106) ** 2));
+  if (shell < 5) { const band = Math.sin(rr * 0.2 + fbm(p[0] * 0.03, 0, p[2] * 0.03) * 2); P(-band - 0.15, CAP(0.74), 0.3); P(rr - 84, mixP(CAP(0.55), C(0x1a120a), 0.35), 6); }
+  P(p[1] - 64, FLESH(0.85), 3);   // pale beneath
+  // things growing on the shell: smaller brackets, a few mushrooms, lit pores
+  for (const [x, z, ox, oz] of [[-80, -40, -1, -0.4], [78, 36, 1, 0.3], [-26, 100, -0.3, 1], [44, -96, 0.6, -1]]) { const r2 = len(x, 0, z * 106 / 122), y2 = 58 + 92 * Math.sqrt(Math.max(0, 1 - (r2 / 106) ** 2)); shelf(p, [x, y2 - 4, z], [ox, 0, oz], 16, 3.6, 0.2); }
+  for (const [x, z] of [[0, 0], [-30, 20], [26, -26], [10, 40], [-40, -50]]) { const r2 = len(x, 0, z * 106 / 122), y2 = 58 + 92 * Math.sqrt(Math.max(0, 1 - (r2 / 106) ** 2)); sprout(p, [x, y2 - 2, z], [x * 0.01, 1, z * 0.01], 12, 7, (x + z) % 2 === 0); }
+  for (let i = 0; i < 8; i++) { const ang = i * 0.785 + 0.3, r2 = 72, x = Math.cos(ang) * r2, z = Math.sin(ang) * r2 * 122 / 106, y = 58 + 92 * Math.sqrt(1 - (r2 / 106) ** 2); pore(p, [x, y - 1, z], 4, [x / 100, 0.8, z / 100]); }
+  return getD();
+}
+function carHead(p0) {
+  const p = [p0[0], p0[1] - 8, p0[2] - 40]; reset();
+  U(cap(p, [0, 52, 66], [0, 52, 100], 20, 17), mixP(ROOT, FLESH(0.3), 0.3), 8);
+  U(ell(p, [0, 50, 112], [20, 16, 20]), ROOT, 6); bark(p, 0.6);
+  U(cap(p, [0, 44, 116], [0, 36, 132], 10, 6), ROOT2, 4);   // the beak-like snout
+  S(ell(p, [0, 40, 128], [11, 2.6, 8]), 1.5, GUM);
+  for (const s of [-1, 1]) eye(p, [s * 11, 58, 124], 3.6);
+  U(ell(p, [0, 64, 112], [18, 4, 14]), FLESH(0.8), 4);   // a brow
+  S(p[2] - 62, 2);
+  return getD();
+}
+function carLeg(p, s, z) {
+  reset();
+  U(cap(p, [s * 46, 50, z], [s * 52, 14, z + (z > 0 ? 6 : -2)], 18, 16), ROOT, 6); bark(p, 0.6);
+  U(ell(p, [s * 52, 8, z + (z > 0 ? 8 : -2)], [20, 10, 22]), ROOT2, 6);
+  for (const [ax, l] of [[-0.6, 20], [0, 22], [0.6, 20]]) rootFinger(p, [[s * 52, 6, z + (z > 0 ? 18 : 10)], [s * 52 + ax * l * 0.6, 3, z + (z > 0 ? 28 : 20)], [s * 52 + ax * l, 1.4, z + (z > 0 ? 34 : 26)]], 5, ROOT2);
+  S(p[1] + 0.5, 1); P(p[1] - 12, ROOTD, 6);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE GREAT ROOTWORM (burrow)
+// The Rootworm's mother: thicker, older, ringed in lit bands, its mouth fringed with long feeler-roots that grope out.
+export const B_Wyrm = {
+  height: 140,
+  parts: [
+    { role: 'Body', pivot: [0, 0, 0], lo: [-64, -6, -72], hi: [64, 110, 66], h: 1.9, f: wyrmBody, tris: 9000 },
+    { role: 'Head', pivot: [0, 88, 26], lo: [-60, 50, -6], hi: [60, 140, 110], h: 1.5, f: wyrmHead, tris: 10000 },
+  ],
+};
+function wyrmBody(p) { reset(); const q = [p[0] / 1.15, p[1] / 1.1, p[2] / 1.1]; const d = wormBody(q) * 1.1; setDpaint(d); for (let i = 0; i < 3; i++) { const y = 26 + i * 22; P(Math.abs(p[1] - y) - 2.4 - Math.max(0, len(p[0], 0, p[2] + 24 - i * 6) - 30) * 0, GLOW(0.95), 1.2); } return getD(); }
+function wyrmHead(p) {
+  reset(); const q = [p[0] / 1.15, (p[1] - 88) / 1.1 + 88, (p[2] - 26) / 1.1 + 26]; wormHead(q); bumpScale(1.1);
+  // feeler roots fringing the mouth, groping forward
+  const m = [0, 95 * 1.0 + 7, 26 + 32 * 1.1 + 4];
+  for (let i = 0; i < 10; i++) { const a = i * 0.628, b = [Math.cos(a) * 22, 102 + Math.sin(a) * 22, 64]; chain(p, [b, [b[0] * 1.5, b[1] + Math.sin(a) * 10 + 4, 84], [b[0] * 1.7 + Math.sin(i) * 4, b[1] + Math.sin(a) * 14 - 4, 100], [b[0] * 1.5, b[1] + Math.sin(a) * 12 - 12, 108]], 2.6, 0.6, ROOT2, 1.2); }
+  return getD();
+}
+// helpers for scaled reuse: the field was computed in scaled space; correct the distance and keep the paint
+function setDpaint(d) { setD(d); }
+function bumpScale(k) { setD(getD() * k); }
+
+// ---------------------------------------------------------------- THUNDERHEAD (storm)
+// A storm cloud of puffballs: dozens of spore balls packed into one floating mass, dark beneath, cracks of light running
+// through it, a heavy-browed face pushing out of the front, and spore rain trailing from its underside in lit threads.
+export const B_Thunderhead = {
+  height: 190,
+  parts: [
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-70, -6, -60], hi: [70, 80, 60], h: 1.5, f: thunderTail, tris: 4000 },
+    { role: 'Body', pivot: [0, 120, 0], lo: [-120, 64, -96], hi: [120, 200, 96], h: 2.2, f: thunderBody, tris: 14000 },
+    { role: 'Head', pivot: [0, 120, 50], lo: [-50, 76, 30], hi: [50, 164, 112], h: 1.5, f: thunderHead, tris: 7000 },
+  ],
+};
+const THB = [[0, 130, 0, 52], [-56, 120, -6, 40], [54, 124, 4, 42], [-26, 158, -14, 38], [28, 156, 8, 36], [-84, 110, 10, 28], [86, 112, -8, 30], [0, 112, -50, 36], [-40, 104, 34, 30], [44, 104, 30, 30], [0, 174, 6, 26], [-60, 140, -40, 26], [60, 146, -34, 26]];
+function thunderBody(p) {
+  reset();
+  for (const [x, y, z, r] of THB) { U(sph(p, [x, y, z], r), CAP(1), 10); }
+  P(118 - p[1] + fbm(p[0] * 0.03, p[1] * 0.03, p[2] * 0.03) * 20, mixP(CAP(0.45), C(0x0e0c10), 0.45), 12);   // dark beneath
+  { const [d1] = cells(p[0] * 0.06, p[1] * 0.06, p[2] * 0.06); bump(-Math.max(0, 0.3 - d1) * 3); }
+  // cracks of light: thin lit veins wandering through the mass
+  { const n = fbm(p[0] * 0.025 + 3, p[1] * 0.025, p[2] * 0.025); S(Math.abs(n) * 80 - 1.0 + Math.max(0, 120 - p[1]) * 0.05, 0.8, GLOW(1)); }
+  return getD();
+}
+function thunderHead(p) {
+  reset();
+  U(ell(p, [0, 118, 70], [38, 34, 30]), CAP(0.9), 8);
+  U(ell(p, [0, 140, 86], [34, 9, 16]), CAP(0.75), 6);   // the brow
+  for (const s of [-1, 1]) eye(p, [s * 14, 128, 95], 5);
+  S(ell(p, [0, 104, 96], [20, 9, 12]), 2, GUM); S(ell(p, [0, 104, 92], [12, 5, 8]), 2, GLOW(0.9));
+  for (let i = -5; i <= 5; i++) { const x = i * 3.4, a = Math.abs(i) / 6; U(cap(p, [x, 111 - a * a * 3, 99 - a * 6], [x, 107 - a * a * 3 - (i & 1) * 2, 101 - a * 6], 1.5, 0.4), TOOTH, 0.5); }
+  S(p[2] - 34, 2);
+  return getD();
+}
+function thunderTail(p) {
+  reset();
+  for (let i = 0; i < 18; i++) { const a = i * 0.349 + 0.2, r = 20 + (i % 4) * 14, L = 40 + (i * 17) % 34; const b = [Math.cos(a) * r, 76, Math.sin(a) * r * 0.8];
+    chain(p, [b, [b[0] + Math.sin(i) * 3, b[1] - L * 0.5, b[2]], [b[0], b[1] - L, b[2] + Math.cos(i) * 3]], 1.6, 0.7, MYC2, 0.8); U(sph(p, [b[0], b[1] - L, b[2] + Math.cos(i) * 3], 1.8), GLOW(1), 0.6); }
+  return getD();
+}
+
+// ---------------------------------------------------------------- ASH AND EMBER (twin hounds)
+// A pair of hounds the Blight took: lean, ribbed, a ridge of little caps down the spine, mold in the fur, jaws grown through
+// with pale gill-teeth, eyes lit. Four-footed (beast rig). ~140 high before scale.
+const DFUR = C(0x4a423c), DFUR2 = C(0x38322e), DFURL = C(0x6e6458);
+export const B_Hound = {
+  height: 140, beast: true,
+  parts: [
+    { role: 'LegBack', pivot: [-16, 70, -44], lo: [-40, -4, -86], hi: [4, 96, -10], h: 1.4, f: (p) => houndHind(p, -1) },
+    { role: 'LegFront', pivot: [16, 70, -44], lo: [-4, -4, -86], hi: [40, 96, -10], h: 1.4, f: (p) => houndHind(p, 1) },
+    { role: 'Body', pivot: [0, 74, 0], lo: [-40, 40, -96], hi: [40, 130, 60], h: 1.5, f: houndBody, tris: 9000 },
+    { role: 'Tail', pivot: [0, 82, -62], lo: [-24, 30, -140], hi: [24, 110, -50], h: 1.3, f: houndTail, tris: 2500 },
+    { role: 'ArmBack', pivot: [-15, 72, 34], lo: [-36, -4, 4], hi: [4, 96, 64], h: 1.3, f: (p) => houndFore(p, -1) },
+    { role: 'ArmFront', pivot: [15, 72, 34], lo: [-4, -4, 4], hi: [36, 96, 64], h: 1.3, f: (p) => houndFore(p, 1) },
+    { role: 'Head', pivot: [0, 96, 46], lo: [-34, 64, 26], hi: [34, 140, 130], h: 1.2, f: houndHead, tris: 8000 },
+  ],
+};
+function houndBody(p) {
+  reset();
+  U(ell(p, [0, 88, 20], [21, 24, 30]), DFUR, 10);   // the deep chest
+  U(cap(p, [0, 88, 14], [0, 84, -50], 19, 15), DFUR2, 12);   // the barrel to the haunches
+  U(ell(p, [0, 84, -50], [18, 18, 18]), DFUR, 10);
+  U(ell(p, [0, 102, 30], [16, 14, 18]), DFUR, 10);   // the shoulders
+  fur(p, 0.7);
+  for (let i = 0; i < 5; i++) for (const s of [-1, 1]) U(cap(p, [s * 16.5, 98, 8 - i * 9], [s * 18.5, 78, 6 - i * 9], 1.4, 1), DFURL, 2.4);   // ribs
+  P(p[1] - 72, mixP(DFURL, FLESH(0.3), 0.3), 6);
+  // the ridge of caps down the spine, the front ones lit
+  for (let i = 0; i < 8; i++) { const z = 34 - i * 11, y = 112 - Math.abs(z + 10) * 0.08; sprout(p, [0, y, z], [0, 1, -0.2], 9 - i * 0.6, 6 - i * 0.35, i < 3); }
+  P(ell(p, [0, 108, -6], [12, 8, 46]) + fbm(p[0] * 0.15, p[1] * 0.15, p[2] * 0.15) * 6, mixP(CAP(0.8), DFUR2, 0.2), 3);
+  return getD();
+}
+function houndHead(p) {
+  reset();
+  U(ell(p, [0, 104, 56], [15, 14, 16]), DFUR, 6);
+  U(cap(p, [0, 100, 62], [0, 92, 96], 11, 6.5), DFUR, 6); fur(p, 0.4);
+  U(sph(p, [0, 93, 98], 4.2), C(0x1a1614), 2);
+  for (const s of [-1, 1]) U(cap(p, [s * 9, 114, 50], [s * 12, 128, 44], 4.2, 1), DFUR2, 3);   // ears
+  // jaws parted, gill-teeth grown through
+  S(ell(p, [0, 88, 82], [8, 3.5, 16]), 1.6, GUM);
+  for (let i = 0; i < 6; i++) for (const s of [-1, 1]) { const z = 74 + i * 3.6; U(cap(p, [s * 6, 91, z], [s * 5.5, 86 - (i & 1) * 1.5, z + 0.5], 1.1, 0.3), TOOTH, 0.4); U(cap(p, [s * 5.6, 84.5, z + 1.5], [s * 5.2, 88.5, z + 2], 1, 0.3), TOOTH, 0.4); }
+  for (const s of [-1, 1]) eye(p, [s * 8.5, 107, 68], 2.8, [s * 0.4, 0, 0.9]);
+  sprout(p, [-6, 116, 52], [-0.4, 1, -0.2], 7, 4.6, true); sprout(p, [5, 117, 49], [0.3, 1, -0.3], 6, 4);
+  S(p[2] - 34, 1);
+  return getD();
+}
+function houndFore(p, s) {
+  reset();
+  U(ell(p, [s * 15, 86, 34], [8, 16, 10]), DFUR, 5);
+  chain(p, [[s * 15, 76, 34], [s * 16, 44, 40], [s * 16, 26, 38], [s * 16, 6, 42]], 5.6, 3.6, DFUR2, 2); fur(p, 0.4);
+  U(ell(p, [s * 16, 4, 46], [5.5, 3.6, 7]), C(0x2a2420), 2);
+  for (let i = -1; i <= 1; i++) chain(p, [[s * 16 + i * 2.6, 4, 51], [s * 16 + i * 3, 1.4, 55]], 1.2, 0.5, CLAW, 0.5);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+function houndHind(p, s) {
+  reset();
+  U(ell(p, [s * 16, 80, -46], [10, 20, 16]), DFUR, 6);
+  chain(p, [[s * 17, 70, -40], [s * 18, 44, -58], [s * 17, 22, -50], [s * 17, 6, -46]], 6, 3.8, DFUR2, 2); fur(p, 0.4);
+  U(ell(p, [s * 17, 4, -40], [5.5, 3.6, 8]), C(0x2a2420), 2);
+  for (let i = -1; i <= 1; i++) chain(p, [[s * 17 + i * 2.6, 4, -34], [s * 17 + i * 3, 1.4, -30]], 1.2, 0.5, CLAW, 0.5);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+function houndTail(p) {
+  reset();
+  const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([Math.sin(t * 3) * 4, 84 - t * 36 + t * t * 10, -60 - t * 70]); }
+  chain(p, pts, 7, 3, DFUR, 3); fur(p, 0.8);
+  sprout(p, pts[5], [0, 1, -0.3], 8, 5, true); sprout(p, pts[7], [0.3, 1, -0.5], 6, 4);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE FURNACE (heat)
+// A burned-out stump that kept burning inside: charred bark split open down the chest on a core of light, two hollow stumps
+// on its shoulders for chimneys, huge charred fists, cinders caught in the cracks. Every fourth thing it does, it vents.
+const CHAR = C(0x221c1a), CHAR2 = C(0x16110f), ASH = C(0x5e5650);
+export const B_Furnace = {
+  height: 240, budget: 1.4,
+  parts: [
+    { role: 'LegBack', pivot: [-28, 92, -8], lo: [-70, -4, -50], hi: [4, 116, 46], h: 2.0, f: (p) => furnLeg(p, -1) },
+    { role: 'LegFront', pivot: [28, 92, -8], lo: [-4, -4, -50], hi: [70, 116, 46], h: 2.0, f: (p) => furnLeg(p, 1) },
+    { role: 'Body', pivot: [0, 92, 0], lo: [-100, 66, -84], hi: [100, 272, 84], h: 2.2, f: furnBody, tris: 14000 },
+    { role: 'ArmBack', pivot: [-62, 182, 6], lo: [-120, 2, -36], hi: [-30, 216, 80], h: 1.8, f: (p) => furnArm(p, -1) },
+    { role: 'ArmFront', pivot: [62, 182, 6], lo: [30, 2, -36], hi: [120, 216, 80], h: 1.8, f: (p) => furnArm(p, 1) },
+    { role: 'Head', pivot: [0, 196, 30], lo: [-40, 166, 6], hi: [40, 236, 80], h: 1.4, f: furnHead, tris: 6000 },
+  ],
+};
+function charBark(p, k = 1.3) { bark(p, k); P(-fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05) - 0.15, ASH, 0.2); { const n = fbm(p[0] * 0.04 + 5, p[1] * 0.04, p[2] * 0.04); if (Math.abs(n) < 0.012 && fbm(p[0] * 0.02, p[1] * 0.02 + 9, p[2] * 0.02) > 0.15) { bump(0.8); P(-1, GLOW(0.9), 0.5); } } }
+function furnBody(p) {
+  reset();
+  U(ell(p, [0, 158, -6], [56, 66, 44]), CHAR, 12); U(ell(p, [0, 192, 4], [68, 30, 40]), CHAR, 16); U(ell(p, [0, 108, -6], [44, 26, 36]), CHAR2, 12);
+  charBark(p, 1.5);
+  // the core: split open down the front onto a deep glow
+  S(ell(p, [0, 150, 40], [20, 46, 14]), 5, GLOW(1)); U(ell(p, [0, 150, 24], [16, 40, 10]), GLOW(1), 4);
+  for (let i = 0; i < 6; i++) { const y = 120 + i * 11, w = 16 * Math.sin((i + 0.5) / 6 * Math.PI); U(cap(p, [-w - 6, y, 36], [w + 6, y + 3, 36], 2.4, 2.4), CHAR2, 1.5); }   // charred bars across it
+  // chimneys: two hollow stumps on the shoulders, glowing inside
+  for (const s of [-1, 1]) { const c = [s * 38, 214, -10]; U(cyl(p, c, 14, 22, 3), CHAR, 6); S(cyl(p, [c[0], c[1] + 8, c[2]], 9, 22, 2), 2, GLOW(1)); }
+  for (const [x, y, z, ox, oz] of [[-50, 176, -30, -1, -0.6], [44, 150, -40, 0.7, -1], [0, 214, -30, 0, -1]]) shelf(p, [x, y, z], [ox, 0, oz], 18, 4, 0.1);
+  return getD();
+}
+function furnHead(p) {
+  reset();
+  U(ell(p, [0, 196, 44], [22, 20, 20]), CHAR, 8); charBark(p, 0.8);
+  for (const s of [-1, 1]) { S(sph(p, [s * 8, 200, 60], 5.5), 2, CHAR2); U(sph(p, [s * 8, 200, 58], 3.4), GLOW(1), 0.6); }
+  S(ell(p, [0, 185, 60], [13, 4.5, 8]), 2, GLOW(0.9));
+  S(p[2] - 26, 2);
+  return getD();
+}
+function furnArm(p, s) {
+  reset();
+  const sh = [s * 64, 184, 4], el = [s * 80, 116, 22], wr = [s * 78, 54, 34];
+  U(sph(p, sh, 22), CHAR, 8); U(cap(p, sh, el, 19, 17), CHAR, 8); U(cap(p, el, wr, 18, 21), CHAR2, 8); charBark(p, 1.1);
+  U(ell(p, [wr[0], 34, wr[2] + 4], [25, 22, 25]), CHAR2, 8);
+  for (let i = 0; i < 4; i++) { const x = wr[0] + s * (i - 1.5) * 8.5; U(sph(p, [x, 20, wr[2] + 22], 8.5), CHAR, 4); }
+  S(p[1] - 6, 2);
+  return getD();
+}
+function furnLeg(p, s) {
+  reset();
+  U(cap(p, [s * 28, 104, -8], [s * 32, 30, 0], 26, 24), CHAR2, 8); charBark(p, 1.0);
+  U(ell(p, [s * 32, 14, 6], [30, 16, 32]), CHAR, 10);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+
+
+
+// ---------------------------------------------------------------- THE HYDRA (heads)
+// A clump of inkcaps grown from one root: a squat, rooted mound, and out of it four long necks each ending in a shaggy
+// dripping head with a face, swaying apart; a fifth, young, still low. It heals when you stop hurting it.
+function hydraHead(p, base, mid, tip, k = 1) {
+  chain(p, [base, mid, tip], 9 * k, 7 * k, FLESH(1), 4); fibres(p, mid, 12, 0.4);
+  const t = tip, bell = cap(p, [t[0], t[1] + 4 * k, t[2]], [t[0], t[1] + 40 * k, t[2] - 2 * k], 17 * k, 10 * k), hol = cap(p, [t[0], t[1] - 8 * k, t[2]], [t[0], t[1] + 22 * k, t[2]], 13.5 * k, 8 * k);
+  const bd = Math.max(bell, -hol, t[1] + 4 * k - p[1]);
+  U(bd, CAP(1), 2.5);
+  if (bd < 3) P(p[1] - (t[1] + 14 * k), INK, 4 * k);
+  for (let i = 0; i < 9; i++) { const a = i * 0.698, x = t[0] + Math.cos(a) * 16.5 * k, z = t[2] + Math.sin(a) * 16.5 * k, L = (Math.sin(a) > 0.4 ? 2 : 6 + (i * 5) % 7) * k; U(cap(p, [x, t[1] + 6 * k, z], [x, t[1] + 6 * k - L, z], 1.7 * k, 1.1 * k), INK, 1.2); }
+  for (const s of [-1, 1]) eye(p, [t[0] + s * 4.5 * k, t[1] - 1 * k, t[2] + 8 * k], 1.9 * k);
+  S(ell(p, [t[0], t[1] - 8 * k, t[2] + 8 * k], [3.4 * k, 2.6 * k, 4 * k]), 1, GUM);
+}
+export const B_Hydra = {
+  height: 230,
+  parts: [
+    { role: 'Body', pivot: [0, 50, 0], lo: [-100, -4, -100], hi: [100, 140, 100], h: 2.0, f: hydraBody, tris: 12000 },
+    { role: 'Head', pivot: [0, 110, 10], lo: [-50, 90, -40], hi: [50, 262, 70], h: 1.5, f: (p) => { reset(); hydraHead(p, [0, 100, 6], [0, 160, 10], [4, 206, 22], 1.15); return getD(); }, tris: 6000 },
+    { role: 'ArmFront', pivot: [40, 100, 4], lo: [20, 80, -50], hi: [140, 230, 60], h: 1.5, f: (p) => { reset(); hydraHead(p, [36, 96, 4], [72, 140, 6], [92, 176, 18]); return getD(); }, tris: 5000 },
+    { role: 'ArmBack', pivot: [-40, 100, 4], lo: [-140, 80, -50], hi: [-20, 230, 60], h: 1.5, f: (p) => { reset(); hydraHead(p, [-36, 96, 4], [-74, 136, 2], [-96, 166, 16]); return getD(); }, tris: 5000 },
+    { role: 'Tail', pivot: [0, 100, -36], lo: [-60, 80, -150], hi: [60, 250, -20], h: 1.5, f: (p) => { reset(); hydraHead(p, [0, 96, -34], [-10, 150, -70], [-6, 196, -90]); return getD(); }, tris: 5000 },
+  ],
+};
+function hydraBody(p) {
+  reset();
+  U(ell(p, [0, 54, 0], [78, 54, 72]), FLESH(0.92), 14);
+  U(ell(p, [0, 92, 0], [48, 26, 44]), FLESH(0.95), 16);
+  fibres(p, [0, 0, 0], 20, 0.8); mold(p, 30, 100, 0.5);
+  // roots fanning out into the floor
+  for (let i = 0; i < 10; i++) { const a = i * 0.628 + 0.2; rootFinger(p, [[Math.cos(a) * 56, 18, Math.sin(a) * 50], [Math.cos(a) * 84, 6, Math.sin(a) * 78], [Math.cos(a + 0.1) * 104, 1.5, Math.sin(a + 0.1) * 96]], 9, ROOT2); }
+  // the young fifth head, low on the front
+  hydraHead(p, [10, 70, 44], [18, 86, 62], [20, 102, 74], 0.7);
+  for (const [x, z] of [[-40, 30], [44, -26], [-20, -52], [50, 40]]) sprout(p, [x, 70 + Math.random() * 0, z], [x * 0.01, 1, z * 0.01], 12, 7, x > 0);
+  S(p[1] + 1, 1); P(p[1] - 14, mixP(FLESH(0.5), C(0x2a2016), 0.5), 8);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE MIRROR QUEEN (reflect)
+// Tall and still, under a cap like a parasol: a wide, flat, polished disc that shines, a long gown of pale gills falling from
+// a slender stalk, thin arms held out. When she shines, what you fire comes back.
+const GLASS = C(0xe8eef2), GLASS2 = C(0xb8c4cc);
+export const B_MirrorQueen = {
+  height: 250,
+  parts: [
+    { role: 'LegBack', pivot: [-12, 56, 0], lo: [-36, -4, -30], hi: [6, 66, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [-12, 60, 0], [-13, 32, 5], [-12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], -1); return getD(); } },
+    { role: 'LegFront', pivot: [12, 56, 0], lo: [-6, -4, -30], hi: [36, 66, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [12, 60, 0], [13, 32, 5], [12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], 1); return getD(); } },
+    { role: 'Body', pivot: [0, 56, 0], lo: [-60, 14, -60], hi: [60, 196, 60], h: 1.6, f: mirrorBody, tris: 10000 },
+    { role: 'ArmBack', pivot: [-15, 172, 2], lo: [-90, 90, -30], hi: [-2, 182, 50], h: 1.3, f: (p) => { reset(); rootArm(p, [-15, 172, 2], [-40, 150, 12], [-62, 132, 24], 4.6, 4, 22, -1); return getD(); } },
+    { role: 'ArmFront', pivot: [15, 172, 2], lo: [2, 90, -30], hi: [90, 182, 50], h: 1.3, f: (p) => { reset(); rootArm(p, [15, 172, 2], [40, 150, 12], [62, 132, 24], 4.6, 4, 22, 1); return getD(); } },
+    { role: 'Head', pivot: [0, 180, 2], lo: [-96, 160, -96], hi: [96, 262, 96], h: 1.7, f: mirrorHead, tris: 9000 },
+  ],
+};
+function mirrorBody(p) {
+  reset();
+  U(cap(p, [0, 56, 0], [0, 190, 2], 12, 9), FLESH(1), 6); fibres(p, [0, 0, 0], 14, 0.4);
+  for (const s of [-1, 1]) U(ell(p, [s * 13, 170, 2], [5, 4.5, 5]), ROOT, 3);
+  // the gown: gills falling from the shoulders to the floor in pleats
+  const rr = len(p[0], 0, p[2] - 2), a = Math.atan2(p[2] - 2, p[0]), t = clamp((176 - p[1]) / 160, 0, 1), R = 14 + t * 40 + Math.sin(a * 18) * 2.6 * t;
+  U(Math.max(Math.abs(rr - R) - 2.2, p[1] - 176, 18 - p[1] + Math.sin(a * 7) * 3), mixP(FLESH(1), GLASS, 0.3), 2);
+  if (Math.abs(rr - R) < 4) P(-Math.abs(Math.sin(a * 18)) + 0.25, mixP(FLESH(0.7), CAP(0.3), 0.3), 0.45);
+  return getD();
+}
+function mirrorHead(p) {
+  reset();
+  U(cap(p, [0, 176, 2], [0, 206, 2], 9.5, 10), FLESH(1), 4);
+  for (const s of [-1, 1]) eye(p, [s * 4.8, 194, 10.6], 2.1);
+  S(ell(p, [0, 187, 10.4], [3, 1.6, 3]), 1, GUM);
+  // the parasol: wide, flat, polished, rimmed in the strain's colour
+  const q = [p[0], p[1] - 214, p[2] - 2], rr = len(q[0], 0, q[2]);
+  const disc = Math.max(ell(q, [0, 0, 0], [86, 14, 86]), -ell(q, [0, -10, 0], [80, 12, 80]));
+  U(disc, GLASS, 3);
+  if (disc < 3) { P(76 - rr, mixP(CAP(1), GLASS2, 0.2), 3); if (q[1] > 0) P(len(q[0] + 30, 0, q[2] + 20) - 18, C(0xffffff), 8); }   // the rim in the strain's colour, a shine across the top
+  if (disc < 3) { P(q[1] + 3, mixP(FLESH(1), GLASS, 0.3), 2); if (q[1] < -2) P(Math.abs(Math.sin(Math.atan2(q[2], q[0]) * 30)) - 0.25, mixP(FLESH(0.7), CAP(0.25), 0.3), 0.15); }
+  U(sph(p, [0, 230, 2], 8), mixP(CAP(1), GLASS, 0.3), 4);   // the boss on top
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE UNBLINKING (vortex)
+// A floating puffball that is one great eye: a lidded ball, the lids folds of cap, the eye wet and lit, its pupil a slit,
+// and under it a fringe of grasping hyphae. It looks at you, and you come.
+export const B_Unblinking = {
+  height: 200,
+  parts: [
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-60, -6, -60], hi: [60, 80, 60], h: 1.5, f: (p) => { reset(); for (let i = 0; i < 14; i++) { const a = i * 0.449, r = 26 + (i % 3) * 8, L = 46 + (i * 11) % 24, b = [Math.cos(a) * r, 74, Math.sin(a) * r]; const pts = []; for (let k = 0; k <= 5; k++) { const t = k / 5; pts.push([b[0] * (1 + t * 0.3) + Math.sin(t * 6 + i) * 4, b[1] - t * L, b[2] * (1 + t * 0.3)]); } chain(p, pts, 3, 1, ROOT2, 1.5); } return getD(); }, tris: 4000 },
+    { role: 'Body', pivot: [0, 130, 0], lo: [-90, 56, -90], hi: [90, 232, 90], h: 1.9, f: unblinkBody, tris: 12000 },
+    { role: 'Head', pivot: [0, 130, 30], lo: [-60, 80, 20], hi: [60, 182, 96], h: 1.4, f: unblinkEye, tris: 8000 },
+  ],
+};
+function unblinkBody(p) {
+  reset();
+  U(sph(p, [0, 132, 0], 72), CAP(1), 4);
+  { const [d1] = cells(p[0] * 0.07, p[1] * 0.07, p[2] * 0.07); bump(-Math.max(0, 0.3 - d1) * 3); }
+  P(-fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05) - 0.2, CAP(0.78), 0.15);
+  // the socket in front
+  S(ell(p, [0, 132, 68], [44, 34, 28]), 4, mixP(CAP(0.4), C(0x100808), 0.5));
+  // lids: heavy folds above and below
+  U(cap(p, [-46, 158, 54], [46, 158, 54], 10, 10), CAP(0.85), 8); U(cap(p, [-40, 104, 58], [40, 104, 58], 8, 8), CAP(0.85), 8);
+  crown(p, [0, 196, 0], 26, 9, 18, 7, 0.4);
+  for (let i = 0; i < 10; i++) { const a = i * 0.628 + 0.4; if (Math.sin(a) < 0.3) pore(p, [Math.cos(a) * 71, 130 + Math.sin(i * 1.7) * 18, Math.sin(a) * 71], 3.4, [Math.cos(a), 0, Math.sin(a)]); }
+  return getD();
+}
+function unblinkEye(p) {
+  reset();
+  const c = [0, 132, 46];
+  U(sph(p, c, 36), C(0xece2cc), 2);
+  // the iris: a lit ring; the pupil: a dark vertical slit; veins on the white
+  const q = [p[0] - c[0], p[1] - c[1], p[2] - c[2]], r2 = len(q[0], q[1], 0);
+  if (q[2] > 0) { P(r2 - 21, GLOW(1), 1); P(len(q[0] / 3.2, q[1] / 15, 0) - 1, C(0x080406), 0.4); P(Math.abs(fbm(p[0] * 0.08, p[1] * 0.08, 0)) * 30 - 0.8 + Math.max(0, 22 - r2) * 9, C(0xb04a3a), 0.6); }
+  S(p[2] - 26, 2);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE REAPER (stealth)
+// A mantis of root and stalk: a thin upright body on four jointed legs, two long scythes of sharpened root folded in front,
+// a tall narrow head with a split gill mouth and two great lit eyes. You see it when it strikes.
+export const B_Reaper = {
+  height: 230,
+  parts: [
+    { role: 'LegBack', pivot: [-14, 80, -20], lo: [-90, -4, -110], hi: [4, 116, 40], h: 1.4, f: (p) => { reset(); mantisLeg(p, -1, -20); mantisLeg(p, -1, -56); return getD(); } },
+    { role: 'LegFront', pivot: [14, 80, -20], lo: [-4, -4, -110], hi: [90, 116, 40], h: 1.4, f: (p) => { reset(); mantisLeg(p, 1, -20); mantisLeg(p, 1, -56); return getD(); } },
+    { role: 'Body', pivot: [0, 80, -20], lo: [-36, 50, -130], hi: [36, 190, 50], h: 1.5, f: mantisBody, tris: 8000 },
+    { role: 'ArmBack', pivot: [-12, 168, 26], lo: [-50, 60, 0], hi: [10, 200, 140], h: 1.3, f: (p) => mantisArm(p, -1), tris: 4000 },
+    { role: 'ArmFront', pivot: [12, 168, 26], lo: [-10, 60, 0], hi: [50, 200, 140], h: 1.3, f: (p) => mantisArm(p, 1), tris: 4000 },
+    { role: 'Head', pivot: [0, 184, 30], lo: [-30, 176, 10], hi: [30, 250, 70], h: 1.2, f: mantisHead, tris: 5000 },
+  ],
+};
+function mantisLeg(p, s, z) {
+  const hip = [s * 12, 84, z], knee = [s * 52, 104, z + (z > -30 ? 10 : -14)], foot = [s * 66, 1.5, z + (z > -30 ? 22 : -34)];
+  chain(p, [hip, knee], 4.6, 3.6, ROOT, 2); U(sph(p, knee, 4.4), ROOT2, 2); chain(p, [knee, [s * 62, 50, (knee[2] + foot[2]) / 2], foot], 3.6, 1.2, ROOT2, 1.5);
+  S(p[1] + 0.5, 1);
+}
+function mantisBody(p) {
+  reset();
+  // the abdomen behind, low and long; the thorax rising upright to the shoulders
+  U(ell(p, [0, 92, -72], [22, 18, 52]), mixP(FLESH(0.9), CAP(0.3), 0.3), 8);
+  { const t = along(p, [0, 92, -30], [0, 92, -124]); bump(Math.abs(Math.sin(t * 30)) < 0.2 ? 0.8 : 0); }
+  chain(p, [[0, 86, -24], [0, 120, 0], [0, 160, 18], [0, 182, 26]], 13, 9, FLESH(1), 6); fibres(p, [0, 0, 0], 12, 0.5);
+  sprout(p, [0, 110, -96], [0, 1, -0.4], 12, 7, true); sprout(p, [-8, 108, -60], [-0.4, 1, 0], 9, 5); sprout(p, [8, 104, -110], [0.5, 1, -0.4], 8, 4.6, true);
+  mold(p, 70, 180, 0.5);
+  return getD();
+}
+function mantisArm(p, s) {
+  reset();
+  const sh = [s * 12, 168, 26], el = [s * 18, 130, 58], wr = [s * 16, 172, 92];
+  chain(p, [sh, el], 5.4, 4.6, ROOT, 2); U(sph(p, el, 5.2), ROOT2, 2); chain(p, [el, wr], 4.6, 3.8, ROOT2, 2);
+  // the scythe: a long curved blade of hardened root folding back down
+  const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([s * (16 + t * 2), 172 - Math.sin(t * 2.6) * 30 - t * 70, 92 + Math.sin(t * 2.2) * 26 - t * 30]); }
+  for (let k = 0; k < 8; k++) U(cap(p, pts[k], pts[k + 1], 3.6 * (1 - k / 9) + 0.6, 3.6 * (1 - (k + 1) / 9) + 0.6), mixP(C(0x2a1e16), CAP(0.5), 0.35), 1.5);
+  for (let k = 1; k < 8; k += 2) U(cap(p, pts[k], [pts[k][0], pts[k][1] - 5, pts[k][2] + 5], 1.2, 0.3), TOOTH, 0.6);   // serrations
+  return getD();
+}
+function mantisHead(p) {
+  reset();
+  U(cap(p, [0, 180, 28], [0, 206, 34], 7, 9), FLESH(1), 3);
+  U(ell(p, [0, 216, 38], [16, 18, 12]), CAP(1), 4);
+  U(cap(p, [0, 228, 34], [0, 246, 30], 7, 2), CAP(0.8), 3);   // a crest
+  for (const s of [-1, 1]) { U(ell(p, [s * 12, 220, 44], [6, 8, 6]), GLOW(1), 1); }
+  S(ell(p, [0, 204, 48], [4, 7, 6]), 1, GUM);
+  for (const s of [-1, 1]) chain(p, [[s * 4, 200, 46], [s * 7, 194, 50], [s * 5, 188, 52]], 1.6, 0.5, TOOTH, 0.6);   // mandibles
+  S(p[1] - 178, 1);
+  return getD();
+}
+
+// ---------------------------------------------------------------- GRANDFATHER TOAD (tide)
+// An old toad the size of a hut, warty all over, a garden of mushrooms grown on its back, a wide lipless mouth, two lit
+// eyes on top of its head. When it croaks the floor floods. Four-footed (beast rig).
+const TOAD = C(0x5a6038), TOAD2 = C(0x464c2c), TOADB = C(0xc8b880);
+export const B_Toad = {
+  height: 170, beast: true,
+  parts: [
+    { role: 'LegBack', pivot: [-60, 40, -40], lo: [-130, -4, -110], hi: [-30, 90, 10], h: 1.8, f: (p) => toadHind(p, -1) },
+    { role: 'LegFront', pivot: [60, 40, -40], lo: [30, -4, -110], hi: [130, 90, 10], h: 1.8, f: (p) => toadHind(p, 1) },
+    { role: 'Body', pivot: [0, 50, 0], lo: [-110, 4, -110], hi: [110, 176, 110], h: 2.2, f: toadBody, tris: 14000 },
+    { role: 'ArmBack', pivot: [-50, 50, 50], lo: [-96, -4, 20], hi: [-20, 76, 110], h: 1.5, f: (p) => toadFore(p, -1) },
+    { role: 'ArmFront', pivot: [50, 50, 50], lo: [20, -4, 20], hi: [96, 76, 110], h: 1.5, f: (p) => toadFore(p, 1) },
+    { role: 'Head', pivot: [0, 80, 60], lo: [-90, 30, 30], hi: [90, 150, 140], h: 1.8, f: toadHead, tris: 9000 },
+  ],
+};
+function warts(p, k = 2.2, f = 0.12) { const [d1] = cells(p[0] * f, p[1] * f, p[2] * f); bump(-Math.max(0, 0.32 - d1) * k * 3); }
+function toadBody(p) {
+  reset();
+  U(ell(p, [0, 68, -10], [86, 56, 84]), TOAD, 12); U(ell(p, [0, 38, -6], [80, 30, 76]), TOADB, 14);
+  warts(p, 2.6, 0.07); P(p[1] - 46, TOADB, 8);
+  P(-fbm(p[0] * 0.04, p[1] * 0.04, p[2] * 0.04) - 0.1, TOAD2, 0.15);
+  // the garden on its back
+  for (const [x, z, L, r, g] of [[0, -10, 26, 16, 1], [-34, 10, 18, 11, 0], [30, -30, 20, 12, 1], [-20, -46, 16, 10, 0], [40, 16, 14, 9, 0], [-50, -20, 12, 8, 1], [14, 30, 12, 8, 0], [-4, -60, 14, 9, 1]]) { const y = 68 + 56 * Math.sqrt(Math.max(0, 1 - (x / 86) ** 2 - ((z + 10) / 84) ** 2)) - 3; sprout(p, [x, y, z], [x * 0.008, 1, z * 0.006], L, r, !!g); }
+  P(ell(p, [0, 120, -10], [60, 10, 60]) + fbm(p[0] * 0.08, 0, p[2] * 0.08) * 10, mixP(CAP(0.7), TOAD2, 0.3), 4);
+  S(p[1] + 1, 1);
+  return getD();
+}
+function toadHead(p) {
+  reset();
+  U(ell(p, [0, 84, 70], [72, 40, 50]), TOAD, 12); warts(p, 2, 0.09);
+  U(ell(p, [0, 58, 78], [68, 18, 46]), TOADB, 10);
+  // the mouth: a wide slit all round the front
+  S(Math.max(ell(p, [0, 70, 84], [70, 5, 48]), -ell(p, [0, 70, 70], [50, 8, 30])), 2, GUM);
+  // eyes on top, in raised domes
+  for (const s of [-1, 1]) { U(sph(p, [s * 34, 118, 74], 16), TOAD2, 6); eye(p, [s * 34, 124, 84], 8, [s * 0.3, 0.3, 0.9]); }
+  P(p[1] - 66, TOADB, 6);
+  S(p[2] - 34, 2);
+  return getD();
+}
+function toadFore(p, s) {
+  reset();
+  chain(p, [[s * 50, 52, 50], [s * 64, 26, 70], [s * 66, 6, 80]], 12, 8, TOAD, 4); warts(p, 1.4);
+  for (let i = -1; i <= 1; i++) chain(p, [[s * 66, 5, 82], [s * 66 + i * 9, 2, 96]], 4, 2.6, TOADB, 2);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+function toadHind(p, s) {
+  reset();
+  U(ell(p, [s * 70, 44, -44], [30, 36, 42]), TOAD, 10); warts(p, 1.6, 0.1);
+  chain(p, [[s * 84, 26, -22], [s * 100, 8, -60], [s * 96, 4, -24]], 10, 7, TOAD2, 4);
+  for (let i = -1; i <= 1; i++) chain(p, [[s * 96, 4, -20], [s * 96 + s * i * 10, 1.5, -2]], 3.6, 2.2, TOADB, 2);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+
+
+
+// ---------------------------------------------------------------- THE ROTWING (strafe)
+// A dragon the Blight grew: a long body of pale stalk ribbed with root, a beaked bracket of a skull with lit eyes, a crest
+// of caps down its neck and back, wings of torn gill-membrane stretched on finger-roots, and a long tail. It flies, and
+// draws lines of fire through where you stand.
+export const B_Rotwing = {
+  height: 170,
+  parts: [
+    { role: 'Tail', pivot: [0, 90, -50], lo: [-40, 30, -200], hi: [40, 120, -40], h: 1.5, f: rotTail, tris: 4000 },
+    { role: 'Body', pivot: [0, 92, 0], lo: [-50, 44, -90], hi: [50, 150, 96], h: 1.6, f: rotBody, tris: 9000 },
+    { role: 'WingBack', pivot: [-24, 116, 10], lo: [-210, 60, -90], hi: [-14, 190, 70], h: 1.5, f: (p) => rotWing(p, -1), tris: 6000 },
+    { role: 'WingFront', pivot: [24, 116, 10], lo: [14, 60, -90], hi: [210, 190, 70], h: 1.5, f: (p) => rotWing(p, 1), tris: 6000 },
+    { role: 'Head', pivot: [0, 110, 74], lo: [-34, 80, 60], hi: [34, 160, 180], h: 1.3, f: rotHead, tris: 7000 },
+  ],
+};
+function rotBody(p) {
+  reset();
+  chain(p, [[0, 92, -60], [0, 96, -20], [0, 104, 30], [0, 112, 70], [0, 116, 86]], 22, 11, FLESH(1), 10); fibres(p, [0, 0, 0], 16, 0.6);
+  for (let i = 0; i < 7; i++) for (const s of [-1, 1]) { const z = 50 - i * 14, r = 19 - i * 0.6; chain(p, [[0, 98 + r * 0.95, z], [s * r * 0.8, 98 + r * 0.6, z - 1], [s * r * 1.02, 96 - r * 0.1, z - 2], [s * r * 0.8, 96 - r * 0.6, z - 3]], 2.1, 1.5, ROOT, 2); }   // ribs of root round the body
+  for (let i = 0; i < 8; i++) { const z = 80 - i * 18, y = 124 - Math.abs(z - 20) * 0.1; sprout(p, [0, y, z], [0, 1, -0.3], 10 - i * 0.6, 6.5 - i * 0.3, i % 2 === 0); }
+  for (const s of [-1, 1]) chain(p, [[s * 12, 80, 30], [s * 16, 60, 40], [s * 14, 52, 54]], 4, 2.4, ROOT2, 2);   // little forelegs tucked under
+  mold(p, 70, 130, 0.5);
+  return getD();
+}
+function rotHead(p) {
+  reset();
+  chain(p, [[0, 114, 76], [0, 122, 100], [0, 124, 118]], 11, 9, FLESH(1), 6);
+  // the skull: a beak of layered bracket, hooked, the eyes lit in deep sockets, a crest of caps
+  U(ell(p, [0, 126, 132], [17, 15, 20]), CAP(1), 6);
+  U(cap(p, [0, 124, 140], [0, 112, 172], 12, 2.5), CAP(0.85), 5);   // the upper beak, hooked down
+  U(cap(p, [0, 112, 138], [0, 106, 164], 8, 2), CAP(0.7), 4);   // the lower beak
+  S(cap(p, [0, 114, 140], [0, 110, 166], 3.5, 1.5), 1, GUM);
+  if (p[2] > 118) P(-Math.sin((p[2] - 120) * 0.4) - 0.3, CAP(0.72), 0.3);
+  for (const s of [-1, 1]) { S(sph(p, [s * 11, 132, 140], 5), 2, DARK); U(sph(p, [s * 11, 132, 138.5], 3.2), GLOW(1), 0.6); }
+  for (let i = 0; i < 4; i++) sprout(p, [0, 138 - i * 3, 128 - i * 9], [0, 1, -0.5], 10 - i, 5.5 - i * 0.6, i === 0);
+  S(p[2] - 70, 2);
+  return getD();
+}
+function rotWing(p, s) {
+  reset();
+  // the arm-root along the leading edge, finger-roots spreading, membrane between them
+  const sh = [s * 22, 118, 12], el = [s * 80, 150, 20], wr = [s * 140, 160, 4];
+  chain(p, [sh, el, wr], 6, 3.4, ROOT, 3); U(sph(p, el, 5.6), ROOT2, 2);
+  const tips = [[s * 200, 150, -20], [s * 186, 116, -50], [s * 150, 92, -70], [s * 100, 84, -70]];
+  for (const t of tips) chain(p, [wr, [(wr[0] + t[0]) / 2, (wr[1] + t[1]) / 2 + 3, (wr[2] + t[2]) / 2], t], 2.6, 0.8, ROOT2, 1.5);
+  // the membrane: a thin, sagging sheet bounded by the leading edge, the fingers and the body
+  const u = Math.abs(p[0]), tri = (a, b, c) => { const n = [(b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])]; const l = len(...n) || 1; return ((p[0] - a[0]) * n[0] + (p[1] - a[1]) * n[1] + (p[2] - a[2]) * n[2]) / l; };
+  const pl = [sh, wr, [s * 200, 150, -20], [s * 186, 116, -50], [s * 150, 92, -70], [s * 100, 84, -70], [s * 30, 96, -40]];
+  let mem = 1e9;
+  for (let i = 1; i < pl.length - 1; i++) { const a = pl[0], b = pl[i], c = pl[i + 1];
+    // inside the triangle a b c (in its plane), thin
+    const d = Math.abs(tri(a, b, c)) - 1.9; const e1 = edgeIn(p, a, b, c), e2 = edgeIn(p, b, c, a), e3 = edgeIn(p, c, a, b); mem = Math.min(mem, Math.max(d, e1, e2, e3)); }
+  const sag = Math.sin(clamp((u - 22) / 180, 0, 1) * Math.PI) * 0;
+  U(mem + sag, mixP(FLESH(0.75), CAP(0.5), 0.4), 1.5);
+  P(-Math.abs(Math.sin(u * 0.08 + p[2] * 0.05)) + 0.15, mixP(CAP(0.6), C(0x1a1008), 0.3), 0.3);
+  // tears in it
+  for (const [x, y, z, r] of [[150, 110, -40, 9], [110, 100, -50, 7], [170, 132, -24, 6]]) S(sph(p, [s * x, y, z], r), 1, CAP(0.5));
+  return getD();
+}
+// a signed distance to the half-plane on the inside of edge a-b of triangle a b c (negative inside)
+function edgeIn(p, a, b, c) {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], n = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]];
+  const e = [ab[1] * n[2] - ab[2] * n[1], ab[2] * n[0] - ab[0] * n[2], ab[0] * n[1] - ab[1] * n[0]], l = len(...e) || 1;   // in-plane perpendicular to ab, toward c
+  const sgn = (e[0] * ac[0] + e[1] * ac[1] + e[2] * ac[2]) > 0 ? -1 : 1;
+  return sgn * ((p[0] - a[0]) * e[0] + (p[1] - a[1]) * e[1] + (p[2] - a[2]) * e[2]) / l;
+}
+function rotTail(p) {
+  reset();
+  const pts = []; for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push([Math.sin(t * 4) * 12 * t, 92 - t * 26 + Math.sin(t * 3) * 6, -54 - t * 140]); }
+  chain(p, pts, 11, 2, FLESH(0.95), 4); fibres(p, [0, 0, 0], 12, 0.4);
+  for (let k = 1; k < 10; k += 2) sprout(p, [pts[k][0], pts[k][1] + 7 - k * 0.5, pts[k][2]], [0, 1, -0.3], 8 - k * 0.5, 5 - k * 0.3, k === 1);
+  const e = pts[10]; for (const s of [-1, 1]) U(Math.max(ell(p, [e[0] + s * 8, e[1], e[2] + 4], [12, 2, 16]), 0), mixP(FLESH(0.75), CAP(0.5), 0.4), 2);   // a spade of membrane
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE STUMP TITAN (ward)
+// A titan of stumps: a great cut trunk for a body, its rings showing at the shoulders, a smaller stump of a head with a
+// crown of shelves and two lit knots for eyes, arms of whole fallen trunks, a heart of light in a hollow in its chest. While
+// its idols stand it cannot be hurt.
+export const B_Titan = {
+  height: 250, budget: 1.4,
+  parts: [
+    { role: 'LegBack', pivot: [-32, 96, -6], lo: [-80, -4, -56], hi: [4, 124, 50], h: 2.1, f: (p) => furnLegT(p, -1) },
+    { role: 'LegFront', pivot: [32, 96, -6], lo: [-4, -4, -56], hi: [80, 124, 50], h: 2.1, f: (p) => furnLegT(p, 1) },
+    { role: 'Body', pivot: [0, 96, 0], lo: [-110, 70, -90], hi: [110, 236, 90], h: 2.3, f: titanBody, tris: 14000 },
+    { role: 'ArmBack', pivot: [-74, 190, 4], lo: [-140, -4, -46], hi: [-36, 226, 86], h: 1.9, f: (p) => titanArm(p, -1) },
+    { role: 'ArmFront', pivot: [74, 190, 4], lo: [36, -4, -46], hi: [140, 226, 86], h: 1.9, f: (p) => titanArm(p, 1) },
+    { role: 'Head', pivot: [0, 214, 10], lo: [-56, 196, -50], hi: [56, 290, 60], h: 1.6, f: titanHead, tris: 8000 },
+  ],
+};
+function rings(p, c, y) { const rr = len(p[0] - c[0], 0, p[2] - c[2]); if (Math.abs(p[1] - y) < 3) { P(-Math.abs(Math.sin(rr * 0.55)) + 0.25, WOOD, 0.2); P(Math.abs(Math.sin(rr * 0.55)) - 0.25, mixP(WOOD, BARKD, 0.4), 0.2); } }
+function titanBody(p) {
+  reset();
+  U(cyl(p, [0, 150, 0], 62, 72, 14), BARK, 16); U(ell(p, [0, 104, -4], [52, 30, 44]), BARK2, 14);
+  bark(p, 1.8);
+  rings(p, [0, 0, 0], 222);
+  // the hollow in the chest with its heart
+  S(ell(p, [0, 162, 52], [24, 30, 22]), 4, BARKD); U(sph(p, [0, 162, 40], 13), GLOW(1), 2);
+  for (const [x, y, z, ox, oz] of [[-58, 196, -30, -1, -0.5], [56, 176, -36, 1, -0.6], [-20, 140, -60, -0.3, -1], [30, 120, -56, 0.4, -1], [0, 200, -56, 0, -1]]) shelf(p, [x, y, z], [ox, 0, oz], 22, 5, 0.12);
+  P(fbm(p[0] * 0.04, p[1] * 0.04, p[2] * 0.04) * 30 + (216 - p[1]) * 0.4 - 6, MOSS, 6);
+  return getD();
+}
+function titanHead(p) {
+  reset();
+  U(cyl(p, [0, 236, 6], 30, 26, 8), BARK, 8); bark(p, 1.2); rings(p, [0, 0, 6], 261);
+  for (const s of [-1, 1]) { S(sph(p, [s * 12, 238, 34], 6.5), 2, BARKD); U(sph(p, [s * 12, 238, 31], 4.2), GLOW(1), 0.6); }
+  S(ell(p, [0, 222, 34], [14, 4, 8]), 2, GUM);
+  for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3; shelf(p, [Math.cos(a) * 26, 262 - (i % 2) * 6, 6 + Math.sin(a) * 26], [Math.cos(a), 0, Math.sin(a)], 14, 3.4, 0.25); }
+  sprout(p, [0, 262, 6], [0, 1, 0], 16, 9, true);
+  S(p[1] - 200, 2);
+  return getD();
+}
+function titanArm(p, s) {
+  reset();
+  const sh = [s * 76, 192, 4], el = [s * 92, 116, 24], wr = [s * 90, 46, 36];
+  U(sph(p, sh, 26), BARK, 8); U(cap(p, sh, el, 22, 20), BARK, 8); U(cap(p, el, wr, 21, 24), BARK2, 8); bark(p, 1.2);
+  U(ell(p, [wr[0], 26, wr[2] + 6], [30, 26, 30]), BARK2, 10);
+  for (let i = 0; i < 4; i++) { const x = wr[0] + s * (i - 1.5) * 10; U(sph(p, [x, 12, wr[2] + 28], 10), BARK, 5); }
+  rootlets(p, [wr[0], 10, wr[2] + 10], [s * 0.3, -0.4, 0.6], 5, 22, 3, s > 0 ? 5 : 9, ROOT2);
+  shelf(p, [s * 84, 214, -10], [s, 0, -0.3], 22, 5);
+  P(fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05) * 30 + (200 - p[1]) * 0.5 - 6, MOSS, 6);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+function furnLegT(p, s) {
+  reset();
+  U(cap(p, [s * 32, 108, -6], [s * 36, 30, 0], 30, 28), BARK2, 8); bark(p, 1.1);
+  U(ell(p, [s * 36, 14, 8], [36, 18, 36]), BARK, 10);
+  for (const [ax, az, l] of [[-0.6, 1, 32], [0.1, 1, 36], [0.7, 0.7, 30], [0.2, -1, 22]]) { const dx = ax * s; rootFinger(p, [[s * 36, 12, 8 + az * 12], [s * 36 + dx * l * 0.6, 6, 8 + az * l * 0.7], [s * 36 + dx * l, 1.4, 8 + az * l]], 8, ROOT2); }
+  S(p[1] + 0.5, 1); P(p[1] - 16, ROOTD, 8);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE LEVIATHAN (ward)
+// What the Blight has grown under everything, pushing one head up into the room: a vast ridged dome of a cap like a brain,
+// a ring of lit eyes round its brow, a lamprey maw under it, and below, a fringe of roots as thick as legs. While its
+// tentacles stand it cannot be hurt.
+export const B_Leviathan = {
+  height: 200,
+  parts: [
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-90, -6, -90], hi: [90, 80, 90], h: 1.7, f: (p) => { reset(); for (let i = 0; i < 12; i++) { const a = i * 0.5236 + 0.2, b = [Math.cos(a) * 50, 76, Math.sin(a) * 50]; const pts = []; for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push([b[0] * (1 + t * 0.5) + Math.sin(t * 5 + i) * 6, b[1] - t * 70, b[2] * (1 + t * 0.5) + Math.cos(t * 4 + i) * 6]); } chain(p, pts, 8, 2, ROOT, 3); } return getD(); }, tris: 6000 },
+    { role: 'Body', pivot: [0, 120, 0], lo: [-100, 60, -100], hi: [100, 236, 100], h: 2.0, f: levBody, tris: 14000 },
+    { role: 'Head', pivot: [0, 100, 40], lo: [-50, 56, 20], hi: [50, 124, 110], h: 1.4, f: levMaw, tris: 7000 },
+  ],
+};
+function levBody(p) {
+  reset();
+  U(ell(p, [0, 140, 0], [84, 64, 80]), CAP(1), 6);
+  // brain-like ridges wandering over the dome
+  { const n = fbm(p[0] * 0.035, p[1] * 0.035, p[2] * 0.035); bump(Math.abs(n) < 0.06 ? 2.6 : 0); P(Math.abs(n) - 0.06, CAP(0.62), 0.03); }
+  U(ell(p, [0, 96, 0], [70, 22, 66]), FLESH(0.9), 12);
+  // the brow: a ring of eyes
+  for (let i = 0; i < 9; i++) { const a = (i - 4) * 0.28, r = 80; eye(p, [Math.sin(a) * r, 132 - Math.abs(i - 4) * 3, Math.cos(a) * r * 0.97], 5.4 - Math.abs(i - 4) * 0.5); }
+  crown(p, [0, 200, 0], 34, 12, 20, 7, 0.2);
+  return getD();
+}
+function levMaw(p) {
+  reset();
+  U(ell(p, [0, 92, 64], [40, 26, 34]), FLESH(0.9), 6);
+  S(ell(p, [0, 88, 86], [28, 20, 24]), 3, GUM); S(ell(p, [0, 88, 76], [14, 10, 14]), 2, GLOW(1));
+  for (let ring = 0; ring < 3; ring++) for (let i = 0; i < 16; i++) { const a = i * 0.3927 + ring * 0.2, r = 26 - ring * 6, z = 88 - ring * 5, b = [Math.cos(a) * r, 88 + Math.sin(a) * r * 0.75, z], tip = [Math.cos(a) * r * 0.62, 88 + Math.sin(a) * r * 0.75 * 0.62, z - 6]; U(cap(p, b, tip, 2.4, 0.4), TOOTH, 0.6); }
+  S(p[2] - 26, 2);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE DEVOURER (devour)
+// A mouth that learned to walk: a great ball that is almost all maw, ringed with rows of teeth, its lips puckered and
+// lit inside, carried low on six thick root legs. It calls its food and eats what you leave alive.
+export const B_Devourer = {
+  height: 170,
+  parts: [
+    ...[[1, 30, 1], [1, -6, -1], [1, -40, 1], [-1, 30, -1], [-1, -6, 1], [-1, -40, -1]].map(([s, z, ph]) => ({ role: ph > 0 ? 'LegFront' : 'LegBack', pivot: [s * 56, 64, z], lo: s > 0 ? [30, -4, z - 60] : [-160, -4, z - 60], hi: s > 0 ? [160, 120, z + 60] : [-30, 120, z + 60], h: 1.7, f: (p) => devLeg(p, s, z) })),
+    { role: 'Body', pivot: [0, 70, 0], lo: [-100, 20, -110], hi: [100, 190, 110], h: 2.0, f: devBody, tris: 14000 },
+    { role: 'Head', pivot: [0, 100, 50], lo: [-80, 30, 30], hi: [80, 170, 130], h: 1.6, f: devMaw, tris: 10000 },
+  ],
+};
+function devLeg(p, s, z) {
+  reset();
+  const fz = z * 1.4, hip = [s * 56, 70, z], knee = [s * 104, 104, (z + fz) / 2], foot = [s * 132, 1.5, fz];
+  chain(p, [hip, [s * 80, 96, z], knee], 12, 10, ROOT, 4); U(sph(p, knee, 11), ROOT2, 4); chain(p, [knee, [s * 124, 56, (knee[2] + foot[2]) / 2], foot], 10, 4, ROOT2, 3); bark(p, 0.5);
+  S(p[1] + 0.5, 1);
+  return getD();
+}
+function devBody(p) {
+  reset();
+  U(ell(p, [0, 108, -10], [82, 70, 86]), CAP(1), 6);
+  { const [d1] = cells(p[0] * 0.06, p[1] * 0.06, p[2] * 0.06); bump(-Math.max(0, 0.3 - d1) * 3.6); }
+  P(-fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05) - 0.2, CAP(0.75), 0.15);
+  for (const [x, z] of [[-30, -40], [20, -60], [40, -10], [-50, 10], [0, -80]]) sprout(p, [x, 168 - Math.abs(x) * 0.3, z], [x * 0.01, 1, -0.2], 14, 8, x > 0);
+  for (let i = 0; i < 10; i++) { const a = i * 0.628 + 0.4; if (Math.sin(a) < 0.2) pore(p, [Math.cos(a) * 80, 110 + Math.sin(i * 1.3) * 22, -10 + Math.sin(a) * 84], 4, [Math.cos(a), 0, Math.sin(a)]); }
+  return getD();
+}
+function devMaw(p) {
+  reset();
+  // puckered lips round a huge round mouth facing forward
+  const m = [0, 104, 82];
+  U(torus(rotX(p, m, 1.5708), m, 46, 14), mixP(CAP(0.8), FLESH(0.3), 0.3), 8);
+  S(ell(p, [0, 104, 70], [42, 42, 40]), 4, GUM); S(ell(p, [0, 104, 50], [24, 24, 24]), 3, GLOW(1));
+  for (let ring = 0; ring < 3; ring++) for (let i = 0; i < 20; i++) { const a = i * 0.3142 + ring * 0.15, r = 40 - ring * 9, z = 86 - ring * 9, b = [Math.cos(a) * r, 104 + Math.sin(a) * r, z], tip = [Math.cos(a) * r * 0.66, 104 + Math.sin(a) * r * 0.66, z - 8]; U(cap(p, b, tip, 3, 0.5), TOOTH, 0.6); }
+  for (const s of [-1, 1]) eye(p, [s * 30, 150, 72], 5);
+  S(p[2] - 34, 2);
+  return getD();
+}
+
+// ---------------------------------------------------------------- THE NAMELESS (eclipse)
+// Tall as the room allows: a figure cloaked in overlapping caps from crown to floor, no face but a hood of cap and a slit of
+// light where a face would be, and eyes, dozens of them, opening all over the cloak. It puts out the light, all but one.
+export const B_Nameless = {
+  height: 280,
+  parts: [
+    { role: 'Body', pivot: [0, 30, 0], lo: [-112, -4, -112], hi: [112, 236, 112], h: 2.0, f: nameBody, tris: 16000 },
+    { role: 'ArmBack', pivot: [-40, 200, 4], lo: [-120, 40, -50], hi: [-20, 214, 90], h: 1.6, f: (p) => nameArm(p, -1), tris: 4000 },
+    { role: 'ArmFront', pivot: [40, 200, 4], lo: [20, 40, -50], hi: [120, 214, 90], h: 1.6, f: (p) => nameArm(p, 1), tris: 4000 },
+    { role: 'Head', pivot: [0, 222, 6], lo: [-50, 200, -50], hi: [50, 300, 70], h: 1.5, f: nameHead, tris: 7000 },
+  ],
+};
+function nameBody(p) {
+  reset();
+  // a tall cone of a cloak, made of overlapping layers of cap, each a flared skirt
+  const rr = len(p[0], 0, p[2]), a = Math.atan2(p[2], p[0]);
+  for (let i = 0; i < 7; i++) { const y0 = 226 - i * 30, R0 = 20 + i * 9, t = clamp((y0 - p[1]) / 40, 0, 1), R = R0 + t * 16 + Math.sin(a * 9 + i) * 3 * t;
+    const sh = Math.max(Math.abs(rr - R) - 2.6, p[1] - y0, y0 - 42 - p[1]); U(sh, CAP(1 - (i % 2) * 0.25), 2);
+    if (sh < 3) P(y0 - 36 - p[1], mixP(CAP(0.55), C(0x140c08), 0.35), 3); }   // each layer darker at its hem
+  U(cap(p, [0, 0, 0], [0, 230, 0], 16, 12), mixP(CAP(0.4), C(0x0e0a10), 0.5), 6);   // the stalk inside
+  // eyes opening all over it
+  for (let i = 0; i < 26; i++) { const k = i % 7, y0 = 226 - k * 30, y = y0 - 12 - (i * 13) % 24, t = clamp((y0 - y) / 40, 0, 1), ang = i * 2.39 + 0.5, R = 20 + k * 9 + t * 16 + 2.4; eye(p, [Math.cos(ang) * R, y, Math.sin(ang) * R], 2.4 + (i % 4) * 0.8, [Math.cos(ang), 0, Math.sin(ang)]); }
+  S(p[1] + 1, 1);
+  return getD();
+}
+function nameHead(p) {
+  reset();
+  // the hood: a tall cap folded forward over nothing; inside, a slit of light
+  const q = rotX(p, [0, 236, 6], -0.2);
+  U(Math.max(ell(q, [0, 254, 8], [34, 44, 34]), -ell(q, [0, 236, 18], [24, 34, 26]), 210 - q[1]), CAP(0.9), 4);
+  U(ell(p, [0, 236, 10], [22, 22, 20]), C(0x08060a), 4);
+  U(ell(p, [0, 240, 26], [12, 2.2, 3]), GLOW(1), 1);
+  crown(p, [0, 290, 4], 10, 6, 14, 5, 0.6);
+  S(p[1] - 204, 2);
+  return getD();
+}
+function nameArm(p, s) {
+  reset();
+  // long thin arms of root hidden under the cloak's edge, hands of many fingers
+  rootArm(p, [s * 40, 200, 4], [s * 64, 140, 20], [s * 70, 80, 38], 7, 6, 36, s);
+  for (let i = 0; i < 3; i++) shelf(p, [s * (46 + i * 4), 196 - i * 26, 2], [s, 0, 0.1], 14 - i * 2, 3.4, 0.15);
+  return getD();
+}
+
+export const CREATURES = { Rotcap, Sporeling, Creeper, Puffball, Inkcap, BlightRat, Drifter, Bracketback, Shrieker, Shelfshield, Sporecaller, GoldenTruffle, Rootworm, SporePod, GraspingMycel, B_BroodMother, B_KingPuff, B_DriftQueen, B_Lantern, B_Carapace, B_Wyrm, B_Thunderhead, B_Hound, B_Furnace, B_Hydra, B_MirrorQueen, B_Unblinking, B_Reaper, B_Toad, B_Rotwing, B_Titan, B_Leviathan, B_Devourer, B_Nameless };

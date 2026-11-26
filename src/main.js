@@ -1,7 +1,7 @@
 // Boot: fonts, atlases, audio, world build, input (pointer lock + keyboard), fixed-ish game loop.
 import { CLASSES, rollBuff, rollGunMod } from './classes.js';
 import { MELEE, rollMelee } from './melee.js';
-import { MUTATORS, setMutators, mutators, mutXp, DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
+import { DATA, MUTATORS, setMutators, mutators, mutXp, DIFFS, RARITY_HEX, difficulty, setDifficulty, zombieCount, maxAlive, zombieHealth } from './data.js';
 import { preloadGunSounds } from './gunsound.js';
 import { buildCharacter, animateCharacter } from './character.js';
 import { COSMETICS, SLOTS, SLOT_NAMES, needText, PAGES, SHAPES, bodyStatLines, DEFAULT_SHAPE, FACE_PRESETS, parseLook } from './cosmetics.js';
@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
 import { MAPS } from './maps.js';
 import { setParts } from './puppet.js';
-import { loadBlight } from './blight.js';
+import { loadBlight, loadBlightBoss } from './blight.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
@@ -157,6 +157,7 @@ async function boot() {
   await loadAtlas('');
   setParts(await (await fetch('parts.json')).json());
   await loadBlight();   // the Blight's sculpted creatures join the parts table
+  for (const b of DATA.bosses) if (b.model && b.model.startsWith('B_')) loadBlightBoss(b.model);   // the bosses come down in the background
   const img = new Image(); img.src = Atlas.blobUrl.fx; await img.decode().catch(() => {});
   hud.setAtlas(img, Atlas.meta);
   const DESCENT_MAP = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')), map0 = MAPS[URLMAP >= 0 ? URLMAP : Meta.map()] ? (URLMAP >= 0 ? URLMAP : Meta.map()) : DESCENT_MAP;

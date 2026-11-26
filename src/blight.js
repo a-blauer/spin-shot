@@ -23,12 +23,24 @@ export const isBlight = (name) => BLIGHT.has(name);
 
 // Load and decode every creature, and enter their parts in the rig's table (so Puppet finds them like painted ones).
 let loading = null;
+const BOSSLOAD = new Map();
+// a boss's sculpt, fetched on its own (they are big); resolves when it is in BLIGHT
+export function loadBlightBoss(name) {
+  if (BLIGHT.has(name)) return Promise.resolve();
+  if (!BOSSLOAD.has(name)) BOSSLOAD.set(name, decodeFile('bl_' + name + '.json'));
+  return BOSSLOAD.get(name);
+}
+export const blightPending = (name) => BOSSLOAD.has(name) && !BLIGHT.has(name);
 export function loadBlight(url = 'blight.json') {
   if (loading) return loading;
+  loading = decodeFile(url);
+  return loading;
+}
+function decodeFile(url) {
   const unpack = async (pt) => { const bin = atob(pt.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     if (!pt.z) return u8.buffer;
     return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer(); };
-  loading = fetch(url).then((r) => (r.ok ? r.json() : null)).then(async (j) => {
+  return fetch(url).then((r) => (r.ok ? r.json() : null)).then(async (j) => {
     if (!j || !j.creatures) return;
     const PARTS = getParts();
     for (const [name, K] of Object.entries(j.creatures)) {
@@ -36,10 +48,15 @@ export function loadBlight(url = 'blight.json') {
       const parts = K.parts.map((pt, layer) => {
         const buf = bufs[layer];
         let o = 0; const take = (T, n, bytes) => { const a = new T(buf, o, n); o += Math.ceil((n * bytes) / 4) * 4; return a; };
-        const pos = take(Int16Array, pt.v * 3, 2), nor = take(Int8Array, pt.v * 3, 1), col = take(Uint8Array, pt.v * 3, 1), w = take(Uint8Array, pt.v * 3, 1), ao = take(Uint8Array, pt.v, 1), idx = pt.i32 ? take(Uint32Array, pt.i, 4) : take(Uint16Array, pt.i, 2);
+        const pos = take(Int16Array, pt.v * 3, 2), nor = pt.z >= 3 ? take(Int8Array, pt.v * 2, 1) : take(Int8Array, pt.v * 3, 1), col = take(Uint8Array, pt.v * 3, 1), w = take(Uint8Array, pt.v * 3, 1), ao = take(Uint8Array, pt.v, 1), idx = pt.i32 ? take(Uint32Array, pt.i, 4) : take(Uint16Array, pt.i, 2);
+        if (pt.z >= 2) for (let i = 3; i < pos.length; i++) pos[i] += pos[i - 3];   // positions stored as running differences
+        if (pt.z >= 3) { let hw = 0; for (let i = 0; i < idx.length; i++) { if (idx[i] === 0) idx[i] = hw++; else idx[i] = hw - idx[i]; } }   // indices: how far back from the next new vertex
+        else if (pt.z >= 2) for (let i = 1; i < idx.length; i++) idx[i] += idx[i - 1];
+        let N3 = nor;
+        if (pt.z >= 3) { N3 = new Int8Array(pt.v * 3); for (let q = 0; q < pt.v; q++) { let x = nor[q * 2] / 127, y = nor[q * 2 + 1] / 127; const z = 1 - Math.abs(x) - Math.abs(y); if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * Math.sign(ox || 1); y = (1 - Math.abs(ox)) * Math.sign(y || 1); } const l = Math.hypot(x, y, z) || 1; N3[q * 3] = Math.round(x / l * 127); N3[q * 3 + 1] = Math.round(y / l * 127); N3[q * 3 + 2] = Math.round(z / l * 127); } }
         const g = new THREE.BufferGeometry(), P = new Float32Array(pt.v * 3); for (let i = 0; i < P.length; i++) P[i] = pos[i] / 16;
         g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-        g.setAttribute('normal', new THREE.BufferAttribute(nor, 3, true));
+        g.setAttribute('normal', new THREE.BufferAttribute(N3, 3, true));
         g.setAttribute('color', new THREE.BufferAttribute(col, 3, true));
         g.setAttribute('aW', new THREE.BufferAttribute(w, 3, true));
         g.setAttribute('aAo', new THREE.BufferAttribute(ao, 1, true));
@@ -49,8 +66,7 @@ export function loadBlight(url = 'blight.json') {
       });
       BLIGHT.set(name, { height: K.height, beast: K.beast, parts });
     }
-  }).catch((e) => { console.warn('blight.json', e); });
-  return loading;
+  }).catch((e) => { console.warn(url, e); });
 }
 
 // The material: lit in the world's two bands like everything else, the strain mixed in per instance, the glow unshaded.
