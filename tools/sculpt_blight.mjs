@@ -10,7 +10,21 @@ import { CREATURES } from './blight/creatures.mjs';
 import { decimate } from './blight/decimate.mjs';
 const BUDGET = { Head: +(process.env.HB || 6500), Body: 4500, ArmFront: 1500, ArmBack: 1500, LegFront: 1400, LegBack: 1400, Tail: 1200, WingFront: 900, WingBack: 900 };
 
-const OUT = new URL('../public/blight.json', import.meta.url);
+const DIR = process.env.OUTDIR ? new URL('file://' + process.env.OUTDIR.replace(/\/?$/, '/')) : new URL('../public/', import.meta.url);
+const OUT = new URL('blight.json', DIR);
+// A stylised bake for comparison (env): LP scales every budget down (a low-poly look, broad flat faces); SP smooths the
+// paint over the surface that many times first, so speckle and mottling merge into broad areas of one tone (the glow is
+// left as it is).
+const LP = +(process.env.LP || 1), SP = +(process.env.SP || 0);
+function smoothPaint(M, n) {
+  const N = M.pos.length / 3, nb = Array.from({ length: N }, () => []);
+  for (let i = 0; i < M.idx.length; i += 3) for (let a = 0; a < 3; a++) { const u = M.idx[i + a], v = M.idx[i + (a + 1) % 3]; nb[u].push(v); nb[v].push(u); }
+  for (let it = 0; it < n; it++) { const rgb = Float32Array.from(M.rgb), w = Float32Array.from(M.w);
+    for (let v = 0; v < N; v++) { const L = nb[v]; if (!L.length) continue; const acc = [0, 0, 0, 0, 0];
+      for (const u of L) { for (let a = 0; a < 3; a++) acc[a] += rgb[u * 3 + a]; acc[3] += w[u * 3]; acc[4] += w[u * 3 + 1]; }
+      for (let a = 0; a < 3; a++) M.rgb[v * 3 + a] = Math.round(rgb[v * 3 + a] * 0.4 + acc[a] / L.length * 0.6);
+      M.w[v * 3] = Math.round(w[v * 3] * 0.4 + acc[3] / L.length * 0.6); M.w[v * 3 + 1] = Math.round(w[v * 3 + 1] * 0.4 + acc[4] / L.length * 0.6); } }
+}
 const old = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : { v: 1, creatures: {} };
 const want = process.argv.slice(2), names = want.length ? want : Object.keys(CREATURES);
 const Q = 16;
@@ -18,7 +32,7 @@ for (const name of names) {
   const K = CREATURES[name]; if (!K) { console.log('no creature', name); continue; }
   const t0 = Date.now(), parts = [];
   for (const pt of K.parts) {
-    const M0 = mesh(pt.f, pt.lo, pt.hi, pt.h, pt.ao || 1), M = decimate(M0, Math.round((pt.tris || BUDGET[pt.role] || 1500) * (K.budget || 1) * +(process.env.BS || 0.8)));
+    const M0 = mesh(pt.f, pt.lo, pt.hi, pt.h * (pt.role === 'Head' ? Math.sqrt(+(process.env.HS || 1)) : +(process.env.HS || 1)), pt.ao || 1); if (SP) smoothPaint(M0, SP); const M = decimate(M0, Math.round((pt.tris || BUDGET[pt.role] || 1500) * (K.budget || 1) * +(process.env.BS || 0.8) * LP), LP < 1 ? { border: 200 } : undefined);
     if (M0.clipped) { const P0 = M0.pos, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9]; for (let q = 0; q < P0.length; q++) { lo[q % 3] = Math.min(lo[q % 3], P0[q]); hi[q % 3] = Math.max(hi[q % 3], P0[q]); } console.log(`  ! ${name}.${pt.role} touches its box (${M0.clipped} cells): mesh ${lo.map(Math.round)} .. ${hi.map(Math.round)}`); }
     const N = M.pos.length / 3; let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
     for (let q = 0; q < N; q++) for (let a = 0; a < 3; a++) { mn[a] = Math.min(mn[a], M.pos[q * 3 + a]); mx[a] = Math.max(mx[a], M.pos[q * 3 + a]); }
@@ -43,7 +57,7 @@ for (const name of names) {
   }
   const rec = { height: K.height, beast: !!K.beast, scale: K.scale || 1, parts };
   // bosses ship in a file each (fetched when a run starts); the common roster in one file loaded up front
-  if (name.startsWith('B_')) { writeFileSync(new URL(`../public/bl_${name}.json`, import.meta.url), JSON.stringify({ v: 1, creatures: { [name]: rec } })); delete old.creatures[name]; }
+  if (name.startsWith('B_')) { writeFileSync(new URL(`bl_${name}.json`, DIR), JSON.stringify({ v: 1, creatures: { [name]: rec } })); delete old.creatures[name]; }
   else old.creatures[name] = rec;
   console.log(name, 'baked in', ((Date.now() - t0) / 1000).toFixed(1) + 's');
 }

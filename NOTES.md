@@ -189,3 +189,10 @@
   survival bosses use their own host; White Widow -> B_DriftQueen, Old Scratch -> B_Titan, Madame Zora ->
   B_Unblinking, Net-Mender -> B_BroodMother; no body now serves more than two bosses. Rotcap: body stalk shortened to
   118 (it rose over the mouth). Boss files ~10 MB total, fetched in the background.
+- (31) Creature look: blight.js BLIGHT_STYLE (vec4 clean, facet, outline, bands) on the Blight shader; default is "clean"
+  (x=1): cap/flesh paint weights snapped to quarters, fixed paint colours posterised to 8 luminance steps (not the
+  near-black ones), crevice AO mostly lifted, colour 1.3x saturation and 8% lighter, no rim darkening. ?bstyle=NAME
+  (current, clean, faceted, outlined, cel, toon) for comparisons. Outline = an inverted-hull twin InstancedMesh per part
+  (K.line, shares instanceMatrix; hidden unless the style asks). Baker env for a low-poly test bake: OUTDIR (write
+  elsewhere), LP (budget scale, border 200), SP (paint smoothing passes), HS (coarser grid; heads sqrt(HS)). The
+  low-poly look was shown to the user and not chosen: faces painted on bodies smear at that resolution.

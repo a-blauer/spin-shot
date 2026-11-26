@@ -20,7 +20,7 @@ import * as THREE from 'three';
 import { Atlas, G as UNI } from './render.js';
 import { Puppet, getParts } from './puppet.js';
 import { IronhideRig } from './ironhide.js';
-import { BLIGHT, blightMaterial, strainRGB } from './blight.js';
+import { BLIGHT, blightMaterial, blightOutlineMaterial, strainRGB } from './blight.js';
 const CUSTOM = new Set();   // creatures with a hand-sculpted body instead of one raised from their art
 
 const D2R = Math.PI / 180;
@@ -163,7 +163,7 @@ function material(atlas) {
 const KINDS = new Map();   // creature -> [{ mesh, tint, n, cap, D }]
 let SCENE = null, PARTS = null;
 export function bodies3dInit(scene, parts) {
-  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (!K.blight) K.mesh.geometry.dispose(); }
+  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (K.line && K.line.parent) K.line.parent.remove(K.line); if (!K.blight) K.mesh.geometry.dispose(); }
   KINDS.clear(); MATS.clear(); SCENE = scene; PARTS = parts || getParts();
 }
 function makeMesh(K, cap) {
@@ -173,6 +173,10 @@ function makeMesh(K, cap) {
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.count = 0; mesh.renderOrder = 3;
   if (old) { mesh.instanceMatrix.array.set(old.instanceMatrix.array); K.tint.array.set(K.oldTint); SCENE.remove(old); old.dispose(); }   // growing mid-frame keeps what was already queued
   K.oldTint = K.tint.array; K.mesh = mesh; K.cap = cap; SCENE.add(mesh);
+  if (K.blight) {   // its outline twin: the same geometry and the same instances, drawn by the outline material (hidden unless the style asks)
+    if (K.line) { SCENE.remove(K.line); K.line.dispose(); }
+    const line = new THREE.InstancedMesh(K.geo, blightOutlineMaterial(), cap); line.instanceMatrix = mesh.instanceMatrix; line.frustumCulled = false; line.count = 0; line.renderOrder = 2; K.line = line; SCENE.add(line);
+  }
 }
 function kindFor(creature) {
   let list = KINDS.get(creature); if (list) return list;
@@ -185,7 +189,7 @@ function kindFor(creature) {
 }
 export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); }
 export function bodies3dEnd() {
-  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; if (K.blight) { K.iCap.needsUpdate = true; K.iFlesh.needsUpdate = true; K.iGlow.needsUpdate = true; } } }
+  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.line) K.line.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; if (K.blight) { K.iCap.needsUpdate = true; K.iFlesh.needsUpdate = true; K.iGlow.needsUpdate = true; } } }
 }
 export function bodies3dStats() { let calls = 0, tris = 0, kinds = 0; for (const list of KINDS.values()) { kinds++; for (const K of list) if (K && K.n) { calls++; tris += K.tris * K.n; } } return { kinds, calls, tris }; }
 
