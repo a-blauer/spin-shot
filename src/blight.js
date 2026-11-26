@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { G as UNI } from './render.js';
 import { getParts } from './puppet.js';
+import { smoothPart } from './blight_smooth.js';
 
 // Strains: each sector the mold has reached grows its own. cap = the caps and hides, flesh = stalks and gills,
 // glow = eyes, pores and veins (unshaded).
@@ -36,6 +37,7 @@ export function loadBlight(url = 'blight.json') {
   loading = decodeFile(url);
   return loading;
 }
+const NO_SMOOTH = typeof location !== 'undefined' && /[?&]smooth=0/.test(location.search);   // ?smooth=0 to compare
 function decodeFile(url) {
   const unpack = async (pt) => { const bin = atob(pt.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     if (!pt.z) return u8.buffer;
@@ -56,7 +58,8 @@ function decodeFile(url) {
         if (pt.z >= 3) { N3 = new Int8Array(pt.v * 3); for (let q = 0; q < pt.v; q++) { let x = nor[q * 2] / 127, y = nor[q * 2 + 1] / 127; const z = 1 - Math.abs(x) - Math.abs(y); if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * Math.sign(ox || 1); y = (1 - Math.abs(ox)) * Math.sign(y || 1); } const l = Math.hypot(x, y, z) || 1; N3[q * 3] = Math.round(x / l * 127); N3[q * 3 + 1] = Math.round(y / l * 127); N3[q * 3 + 2] = Math.round(z / l * 127); } }
         const g = new THREE.BufferGeometry(), P = new Float32Array(pt.v * 3); for (let i = 0; i < P.length; i++) P[i] = pos[i] / 16;
         g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-        g.setAttribute('normal', new THREE.BufferAttribute(N3, 3, true));
+        const SN = NO_SMOOTH ? null : smoothPart(P, idx, col, w);   // blight_smooth.js: lumps, ragged paint and facets taken out
+        g.setAttribute('normal', SN ? new THREE.BufferAttribute(SN, 3) : new THREE.BufferAttribute(N3, 3, true));
         g.setAttribute('color', new THREE.BufferAttribute(col, 3, true));
         g.setAttribute('aW', new THREE.BufferAttribute(w, 3, true));
         g.setAttribute('aAo', new THREE.BufferAttribute(ao, 1, true));
@@ -115,21 +118,25 @@ export function blightMaterial() {
     uniforms: { sunDir: UNI.sunDir, litTint: UNI.litTint, shadowTint: UNI.shadowTint, fogColor: UNI.fogColor, fogParams: UNI.fogParams, spriteTint: UNI.spriteTint, bStyle: BLIGHT_STYLE, uGrade: UNI.grade },
     vertexShader: /* glsl */`
       uniform vec4 bStyle; attribute vec3 color; attribute vec3 aW; attribute float aAo; attribute vec4 iTint; attribute vec3 iCap; attribute vec3 iFlesh; attribute vec3 iGlow;
-      varying vec3 vN; varying vec3 vW; varying vec3 vBase; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
+      varying vec3 vN; varying vec3 vW; varying vec3 vCol; varying vec2 vWt; varying vec3 vCap; varying vec3 vFlesh; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
       void main() {
         vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vW = w.xyz;
         mat3 im = mat3(instanceMatrix);
         vN = normalize(mat3(modelMatrix) * (im * (normal / vec3(dot(im[0], im[0]), dot(im[1], im[1]), dot(im[2], im[2])))));
-        // clean: the paint's many tones of cap and flesh snapped to a few, the fixed colours posterised
-        vec2 wq = mix(aW.xy, floor(aW.xy * 4.0 + 0.5) / 4.0, bStyle.x);
-        float L = max(dot(color, vec3(0.3, 0.55, 0.15)), 1e-4); vec3 cq = mix(color, color * (floor(L * 8.0 + 0.5) / 8.0) / L, bStyle.x * step(0.06, L));
-        vBase = cq + wq.x * iCap + wq.y * iFlesh; vGlow = aW.z; vGlowC = iGlow; vAo = mix(aAo, 1.0, bStyle.x * 0.7); vTint = iTint;
+        vCol = color; vWt = aW.xy; vCap = iCap; vFlesh = iFlesh; vGlow = aW.z; vGlowC = iGlow; vAo = mix(aAo, 1.0, bStyle.x * 0.7); vTint = iTint;
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */`
       uniform vec3 sunDir; uniform vec4 litTint; uniform vec4 shadowTint; uniform vec3 fogColor; uniform vec4 fogParams; uniform vec3 spriteTint; uniform vec4 bStyle; uniform vec4 uGrade;
-      varying vec3 vN; varying vec3 vW; varying vec3 vBase; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
+      varying vec3 vN; varying vec3 vW; varying vec3 vCol; varying vec2 vWt; varying vec3 vCap; varying vec3 vFlesh; varying float vGlow; varying float vAo; varying vec4 vTint; varying vec3 vGlowC;
+      // snap to n flat steps, per pixel, each step easing into the next (no hard contour line, no triangle-shaped edges)
+      float snapSoft(float x, float n) { float y = x * n, k = floor(y), t = y - k, e = max(0.22, fwidth(y)); return (k + smoothstep(0.5 - e, 0.5 + e, t)) / n; }
       void main() {
+        // clean: the paint's many tones of cap and flesh snapped to a few, the fixed colours posterised; done here per
+        // pixel so the borders run smooth across the triangles instead of following them
+        vec2 wq = mix(vWt, vec2(snapSoft(vWt.x, 4.0), snapSoft(vWt.y, 4.0)), bStyle.x);
+        float L = max(dot(vCol, vec3(0.3, 0.55, 0.15)), 1e-4); vec3 cq = mix(vCol, vCol * snapSoft(L, 8.0) / L, bStyle.x * step(0.06, L));
+        vec3 vBase = cq + wq.x * vCap + wq.y * vFlesh;
         float dist = distance(vW, cameraPosition);
         // right up against the eye it thins out to nothing instead of filling the view
         if (dist < 95.0) { float keep = smoothstep(38.0, 95.0, dist); vec2 q = floor(mod(gl_FragCoord.xy, 4.0)); float th = (q.x * 4.0 + mod(q.y * 2.0 + q.x * 3.0, 4.0) + 0.5) / 16.0; if (keep < fract(th + q.y * 0.25)) discard; }
