@@ -194,10 +194,12 @@ const _root = new THREE.Matrix4(), _m = new THREE.Matrix4(), _a = new THREE.Matr
 const interpTo = (cur, tgt, dt, speed) => cur + (tgt - cur) * Math.min(1, dt * speed);
 
 const BEASTS = new Set('TimberWolf Lion CinderHound Rat Bullfrog Skitterling Webspinner Scarab Scorpion TwinHound BroodMother Ironhide Carapace Toad Hydra Snapvine Devourer'.split(' '));
+// creatures with a broad cap or a round body over the shoulders: their wind-up raises the arms out to the side
+const CAPPED = new Set(['Rotcap', 'Inkcap', 'B_BroodMother', 'Sporeling', 'Puffball', 'Shelfshield']);
 export class Body3D extends Puppet {
   constructor(creature, scale, tint, aura, auraSize) {
     super(creature, scale, tint, aura, auraSize);
-    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature) || !!(BLIGHT.get(creature) && BLIGHT.get(creature).beast); this.sculpted = BLIGHT.has(creature); this.strainC = strainRGB(0); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
+    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature) || !!(BLIGHT.get(creature) && BLIGHT.get(creature).beast); this.sculpted = BLIGHT.has(creature); this.capped = CAPPED.has(creature); this.strainC = strainRGB(0); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
     this.kind = SCENE && PARTS ? kindFor(creature) : null;
     if (!this.kind || !this.kind.some(Boolean)) { this.is3D = false; this.kind = null; return; }   // no art to sculpt from: stay a cut-out
     const B = this.parts.find((p) => p.role === 'Body') || this.parts[0];
@@ -205,7 +207,7 @@ export class Body3D extends Puppet {
     this.yaw3 = Math.random() * 6.283;
     if (creature === 'Ironhide' && SCENE) { try { this.custom = new IronhideRig(SCENE); CUSTOM.add(this.custom); this.plates = 4; } catch (e) { this.custom = null; if (typeof window !== 'undefined') window.__ihErr = String(e && e.stack || e).slice(0, 300); } }
   }
-  setStrain(i) { this.strain = i; this.strainC = strainRGB(i); }
+  setStrain(i) { if (this.creature === 'B_Furnace') i = 4; this.strain = i; this.strainC = strainRGB(i); }   // the Furnace burns: it is Char whatever stretch it turns up in
   // a sculpted part knocked off: it flies on its own (spinning, falling, bouncing on the floor) and lies where it lands
   fling(P, at, vel) {
     this.rootMatrix(); this.partMatrix(P, _m); _m.premultiply(_root); const q = new THREE.Quaternion(); _m.decompose(_v, q, _s);
@@ -261,8 +263,9 @@ export class Body3D extends Puppet {
           sc = 1 + L * 0.1; break;
         }
         // back and overhead on the wind-up, then chopped down in front of the body (never swung behind it)
-        { const L = Math.min(1, this.lunge); pitch = pitch * (1 - this.windup) + -150 * this.windup; pitch = pitch * (1 - L) + -46 * L; }
-        roll = side * (Math.sin(T * 0.9 + P.phase * 2 + this.seed) * 6 * idle - this.windup * 22 + this.lunge * 8);
+        // (under a broad cap or round a big puffball the arm comes up and out to the side, never up through the cap)
+        { const L = Math.min(1, this.lunge), top = this.capped ? -96 : -150; pitch = pitch * (1 - this.windup) + top * this.windup; pitch = pitch * (1 - L) + -46 * L; }
+        roll = side * (Math.sin(T * 0.9 + P.phase * 2 + this.seed) * 6 * idle - this.windup * (this.capped ? 44 : 22) + this.lunge * 8);
         // a crawler's arms are drawn already down on the ground, splayed: they are its legs. They paw along in a short
         // stride and rise into the strike; they are never swung up off the ground (that bent them back over the body)
         if (S.crawler && !this.hasLegs) { const L = Math.min(1, this.lunge); pitch = -side * sw * 18 * Math.min(st, 1.1) * (1 - this.windup) - 30 * this.windup * (1 - L) - 40 * L; roll = side * (Math.max(0, side * cw) * 6 * st - this.windup * 8); oz = Math.max(0, -side * cw) * 6 * st; }

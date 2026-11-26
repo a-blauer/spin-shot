@@ -163,3 +163,19 @@
   was built) use it. Chains get one extra link so they always reach what hangs from them. Many single fixes: lamp
   rods reach the roof, door strips sit on the lintel, Null Chamber slabs rest on the floor and its crystals hang on
   chains, bone heaps on the floor, carnival string lights have wires, bayou reeds/moss/wisps grounded or hung, etc.
+- (29) Creature second opinion. A separate reviewer rendered all 34 Blight models from every angle (sheets in
+  /home/claude/review: rev_*.jpg, x_*.jpg extra angles, z_* crops; rex.py = ground-level/top/stride/wind-up angles).
+  Fixed: capDome no longer leaves a lens of cap below its hollow (Rotcap, Brood Mother: "loose plate"); every
+  sprout's stalk starts max(10, 2*cr) below its base (none stand off a curve); shelf() buries its back half (0.45R)
+  and Bracketback's top shelves moved down onto the shoulders; Hound's spine caps follow the back; Brood Mother's
+  sac caps sit on the sac; angler tail grows from a fleshy stock; Devourer lips grow from a collar, eyes moved onto
+  it; mantis hips run up into the body (one pivot carries two legs); Sporeling pore on the head; Sporecaller's censer
+  hangs on a knotted cord (chain links were below bake size); Thunderhead/Drift Queen strands no thinner than the
+  bake holds (tails h 1.1); Rootworm mound and Grasping Mycel mat continue under the floor; Mycel has a knot where
+  its two braids meet; bigger budgets for the robes, truffle and worm; Nameless hood has folds, an opening and a
+  stronger slit; Rotwing wings scalloped and painted along the fingers; Carapace head bigger and out from the shell;
+  Inkcap eyes bigger. Runtime: capped creatures (Rotcap, Inkcap, Brood Mother, Sporeling, Puffball, Shelfshield)
+  raise their arms out to the side on the wind-up, not up through the cap; the Furnace is always Char.
+  Not done (design): bosses that share bodies (Hound x7, Mirror Queen x6, King Puff x5 in content), sphere-with-
+  tentacles bosses, bark creatures showing little strain colour, Mirror Queen cap top, Shrieker throat from below.
+  Gotcha: a trailing // comment added by a replace swallowed the rest of the line twice (mantis legs, moss, wires).

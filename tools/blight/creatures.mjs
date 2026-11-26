@@ -20,10 +20,11 @@ function capDome(p, o) {
   const top = ell(q, c, [r, h, r]);
   // the underside: a broad shallow hollow up into the cap, leaving a brim of `thick` x h at the edge
   const und = ell(q, [c[0], c[1] - h * under, c[2]], [r * 1.02, h * (under + 0.04 - thick * 0.1), r * 1.02]);
-  U(Math.max(top, -und), CAP(1), 3);
+  // and nothing of the dome below the hollow's middle: a lens of it left under there read as a loose plate round the stem
+  U(Math.max(top, -und, (c[1] - h * under) - q[1]), CAP(1), 3);
   // gills: grooves under the brim, radial
   if (gills && rr > gillIn && und > -6 && und < 3) { const g = Math.abs(Math.sin(a * gills * 0.5)); if (g < 0.32) bump(1.2 * smooth(gillIn, gillIn + 6, rr) * smooth(r * k, r * k - 3, rr)); }
-  const onCap = Math.max(top, -und) < 2.5;   // paint only the cap itself, not what it sits on
+  const onCap = Math.max(top, -und, (c[1] - h * under) - q[1]) < 2.5;   // paint only the cap itself, not what it sits on
   if (gills && onCap) P(und + 2.4, FLESH(0.8), 1.2);   // the underside is the gill colour
   // a darker band at the brim, mottling on top
   if (onCap) { P(r * 0.85 - rr / k, CAP(0.74), r * 0.06); P(-fbm(p[0] * 0.07 + seed, p[1] * 0.07, p[2] * 0.07) - 0.28, CAP(0.84), 0.12); }
@@ -47,7 +48,9 @@ function eye(p, at, r, look = [0, 0, 1]) {
 // a little mushroom growing out of the body: a stalk along dir from base, a domed cap on top (the colony motif)
 function sprout(p, base, dir, L, cr, glowTip = false) {
   const l = len(...dir), d = [dir[0] / l, dir[1] / l, dir[2] / l], top = [base[0] + d[0] * L, base[1] + d[1] * L, base[2] + d[2] * L];
-  U(cap(p, base, top, cr * 0.32, cr * 0.26), FLESH(0.95), cr * 0.25);
+  // the stalk starts well down in whatever it grows from, so a sprout is never left standing off a curved surface
+  const root = Math.max(10, cr * 2), b0 = [base[0] - d[0] * root, base[1] - d[1] * root, base[2] - d[2] * root];
+  U(cap(p, b0, top, cr * 0.32, cr * 0.26), FLESH(0.95), cr * 0.25);
   // the cap: a squashed sphere tipped along dir, its underside cut flat-ish
   const q = [p[0] - top[0], p[1] - top[1], p[2] - top[2]], h = q[0] * d[0] + q[1] * d[1] + q[2] * d[2], r2 = len(q[0] - d[0] * h, q[1] - d[1] * h, q[2] - d[2] * h);
   const dome = len(r2 / cr, Math.max(h, 0) / (cr * 0.62), 0) * cr - cr, flat = -h - cr * 0.12;
@@ -220,7 +223,7 @@ function sporelingHead(p) {
   for (let i = -5; i <= 5; i++) { const x = i * 2.9, a = Math.abs(i) / 6, yT = 166.5 - a * a * 4, yB = 159 + a * a * 2.5; U(cap(p, [x, yT + 1.5, 46 - a * 4], [x, yT - 3 - (i & 1) * 1.6, 47 - a * 4], 1.1, 0.3), TOOTH, 0.4); U(cap(p, [x + 1.4, yB - 1.5, 45.5 - a * 4], [x + 1.4, yB + 2.4 + (i & 1), 46.5 - a * 4], 1, 0.3), TOOTH, 0.4); }
   // eyes: a cluster of lit pores, high and to one side
   pore(p, [-7, 182, 44], 3.2, [0, 0.4, 1]); pore(p, [3, 186, 42], 2.6, [0.1, 0.5, 1]); pore(p, [-1, 178, 47], 2.2, [0, 0.2, 1]); pore(p, [9, 179, 44], 1.8, [0.3, 0.3, 1]);
-  pore(p, [10, 190, 26], 2.2, [0.3, 1, 0]); pore(p, [-14, 186, 18], 2, [-0.6, 0.7, -0.2]); pore(p, [4, 192, 12], 2.4, [0, 1, -0.4]);
+  pore(p, [10, 190, 26], 2.2, [0.3, 1, 0]); pore(p, [-14, 186, 18], 2, [-0.6, 0.7, -0.2]); pore(p, [3, 188, 15], 2.4, [0, 1, -0.6]);
   return getD();
 }
 
@@ -347,7 +350,7 @@ function inkcapHead(p) {
   reset();
   // the stalk's top and a face under the rim
   U(cap(p, [0, 122, 3], [0, 170, 3], 10.5, 9), FLESH(1), 4);
-  for (const s of [-1, 1]) eye(p, [s * 5.8, 132.5, 11.4], 2.3);
+  for (const s of [-1, 1]) eye(p, [s * 6.4, 133, 11.2], 3.3, [s * 0.25, -0.1, 1]);   // eyes big enough to read from a gun's length
   U(ell(p, [0, 125, 10.3], [5.5, 4.6, 3.2]), FLESH(0.85), 2); S(ell(p, [0, 125, 13], [3.2, 2.7, 4]), 1, GUM);   // the round puckered mouth
   // the bell: a tall rounded cone, hollow underneath, flaring a little at the rim
   const flare = smooth(150, 141, p[1]) * 3;
@@ -527,7 +530,7 @@ export const Bracketback = {
 function shelf(p, at, out, R, th, tiltUp = 0.15) {
   const l = len(out[0], 0, out[2]) || 1, ox = out[0] / l, oz = out[2] / l;
   const q = [p[0] - at[0], p[1] - at[1], p[2] - at[2]], f = q[0] * ox + q[2] * oz, side = -q[0] * oz + q[2] * ox, y = q[1] - f * tiltUp;
-  const d = Math.max(ell([f, y, side], [R * 0.35, 0, 0], [R, th, R * 1.1]), -f - 1);
+  const d = Math.max(ell([f, y, side], [R * 0.35, 0, 0], [R, th, R * 1.1]), -f - R * 0.45);   // its back half buried in what it grows from
   U(d, CAP(1), 2);
   if (d < 3) { const rr = len(f - 0, 0, side), band = Math.sin(rr * 0.55); P(-band - 0.2, CAP(0.72), 0.25); P(-y - th * 0.35, FLESH(0.9), 1.5); if (y > th * 0.2) bump(Math.abs(Math.sin(rr * 0.55)) < 0.2 ? 0.5 : 0); }
 }
@@ -543,7 +546,7 @@ function bbBody(p) {
   // moss on the shoulders
   P(fbm(p[0] * 0.05, p[1] * 0.05, p[2] * 0.05) * 30 + (196 - p[1]) * 0.6 - 4, MOSS, 6);
   // shelves stacked up the back and over the shoulders
-  for (const [x, y, z, ox, oz, R, th] of [[0, 196, -36, 0, -1, 30, 6], [-26, 176, -38, -0.5, -1, 26, 5.5], [24, 170, -38, 0.6, -1, 28, 5.5], [-10, 150, -44, -0.2, -1, 24, 5], [16, 132, -40, 0.4, -1, 22, 4.6], [-46, 206, -6, -1, -0.3, 22, 5], [46, 210, -2, 1, -0.2, 24, 5], [-30, 120, -34, -0.7, -0.8, 18, 4], [0, 222, -14, 0, -1, 20, 4.4]])
+  for (const [x, y, z, ox, oz, R, th] of [[0, 196, -36, 0, -1, 30, 6], [-26, 176, -38, -0.5, -1, 26, 5.5], [24, 170, -38, 0.6, -1, 28, 5.5], [-10, 150, -44, -0.2, -1, 24, 5], [16, 132, -40, 0.4, -1, 22, 4.6], [-42, 196, -6, -1, -0.3, 22, 5], [42, 198, -2, 1, -0.2, 24, 5], [-30, 120, -34, -0.7, -0.8, 18, 4], [0, 206, -16, 0, -1, 20, 4.4]])
     shelf(p, [x, y, z], [ox, 0, oz], R, th);
   for (const [x, y, z] of [[-14, 214, -26], [30, 196, -34], [-36, 162, -40], [8, 166, -46]]) sprout(p, [x, y, z], [x * 0.01, 0.8, -0.6], 9, 5.5, true);
   return getD();
@@ -693,7 +696,7 @@ export const Sporecaller = {
   parts: [
     { role: 'LegBack', pivot: [-12, 60, 0], lo: [-36, -4, -30], hi: [6, 70, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [-12, 64, 0], [-14, 34, 5], [-12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], -1); return getD(); } },
     { role: 'LegFront', pivot: [12, 60, 0], lo: [-6, -4, -30], hi: [36, 70, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [12, 64, 0], [14, 34, 5], [12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], 1); return getD(); } },
-    { role: 'Body', pivot: [0, 60, 0], lo: [-52, 16, -52], hi: [52, 182, 52], h: 1.7, f: callerBody, tris: 9000, ao: 0.5 },
+    { role: 'Body', pivot: [0, 60, 0], lo: [-52, 16, -52], hi: [52, 182, 52], h: 1.7, f: callerBody, tris: 14000, ao: 0.5 },
     { role: 'ArmBack', pivot: [-16, 160, 2], lo: [-50, 70, -24], hi: [-2, 168, 44], h: 1.3, f: (p) => { reset(); rootArm(p, [-16, 160, 2], [-24, 132, 8], [-25, 106, 16], 5, 4, 20, -1); return getD(); } },
     { role: 'ArmFront', pivot: [16, 160, 2], lo: [2, 20, -24], hi: [56, 168, 60], h: 1.3, f: callerArm, tris: 3200 },
     { role: 'Head', pivot: [0, 168, 3], lo: [-34, 150, -34], hi: [34, 246, 38], h: 1.3, f: callerHead, tris: 7000 },
@@ -734,7 +737,9 @@ function callerArm(p) {
   rootArm(p, [16, 160, 2], [26, 134, 14], [28, 112, 28], 5, 3, 12, 1, 0.5);
   // the censer: a chain from the hand down to a lit pod with slits, a little cap on top
   const top = [30, 104, 32], pod = [32, 58, 34];
-  for (let i = 0; i < 9; i++) { const y = top[1] - i * 5.2; U(torus(rotX(p, [top[0], y, top[2]], (i & 1) * 1.57), [top[0], y, top[2]], 2.1, 0.7), C(0x3a3a34), 0.3); }
+  // a cord of twisted mycelium from the fist to the pod, knotted along its length (fine chain links were finer than the sculpt and fell apart)
+  U(cap(p, [28, 112, 29], [32, 66, 34], 1.7, 1.7), C(0x4a4436), 0.6);
+  for (let i = 0; i < 6; i++) { const t = (i + 0.5) / 6; U(sph(p, [28 + 4 * t, 110 - 42 * t, 29 + 5 * t], 2.6), C(0x3a3a34), 0.8); }
   U(ell(p, pod, [9, 11, 9]), C(0x5a4a2a), 2); U(ell(p, [pod[0], pod[1] + 9, pod[2]], [7.5, 3.5, 7.5]), CAP(1), 1.5);
   for (let i = 0; i < 6; i++) { const a = i * 1.047; S(cap(p, [pod[0] + Math.cos(a) * 9, pod[1] - 5, pod[2] + Math.sin(a) * 9], [pod[0] + Math.cos(a) * 9, pod[1] + 5, pod[2] + Math.sin(a) * 9], 1.6), 1, GLOW(1)); }
   P(ell(p, pod, [6, 8, 6]) + 1, GLOW(1), 1);
@@ -750,7 +755,7 @@ export const GoldenTruffle = {
   parts: [
     { role: 'LegBack', pivot: [-18, 46, 0], lo: [-44, -4, -30], hi: [0, 60, 36], h: 1.3, f: (p) => { reset(); rootLeg(p, [-18, 50, 0], [-20, 28, 6], [-18, 9, 2], 9, 7, [[-0.4, 1, 14], [0.1, 1, 16], [0.5, 0.8, 13]], -1, GOLD2, GOLD2); return getD(); } },
     { role: 'LegFront', pivot: [18, 46, 0], lo: [0, -4, -30], hi: [44, 60, 36], h: 1.3, f: (p) => { reset(); rootLeg(p, [18, 50, 0], [20, 28, 6], [18, 9, 2], 9, 7, [[-0.4, 1, 14], [0.1, 1, 16], [0.5, 0.8, 13]], 1, GOLD2, GOLD2); return getD(); } },
-    { role: 'Body', pivot: [0, 48, 0], lo: [-60, 30, -58], hi: [60, 150, 62], h: 1.5, f: truffleBody, tris: 8000 },
+    { role: 'Body', pivot: [0, 48, 0], lo: [-60, 30, -58], hi: [60, 150, 62], h: 1.3, f: truffleBody, tris: 13000 },
     { role: 'ArmBack', pivot: [-44, 98, 12], lo: [-74, 50, -10], hi: [-30, 106, 46], h: 1.2, f: (p) => { reset(); rootArm(p, [-44, 98, 12], [-54, 84, 22], [-56, 72, 30], 5.5, 3, 12, -1, 0.5); return getD(); } },
     { role: 'ArmFront', pivot: [44, 98, 12], lo: [30, 50, -10], hi: [74, 106, 46], h: 1.2, f: (p) => { reset(); rootArm(p, [44, 98, 12], [54, 84, 22], [56, 72, 30], 5.5, 3, 12, 1, 0.5); return getD(); } },
     { role: 'Head', pivot: [0, 136, 0], lo: [-30, 126, -30], hi: [30, 176, 30], h: 1.1, f: truffleHead, tris: 2400 },
@@ -782,7 +787,7 @@ function truffleHead(p) {
 export const Rootworm = {
   height: 120,
   parts: [
-    { role: 'Body', pivot: [0, 0, 0], lo: [-56, -6, -64], hi: [56, 100, 60], h: 1.7, f: wormBody, tris: 7000 },
+    { role: 'Body', pivot: [0, 0, 0], lo: [-56, -18, -64], hi: [56, 100, 60], h: 1.7, f: wormBody, tris: 10000 },
     { role: 'Head', pivot: [0, 88, 26], lo: [-40, 60, 0], hi: [40, 130, 80], h: 1.4, f: wormHead, tris: 7000 },
   ],
 };
@@ -793,7 +798,8 @@ function wormBody(p) {
   // the broken floor round where it came up: a ring of upturned earth and stones
   { const rr = len(p[0], 0, p[2] + 28); U(Math.max(Math.abs(p[1] - 4 + (rr - 34) * 0.15) - 4 - Math.sin(Math.atan2(p[2] + 28, p[0]) * 7) * 2, rr - 52, 26 - rr), C(0x3a2c1e), 4); }
   for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, r = 40 + (i % 3) * 5; U(box(rotY(p, [Math.cos(a) * r, 6, -28 + Math.sin(a) * r], a), [Math.cos(a) * r, 6, -28 + Math.sin(a) * r], [6 + i % 3, 4 + i % 2 * 2, 5], 2), C(0x4a4a44), 1.5); }
-  S(p[1] + 2, 1);
+  U(Math.max(len(p[0], 0, p[2] + 28) - 50, p[1] - 2, -p[1] - 14), C(0x2e2418), 3);   // the earth goes on down under the floor, so a lean never lifts the mound off it
+  S(p[1] + 14, 1);
   return getD();
 }
 // ringed segments along a chain: each ring a slight bulge, root hairs between
@@ -860,7 +866,7 @@ function podHead(p) {
 export const GraspingMycel = {
   height: 140,
   parts: [
-    { role: 'Body', pivot: [0, 0, 0], lo: [-56, -4, -56], hi: [56, 84, 56], h: 1.5, f: mycelBody, tris: 7000 },
+    { role: 'Body', pivot: [0, 0, 0], lo: [-56, -16, -56], hi: [56, 84, 56], h: 1.5, f: mycelBody, tris: 7000 },
     { role: 'Head', pivot: [0, 70, 0], lo: [-40, 62, -36], hi: [40, 160, 50], h: 1.3, f: mycelHead, tris: 7000 },
   ],
 };
@@ -874,7 +880,8 @@ function mycelBody(p) {
   braid(p, [[0, 0, 0], [3, 20, 2], [2, 42, -2], [-2, 62, 0], [0, 80, 2]], 17);
   sprout(p, [15, 30, 6], [1, 0.5, 0.4], 6, 4.6); sprout(p, [-15, 48, -4], [-1, 0.6, -0.2], 7, 5, true); sprout(p, [6, 64, -15], [0.5, 0.4, -1], 5, 3.6); sprout(p, [-8, 18, 14], [-0.5, 0.3, 1], 5, 3.4, true);
   pore(p, [-10, 24, 11], 2.6, [-0.6, 0, 0.8]); pore(p, [13, 56, 6], 2.4, [0.9, 0, 0.4]);
-  S(p[1] + 1.5, 1);
+  U(ell(p, [0, -6, 0], [42, 9, 40]), MYC2, 6);   // the mat goes on down under the floor
+  S(p[1] + 12, 1);
   return getD();
 }
 function mycelHead(p) {
@@ -882,6 +889,8 @@ function mycelHead(p) {
   // it rises, leans forward and hooks over at the top like a crook
   const pts = [[0, 66, 0], [2, 86, 4], [4, 104, 10], [3, 120, 20], [-1, 130, 34], [-4, 130, 48], [-5, 120, 56]];
   braid(p, pts, 15);
+  // a knot where it springs from the trunk: the strands of the two halves meet inside it, so no step shows between them
+  U(ell(p, [1, 76, 1], [19, 11, 19]), MYC2, 5); { const n = fbm(p[0] * 0.12, p[1] * 0.12, p[2] * 0.12); bump(ell(p, [1, 76, 1], [21, 13, 21]) < 2 ? n * 1.5 : 0); }
   const tip = [-5, 116, 57];
   for (let i = 0; i < 6; i++) { const a = i * 1.047 + 0.3; chain(p, [tip, [tip[0] + Math.cos(a) * 8, tip[1] - 6 + Math.sin(a) * 4, tip[2] + 6], [tip[0] + Math.cos(a) * 12, tip[1] - 16 + Math.sin(a) * 4, tip[2] + 6], [tip[0] + Math.cos(a) * 10, tip[1] - 25, tip[2] + 1]], 2.2, 0.5, ROOT2, 1); }
   pore(p, [13, 102, 14], 2.6, [0.9, 0.1, 0.3]); pore(p, [-14, 92, 4], 2.2, [-0.9, 0, 0.3]); pore(p, [1, 140, 34], 2.4, [0, 1, 0]); pore(p, [9, 126, 48], 2.2, [0.8, 0.4, 0.4]);
@@ -936,7 +945,7 @@ function broodBody(p) {
     const e = ell(p, [x, y, z], [r, r * 1.2, r]); U(e, CAP(1), 5);
     if (e < 3) { const a = Math.atan2(p[2] - z, p[0] - x), rr = len(p[0] - x, 0, p[2] - z); for (let k = 0; k < 2; k++) { const d = Math.abs(Math.sin((a - k * 1.57 - x) * 0.5)) * rr * 2 - 1.6; if (p[1] > y - r * 0.4) S(Math.max(d, -ell(p, [x, y, z], [r - 3, r * 1.2 - 3, r - 3]), e - 1), 1, GLOW(1)); } }
   }
-  for (const [x, z] of [[-30, -40], [36, -160], [-60, -110]]) sprout(p, [x, 110, z], [x * 0.01, 1, 0], 12, 7, true);
+  for (const [x, z] of [[-30, -40], [36, -160], [-60, -110]]) sprout(p, [x, 60 + 60 * Math.sqrt(Math.max(0, 1 - (x / 78) ** 2 - ((z + 96) / 100) ** 2)), z], [x * 0.01, 1, 0], 12, 7, true);   // on the sac's own surface
   S(p[1] + 1, 2);   // flat on the floor
   P(p[1] - 14, mixP(FLESH(0.55), C(0x2a2016), 0.5), 8);
   return getD();
@@ -976,7 +985,7 @@ function kingPuffHead(p) {
 export const B_DriftQueen = {
   height: 190,
   parts: [
-    { role: 'Tail', pivot: [0, 70, 0], lo: [-50, -6, -50], hi: [50, 76, 50], h: 1.4, f: queenTail, tris: 3500 },
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-50, -6, -50], hi: [50, 76, 50], h: 1.1, f: queenTail, tris: 4500 },
     { role: 'Body', pivot: [0, 110, 0], lo: [-86, 60, -86], hi: [86, 196, 86], h: 2.0, f: queenBody, tris: 14000 },
     { role: 'Head', pivot: [0, 86, 12], lo: [-36, 36, -24], hi: [36, 96, 60], h: 1.4, f: queenHead, tris: 5000 },
   ],
@@ -1011,7 +1020,7 @@ function queenTail(p) {
   reset();
   for (let i = 0; i < 12; i++) { const a = i * 0.5236 + 0.3, r = 22 + (i % 3) * 10, L = 40 + (i * 13) % 30; const b = [Math.cos(a) * r, 72, Math.sin(a) * r];
     const pts = []; for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push([b[0] * (1 - t * 0.25) + Math.sin(t * 5 + i) * 4, b[1] - t * L, b[2] * (1 - t * 0.25) + Math.cos(t * 4 + i) * 4]); }
-    chain(p, pts, 2.6, 1, MYC2, 1.5); U(sph(p, pts[6], 2.4), GLOW(1), 0.8); }
+    chain(p, pts, 2.8, 1.8, MYC2, 1.5); U(sph(p, pts[6], 2.9), GLOW(1), 0.8); }   // no thinner than the sculpt can hold: finer strands broke up and left their beads hanging
   return getD();
 }
 
@@ -1058,6 +1067,8 @@ function lanternTail(p) {
   const q = [p[0], p[1] - 96, p[2] + 60], u = -q[2];
   U(Math.max(Math.abs(q[0]) - 2.2, ell(q, [0, 0, -30], [8, 24, 30]), -u - 4), mixP(FLESH(0.8), CAP(0.4), 0.3), 3);
   for (let i = -3; i <= 3; i++) U(cap(p, [0, 96, -62], [0, 96 + i * 7, -96], 1.4, 0.7), CAP(0.8), 1);
+  // the tail's root: a fleshy stock from inside the body out into the fin, so the fin grows from the fish
+  U(cap(p, [0, 102, -36], [0, 96, -82], 17, 4), CAP(0.66), 6);
   return getD();
 }
 
@@ -1075,7 +1086,7 @@ export const B_Carapace = {
     { role: 'Body', pivot: [0, 50, 0], lo: [-128, 14, -140], hi: [128, 176, 140], h: 2.2, f: carBody, tris: 14000 },
     { role: 'ArmBack', pivot: [-46, 46, 44], lo: [-84, -4, 4], hi: [-14, 70, 90], h: 1.8, f: (p) => carLeg(p, -1, 44) },
     { role: 'ArmFront', pivot: [46, 46, 44], lo: [14, -4, 4], hi: [84, 70, 90], h: 1.8, f: (p) => carLeg(p, 1, 44) },
-    { role: 'Head', pivot: [0, 62, 118], lo: [-40, 30, 96], hi: [40, 100, 194], h: 1.4, f: carHead, tris: 6000 },
+    { role: 'Head', pivot: [0, 62, 118], lo: [-44, 30, 96], hi: [44, 116, 212], h: 1.4, f: carHead, tris: 7000 },
   ],
 };
 function carBody(p) {
@@ -1097,12 +1108,13 @@ function carBody(p) {
 }
 function carHead(p0) {
   const p = [p0[0], p0[1] - 8, p0[2] - 40]; reset();
-  U(cap(p, [0, 52, 66], [0, 52, 100], 20, 17), mixP(ROOT, FLESH(0.3), 0.3), 8);
-  U(ell(p, [0, 50, 112], [20, 16, 20]), ROOT, 6); bark(p, 0.6);
-  U(cap(p, [0, 44, 116], [0, 36, 132], 10, 6), ROOT2, 4);   // the beak-like snout
-  S(ell(p, [0, 40, 128], [11, 2.6, 8]), 1.5, GUM);
-  for (const s of [-1, 1]) eye(p, [s * 11, 58, 124], 3.6);
-  U(ell(p, [0, 64, 112], [18, 4, 14]), FLESH(0.8), 4);   // a brow
+  // a big head on a thick neck, pushed well out from under the shell so it reads from the front
+  U(cap(p, [0, 52, 60], [0, 58, 112], 25, 21), mixP(ROOT, FLESH(0.3), 0.3), 8);
+  U(ell(p, [0, 60, 128], [27, 21, 26]), ROOT, 7); bark(p, 0.6);
+  U(cap(p, [0, 52, 134], [0, 42, 156], 13, 7.5), ROOT2, 5);   // the beak-like snout
+  S(ell(p, [0, 46, 150], [14, 3.2, 10]), 1.8, GUM);
+  for (const s of [-1, 1]) eye(p, [s * 14, 70, 145], 4.8, [s * 0.3, 0, 1]);
+  U(ell(p, [0, 78, 130], [24, 5, 18]), FLESH(0.8), 5);   // a brow
   S(p[2] - 62, 2);
   return getD();
 }
@@ -1142,7 +1154,7 @@ function bumpScale(k) { setD(getD() * k); }
 export const B_Thunderhead = {
   height: 190,
   parts: [
-    { role: 'Tail', pivot: [0, 70, 0], lo: [-70, -6, -60], hi: [70, 80, 60], h: 1.5, f: thunderTail, tris: 4000 },
+    { role: 'Tail', pivot: [0, 70, 0], lo: [-70, -6, -60], hi: [70, 80, 60], h: 1.1, f: thunderTail, tris: 5500 },
     { role: 'Body', pivot: [0, 120, 0], lo: [-120, 64, -96], hi: [120, 200, 96], h: 2.2, f: thunderBody, tris: 14000 },
     { role: 'Head', pivot: [0, 120, 50], lo: [-50, 76, 30], hi: [50, 164, 112], h: 1.5, f: thunderHead, tris: 7000 },
   ],
@@ -1170,7 +1182,7 @@ function thunderHead(p) {
 function thunderTail(p) {
   reset();
   for (let i = 0; i < 18; i++) { const a = i * 0.349 + 0.2, r = 20 + (i % 4) * 14, L = 40 + (i * 17) % 34; const b = [Math.cos(a) * r, 76, Math.sin(a) * r * 0.8];
-    chain(p, [b, [b[0] + Math.sin(i) * 3, b[1] - L * 0.5, b[2]], [b[0], b[1] - L, b[2] + Math.cos(i) * 3]], 1.6, 0.7, MYC2, 0.8); U(sph(p, [b[0], b[1] - L, b[2] + Math.cos(i) * 3], 1.8), GLOW(1), 0.6); }
+    chain(p, [b, [b[0] + Math.sin(i) * 3, b[1] - L * 0.5, b[2]], [b[0], b[1] - L, b[2] + Math.cos(i) * 3]], 2.4, 1.7, MYC2, 0.8); U(sph(p, [b[0], b[1] - L, b[2] + Math.cos(i) * 3], 2.8), GLOW(1), 0.6); }   // thick enough to hold together
   return getD();
 }
 
@@ -1200,7 +1212,7 @@ function houndBody(p) {
   for (let i = 0; i < 5; i++) for (const s of [-1, 1]) U(cap(p, [s * 16.5, 98, 8 - i * 9], [s * 18.5, 78, 6 - i * 9], 1.4, 1), DFURL, 2.4);   // ribs
   P(p[1] - 72, mixP(DFURL, FLESH(0.3), 0.3), 6);
   // the ridge of caps down the spine, the front ones lit
-  for (let i = 0; i < 8; i++) { const z = 34 - i * 11, y = 112 - Math.abs(z + 10) * 0.08; sprout(p, [0, y, z], [0, 1, -0.2], 9 - i * 0.6, 6 - i * 0.35, i < 3); }
+  for (let i = 0; i < 8; i++) { const z = 34 - i * 11, y = z > 14 ? 110 : 105 - (14 - z) * 0.125; sprout(p, [0, y, z], [0, 1, -0.2], 9 - i * 0.6, 6 - i * 0.35, i < 3); }
   P(ell(p, [0, 108, -6], [12, 8, 46]) + fbm(p[0] * 0.15, p[1] * 0.15, p[2] * 0.15) * 6, mixP(CAP(0.8), DFUR2, 0.2), 3);
   return getD();
 }
@@ -1345,7 +1357,7 @@ export const B_MirrorQueen = {
   parts: [
     { role: 'LegBack', pivot: [-12, 56, 0], lo: [-36, -4, -30], hi: [6, 66, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [-12, 60, 0], [-13, 32, 5], [-12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], -1); return getD(); } },
     { role: 'LegFront', pivot: [12, 56, 0], lo: [-6, -4, -30], hi: [36, 66, 36], h: 1.4, f: (p) => { reset(); rootLeg(p, [12, 60, 0], [13, 32, 5], [12, 10, 1], 8, 6.5, [[-0.35, 1, 15], [0.05, 1, 18], [0.45, 0.9, 14]], 1); return getD(); } },
-    { role: 'Body', pivot: [0, 56, 0], lo: [-60, 14, -60], hi: [60, 196, 60], h: 1.6, f: mirrorBody, tris: 10000 },
+    { role: 'Body', pivot: [0, 56, 0], lo: [-60, 14, -60], hi: [60, 196, 60], h: 1.6, f: mirrorBody, tris: 15000 },
     { role: 'ArmBack', pivot: [-15, 172, 2], lo: [-90, 90, -30], hi: [-2, 182, 50], h: 1.3, f: (p) => { reset(); rootArm(p, [-15, 172, 2], [-40, 150, 12], [-62, 132, 24], 4.6, 4, 22, -1); return getD(); } },
     { role: 'ArmFront', pivot: [15, 172, 2], lo: [2, 90, -30], hi: [90, 182, 50], h: 1.3, f: (p) => { reset(); rootArm(p, [15, 172, 2], [40, 150, 12], [62, 132, 24], 4.6, 4, 22, 1); return getD(); } },
     { role: 'Head', pivot: [0, 180, 2], lo: [-96, 160, -96], hi: [96, 262, 96], h: 1.7, f: mirrorHead, tris: 9000 },
@@ -1427,7 +1439,9 @@ export const B_Reaper = {
 };
 function mantisLeg(p, s, z) {
   const hip = [s * 12, 84, z], knee = [s * 52, 104, z + (z > -30 ? 10 : -14)], foot = [s * 66, 1.5, z + (z > -30 ? 22 : -34)];
-  chain(p, [hip, knee], 4.6, 3.6, ROOT, 2); U(sph(p, knee, 4.4), ROOT2, 2); chain(p, [knee, [s * 62, 50, (knee[2] + foot[2]) / 2], foot], 3.6, 1.2, ROOT2, 1.5);
+  chain(p, [hip, knee], 4.6, 3.6, ROOT, 2); U(sph(p, knee, 4.4), ROOT2, 2);
+  chain(p, [knee, [s * 62, 50, (knee[2] + foot[2]) / 2], foot], 3.6, 1.2, ROOT2, 1.5);
+  U(cap(p, [s * 2, 102, z], hip, 6.5, 5), ROOT, 3);   // the hip runs up deep into the body, so a leg swung on its shared pivot never pulls out
   S(p[1] + 0.5, 1);
 }
 function mantisBody(p) {
@@ -1572,9 +1586,16 @@ function rotWing(p, s) {
     const d = Math.abs(tri(a, b, c)) - 1.9; const e1 = edgeIn(p, a, b, c), e2 = edgeIn(p, b, c, a), e3 = edgeIn(p, c, a, b); mem = Math.min(mem, Math.max(d, e1, e2, e3)); }
   const sag = Math.sin(clamp((u - 22) / 180, 0, 1) * Math.PI) * 0;
   U(mem + sag, mixP(FLESH(0.75), CAP(0.5), 0.4), 1.5);
-  P(-Math.abs(Math.sin(u * 0.08 + p[2] * 0.05)) + 0.15, mixP(CAP(0.6), C(0x1a1008), 0.3), 0.3);
+  // the trailing edge scalloped between the finger tips, like a bat's, not cut straight
+  const ends = [wr, ...tips, [s * 30, 96, -40]];
+  for (let i = 1; i < ends.length - 1; i++) { const A = ends[i], B = ends[i + 1], m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2], R = len(A[0] - B[0], A[1] - B[1], A[2] - B[2]) * 0.5, o = [m[0] - sh[0], m[1] - sh[1], m[2] - sh[2]], ol = len(...o) || 1;
+    S(sph(p, [m[0] + o[0] / ol * R * 0.05, m[1] + o[1] / ol * R * 0.05, m[2] + o[2] / ol * R * 0.05], R * 0.6), 3); }
+  // darker along the fingers and the arm, mottled with mold between them
+  if (mem < 3) { let near = 1e9; for (const t of tips) near = Math.min(near, cap(p, wr, t, 0)); near = Math.min(near, cap(p, sh, wr, 0));
+    P(near - 9, mixP(CAP(0.55), C(0x1a1008), 0.35), 4); P(-fbm(p[0] * 0.05 + s, p[1] * 0.05, p[2] * 0.05) - 0.18, mixP(CAP(0.85), MYC2, 0.4), 0.1);
+    if (fbm(p[0] * 0.11, p[1] * 0.11, p[2] * 0.11) > 0.42 && near > 12) P(-1, GLOW(0.55), 0.5); }
   // tears in it
-  for (const [x, y, z, r] of [[150, 110, -40, 9], [110, 100, -50, 7], [170, 132, -24, 6]]) S(sph(p, [s * x, y, z], r), 1, CAP(0.5));
+  for (const [x, y, z, r] of [[150, 112, -40, 6], [108, 100, -50, 4.5]]) S(sph(p, [s * x, y, z], r), 1.5, CAP(0.5));
   return getD();
 }
 // a signed distance to the half-plane on the inside of edge a-b of triangle a b c (negative inside)
@@ -1715,9 +1736,10 @@ function devMaw(p) {
   // puckered lips round a huge round mouth facing forward
   const m = [0, 104, 82];
   U(torus(rotX(p, m, 1.5708), m, 46, 14), mixP(CAP(0.8), FLESH(0.3), 0.3), 8);
+  U(cap(p, [0, 104, 38], [0, 104, 76], 50, 47), CAP(0.72), 10);   // the collar of flesh the lips are pursed out on, grown from the body
   S(ell(p, [0, 104, 70], [42, 42, 40]), 4, GUM); S(ell(p, [0, 104, 50], [24, 24, 24]), 3, GLOW(1));
   for (let ring = 0; ring < 3; ring++) for (let i = 0; i < 20; i++) { const a = i * 0.3142 + ring * 0.15, r = 40 - ring * 9, z = 86 - ring * 9, b = [Math.cos(a) * r, 104 + Math.sin(a) * r, z], tip = [Math.cos(a) * r * 0.66, 104 + Math.sin(a) * r * 0.66, z - 8]; U(cap(p, b, tip, 3, 0.5), TOOTH, 0.6); }
-  for (const s of [-1, 1]) eye(p, [s * 30, 150, 72], 5);
+  for (const s of [-1, 1]) eye(p, [s * 26, 154, 54], 5, [s * 0.2, 0.5, 0.85]);   // up on the collar, over the lips
   S(p[2] - 34, 2);
   return getD();
 }
@@ -1751,9 +1773,14 @@ function nameHead(p) {
   reset();
   // the hood: a tall cap folded forward over nothing; inside, a slit of light
   const q = rotX(p, [0, 236, 6], -0.2);
-  U(Math.max(ell(q, [0, 254, 8], [34, 44, 34]), -ell(q, [0, 236, 18], [24, 34, 26]), 210 - q[1]), CAP(0.9), 4);
-  U(ell(p, [0, 236, 10], [22, 22, 20]), C(0x08060a), 4);
-  U(ell(p, [0, 240, 26], [12, 2.2, 3]), GLOW(1), 1);
+  const hood = ell(q, [0, 254, 8], [34, 44, 34]);
+  U(Math.max(hood, -ell(q, [0, 236, 18], [24, 34, 26]), 210 - q[1]), CAP(0.9), 4);
+  // heavy folds falling down it, and a lip turned back round the opening
+  if (hood < 3) { const a = Math.atan2(q[0], q[2] - 8); bump((Math.abs(Math.sin(a * 6 + q[1] * 0.02)) < 0.3 ? 1.6 : 0) * smooth(270, 230, q[1])); P(-Math.abs(Math.sin(a * 6 + q[1] * 0.02)) + 0.25, CAP(0.62), 0.12); }
+  S(ell(q, [0, 238, 42], [19, 30, 14]), 3, C(0x08060a));   // the opening: a deep oval where a face should be
+  U(Math.max(torus(rotX(q, [0, 238, 38], 1.45), [0, 238, 38], 19, 3.4), -(q[2] - 30)), CAP(0.7), 3);
+  U(ell(p, [0, 236, 10], [22, 24, 22]), C(0x08060a), 4);
+  U(ell(p, [0, 240, 27], [13, 2.4, 3]), GLOW(1), 1); U(ell(p, [0, 240, 25], [18, 5, 2]), mixP(GLOW(0.5), C(0x08060a), 0.5), 1.5);   // the slit, and its light on the dark round it
   crown(p, [0, 290, 4], 10, 6, 14, 5, 0.6);
   S(p[1] - 204, 2);
   return getD();
