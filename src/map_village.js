@@ -165,8 +165,9 @@ export function buildVillage(M, cx, cy) {
       const behind = (r) => AF + r * 1.2, side = (r) => 340 + r * 1.2;
       for (let i = 0; i < 7; i++) { const r = rr(620, 820), ax = (i - 3) * 360 + rr(-50, 50), ay = behind(r) + rr(20, 180); S(rock(r, 20 + i), ax, ay, r * 0.18 + (3 - Math.abs(i - 3)) * 70, rr(0, 360)); Solid(V(ax, ay, r * 0.6), V(r * 1.5, r * 1.2, r * 1.2), true); }
       for (const sg of [-1, 1]) for (let k = 0; k < 6; k++) { const r = rr(360, 560) - k * 20, ax = sg * (side(r) + k * 260 + rr(0, 60)), ay = y - 120 + k * 120 + rr(-40, 60); S(rock(r, 3 + k + (sg + 1) * 6), ax, ay, -r * 0.2, rr(0, 360)); Solid(V(ax, ay, r * 0.35), V(r * 1.5, r * 1.2, r * 1.0), true, rr(0, 90)); }
-      for (const sg of [-1, 1]) { S(tree(900, VC.leaf2, 77 + sg, 0), x + sg * 1100, y + 1100, 560, 0); S(bush(150, VC.leaf, 0, 40 + sg), x + sg * 380, y - 40, 0, 0); S(bush(120, VC.leaf2, 0xf08aa8, 50 + sg), x + sg * 470, y - 170, 0, 0); }
+      for (const sg of [-1, 1]) { S(tree(900, VC.leaf2, 77 + sg, 0), x + sg * 1100, y + 1100, 560, 0); S(bush(150, VC.leaf, 0, 40 + sg), x + sg * 380, y - 40, 0, 0); S(bush(120, VC.leaf2, 0xf08aa8, 50 + sg), x + sg * 470, y - 170, 0, 0); Solid(V(x + sg * 380, y - 40, 70), V(220, 220, 140), false); Solid(V(x + sg * 470, y - 170, 60), V(180, 180, 120), false); }
       Solid(V(x, y + 190, 430), V(680, 200, 860), true);   // nobody walks round behind the arch
+      Blocker(V(0, y + 260, 1500), V(VSIZE * 2 + 1200, 160, 3000));   // nor past it anywhere: the village ends at the knoll
       VSPOTS.signs.push({ kind: 'stone', o: { text: 'The Way Down', sub: 'twenty rooms, straight down' }, at: [x, y - 112, 870], face: [0, -1], h: 190 });
       for (let k = 0; k < 9; k++) Box(V(x, y - 80 - k * 40, 2 + k * 0.01), V(700 - k * 20, 40, 2), mix(VC.stone, VC.stoneD, (k % 2) * 0.4), false, false);
       for (const s of [-1, 1]) { S(lanternPost(360, s + 2), x + s * 640, y - 300, 0, s < 0 ? 0 : 180); Solid(V(x + s * 640, y - 300, 180), V(24, 24, 360), false); lit(x + s * 640 + (s < 0 ? 62 : -62), y - 300, 302, { r: 1, g: 0.8, b: 0.4 }, 1100); }
@@ -181,7 +182,7 @@ export function buildVillage(M, cx, cy) {
       Cyl(V(x, y, 1.1), r * 2 + 80, 1, 0x7a6a4a, false, false); Cyl(V(x, y, 2.2), r * 2, 1, 0x3e7a8a, false, false); Cyl(V(x, y, 2.6), r * 1.5, 1, 0x4a8aa0, false, false);
       for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, d = rnd() * r * 0.8; Cyl(V(x + Math.cos(a) * d, y + Math.sin(a) * d, 3.4), rr(60, 100), 1.4, 0x5a9a3a, false, false); if (i % 3 === 0) Ball(V(x + Math.cos(a) * d + 10, y + Math.sin(a) * d, 10), V(18, 18, 14), 0xf08aa8); }
       for (let i = 0; i < 30; i++) { const a = rnd() * 6.28, d = r + rr(-30, 30); Cyl(V(x + Math.cos(a) * d, y + Math.sin(a) * d, 60), 6, rr(80, 150), 0x6a8a3a, false, false); if (i % 4 === 0) Box(V(x + Math.cos(a) * d, y + Math.sin(a) * d, rr(120, 160)), V(10, 10, 30), 0x6a4a2a, false, false); }
-      for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.28 + 0.2; S(rock(rr(40, 80), 40 + i), x + Math.cos(a) * (r + 40), y + Math.sin(a) * (r + 40), 0, rr(0, 360)); }
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.28 + 0.2; { const rs = rr(40, 80), px = x + Math.cos(a) * (r + 40), py = y + Math.sin(a) * (r + 40); S(rock(rs, 40 + i), px, py, 0, rr(0, 360)); Solid(V(px, py, rs * 0.3), V(rs * 1.5, rs * 1.3, rs * 0.6), false); } }
       // a little dock, and a frog on a stone
       Box(V(x + r - 120, y - 80, 30), V(360, 160, 10), VC.woodL, true, false); for (const s of [-1, 1]) Cyl(V(x + r - 260, y - 80 + s * 70, 20), 12, 60, VC.woodD, false, false);
       Ball(V(x - 200, y + 160, 22), V(80, 70, 40), VC.stone); Ball(V(x - 200, y + 160, 58), V(44, 38, 30), 0x5a9a3a); for (const s of [-1, 1]) Ball(V(x - 186, y + 160 + s * 12, 74), V(12, 12, 12), 0xf4ecd6); }
@@ -232,7 +233,7 @@ export function buildVillage(M, cx, cy) {
       for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.5, bx = x + Math.cos(a) * 250, by = y + Math.sin(a) * 250, yaw = (a * 180) / Math.PI + 90; M.Cyl(V(bx, by, 24), 46, 190, VC.wood, false, false, R(90, yaw, 0)); Solid(V(bx, by, 22), V(60, 60, 44), true, yaw); for (const e of [-1, 1]) Cyl(V(bx + Math.cos(a + Math.PI / 2) * e * 95, by + Math.sin(a + Math.PI / 2) * e * 95, 24), 40, 3, 0xd8b07a, false, false); }
       for (let k = 0; k < 3; k++) { const a = (k / 3) * 360 + 30; M.Cyl(V(x + Math.cos((a * Math.PI) / 180) * 40, y + Math.sin((a * Math.PI) / 180) * 40, 70), 5, 150, VC.iron, false, false, R(-15, a + 180, 0)); }
       Ball(V(x, y, 100), V(46, 46, 40), 0x2a2a2e); Box(V(x, y, 140), V(2, 2, 40), VC.iron, false, false);
-      for (let i = 0; i < 3; i++) { const [k, b] = hay(0xd8b060); Shape(k, b, V(x + 330 + i * 30, y - 260 + i * 140, 0), R(0, i * 40, 0)); } }
+      for (let i = 0; i < 3; i++) { const [k, b] = hay(0xd8b060); Shape(k, b, V(x + 330 + i * 30, y - 260 + i * 140, 0), R(0, i * 40, 0)); Solid(V(x + 330 + i * 30, y - 260 + i * 140, 55), V(140, 110, 110), false, i * 40); } }
     // lantern stakes along the road, and toadstools and grass everywhere that is not path
     for (const sd of [-1, 1]) for (const y of [-1500, -900, 1700, 2250, 2800, 3350, 3900, -4300, -5000, -5600]) { const x = sd * 250 + rr(-10, 10); Cyl(V(x, y, 30), 6, 60, VC.woodD, false, false); Glow(V(x, y, 68), V(15, 15, 19), 0xffcf7a, 2); Box(V(x, y, 80), V(18, 18, 4), VC.iron, false, false); if ((y / 50) % 2 === 0 || sd > 0) Lamp(V(x, y, 90), { r: 1, g: 0.72, b: 0.42 }, 1.5, 700, false); }
     // ---- scatter: trees, bushes, flowers, rocks, hay, all kept off the paths and the buildings
@@ -241,14 +242,14 @@ export function buildVillage(M, cx, cy) {
     // the wood round the village: a ring of big trees and firs beyond the walkable square
     for (let i = 0; i < 120; i++) { const a = (i / 120) * Math.PI * 2 + rr(-0.02, 0.02), d = rr(6300, 8600), ca = Math.cos(a), sa = Math.sin(a), k = Math.max(Math.abs(ca), Math.abs(sa)), x = (ca / k) * d * 0.98, y = (sa / k) * d * 0.98; const fir = rnd() < 0.4, h = fir ? rr(1100, 1700) : rr(900, 1400); S(tree(h, [VC.leaf, VC.leaf2, VC.leaf3][i % 3], i, fir ? 1 : 0), x, y, 0, rr(0, 360)); }
     place(34, 420, (x, y, i) => { const fir = i % 5 === 0, h = fir ? rr(800, 1200) : rr(650, 1050); S(tree(h, [VC.leaf, VC.leaf2, mix(VC.leaf, 0xa8a040, 0.3)][i % 3], 200 + i, fir ? 1 : 0), x, y, 0, rr(0, 360)); Solid(V(x, y, 300), V(h * 0.1, h * 0.1, 600), true); });
-    place(70, 160, (x, y, i) => { S(bush(rr(70, 140), [VC.leaf2, VC.leaf, mix(VC.leaf2, 0x9ac050, 0.4)][i % 3], i % 3 === 0 ? [0xd8302a, 0xf08aa8, 0xf6f0e0][i % 3 === 0 ? (i / 3) % 3 | 0 : 0] : 0, i), x, y, 0, rr(0, 360)); });
-    place(26, 260, (x, y, i) => { const r = rr(80, 200); S(rock(r, 60 + i), x, y, -r * 0.15, rr(0, 360)); if (r > 120) Solid(V(x, y, r * 0.3), V(r * 1.4, r * 1.1, r * 0.7), true); });
+    place(70, 160, (x, y, i) => { const bs = rr(70, 140); S(bush(bs, [VC.leaf2, VC.leaf, mix(VC.leaf2, 0x9ac050, 0.4)][i % 3], i % 3 === 0 ? [0xd8302a, 0xf08aa8, 0xf6f0e0][i % 3 === 0 ? (i / 3) % 3 | 0 : 0] : 0, i), x, y, 0, rr(0, 360));  if (bs >= 90) Solid(V(x, y, bs * 0.45), V(bs * 1.5, bs * 1.5, bs * 0.9), false); });
+    place(26, 260, (x, y, i) => { const r = rr(80, 200); S(rock(r, 60 + i), x, y, -r * 0.15, rr(0, 360)); Solid(V(x, y, r * 0.32), V(r * 1.5, r * 1.25, r * 0.75), r > 110); });
     place(14, 260, (x, y, i) => { const h = rr(180, 320); S(flower(h, [0xf08aa8, 0xf6d04a, 0x6a9ae0, 0xa070d0, 0xffffff][i % 5], 0xf6c43a, i, 5 + (i % 3)), x, y, 0, rr(0, 360)); Solid(V(x, y, h / 2), V(20, 20, h), false); });
     place(240, 40, (x, y, i) => { const [k, b] = flower(rr(26, 50), [0xf08aa8, 0xf6d04a, 0x6a9ae0, 0xa070d0, 0xffffff, 0xff8a4a][i % 6], [0xf6c43a, 0x5a3a22][i % 2], i, 5 + (i % 2)); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });
     place(5, 300, (x, y, i) => { const [k, b] = hay(0xd8b060); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); Solid(V(x, y, 60), V(150, 150, 120), true); });
     place(160, 50, (x, y, i) => { const [k, b] = fern(rr(55, 95), i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });   // ferns in the shade of everything
     place(14, 220, (x, y, i) => { const L = rr(180, 300), [k, b] = mossLog(L, i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); Solid(V(x, y, 30), V(L * 0.8, 60, 60), true); });
-    place(70, 160, (x, y, i) => { S(bush(rr(80, 150), [0x4e7a32, 0x5e8a3a, 0x6a8a40][i % 3], i % 4 === 0 ? [0xf08aa8, 0xf6f0e0, 0xd8a03a][(i / 4) % 3 | 0] : 0, 300 + i), x, y, 0, rr(0, 360)); });
+    place(70, 160, (x, y, i) => { const bs = rr(80, 150); S(bush(bs, [0x4e7a32, 0x5e8a3a, 0x6a8a40][i % 3], i % 4 === 0 ? [0xf08aa8, 0xf6f0e0, 0xd8a03a][(i / 4) % 3 | 0] : 0, 300 + i), x, y, 0, rr(0, 360));  if (bs >= 90) Solid(V(x, y, bs * 0.45), V(bs * 1.5, bs * 1.5, bs * 0.9), false); });
     place(110, 60, (x, y, i) => { const [k, b] = toadstoolCluster(0.8 + rnd() * 0.8, [0xc8392e, 0xd88a3a, 0xc8392e, 0x8a5a3a][i % 4], i); Shape(k, b, V(x, y, 0), R(0, rr(0, 360), 0)); });
     // the road's verges grown over: tufts, ferns and the odd flower right up to the dirt
     for (let y = -6400; y < GATE[1] - 300; y += 70) for (const sd of [-1, 1]) { if (Math.abs(y) < 1750) continue; const x = sd * rr(300, 520); if (!clear(x, y, 10)) continue; const r = rnd();

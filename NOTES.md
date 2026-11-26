@@ -107,3 +107,6 @@
   Village flicker: paths are one ribbon Shape each (were overlapping coplanar discs); ground patches 0.55 apart in height;
   the extra window Glows laid on the houses' own lit glass removed; the floating door-lamp dot removed; the door step is stone.
   Slots: a WILD (1 stop in 57) completes any three of a kind (three wilds x1400); pays re-tuned, RTP 96.7% (exact).
+- (24) Shop cosmetics show the same pictures (H.cosThumbs(el), H.cosPic(slot)). Village collision: every meadow rock,
+  bushes 90+, pond stones, hay by the fire and the gate bushes have bodies; a Blocker the width of the village sits just
+  behind the Way Down (y = GATE + 260), so nobody walks past the portal.

@@ -404,7 +404,7 @@ const COS_FRAME = { hat: [34, 230, 0.45], hatcol: [34, 230, 0.45], hatpat: [34, 
   beard: [-22, 170, 0.35], stache: [-12, 140, 0.35], face: [-6, 140, 0.3], neck: [-40, 170, 0.35], outfit: [-62, 250, 0.95], shoulder: [-50, 230, 0.6], waist: [-88, 200, 0.4], back: [-60, 250, Math.PI - 0.55], gloves: [-80, 230, 0.7], legs: ['legs', 220, 0.4], boots: ['feet', 160, 0.45] };
 const cosKey = (slot, id) => slot + ':' + id + ':' + Meta.lookStr();
 function cosThumbDraw() {
-  if (!cosQ.length || locker.style.display === 'none') { cosQ.length = 0; return; }
+  if (!cosQ.length) return;
   const t0 = performance.now();
   while (cosQ.length && performance.now() - t0 < 14) {
     const [slot, id, key] = cosQ.shift(); if (cosCache.has(key)) continue;
@@ -418,12 +418,12 @@ function cosThumbDraw() {
       const cam = new THREE.PerspectiveCamera(30, 1, 10, 3000); cam.position.set(0, hy + 12, F[1]); cam.lookAt(0, hy, 0);
       cosR.render(sc, cam); cosCache.set(key, cosR.domElement.toDataURL('image/png'));
     } catch (e) { cosCache.set(key, ''); }
-    const url = cosCache.get(key), el = locker.querySelector(`img.lth[data-k="${slot}:${id}"]`); if (el && url) { el.src = url; el.classList.add('in'); }
+    const url = cosCache.get(key); if (url) document.querySelectorAll(`img.lth[data-k="${slot}:${id}"]`).forEach((el) => { el.src = url; el.classList.add('in'); });
   }
   if (cosQ.length) requestAnimationFrame(cosThumbDraw);
 }
-function cosThumbs() {
-  cosQ = []; locker.querySelectorAll('img.lth').forEach((el) => { const [slot, id] = el.dataset.k.split(':'), key = cosKey(slot, id); const u = cosCache.get(key); if (u) { el.src = u; el.classList.add('in'); } else cosQ.push([slot, id, key]); });
+function cosThumbs(root = locker) {
+  cosQ = []; root.querySelectorAll('img.lth').forEach((el) => { const [slot, id] = el.dataset.k.split(':'), key = cosKey(slot, id); const u = cosCache.get(key); if (u) { el.src = u; el.classList.add('in'); } else cosQ.push([slot, id, key]); });
   if (cosQ.length) requestAnimationFrame(cosThumbDraw);
 }
 function lockerRebuild() { if (!lockScene) return; if (lockChar) lockScene.remove(lockChar); lockChar = buildCharacter(Meta.look()); lockScene.add(lockChar); }
@@ -1021,7 +1021,7 @@ const craft = makeCraft({
 });
 window.__craft = craft;
 const vui = makeVillageUI({
-  audio, preview: () => { ensureLock(); return lockR ? { R: lockR, canvas: lockCanvas } : null; }, thumb: (k, n) => modelThumb(k, n),
+  audio, preview: () => { ensureLock(); return lockR ? { R: lockR, canvas: lockCanvas } : null; }, thumb: (k, n) => modelThumb(k, n), cosThumbs: (root) => cosThumbs(root), cosPic: (slot) => !!COS_FRAME[slot] && !COSMETICS[slot].every((J) => J.c !== undefined && J.a === undefined),
   entered: panelIn, left: panelOut, toast: (t, c) => hud.toast(t, c), looked: () => { Net.refreshPresence(); if (game) game.player.setBody(Meta.look()); },
   rigs: () => game.villageRT.rigs, seat: (k, i) => game.villageRT.seat(k, i), broadcast: (cz) => game.villageRT.broadcast(cz), me: () => (Net.active ? Net.name : myName()),
 });

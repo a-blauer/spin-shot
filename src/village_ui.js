@@ -63,7 +63,7 @@ export function makeVillageUI(H) {
     const bar = ['slots', 'roulette', 'blackjack', 'dice'].includes(kind); el.classList.toggle('bar', bar);
     el.innerHTML = bar ? `<div class="vp-bar k-${kind}">${h}</div>` : `<div class="vp-card k-${kind}">${h}</div>`;
     el.querySelector('.vp-x').onclick = (e) => { e.stopPropagation(); close(); };
-    if (kind === 'shop') wireShop(); else if (kind === 'board') wireBoard(); else wireCasino();
+    if (kind === 'shop') { wireShop(); if (H.cosThumbs) H.cosThumbs(el); } else if (kind === 'board') wireBoard(); else wireCasino();
   }
 
   // ------------------------------------------------------------------ the shop
@@ -89,7 +89,8 @@ export function makeVillageUI(H) {
         h += `<h4>${esc(SLOT_NAMES[slot] || slot).toUpperCase()}</h4>`;
         for (const x of items.filter((q) => q.slot === slot)) {
           const k = slot + ':' + x.I.id, sel = pick && pick.key === k, worn = Meta.look()[slot] === x.I.id;
-          h += `<div class="it ${x.state === 'locked' ? 'lock' : ''} ${sel ? 'sel' : ''}" data-key="${esc(k)}">${worn ? '<span class="star">WEARING</span>' : ''}<b>${esc(x.name)}</b>${x.state === 'owned' ? `<div class="ok">${x.price || x.I.need ? 'OWNED' : 'STARTER KIT'}</div>` : x.state === 'locked' ? `<div class="nd">${esc(needText(x.I))}</div>` : `<div class="pr ${Meta.gold() < x.price ? 'poor' : ''}">${coin('s')}${fmt(x.price)}</div>`}</div>`;
+          const pic = H.cosPic && H.cosPic(slot);
+          h += `<div class="it ${pic ? 'pic' : ''} ${x.state === 'locked' ? 'lock' : ''} ${sel ? 'sel' : ''}" data-key="${esc(k)}">${worn ? '<span class="star">WEARING</span>' : ''}${pic ? `<img class="lth" data-k="${esc(k)}" alt="">` : ''}<b>${esc(x.name)}</b>${x.state === 'owned' ? `<div class="ok">${x.price || x.I.need ? 'OWNED' : 'STARTER KIT'}</div>` : x.state === 'locked' ? `<div class="nd">${esc(needText(x.I))}</div>` : `<div class="pr ${Meta.gold() < x.price ? 'poor' : ''}">${coin('s')}${fmt(x.price)}</div>`}</div>`;
         }
       }
     }
