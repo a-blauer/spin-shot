@@ -138,6 +138,22 @@ const CSS = `
 #craft .press .dish svg { width:84px; height:84px; }
 #craft .press .dw { display:flex; flex-direction:column; align-items:center; gap:6px; } #craft .press .dw small { font:400 20px "Big Shoulders Display"; letter-spacing:2px; color:#7fffe0; } #craft .press .dw i { font:600 15px "Barlow Condensed"; font-style:normal; color:var(--a,#9a8f7c); min-height:18px; }
 #craft .press .dish.hot { border-color:#ffffff; }
+#craft .dim { color:#8f8574; }
+#craft .chip.slim { grid-template-columns:40px 1fr auto; padding:4px 8px; } #craft .chip.slim .gly { width:38px; height:38px; } #craft .chip.slim span i { font-style:normal; font-weight:700; }
+#craft .press .res span { display:block; } #craft .press .res span.dim { font-size:15px; margin-top:4px; }
+#craft .guide { overflow-y:auto; display:flex; flex-direction:column; gap:12px; font-size:16px; } #craft .guide p { margin:0; line-height:1.25; }
+#craft .aspg { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+#craft .aspt { display:flex; align-items:center; gap:8px; padding:5px 8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-left:3px solid var(--c); font:400 20px "Big Shoulders Display"; letter-spacing:1px; color:var(--c); cursor:help; }
+#craft .aspt:hover, #craft .rcp > div:hover { background:rgba(255,255,255,0.12); }
+#craft .aspt .gly { width:28px; height:28px; flex:none; }
+#craft .rcp { display:flex; flex-direction:column; gap:6px; margin-top:4px; } #craft .rcp > div { padding:6px 10px; background:rgba(0,0,0,0.3); border:1px solid rgba(127,255,224,0.18); border-radius:5px; cursor:help; }
+#craft .rcp b { display:block; font:400 19px "Big Shoulders Display"; letter-spacing:1px; color:#7fffe0; } #craft .rcp span { font-size:15px; color:#b9ad98; } #craft .rcp .lock b { color:#6f665a; }
+#craft .press .dw small { cursor:help; }
+#ctip { position:fixed; z-index:12; display:none; max-width:360px; pointer-events:none; background:rgba(14,10,10,0.97); border:1px solid rgba(255,205,90,0.35); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  padding:10px 12px; font:400 16px/1.3 "Barlow Condensed",sans-serif; color:#e6dcc8; }
+#ctip b { display:block; font:400 22px "Big Shoulders Display"; letter-spacing:1px; color:#ffcd5a; margin-bottom:3px; }
+#ctip em { display:block; font-style:normal; color:#9a8f7c; margin:4px 0; } #ctip em i, #craft .chip span i { font-style:normal; }
+#ctip .tr { margin-top:5px; } #ctip .tr u { text-decoration:none; font:400 17px "Big Shoulders Display"; letter-spacing:1px; color:#7fffe0; margin-right:6px; }
 #craft .asp { display:grid; grid-template-columns:auto 1fr; gap:2px 8px; font-size:15px; line-height:1.2; margin:6px 0 10px; } #craft .asp b { font:400 18px "Big Shoulders Display"; letter-spacing:1px; } #craft .asp span { color:#d8cdb8; } #craft .asp em { font-style:normal; color:#9a8f7c; }
 #craft .press .eq { font:400 46px "Big Shoulders Display"; color:#7fffe0; }
 #craft .press .res { min-height:120px; display:flex; gap:14px; align-items:center; max-width:560px; }
@@ -276,7 +292,8 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     let fx = ''; for (const [u, c] of n) fx += `<div style="--c:${U(u).hex}"><b>${esc(U(u).name)}${c > 1 ? ' x' + c : ''}</b>  ${esc(partText(u))}${c > 1 ? ' (each)' : ''}</div>`;
     return h + `<div class="fx">${fx || '<div style="color:#9a8f7c">Nothing fitted yet.</div>'}</div>`;
   }
-  // ---- the Compressor's own screen: your gun parts, two dishes (three with the Crucible), and what will come out
+  // ---- the Compressor's own screen: your gun parts, two dishes (three with the Crucible), and what will come out.
+  // Kept quiet on purpose: names, aspects and the result. Everything else is on hover (data-t -> tips[]).
   function renderPress() {
     const p = P(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0 && U(u).kind === 'gun').sort((a, b) => a - b);
     const fus = machine('fusion'), cru = machine('crucible'), nd = cru ? 3 : 2;
@@ -286,40 +303,76 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (filled.length >= 2) {
       [out, how] = p.compressOut(dishes);
       if (how === 'forge') plan = forgePlan(filled);
-      else if (out < 0) why = how && how !== 'none' && how !== 'crucible' ? how : filled.length === 2 ? (fusionOf(U(filled[0]).name, U(filled[1]).name) ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : (filled[0] === filled[1] && (U(filled[0]).pressed || U(filled[0]).fuse)) ? 'A pressed or fused part cannot be pressed again.' : fus ? 'Two of the same part, or two different elements (Incendiary, Cryo Cell, Serrated, Arc Coil).' : 'Two of the same part.') : '';
+      else if (out < 0) why = how && how !== 'none' && how !== 'crucible' ? how : filled.length === 2 ? (fusionOf(U(filled[0]).name, U(filled[1]).name) ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : (filled[0] === filled[1] && (U(filled[0]).pressed || U(filled[0]).fuse)) ? 'A pressed or fused part cannot be pressed again.' : 'Only two of the same part press together. Any two parts forge with Compressor: Fusion (rank ' + Meta.machineRank('fusion') + ').') : '';
     }
-    const ROLE = ['WHEN', 'WHAT', 'HOW'];
-    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">${fus ? `Any ${cru ? 'two or three' : 'two'} gun parts forge into one: the first says when, the second what${cru ? ', the third how' : ''}. Two of the same part press; two elements fuse.` : 'Two of the same part press into one, half as strong again.'} <kbd>Click</kbd> a part or a dish to move it, or drag it onto a dish.</div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
-    h += `<div class="col"><h2>GUN PARTS <i>${inv.reduce((s2, u) => s2 + p.coreInv[u], 0)} carried</i></h2><div class="list">`;
+    tips = [];
+    const tip = (html) => { tips.push(html); return ` data-t="${tips.length - 1}"`; };
+    const aspTag = (a) => a.map((x) => `<i style="color:${ASPECTS[x].hex}">${ASPECTS[x].name}</i>`).join(' + ');
+    const ROLE = ['WHEN', 'WHAT', 'HOW'], RK = ['when', 'what', 'how'];
+    const ROLE_TIP = ['<b>WHEN</b>What sets the new effect off. The first part\'s aspect decides it.', '<b>WHAT</b>What the new effect does. The second part\'s aspect decides it.', '<b>HOW</b>A twist on the effect. The third part\'s aspect decides it. Optional.'];
+    const aspTip = (a) => { const R = forgeRoles(a), A = ASPECTS[a], parts = Object.keys(PART_ASPECT).filter((n) => PART_ASPECT[n] === a && !Meta.upgradeLocked(n)); return `<b style="color:${A.hex}">${A.name.toUpperCase()}</b><em>${esc(parts.join(', '))}</em><div class="tr"><u>WHEN</u>${esc(R.when)}</div><div class="tr"><u>WHAT</u>${esc(R.what)}</div>${cru ? `<div class="tr"><u>HOW</u>${esc(R.how)}</div>` : ''}`; };
+
+    let h = `<div class="cw"><div class="ch"><h1>THE COMPRESSOR</h1><div class="sub">${fus ? `Put ${cru ? 'two or three' : 'two'} parts on the dishes to make a new one.` : 'Put two of the same part on the dishes to press them into one.'} <span class="dim">Hover anything for details.</span></div><button id="cclose">DONE  [E]</button></div><div class="cb">`;
+    // the parts you carry: name and aspect; what each does is on hover
+    h += `<div class="col"><h2>GUN PARTS <i>${inv.reduce((s2, u) => s2 + p.coreInv[u], 0)}</i></h2><div class="list">`;
     if (!inv.length) h += '<div class="empty">You are not carrying any gun parts.</div>';
-    for (const u of inv) { const a = aspectsOf(U(u)); h += `<div class="chip" data-u="${u}" style="--c:${U(u).hex}">${gly(u)}<div><b>${esc(U(u).name)}</b><span>${fus && a.length ? `<i style="font-style:normal;color:${ASPECTS[a[0]].hex}">${a.map((x) => ASPECTS[x].name).join(' + ')}</i>  ` : ''}${esc(U(u).desc)}</span></div><em>x${p.coreInv[u]}</em></div>`; }
+    for (const u of inv) { const a = aspectsOf(U(u)); h += `<div class="chip slim" data-u="${u}" style="--c:${U(u).hex}"${tip(`<b style="color:${U(u).hex}">${esc(U(u).name)}</b>${fus && a.length ? `<em>${aspTag(a)}</em>` : ''}${esc(U(u).desc)}`)}>${gly(u)}<div><b>${esc(U(u).name)}</b>${fus && a.length ? `<span>${aspTag(a)}</span>` : ''}</div><em>x${p.coreInv[u]}</em></div>`; }
     h += '</div></div><div class="mid"><div class="press" id="cpress"><div class="dishes">';
     for (let i = 0; i < nd; i++) {
       const u = dishes[i], a = u !== undefined ? aspectsOf(U(u)) : [];
-      const cap = fus ? `<small>${ROLE[i]}</small>` : '';
-      const asp = fus ? `<i style="--a:${a.length ? ASPECTS[a[0]].hex : '#9a8f7c'}">${a.length ? a.map((x) => ASPECTS[x].name).join(' + ') : i === 2 ? 'optional' : '&nbsp;'}</i>` : '';
-      h += `<div class="dw">${cap}` + (u !== undefined ? `<div class="dish f" data-d="${i}" style="--c:${U(u).hex}" title="${esc(U(u).name)}">${gly(u)}</div>` : `<div class="dish" data-d="${i}">+</div>`) + `${asp}</div>`;
+      let t = ROLE_TIP[i];
+      if (u !== undefined && fus && a.length) t += a.map((x) => `<div class="tr"><u style="color:${ASPECTS[x].hex}">${ASPECTS[x].name}</u>${esc(forgeRoles(x)[RK[i]])}</div>`).join('') + '<em>Click to take it off.</em>';
+      else if (u !== undefined) t = `<b style="color:${U(u).hex}">${esc(U(u).name)}</b><em>Click to take it off.</em>`;
+      const cap = fus ? `<small${tip(t)}>${ROLE[i]}</small>` : '';
+      const asp = fus ? `<i style="--a:${a.length ? ASPECTS[a[0]].hex : '#6f665a'}">${a.length ? a.map((x) => ASPECTS[x].name).join(' + ') : i === 2 ? 'optional' : '&nbsp;'}</i>` : '';
+      h += `<div class="dw">${cap}` + (u !== undefined ? `<div class="dish f" data-d="${i}" style="--c:${U(u).hex}"${tip(t)}>${gly(u)}</div>` : `<div class="dish" data-d="${i}"${fus ? tip(ROLE_TIP[i]) : ''}>+</div>`) + `${asp}</div>`;
     }
     h += '</div><div class="eq">=</div><div class="res">';
-    if (plan) { const nm = forgeName(plan), hx = ASPECTS[plan.what[0]].hex; h += `<div class="dish" style="--c:${hx};border-color:${hx}"><div class="gly" style="--c:${hx};width:84px;height:84px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color:#14100e">${forgeSym(plan)}</svg></div></div><div style="--c:${hx}"><b>${esc(nm)}</b><span>${esc(forgeHolds(plan))} ${esc(forgeText(plan))}</span></div>`; }
-    else if (out >= 0) h += `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>`;
-    else h += `<p>${filled.length < 2 ? (filled.length ? 'One more part.' : cru ? 'Put two or three parts on the dishes.' : 'Put two parts on the dishes.') : esc(why)}</p>`;
+    if (plan) {
+      const nm = forgeName(plan), hx = ASPECTS[plan.what[0]].hex;
+      h += `<div class="dish" style="--c:${hx};border-color:${hx}"><div class="gly" style="--c:${hx};width:84px;height:84px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color:#14100e">${forgeSym(plan)}</svg></div></div>`;
+      h += `<div style="--c:${hx}"${tip(`<b style="color:${hx}">${esc(nm)}</b>${esc(forgeHolds(plan))}<em>Everything those parts do, in one slot.</em>${esc(forgeText(plan))}${plan.L > 1 ? '<em>Resonance: more than one dish shares the WHAT aspect, so it is stronger.</em>' : ''}`)}><b>${esc(nm)}</b><span>${esc(forgeText(plan))}</span><span class="dim">+ keeps ${esc(plan.Us.map((x) => x.name).join(', '))}</span></div>`;
+    } else if (out >= 0) h += `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>`;
+    else h += `<p>${filled.length < 2 ? (filled.length ? 'One more part.' : '') : esc(why)}</p>`;
     h += `</div><button id="cpgo" ${out >= 0 || plan ? '' : 'disabled'}>${plan ? 'FORGE' : 'PRESS'}</button></div></div>`;
-    h += '<div class="col"><h2>WHAT IT MAKES</h2><div style="overflow-y:auto;font-size:16px;color:#d8cdb8;line-height:1.3">';
+    // the right column: the ten aspects as small tiles (all the detail on hover), and the two old recipes
+    h += '<div class="col"><h2>GUIDE</h2><div class="guide">';
     if (fus) {
-      h += `<p><b style="color:#7fffe0">Any ${cru ? 'two or three' : 'two'}:</b> forged into one part that keeps everything they did, at full strength, in one slot, and wakes a resonance. Dish 1 says <b>when</b> it happens, dish 2 <b>what</b> happens${cru ? ', dish 3 (if any) <b>how</b>' : ''}.` + ' Each part reads as its aspect; a fused part as both its elements. When the WHAT dish\'s aspect is on more than one dish, the resonance is stronger. A forged part cannot be forged again.</p>' + (cru ? '' : `<p style="opacity:.75">Rank ${Meta.machineRank('crucible')}, Compressor: Crucible: a third dish, for <b>how</b> it happens.</p>`);
-      for (const a of ASPECT_ORDER) { const R = forgeRoles(a), A = ASPECTS[a], parts = Object.keys(PART_ASPECT).filter((n) => PART_ASPECT[n] === a && !Meta.upgradeLocked(n)); h += `<p style="margin:10px 0 2px"><b style="color:${A.hex};font:400 20px 'Big Shoulders Display';letter-spacing:1px">${A.name.toUpperCase()}</b> <em style="font-style:normal;color:#9a8f7c">${esc(parts.join(', '))}</em></p><div class="asp"><b style="color:${A.hex}">WHEN</b><span>${esc(R.when)}</span><b style="color:${A.hex}">WHAT</b><span>${esc(R.what)}</span>${cru ? `<b style="color:${A.hex}">HOW</b><span>${esc(R.how)}</span>` : ''}</div>`; }
+      h += `<p class="dim">Each part has an aspect. The dish it sits on decides what that aspect does.</p><div class="aspg">`;
+      for (const a of ASPECT_ORDER) { const A = ASPECTS[a]; h += `<div class="aspt" style="--c:${A.hex}"${tip(aspTip(a))}><span class="gly">${coreSvg({ name: A.sym, hex: A.hex })}</span>${A.name}</div>`; }
+      h += '</div>';
     }
-    h += '<p><b style="color:#7fffe0">Two of a kind:</b> one pressed part, every number half again: two Incendiary (20%) make one at 30%. A count (pierce, bounce, projectiles) rounds up to 2. Fits in one slot.</p>';
-    if (fus) { h += '<p><b style="color:#7fffe0">Two elements:</b></p>'; const E = { fire: 'Incendiary', ice: 'Cryo Cell', blood: 'Serrated', shock: 'Arc Coil' }; for (const d of CORE_DEFS) if (d.fuse) { const [a, b] = d.fuse.split('+'); h += `<p><b style="color:${d.hex}">${esc(d.name)}</b> <i style="font-style:normal;color:#9a8f7c">${E[a]} + ${E[b]}</i><br>${esc(d.desc)}</p>`; } }
-    else h += `<p style="opacity:.75">Rank ${Meta.machineRank('fusion')}, Compressor: Fusion: any two gun parts forge into one that keeps both and wakes something new.</p>`;
-    h += '</div></div></div></div>';
+    h += '<div class="rcp">';
+    h += `<div${tip('<b>PRESS</b>Two of the same part become one, every number half again: two Incendiary (20%) make one at 30%. Counts (pierce, bounce, projectiles) round up.')}><b>Same part x2</b><span>Pressed: half again as strong</span></div>`;
+    if (fus) {
+      const E = { fire: 'Incendiary', ice: 'Cryo Cell', blood: 'Serrated', shock: 'Arc Coil' };
+      let ft = '<b>FUSE</b>Two different elements make their own named part:'; for (const d of CORE_DEFS) if (d.fuse) { const [a, b] = d.fuse.split('+'); ft += `<div class="tr"><u style="color:${d.hex}">${esc(d.name)}</u>${E[a]} + ${E[b]}: ${esc(d.desc)}</div>`; }
+      h += `<div${tip(ft)}><b>Two elements</b><span>Fused: a named elemental part</span></div>`;
+      h += `<div${tip(`<b>FORGE</b>Any other ${cru ? 'two or three parts' : 'two parts'}: one part that keeps all of them at full strength, plus a new effect read from the dishes in order.<em>A forged part cannot be forged again.</em>`)}><b>Anything else</b><span>Forged: keeps all of them, plus a new effect</span></div>`;
+      if (!cru) h += `<div class="lock"${tip(`<b>COMPRESSOR: CRUCIBLE</b>Rank ${Meta.machineRank('crucible')}. A third dish, HOW: a twist on the new effect.`)}><b>Third dish</b><span>Rank ${Meta.machineRank('crucible')}</span></div>`;
+    } else h += `<div class="lock"${tip(`<b>COMPRESSOR: FUSION</b>Rank ${Meta.machineRank('fusion')}. Any two gun parts forge into one that keeps both and wakes a new effect.`)}><b>Forging</b><span>Rank ${Meta.machineRank('fusion')}</span></div>`;
+    h += '</div></div></div></div></div>';
     el.innerHTML = h;
     el.querySelector('#cclose').onclick = close;
-    el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press[+d.dataset.d] = undefined; H.audio.play('S_Unfit', 0.6); render(false); }; });
+    el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press[+d.dataset.d] = undefined; H.audio.play('S_Unfit', 0.6); hideTip(); render(false); }; });
     const go = el.querySelector('#cpgo'); if (go) go.onclick = () => { const r = p.compress(...dishes); for (let i = 0; i < 3; i++) press[i] = undefined; if (r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play('S_Bench', 0.9, plan ? 0.65 : 0.8); H.game().hud.toast(`${plan ? 'Forged' : 'Pressed'}: ${U(r).name}. Fit it at the workbench.`, U(r).hex); } render(false); };
-    el.querySelectorAll('.chip').forEach((cc) => { cc.onpointerdown = (e) => startDrag(e, { kind: 'fit', u: +cc.dataset.u }); });
+    el.querySelectorAll('.chip').forEach((cc) => { cc.onpointerdown = (e) => { hideTip(); startDrag(e, { kind: 'fit', u: +cc.dataset.u }); }; });
   }
+  // the hover box: one for the whole screen, filled from tips[] by whatever is under the pointer
+  let tips = [], tipEl = null;
+  const hideTip = () => { if (tipEl) tipEl.style.display = 'none'; };
+  function moveTip(e) {
+    if (!open || !press.mode || drag) { hideTip(); return; }
+    const n = e.target && e.target.closest && e.target.closest('[data-t]');
+    if (!n || !el.contains(n)) { hideTip(); return; }
+    if (!tipEl) { tipEl = document.createElement('div'); tipEl.id = 'ctip'; document.body.appendChild(tipEl); }
+    const k = +n.dataset.t; if (tipEl.dataset.k !== String(k) || tipEl.style.display === 'none') { tipEl.innerHTML = tips[k] || ''; tipEl.dataset.k = k; }
+    tipEl.style.display = 'block';
+    const w = tipEl.offsetWidth, hh = tipEl.offsetHeight;
+    let x = e.clientX + 18, y = e.clientY + 18; if (x + w > innerWidth - 8) x = e.clientX - w - 18; if (y + hh > innerHeight - 8) y = Math.max(8, innerHeight - hh - 8);
+    tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+  }
+  addEventListener('pointermove', moveTip);
   function render(flash) {
     if (press.mode) { renderPress(); return; }
     const p = P(), S = sel(), G = guns(), inv = Object.keys(p.coreInv).map(Number).filter((u) => p.coreInv[u] > 0).sort((a, b) => a - b);
@@ -466,6 +519,6 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   addEventListener('keyup', (e) => { if (open) e.stopImmediatePropagation(); }, true);
 
   function show(blade, mode) { if (open || !H.game() || !H.game().descent) return; open = true; onBlade = !!blade && mode !== 'press'; onTurret = false; hop = []; recOut = ''; press = []; press.mode = mode === 'press'; ftSel = []; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
-  function close() { if (!open) return; open = false; if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
+  function close() { if (!open) return; open = false; hideTip(); if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
   return { show, close, tick, isOpen: () => open, refresh: () => { if (open) render(false); } };
 }
