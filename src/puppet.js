@@ -26,7 +26,7 @@ export class Puppet {
     let top = 0;
     for (const D of PARTS) {
       if (D.creature !== creature) continue;
-      this.parts.push({ role: D.role, spr: sprite(D.tex), tex: D.tex, rest: [D.pivot[0], D.pivot[1]], layer: D.layer, off: D.offset, size: D.size, phase: Math.random() * 6, visible: true });
+      this.parts.push({ role: D.role, spr: sprite(D.tex), tex: D.tex, rest: [D.pivot[0], D.pivot[1]], rz: D.pivot[2] || 0, layer: D.layer, off: D.offset, size: D.size, phase: Math.random() * 6, visible: true, sculpted: !!D.sculpted });
       top = Math.max(top, D.pivot[1] + D.offset[1] + D.size[1] * 0.5);
     }
     this.top = top;

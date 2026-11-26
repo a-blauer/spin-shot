@@ -120,3 +120,16 @@
   crushed cars (SH.crushedCar) 3-7 high making lanes, crusher on a pad, lattice crane with a wreck on the magnet,
   SH.scrapHeap / SH.tyreStack cover, corrugated sheeting on the end walls, sodium floodlights. The old room's crusher sat
   inside the 'ring' plan's central wall block, which is why the room read as flat walls.
+- (26) THE BLIGHT (stage 1-2). Enemies are sculpted, not raised from 2D art.
+  tools/blight/kit.mjs: SDF kit with 6-number paint [r,g,b, cap,flesh,glow] (strain channels), surface nets, smoothing +
+  projection, AO kept apart, box-capping. tools/blight/decimate.mjs: QEM half-edge collapse; glow/paint borders (>70/255)
+  never collapse; no slivers/flips. tools/blight/creatures.mjs: the creatures (parts on pivots, roles as Body3D's).
+  node tools/sculpt_blight.mjs [names] -> public/blight.json (deflate-raw + base64; ~3.7 MB for 15 creatures).
+  src/blight.js: STRAINS (Toadstool, Rustcap, Mirecap, Nightshade, Char), loader (adds synthetic PARTS with
+  sculpted:true, rz), instanced strain material (iCap/iFlesh/iGlow per instance). body3d.js: kindFor branch, setStrain,
+  P.rz, fling()/flyTick() for knocked-off sculpted parts. Roster (content.json `model`; `art` kept as the lookup key):
+  Walker Rotcap, Runner Sporeling, Crawler Creeper, Bloater Puffball, Spitter Inkcap, Leaper BlightRat, Flyer Drifter,
+  Brute Bracketback, Screamer Shrieker, Burrower Rootworm, Gilded GoldenTruffle, Shield Shelfshield, Priest Sporecaller,
+  Totems SporePod / GraspingMycel. game.strainNow(): Descent every 4 rooms; survival per map. fx.withSap(): spores and
+  sap instead of blood for Blight hits. Review sheets: dmh-test/rev.py NAME strain scale tag height -> /tmp/rev_tag.jpg.
+  Bosses are still the old 2D-art bodies (stage 3).

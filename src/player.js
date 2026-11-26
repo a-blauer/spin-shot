@@ -1156,7 +1156,7 @@ export class Player {
       if (heavy && !E.dead && !E.isBoss && this.S.MeleeStun) { E.staggerT = Math.max(E.staggerT || 0, this.S.MeleeStun); E.applySlow(0.9, this.S.MeleeStun); }
       const shock = (W.shock || 0) + this.stat('MeleeShock');
       if (shock > 0) { let n = 0; for (const O of G.enemies) { if (n >= 2) break; if (O === E || O.dead || T.includes(O) || O.pos.distanceTo(E.pos) > 420) continue; n++; this.dealDamage(O, dmg * shock, O.pos, dir, false, 0, true); G.fx.flash(O.pos, lin(0.5, 0.8, 1), 60, 0.15, true); } if (n) this.play('S_Zap', 0.5, 1.1, 0.1); }
-      G.fx.fleshHit(at, dir, E.bodyScale * (heavy ? 1.5 : 1.1), true);
+      G.fx.withSap(E.sap, () => G.fx.fleshHit(at, dir, E.bodyScale * (heavy ? 1.5 : 1.1), true));
       G.fx.flash(at, heavy ? [1, 0.8, 0.45] : [1, 0.95, 0.85], heavy ? 150 : 95, 0.09, true); G.fx.sparks(at, dir.clone().negate(), heavy ? [1, 0.8, 0.4] : [1, 0.95, 0.85], heavy ? 9 : 5);
       if (E.dead) { killed++; Meta.bump('meleeKills'); }
     }
@@ -1789,7 +1789,7 @@ export class Player {
     this.hitMarker = 0.18; this.hitKill = killed; this.hitHead = head; this.hitScale = killed ? 1.6 : head || crit ? 1.25 : 1;
     if (!fromProc || procCoef > 0.3) {
       const heavy = head || crit || killed || base > 80;
-      if (!killed) G.fx.fleshHit(at, dir || V3(0, 1, 0), clamp(E.bodyScale, 0.7, 2), heavy);
+      if (!killed) G.fx.withSap(E.sap, () => G.fx.fleshHit(at, dir || V3(0, 1, 0), clamp(E.bodyScale, 0.7, 2), heavy));
       if (head) this.play('S_Headshot', 0.75, 1, 0.06); else if (crit) this.play('S_Crit', 0.55, 1, 0.06);
       G.audio.playAt(Math.random() < 0.5 ? 'S_HitFlesh' : 'S_HitFlesh2', at, 0.8, 1, 0.12);
       this.play('S_HitMarker', 0.35, killed ? 0.8 : 1, 0.04);

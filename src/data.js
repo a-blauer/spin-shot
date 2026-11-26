@@ -51,7 +51,7 @@ export const STATS = ['None', 'MaxHealth', 'HealthRegen', 'Armor', 'MoveSpeed', 
   'Grapeshot', 'PinBolt', 'EchoHit', 'MarkHit', 'HollowCharge', 'StaticBuild'];
 
 export const AFFIX = { Blazing: 0, Frozen: 1, Shielded: 2, Vampiric: 3, Splitting: 4, Hasted: 5, Armored: 6, Blinking: 7, Gilded: 8, Volatile: 9 };
-export const ENEMY_CREATURES = DATA.enemies.map((e) => e.art);
+export const ENEMY_CREATURES = DATA.enemies.map((e) => e.model || e.art);   // the Blight's sculpted creature (art stays the key bosses look kinds up by)
 export const BOSS_CREATURES = DATA.bosses.map((b) => b.art);
 
 export const TONICS = [

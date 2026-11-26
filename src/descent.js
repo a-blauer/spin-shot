@@ -208,8 +208,9 @@ export class Descent {
   rollRoster(room) {
     const E = DATA.enemies, fodder = [], odd = [];
     E.forEach((D, i) => { if (D.boss || D.ai === 'Gilded') return; const cap = room * 1.25 + 1; if (D.minRound > cap) return; (['Walker', 'Runner', 'Crawler'].includes(D.ai) ? fodder : odd).push(i); });
-    const take = (L, n) => { const out = []; L = L.slice(); while (out.length < n && L.length) out.push(L.splice(randInt(0, L.length - 1), 1)[0]); return out; };
-    const R0 = take(fodder, room < 4 ? 2 : 3), R1 = take(odd, Math.min(5, 1 + Math.floor(room / 3)));
+    // one entry per kind of creature (several maps' entries share a creature): never two of the same in one room's crowd
+    const take = (L, n, used = new Set()) => { const out = []; L = L.slice(); while (out.length < n && L.length) { const i = L.splice(randInt(0, L.length - 1), 1)[0], k = E[i].model || E[i].art; if (used.has(k)) continue; used.add(k); out.push(i); } return out; };
+    const seen = new Set(), R0 = take(fodder, room < 4 ? 2 : 3, seen), R1 = take(odd, Math.min(5, 1 + Math.floor(room / 3)), seen);
     const gilded = E.map((D, i) => (D.ai === 'Gilded' ? i : -1)).filter((i) => i >= 0);
     return { f: R0, o: R1, gold: gilded.length ? gilded[randInt(0, gilded.length - 1)] : -1 };
   }

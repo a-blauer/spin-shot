@@ -563,6 +563,8 @@ export class Game {
   playerDied() { if (this.net.active && !this.net.allDead()) { this.deathTime = this.time; this.coopDown = true; this.hud.toast(this.player.downed ? 'You are down. A teammate can get you up: they hold E beside you.' : 'You are down. You respawn next round if a teammate survives.', '#ff9a4d'); return; } this.gameOver(); }
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
+  // which strain of the Blight grows here: in the Descent it changes every four rooms down; each map has its own
+  strainNow() { if (this.descent) return Math.max(0, Math.min(4, Math.floor(((this.descent.room || 1) - 1) / 4))); return [1, 4, 3, 2, 0, 2, 0][this.mapId] ?? 0; }
   pickEnemyType() {
     if (this.descent) return this.descent.pick();
     const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (w > 0 && D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });   // (the floor of 3 is for THIS map's walker: applied to every walker it sent each map's into all the others, drawn from the wrong sheet as a jumble of parts)

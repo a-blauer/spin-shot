@@ -39,7 +39,21 @@ export class Fx {
     const h = this.game.phys.raycastDown(new THREE.Vector3(p.x, p.y + 20, p.z), maxDown + 20);
     return h ? h.point.y : -1e9;
   }
+  // The Blight does not bleed: while `sap` is set (a strain's cap, flesh and glow), blood becomes a burst of lit spores, meat
+  // becomes chips of cap and stalk, and the stain on the floor is a damp patch of the strain's flesh.
+  withSap(S, fn) { const old = this.sap; this.sap = S; try { fn(); } finally { this.sap = old; } }
+  sapify(o) {
+    const S = this.sap, t = o.tex || '';
+    const mixc = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+    if (t === 'FX_BloodSpray') { const g = mixc(S.flesh, S.glow, 0.55); o.tex = 'FX_Puff'; o.c0 = [g[0], g[1], g[2], 0.85]; o.c1 = [g[0], g[1], g[2], 0]; o.glow = 0.6; }
+    else if (t.startsWith('FX_Gib_')) { const eye = t === 'FX_Gib_Eye'; const c = eye ? S.glow : (t === 'FX_Gib_Bone' ? S.flesh : S.cap); o.tex = eye ? 'FX_Disc' : 'FX_Shard'; o.c0 = [c[0], c[1], c[2], 1]; if (eye) o.glow = 1; o.sapSplat = o.splat; o.splat = false; }
+    else if (t === 'FX_Disc' && o.splat) { const c = mixc(S.flesh, S.glow, 0.3); o.c0 = [c[0], c[1], c[2], 1]; o.sapSplat = true; o.splat = false; }
+    if (o.splat) { o.sapSplat = true; o.splat = false; }
+    if (o.sapSplat) o.sapC = mixc(S.flesh, [0.1, 0.08, 0.06], 0.45);
+    return o;
+  }
   add(o) {
+    if (this.sap) o = this.sapify(o);
     const P = Object.assign({
       mode: 'bill', pos: new THREE.Vector3(), vel: new THREE.Vector3(), axis: null, gravity: 0, drag: 0, size0: 50, size1: 50, stretch: 1,
       rot: 0, rotVel: 0, life: 0.3, age: 0, delay: 0, c0: [1, 1, 1, 1], c1: null, fadeIn: 0, fadeOut: 0.4, groundY: -1e9, bounce: 0,
@@ -70,6 +84,7 @@ export class Fx {
         if (P.spin && P.mode === 'fixed') { P.right.applyAxisAngle(UP, P.spin * dt); P.up.applyAxisAngle(UP, P.spin * dt); }
         if (P.groundY > -1e8 && P.pos.y < P.groundY + 2 && P.vel.y < 0) {
           P.pos.y = P.groundY + 2;
+          if (P.sapSplat) { P.sapSplat = false; this.decal('FX_Puff', new THREE.Vector3(P.pos.x, P.groundY, P.pos.z), UP, rnd(30, 60) * Math.max(0.6, P.size0 / 30), [P.sapC[0], P.sapC[1], P.sapC[2], 0.8], 24); }
           if (P.splat) {
             P.splat = false;
             this.decal('FX_Blood_' + Math.floor(Math.random() * 4), new THREE.Vector3(P.pos.x, P.groundY, P.pos.z), UP, rnd(35, 80) * Math.max(0.6, P.size0 / 30), [1, 1, 1, 1], 24);
@@ -353,6 +368,7 @@ export class Fx {
     }
   }
   decal(tex, pos, normal, size, tint = [1, 1, 1, 1], life = 20, translucent = false) {
+    if (this.sap && tex.startsWith('FX_Blood_')) { const S = this.sap; tex = 'FX_Puff'; tint = [S.flesh[0] * 0.5 + 0.05, S.flesh[1] * 0.5 + 0.04, S.flesh[2] * 0.5 + 0.03, 0.85]; }
     const n = normal.clone().normalize();
     const r = new THREE.Vector3(), u = new THREE.Vector3();
     decalBasis(n, rnd(0, 360), r, u);

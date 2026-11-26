@@ -20,6 +20,7 @@ import * as THREE from 'three';
 import { Atlas, G as UNI } from './render.js';
 import { Puppet, getParts } from './puppet.js';
 import { IronhideRig } from './ironhide.js';
+import { BLIGHT, blightMaterial, strainRGB } from './blight.js';
 const CUSTOM = new Set();   // creatures with a hand-sculpted body instead of one raised from their art
 
 const D2R = Math.PI / 180;
@@ -162,12 +163,13 @@ function material(atlas) {
 const KINDS = new Map();   // creature -> [{ mesh, tint, n, cap, D }]
 let SCENE = null, PARTS = null;
 export function bodies3dInit(scene, parts) {
-  for (const list of KINDS.values()) for (const K of list) { if (K.mesh.parent) K.mesh.parent.remove(K.mesh); K.mesh.geometry.dispose(); }
+  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; if (K.mesh.parent) K.mesh.parent.remove(K.mesh); if (!K.blight) K.mesh.geometry.dispose(); }
   KINDS.clear(); MATS.clear(); SCENE = scene; PARTS = parts || getParts();
 }
 function makeMesh(K, cap) {
-  const old = K.mesh, mesh = new THREE.InstancedMesh(K.geo, material(K.atlas), cap);
+  const old = K.mesh, mesh = new THREE.InstancedMesh(K.geo, K.blight ? blightMaterial() : material(K.atlas), cap);
   K.tint = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4); K.tint.setUsage(THREE.DynamicDrawUsage); K.geo.setAttribute('iTint', K.tint);
+  if (K.blight) for (const a of ['iCap', 'iFlesh', 'iGlow']) { const prev = K[a]; K[a] = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); K[a].setUsage(THREE.DynamicDrawUsage); K.geo.setAttribute(a, K[a]); if (old && prev) K[a].array.set(prev.array); }   // the strain's three colours, per creature
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.count = 0; mesh.renderOrder = 3;
   if (old) { mesh.instanceMatrix.array.set(old.instanceMatrix.array); K.tint.array.set(K.oldTint); SCENE.remove(old); old.dispose(); }   // growing mid-frame keeps what was already queued
   K.oldTint = K.tint.array; K.mesh = mesh; K.cap = cap; SCENE.add(mesh);
@@ -175,13 +177,15 @@ function makeMesh(K, cap) {
 function kindFor(creature) {
   let list = KINDS.get(creature); if (list) return list;
   list = [];
+  const BL = BLIGHT.get(creature);   // sculpted, not raised from art
+  if (BL) { for (const pt of BL.parts) { const K = { geo: pt.geo, thick: 0, tris: pt.tris, atlas: 'blight', blight: true, n: 0 }; makeMesh(K, 24); list.push(K); } KINDS.set(creature, list); return list; }
   for (const D of PARTS) { if (D.creature !== creature) continue; const m = Atlas.meta[D.tex]; if (!m || !Atlas.tex[m.atlas]) { list.push(null); continue; }
     const S = sculpt(D, D.role), K = { geo: S.geo, thick: S.thick, tris: S.tris, atlas: m.atlas, n: 0 }; makeMesh(K, 24); list.push(K); }
   KINDS.set(creature, list); return list;
 }
 export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); }
 export function bodies3dEnd() {
-  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; } }
+  for (const list of KINDS.values()) for (const K of list) { if (!K) continue; K.mesh.count = K.n; if (K.n) { K.mesh.instanceMatrix.needsUpdate = true; K.tint.needsUpdate = true; if (K.blight) { K.iCap.needsUpdate = true; K.iFlesh.needsUpdate = true; K.iGlow.needsUpdate = true; } } }
 }
 export function bodies3dStats() { let calls = 0, tris = 0, kinds = 0; for (const list of KINDS.values()) { kinds++; for (const K of list) if (K && K.n) { calls++; tris += K.tris * K.n; } } return { kinds, calls, tris }; }
 
@@ -193,7 +197,7 @@ const BEASTS = new Set('TimberWolf Lion CinderHound Rat Bullfrog Skitterling Web
 export class Body3D extends Puppet {
   constructor(creature, scale, tint, aura, auraSize) {
     super(creature, scale, tint, aura, auraSize);
-    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
+    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature) || !!(BLIGHT.get(creature) && BLIGHT.get(creature).beast); this.sculpted = BLIGHT.has(creature); this.strainC = strainRGB(0); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
     this.kind = SCENE && PARTS ? kindFor(creature) : null;
     if (!this.kind || !this.kind.some(Boolean)) { this.is3D = false; this.kind = null; return; }   // no art to sculpt from: stay a cut-out
     const B = this.parts.find((p) => p.role === 'Body') || this.parts[0];
@@ -201,9 +205,24 @@ export class Body3D extends Puppet {
     this.yaw3 = Math.random() * 6.283;
     if (creature === 'Ironhide' && SCENE) { try { this.custom = new IronhideRig(SCENE); CUSTOM.add(this.custom); this.plates = 4; } catch (e) { this.custom = null; if (typeof window !== 'undefined') window.__ihErr = String(e && e.stack || e).slice(0, 300); } }
   }
+  setStrain(i) { this.strain = i; this.strainC = strainRGB(i); }
+  // a sculpted part knocked off: it flies on its own (spinning, falling, bouncing on the floor) and lies where it lands
+  fling(P, at, vel) {
+    this.rootMatrix(); this.partMatrix(P, _m); _m.premultiply(_root); const q = new THREE.Quaternion(); _m.decompose(_v, q, _s);
+    const ax = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+    P.fly = { p: at.clone(), v: vel.clone(), q, ax, w: 6 + Math.random() * 8, rest: false };
+  }
+  flyTick(dt) {
+    if (!this.feet) return;
+    for (const P of this.parts) { const F = P.fly; if (!F || F.rest) continue;
+      F.v.y -= 2100 * dt; F.p.addScaledVector(F.v, dt); F.q.premultiply(new THREE.Quaternion().setFromAxisAngle(F.ax, F.w * dt));
+      const floor = this.feet.y + Math.min(P.size[0], P.size[1]) * 0.25 * this.baseScale;
+      if (F.p.y < floor) { F.p.y = floor; if (Math.abs(F.v.y) < 140) { F.rest = true; F.v.set(0, 0, 0); } else { F.v.y *= -0.32; F.v.x *= 0.55; F.v.z *= 0.55; F.w *= 0.5; } } }
+  }
   tick(dt, feet, S) {
     super.tick(dt, feet, S);
     if (!this.is3D) return;
+    if (this.sculpted) this.flyTick(dt);
     // it faces what it is after (or the way it is going, if that is somewhere else), and takes a moment to come round
     let want = this.yaw3;
     const T = S && S.faceToward;
@@ -276,7 +295,7 @@ export class Body3D extends Puppet {
   }
   partMatrix(P, out) {
     const [pitch, roll, oz, sc, fwd, yaw] = this.pose(P);
-    out.makeTranslation(P.rest[0], P.rest[1] + oz, fwd);
+    out.makeTranslation(P.rest[0], P.rest[1] + oz, fwd + (P.rz || 0));
     _e.set(pitch * D2R, yaw * D2R, roll * D2R, 'YXZ'); _q.setFromEuler(_e); _a.makeRotationFromQuaternion(_q); out.multiply(_a);
     if (sc !== 1) { _a.makeScale(sc, sc, sc); out.multiply(_a); }
     _a.makeTranslation(P.off[0], P.off[1], 0); out.multiply(_a);
@@ -296,11 +315,13 @@ export class Body3D extends Puppet {
     this.rootMatrix();
     if (this.custom) { this.custom.pose(this, _root, (this.heightCm / Math.max(1e-3, this.baseScale)) / 180); return; }
     for (let i = 0; i < this.parts.length; i++) {
-      const P = this.parts[i], K = this.kind[i]; if (!K || !P.visible) continue;
+      const P = this.parts[i], K = this.kind[i]; if (!K || (!P.visible && !P.fly)) continue;
       if (K.n >= K.cap) makeMesh(K, K.cap * 2);
-      this.partMatrix(P, _m); _m.premultiply(_root);
+      if (P.fly) { const b = this.baseScale; _m.compose(P.fly.p, P.fly.q, _s.set(b, b, b)); _a.makeTranslation(P.off[0], P.off[1], 0); _m.multiply(_a); }
+      else { this.partMatrix(P, _m); _m.premultiply(_root); }
       _m.toArray(K.mesh.instanceMatrix.array, K.n * 16);
       const a = K.tint.array, o = K.n * 4; a[o] = t[0]; a[o + 1] = t[1]; a[o + 2] = t[2]; a[o + 3] = flash;
+      if (K.blight) { const sc = this.strainC, o3 = K.n * 3; K.iCap.array.set(sc[0], o3); K.iFlesh.array.set(sc[1], o3); K.iGlow.array.set(sc[2], o3); }
       K.n++;
     }
   }
@@ -313,3 +334,5 @@ export function bodies3dAudit(creature) {
     const p = K.geo.getAttribute('position').array; let bad = 0; for (let k = 0; k < p.length; k++) if (!Number.isFinite(p[k])) bad++;
     return { role: D.role, tris: K.tris, thick: +K.thick.toFixed(1), w: +D.size[0].toFixed(0), h: +D.size[1].toFixed(0), bad }; });
 }
+
+if (typeof window !== 'undefined') window.__Body3D = Body3D;

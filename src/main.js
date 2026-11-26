@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { loadAtlas, loadCreaturePack, Atlas } from './render.js';
 import { MAPS } from './maps.js';
 import { setParts } from './puppet.js';
+import { loadBlight } from './blight.js';
 import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
@@ -155,6 +156,7 @@ async function boot() {
   status('Shuffling the deck...');
   await loadAtlas('');
   setParts(await (await fetch('parts.json')).json());
+  await loadBlight();   // the Blight's sculpted creatures join the parts table
   const img = new Image(); img.src = Atlas.blobUrl.fx; await img.decode().catch(() => {});
   hud.setAtlas(img, Atlas.meta);
   const DESCENT_MAP = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')), map0 = MAPS[URLMAP >= 0 ? URLMAP : Meta.map()] ? (URLMAP >= 0 ? URLMAP : Meta.map()) : DESCENT_MAP;
