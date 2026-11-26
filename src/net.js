@@ -348,7 +348,12 @@ export const Net = {
   doorOpened(D) { if (this.active && !this._door) this.emit('door', { i: this.game.interactables.indexOf(D) }); },
   killed(E, headshot) { if (this.role === 'host') this.emit('k', { id: E.id, by: E.netKiller || this.me, hs: headshot ? 1 : 0 }); },
   // lobby (before the run starts): who is here, and has the host started
-  lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe, look: p.isMe ? Meta.lookStr() : String((p.presence || {}).look || '').slice(0, 240) })); },
+  lobbyList() { if (!this.room) return []; return this.room.peers().map((p) => ({ name: p.isMe ? this.name : cleanName((p.presence || {}).name), host: p.isMe ? this.role === 'host' : p.peer === this.hostPeer, me: p.isMe, rdy: p.isMe ? !!this.ready : !!(p.presence || {}).rdy, look: p.isMe ? Meta.lookStr() : String((p.presence || {}).look || '').slice(0, 240) })); },
+  // the Way Down: a guest says they are ready; the host says what the run is
+  setReady(on) { this.ready = !!on; if (this.room) this.room.presence({ rdy: on ? 1 : 0 }).catch(() => {}); },
+  setRunInfo(o) { if (this.role === 'host' && this.room) this.room.presence({ ri: o }).catch(() => {}); },
+  hostRunInfo() { if (this.role !== 'client' || !this.room) return null; const h = this.room.peers().find((p) => p.peer === this.hostPeer); const r = h && h.presence && h.presence.ri; return r && typeof r === 'object' ? { map: num(r.map, -1, 99) | 0, df: num(r.df, 0, 2) | 0, ct: String(r.ct || '').replace(/[<>&"]/g, '').slice(0, 40) } : null; },
+  allReady() { return this.lobbyList().every((p) => p.host || p.rdy); },
   hostHere() { return this.role !== 'client' || (this.room && this.room.peers().some((p) => p.peer === this.hostPeer)); },
   hostStarted() { if (this.role !== 'client' || !this.room) return false; const h = this.room.peers().find((p) => p.peer === this.hostPeer); return !!(h && h.presence && h.presence.run); },   // the host is on a run (not up in the village)
   setMap(i) { if (this.role === 'host' && this.room) this.room.presence({ map: i }).catch(() => {}); },

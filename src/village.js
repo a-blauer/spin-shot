@@ -11,6 +11,8 @@ import { DEFAULT_LOOK, COSMETICS } from './cosmetics.js';
 import { buildPortal, tickPortal } from './portal.js';
 import { Meta } from './meta.js';
 import { makeSign, signFontsReady } from './village_signs.js';
+import { CasinoRigs } from './casino_world.js';
+import { Net } from './net.js';
 
 // the people of the village, dressed from the same wardrobe as you
 const look = (o) => { const L = Object.assign({}, DEFAULT_LOOK, o); for (const k of Object.keys(o)) if (COSMETICS[k] && !COSMETICS[k].some((I) => I.id === o[k])) L[k] = DEFAULT_LOOK[k]; return L; };
@@ -52,7 +54,7 @@ export class Village {
     for (const E of g.enemies) E.remove = true; g.hazards.clear();
     g.world.showChunk(VILLAGE_IDX);
     g.env.noSky = false;
-    for (const p of this.people) p.root.visible = true; for (const I of this.uses) { I.enabled = true; I.group.visible = true; } for (const M of this.signs || []) M.visible = true;
+    for (const p of this.people) p.root.visible = true; for (const I of this.uses) { I.enabled = true; I.group.visible = true; } for (const M of this.signs || []) M.visible = true; if (this.rigs) this.rigs.visible = true;
     this.spawn();
     g.vm.hidden = true;
     try { g.navRebuild(P.pos); } catch (e) { /* the village is off the rooms' walking grid: nothing walks here */ }
@@ -66,7 +68,7 @@ export class Village {
   // leaving for a run: the village stays built, its people and stations hidden
   leave() {
     const g = this.g; this.on = false; g.village = null; g.env.noSky = !!g.map.noSky;
-    for (const p of this.people) p.root.visible = false; for (const I of this.uses) { I.enabled = false; I.group.visible = false; } for (const M of this.signs || []) M.visible = false;
+    for (const p of this.people) p.root.visible = false; for (const I of this.uses) { I.enabled = false; I.group.visible = false; } for (const M of this.signs || []) M.visible = false; if (this.rigs) this.rigs.visible = false;
     g.vm.hidden = false;
   }
   // ---- the people and the things to use
@@ -102,6 +104,7 @@ export class Village {
     this.signs = [];
     signFontsReady().then(() => { for (const S of VSPOTS.signs) { const [x, y] = this.w(S.at[0], S.at[1]), M = makeSign(S.kind, S.o, new THREE.Vector3(x, S.at[2], y), new THREE.Vector3(S.face[0], 0, S.face[1]), S.h, S.glow || 0); M.visible = this.on; g.scene.add(M); this.signs.push(M); } });
     this.gate = gate;
+    this.rigs = new CasinoRigs(this);
     for (const I of this.uses) { I.enabled = false; I.group.visible = false; }
   }
   // ---- every frame in the village
@@ -113,7 +116,7 @@ export class Village {
     // people: an easy idle; they turn to face you when you come near, and say hello once in a while
     for (const p of this.people) {
       p.t += dt; const dx = P.pos.x - p.at[0], dz = P.pos.z - p.at[1], d = Math.hypot(dx, dz);
-      const want = d < 520 ? Math.atan2(-dx, -dz) + Math.PI : p.yaw0;
+      const want = d < 520 ? Math.atan2(-dx, -dz) : p.yaw0;   // a yaw faces (-sin, -cos): toward you
       let dy = ((want - p.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; p.yaw += dy * Math.min(1, dt * 4);
       p.root.rotation.y = p.yaw + Math.PI;
       animateCharacter(p.root, p.t, 0, { preview: true });
@@ -127,6 +130,7 @@ export class Village {
       g.fx.add({ pos, vel: new THREE.Vector3((Math.random() - 0.5) * 40, (Math.random() - 0.3) * 20, (Math.random() - 0.5) * 40), drag: 0.1, life: 2.4 + Math.random() * 2, size0: 7, size1: 3, c0: [1, 0.92, 0.5, 0.9], c1: [1, 0.8, 0.3, 0], fadeIn: 0.5, tex: 'FX_Glow', kind: 'add', glow: 1.4 });
     }
     for (const M of this.signs || []) if (M.userData.tick) M.userData.tick(dt);
+    if (this.rigs) { this.rigs.tick(dt); this.rigs.tickLabels(dt); this.watch(); }
     // smoke curling up from the chimneys, and the campfire: flames, sparks, and its light breathing
     this.sm = (this.sm || 0) + dt * 5;
     while (this.sm >= 1) { this.sm -= 1; for (const [x0, y0, z] of VSPOTS.smoke) { if (Math.random() < 0.55) continue; const [x, y] = this.w(x0, y0); g.fx.add({ pos: new THREE.Vector3(x + (Math.random() - 0.5) * 20, z, y + (Math.random() - 0.5) * 20), vel: new THREE.Vector3(18 + Math.random() * 14, 55 + Math.random() * 25, 6), drag: 0.25, life: 4 + Math.random() * 2, size0: 36, size1: 150, c0: [0.86, 0.84, 0.82, 0.32], c1: [0.9, 0.88, 0.86, 0], tex: 'FX_Smoke', kind: 'fx' }); } }
@@ -134,6 +138,29 @@ export class Village {
       while (this.fl >= 1) { this.fl -= 1; const a = Math.random() * 6.28, r = Math.random() * 26; g.fx.add({ pos: new THREE.Vector3(fx + Math.cos(a) * r, 22, fy + Math.sin(a) * r), vel: new THREE.Vector3((Math.random() - 0.5) * 20, 90 + Math.random() * 70, (Math.random() - 0.5) * 20), drag: 0.6, life: 0.5 + Math.random() * 0.4, size0: 34 + Math.random() * 20, size1: 6, c0: [1, 0.72, 0.3, 0.95], c1: [1, 0.3, 0.08, 0], tex: 'FX_Flame', kind: 'add', glow: 1.6 }); if (Math.random() < 0.12) g.fx.add({ pos: new THREE.Vector3(fx, 40, fy), vel: new THREE.Vector3((Math.random() - 0.5) * 60, 150 + Math.random() * 120, (Math.random() - 0.5) * 60), drag: 0.3, life: 1.4, size0: 5, size1: 2, c0: [1, 0.8, 0.4, 1], c1: [1, 0.4, 0.1, 0], tex: 'FX_Glow', kind: 'add', glow: 2 }); } }
     // the casino hums when you are near it
     if (g.audio && g.audio.loop) { const [cx, cy] = this.w(VSPOTS.casino.c[0], VSPOTS.casino.c[1]), d = Math.hypot(P.pos.x - cx, P.pos.z - cy); g.audio.loop('S_AmbCasino', Math.max(0, Math.min(0.35, (2600 - d) / 3000))); }
+  }
+  // ---- the casino, live: sit down at a game (stand at it, look at the table), tell the party what you play, and show
+  // what they play on the same tables
+  seat(kind, i = 0) {
+    if (!this.rigs) return; const P = this.g.player, S = this.rigs.seat(kind, i);
+    P.pos.set(S.at.x, P.pos.y, S.at.z); P.vel.set(0, 0, 0);
+    const eye = P.eye ? P.eye() : P.pos.clone().add(new THREE.Vector3(0, 60, 0)), d = S.look.clone().sub(eye);
+    P.yaw = Math.atan2(-d.x, -d.z); P.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
+  }
+  broadcast(cz) { if (Net.room) Net.room.presence({ cz }).catch(() => {}); }
+  watch() {
+    if (!Net.room) return; this.seen = this.seen || {};
+    for (const p of Net.room.peers()) {
+      if (p.isMe || !p.presence || !p.presence.cz) continue;
+      const c = p.presence.cz, key = p.peer + c.k + (c.i || 0); if (this.seen[key] === c.s) continue; this.seen[key] = c.s;
+      const who = String(p.presence.name || 'A friend').slice(0, 16), R = this.rigs;
+      try {
+        if (c.k === 'slot' && Array.isArray(c.r)) R.spinSlots(c.i | 0, c.r.slice(0, 3)).then(() => R.say('slot' + (c.i | 0), c.w ? `${who}  +${c.w}` : `${who}: no luck`));
+        else if (c.k === 'rou') { R.rouletteBets(c.b || {}); if (Number.isInteger(c.n)) R.spinRoulette(c.n).then(() => R.say('rou', `${who}: ${c.n}${c.w ? '  +' + c.w : ''}`)); }
+        else if (c.k === 'bj') R.blackjackHands((c.d || []).map(([r, s]) => ({ r, s })), (c.y || []).map(([r, s]) => ({ r, s })), !!c.h);
+        else if (c.k === 'dice' && Number.isInteger(c.n)) R.rollDice(c.n, c.t, !!c.o).then(() => R.say('dice', `${who}: ${c.n}${c.w ? '  +' + c.w : ''}`));
+      } catch (e) { /* a garbled message: ignore it */ }
+    }
   }
   nearCasino() { const P = this.g.player, [cx, cy] = this.w(VSPOTS.casino.c[0], VSPOTS.casino.c[1]); return Math.hypot(P.pos.x - cx, P.pos.z - cy) < 1700; }
   // the place you stand to use a thing (for tests)

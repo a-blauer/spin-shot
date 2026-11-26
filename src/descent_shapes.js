@@ -326,3 +326,128 @@ export function webSheet(len, z0, z1, col = 0xd8d4e0) {
     for (let k = 0; k + 1 < pts.length; k++) line(pts[k], pts[k + 1], Math.hypot(pts[k][0] - pts[k + 1][0], pts[k][2] - pts[k + 1][2]) * 0.08);
   })];
 }
+
+// A solid block, wound outward the way blob() is: faces in their own colours (top, the two long faces, the rest)
+export function block(G, x0, y0, z0, x1, y1, z1, c, top = c, face = c) {
+  const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, F = (f, col) => G.surf(f, 0, 1, 1, 0, 1, 1, col);
+  F((u, v) => [x0 + dx * u, y0, z0 + dz * v], face); F((u, v) => [x0 + dx * v, y1, z0 + dz * u], face);
+  F((u, v) => [x0, y0 + dy * v, z0 + dz * u], c); F((u, v) => [x1, y0 + dy * u, z0 + dz * v], c);
+  F((u, v) => [x0 + dx * v, y0 + dy * u, z0], c); F((u, v) => [x0 + dx * u, y0 + dy * v, z1], top);
+}
+// A bookcase: a plinth, two end boards and a moulded top, shelves with a dark back between them, and the shelves filled
+// the way a used library's are: books of every thickness and height standing in runs, a spine band or two on each,
+// the cream of the pages showing on top, one leaning on its neighbour now and then, a pile laid flat, a gap where a
+// few have been taken out. `both` fills both faces (a case standing free in a room). X along it, Y its depth, Z up.
+export function bookcase(len, h, d, wood, books, seed = 1, both = true) {
+  len = q(len); h = q(h); d = q(d, 5);
+  return ['bookcase|' + [len, h, d, hx(wood), books.map(hx).join(','), seed, both ? 1 : 0].join('|'), shape((G) => {
+    const R = rng(seed * 7919 + len), wd = dark(wood, 0.72), bk = dark(wood, 0.42), pg = 0xe8dcc0, gold = 0xc8a040, L2 = len / 2, D2 = d / 2;
+    block(G, -L2 - 6, -D2 - 6, 0, L2 + 6, D2 + 6, 16, wd);                                   // plinth
+    for (const e of [-1, 1]) block(G, e * L2 - (e > 0 ? 14 : 0), -D2, 0, e * L2 + (e < 0 ? 14 : 0), D2, h, wood, wd);   // end boards
+    block(G, -L2 - 10, -D2 - 10, h, L2 + 10, D2 + 10, h + 14, wd); block(G, -L2 - 16, -D2 - 16, h + 14, L2 + 16, D2 + 16, h + 22, wood);   // the moulded top
+    block(G, -L2 + 14, -3, 16, L2 - 14, 3, h, bk);                                           // the back between the faces
+    const step = 58, faces = both ? [-1, 1] : [1];
+    for (let z = 16; z + 44 < h; z += step) {
+      block(G, -L2 + 14, -D2, z - 3, L2 - 14, D2, z + 3, wood, wood, wd);                     // the shelf board
+      for (const f of faces) {
+        let p = -L2 + 18; const end = L2 - 18;
+        while (p < end - 10) {
+          const r = R();
+          if (r < 0.05) { p += 30 + R() * 50; continue; }                                    // a gap
+          if (r < 0.1 && end - p > 60) {                                                      // a pile laid flat
+            let zz = z + 3; const w = 46 + R() * 10; for (let k = 0, n = 2 + Math.floor(R() * 3); k < n; k++) { const t = 7 + R() * 5, c = books[Math.floor(R() * books.length)]; block(G, p, f > 0 ? 3 : -D2 + 2, zz, p + w - k * 3, f > 0 ? D2 - 2 : -3, zz + t, c, pg, c); zz += t; }
+            p += w + 6; continue;
+          }
+          const t = 8 + R() * 9, bh = Math.min(step - 12, 34 + R() * 16), c = dark(books[Math.floor(R() * books.length)], 0.75 + R() * 0.45), y0 = f > 0 ? 4 + R() * 4 : -D2 + 1, y1 = f > 0 ? D2 - 1 : -4 - R() * 4;
+          if (r > 0.95 && p + t + bh * 0.5 < end) {                                           // one leaning on the next
+            const b = G.n; block(G, 0, y0, 0, t, y1, bh, c, pg, c); G.place(b, { x: p + bh * 0.42, z: z + 3, pitch: -34 }); p += bh * 0.5 + t; continue;
+          }
+          block(G, p, y0, z + 3, p + t, y1, z + 3 + bh, c, pg, c);
+          const fy = f > 0 ? y1 + 0.6 : y0 - 0.6, band = R() < 0.6 ? gold : dark(c, 0.55);   // spine bands, standing just proud
+          for (const bz of R() < 0.5 ? [0.18, 0.8] : [0.78]) block(G, p + 1, Math.min(fy, fy - f * 1.2), z + 3 + bh * bz, p + t - 1, Math.max(fy, fy - f * 1.2) + (f > 0 ? 0 : 0), z + 3 + bh * bz + 4, band);
+          p += t + 0.6;
+        }
+      }
+    }
+  })];
+}
+
+// A church pew, sat on from +Y: a seat with a rounded front edge, a back of boards with a capping rail, and end boards
+// that rise in a curve to a scrolled top. len along X.
+export function pew(len, col) {
+  len = q(len);
+  return ['pew|' + len + '|' + hx(col), shape((G) => {
+    const dk = dark(col, 0.7), L2 = len / 2;
+    G.blob(0, 2, 40, L2 - 10, 24, 5, col, { e: 8, nu: 16, nv: 6 });                                    // the seat
+    block(G, -L2 + 10, -20, 8, L2 - 10, -14, 36, dk);                                                 // the kick board under it
+    for (let i = 0; i < Math.max(3, Math.round(len / 60)); i++) { const n = Math.max(3, Math.round(len / 60)), w = (len - 20) / n; block(G, -L2 + 10 + i * w + 1, -22, 44, -L2 + 10 + (i + 1) * w - 1, -16, 96, i % 2 ? col : dark(col, 0.9)); }   // the back's boards
+    G.blob(0, -19, 100, L2 - 6, 7, 5, dk, { e: 6, nu: 16, nv: 6 });                                    // its capping rail
+    for (const e of [-1, 1]) {   // the end boards: a curve up from the front foot to the scroll at the back
+      const x = e * L2, prof = (t) => { const y = 26 - t * 48, z = t < 0.5 ? 60 : 60 + (t - 0.5) * 2 * 54; return [y, z]; };
+      for (const o of [-4, 4]) { G.surf((u, v) => { const [y, z] = prof(u); return [x + o, y, z * v]; }, 0, 1, 8, 0, 1, 1, dk); G.surf((v, u) => { const [y, z] = prof(u); return [x + o, y, z * v]; }, 0, 1, 1, 0, 1, 8, dk); }
+      G.surf((u, v) => { const [y, z] = prof(u); return [x - 4 + v * 8, y, z]; }, 0, 1, 8, 0, 1, 1, col);   // its top edge
+      G.blob(x, -20, 116, 9, 12, 12, col, { e: 2, nu: 10, nv: 6 });                                    // the scroll
+    }
+  })];
+}
+// A table with turned legs: a thick top with softened edges, an apron under it, four legs turned on a lathe.
+export function table(len, dep, col, leg) {
+  len = q(len); dep = q(dep);
+  return ['table|' + [len, dep, hx(col), hx(leg)].join('|'), shape((G) => {
+    G.blob(0, 0, 73, len / 2, dep / 2, 5, col, { e: 10, nu: 16, nv: 6 });
+    for (const e of [-1, 1]) { block(G, -len / 2 + 20, e * (dep / 2 - 14) - 3, 56, len / 2 - 20, e * (dep / 2 - 14) + 3, 68, leg); block(G, e * (len / 2 - 20) - 3, -dep / 2 + 14, 56, e * (len / 2 - 20) + 3, dep / 2 - 14, 68, leg); }
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.lathe([[5, 0], [6, 4], [4, 14], [6, 30], [7, 40], [4, 48], [6, 56], [6, 68]], leg, 8, [sx * (len / 2 - 20), sy * (dep / 2 - 14), 0]);
+  })];
+}
+// A plank bench on two trestles.
+export function bench(len, col, leg) {
+  len = q(len);
+  return ['bench|' + [len, hx(col), hx(leg)].join('|'), shape((G) => {
+    G.blob(0, 0, 40, len / 2, 20, 4, col, { e: 10, nu: 14, nv: 6 });
+    for (const e of [-1, 1]) { const x = e * (len / 2 - 22); for (const s of [-1, 1]) G.tube([[x, s * 6, 36], [x, s * 16, 0]], 3.5, leg, { S: 6 }); block(G, x - 3, -14, 18, x + 3, 14, 24, leg); }
+    G.tube([[-len / 2 + 22, 0, 20], [len / 2 - 22, 0, 20]], 3, leg, { S: 6 });
+  })];
+}
+
+// A wrecked car: a body with rounded wings and a sill, a cab with its glass, bumpers, lamps, four tyres on hubs; the
+// wreck shows in a dent along one side, a rust bloom on the bonnet and, on some, the glass gone. X along it (the front
+// at +X), Y across, Z up; about 390 by 176, 150 high.
+export function car(col, seed = 0) {
+  seed %= 3;
+  return ['car|' + hx(col) + '|' + seed, shape((G) => {
+    const dk = dark(col, 0.62), glass = seed === 2 ? 0x0e0f10 : 0x23303a, chrome = 0x8a8e96, rust = 0x7a4a2a, tyre = 0x17181c;
+    const dent = (x, y, z, nx, ny) => (seed !== 1 && ny > 0.6 && x > -60 && x < 80 ? [x, y - 14 * Math.cos(((x - 10) / 70) * 1.57), z] : [x, y, z]);
+    G.blob(0, 0, 44, 196, 88, 22, dk, { e: 8, nu: 18, nv: 6 });                                         // sill and floor pan
+    G.blob(0, 0, 70, 192, 86, 32, (nx, ny, nz) => (nz > 0.55 && nx > 0.35 && nx < 0.9 && seed !== 0 ? rust : col), { e: 5, nu: 22, nv: 10, warp: dent });   // the body
+    for (const a of [-1, 1]) for (const e of [-1, 1]) G.blob(a * 118, e * 80, 66, 54, 14, 30, col, { e: 3, nu: 12, nv: 6 });   // the wings over the wheels
+    G.blob(-24, 0, 116, 104, 76, 30, glass, { e: 4, nu: 16, nv: 8 });                                   // the glasshouse
+    G.blob(-24, 0, 124, 96, 72, 26, col, { e: 4, nu: 16, nv: 8, warp: (x, y, z) => [x, y, z > 6 ? z : z - 30] });   // the roof over it (the glass shows below)
+    for (const e of [-1, 1]) { G.tube([[e * 198, -78, 46], [e * 204, 0, 46], [e * 198, 78, 46]], 6, chrome, { S: 6 }); for (const s of [-1, 1]) G.blob(e * 190, s * 56, 74, 6, 18, 12, e > 0 ? 0xe8e0c0 : 0x8a2a22, { e: 3, nu: 10, nv: 6 }); }
+    block(G, 197, -40, 52, 201, 40, 70, chrome);                                                            // the grille
+    for (const a of [-1, 1]) for (const e of [-1, 1]) {                                                    // tyres on hubs, turned on their side
+      let b = G.n; G.lathe([[22, -12], [34, -12], [37, -6], [37, 6], [34, 12], [22, 12]], tyre, 14); G.place(b, { x: a * 118, y: e * 84, z: 36, roll: 90 });
+      b = G.n; G.lathe([[0, 12], [16, 12], [20, 6]], chrome, 10); G.place(b, { x: a * 118, y: e * 84, z: 36, roll: e > 0 ? -90 : 90 });
+    }
+  })];
+}
+// A seated guardian of the tomb: a lion's body couched on a plinth, its forepaws out in front, a man's head in a
+// striped headcloth with lappets down to the chest and a plaited beard. Faces +Y.
+export function guardian(stone, gold, lapis, dkc) {
+  return ['guardian|' + [stone, gold, lapis, dkc].map(hx).join('|'), shape((G) => {
+    const stripe = (nx, ny, nz) => (Math.floor((nz + 1) * 6) % 2 ? gold : lapis);
+    block(G, -150, -180, 0, 150, 180, 180, stone, dark(stone, 0.92)); block(G, -160, -190, 180, 160, 190, 200, dkc);   // plinth, with a cornice
+    for (const e of [-1, 1]) block(G, -152 + 0 * e, e * 182 - 4, 30, 152, e * 182 + 4, 150, dark(stone, 0.85));   // a band carved in each long side
+    G.blob(0, -50, 268, 100, 120, 66, stone, { e: 3, nu: 18, nv: 10 });                                  // the couched body
+    G.blob(0, -150, 262, 92, 56, 60, stone, { e: 2.5, nu: 14, nv: 8 });                                  // the haunches
+    for (const e of [-1, 1]) G.blob(e * 70, -150, 230, 26, 58, 28, dark(stone, 0.95), { e: 3, nu: 10, nv: 6 });   // hind legs tucked in
+    for (const e of [-1, 1]) { G.blob(e * 58, 110, 222, 30, 82, 22, stone, { e: 3.5, nu: 12, nv: 6 }); for (let t = -1; t <= 1; t++) G.blob(e * 58 + t * 14, 186, 214, 7, 8, 10, dark(stone, 0.85), { e: 2, nu: 8, nv: 4 }); }   // forepaws and toes
+    G.blob(0, 40, 380, 82, 64, 110, stone, { e: 2.6, nu: 18, nv: 10 });                                  // the chest, rising
+    G.blob(0, -170, 300, 10, 10, 10, stone, { e: 2 }); G.tube([[0, -178, 280], [40, -200, 236], [86, -160, 210]], 7, stone, { S: 6 });   // the tail round its flank
+    // the head: a headcloth (striped), the face out of its front, lappets either side, a beard under the chin
+    G.blob(0, 52, 530, 84, 72, 74, stripe, { e: 2.4, nu: 20, nv: 12 });
+    G.blob(0, 100, 512, 50, 34, 56, stone, { e: 2.2, nu: 14, nv: 8 });
+    for (const e of [-1, 1]) { G.blob(e * 60, 86, 430, 20, 22, 70, stripe, { e: 4, nu: 10, nv: 10 }); G.blob(e * 20, 132, 528, 9, 4, 5, 0x1a140c, { e: 2, nu: 8, nv: 4 }); }
+    G.blob(0, 128, 450, 12, 10, 30, lapis, { e: 4, nu: 8, nv: 6 }); G.blob(0, 134, 506, 7, 10, 14, dark(stone, 0.9), { e: 2, nu: 8, nv: 4 });   // beard, nose
+    G.blob(0, 96, 590, 18, 18, 14, gold, { e: 2, nu: 10, nv: 6 });                                       // the uraeus at the brow
+  })];
+}

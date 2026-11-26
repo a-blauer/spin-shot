@@ -1,9 +1,11 @@
 // The Descent: twenty rooms, one after another, each its own arena. Nothing here is a town to hold: you clear the
 // room you are in, take what it pays, and pick the next door by what is behind it. Every fifth room is a boss's.
 // All twenty are built once, far apart on one grid, and the run moves the players between them.
+const mixc = (a, b, k) => { const f = (sh) => Math.round(((a >> sh) & 255) * (1 - k) + ((b >> sh) & 255) * k); return (f(16) << 16) | (f(8) << 8) | f(0); };
 import { V, V2, R } from './mapkit.js';
 import { buildVillage, VSIZE } from './map_village.js';
-import { craftRoom, craftBoss, ROOM_DIMS, BOSS_DIMS, EXTRA } from './descent_rooms.js';
+import { craftRoom, craftBoss, craftRaid, RAID_DIMS, ROOM_DIMS, BOSS_DIMS, EXTRA } from './descent_rooms.js';
+import { RAID } from './raid.js';
 import * as SH from './descent_shapes.js';
 
 // each theme: floor, inlay, wall, trim, glow, lamp colour, fog, shadow tint
@@ -210,7 +212,7 @@ export function buildDescent(M) {
   const one = (i, cx, cy, boss) => {
     const T = THEMES[boss ? [0, 7][i - N_ROOMS] : i], kind = boss ? -1 : i;
     M.world.chunk = i; M.world.recordProps = true;
-    const [hx, hy, H] = boss ? BOSS_DIMS : ROOM_DIMS[i], bs = hx / 4000;
+    const raid = i === N_ROOMS + 1, [hx, hy, H] = raid ? RAID_DIMS : boss ? BOSS_DIMS : ROOM_DIMS[i], bs = hx / 4000;
     const zone = AddZone(boss ? BOSS_NAMES[i - N_ROOMS] : T.title || T.name, V2(cx - hx, cy - hy), V2(cx + hx, cy + hy));
     GM.zones[zone].group = zone;
     const A = { c: [cx, cy], hx, hy, H, zone, theme: THEMES.indexOf(T), boss, plinths: [] };
@@ -230,10 +232,21 @@ export function buildDescent(M) {
           Box(V(r.x, r.y, H / 2), V(r.w, r.d, H), T.wall, true, !r.yaw, r.yaw);
           if (r.yaw) { const a = (r.yaw * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a); for (let gx = -r.w / 2; gx <= r.w / 2; gx += 80) for (let gy = -r.d / 2; gy <= r.d / 2; gy += 80) { const X = cx + r.x + gx * c - gy * sn, Z = cy + r.y + gx * sn + gy * c; if (Math.abs(X - cx) < hx && Math.abs(Z - cy) < hy) GM._navBlock(X - 40, Z - 40, 0, X + 40, Z + 40, H, 1); } }
           // dressed like the outer walls: skirting, a band of light, a dark frieze under the roof
-          Box(V(r.x, r.y, 40), V(r.w + 8, r.d + 8, 80), T.trim, false, false, r.yaw); Glow(V(r.x, r.y, H * 0.56), V(r.w + 6, r.d + 6, 14), T.glow, 0, R(0, r.yaw, 0)); Box(V(r.x, r.y, H - 90), V(r.w + 6, r.d + 6, 180), T.roof, false, false, r.yaw);
+          // a stepped plinth, the stone laid in courses, a moulded band with the light in it, a cornice under the frieze
+          const dk = mixc(T.wall, 0, 0.3), tr2 = mixc(T.trim, 0, 0.25), cz = H * 0.56;
+          Box(V(r.x, r.y, 30), V(r.w + 30, r.d + 30, 60), tr2, false, false, r.yaw); Box(V(r.x, r.y, 85), V(r.w + 14, r.d + 14, 50), T.trim, false, false, r.yaw);
+          for (let z = 230; z < H - 200; z += 150) if (Math.abs(z - cz) > 60) Box(V(r.x, r.y, z), V(r.w + 3, r.d + 3, 5), dk, false, false, r.yaw);
+          Box(V(r.x, r.y, cz), V(r.w + 26, r.d + 26, 44), T.trim, false, false, r.yaw); Glow(V(r.x, r.y, cz), V(r.w + 30, r.d + 30, 10), T.glow, 0, R(0, r.yaw, 0));
+          Box(V(r.x, r.y, H - 190), V(r.w + 34, r.d + 34, 30), T.trim, false, false, r.yaw); Box(V(r.x, r.y, H - 90), V(r.w + 6, r.d + 6, 180), T.roof, false, false, r.yaw);
           if (!r.yaw) { const x0 = r.x - r.w / 2, x1 = r.x + r.w / 2, y0 = r.y - r.d / 2, y1 = r.y + r.d / 2;
-            for (let px = x0 + 400; px < x1 - 200; px += 800) for (const e of [y0, y1]) if (Math.abs(e) < hy - 2 && Math.abs(px) < hx - 10) Box(V(px, e, H * 0.5), V(26, 6, H - 180), T.floor2, false, false);
-            for (let py = y0 + 400; py < y1 - 200; py += 800) for (const e of [x0, x1]) if (Math.abs(e) < hx - 2 && Math.abs(py) < hy - 10) Box(V(e, py, H * 0.5), V(6, 26, H - 180), T.floor2, false, false);
+            // pilasters every four metres: a base, a shaft standing proud of the wall, a capital under the cornice, and on
+            // every other one a lamp in a bracket
+            const pil = (px, py, ax) => { const W = (a, b) => (ax ? V(a, b, 0) : V(b, a, 0)), at = (z, w, d, h, col) => { const q = W(w, d); Box(V(px, py, z), V(q.x, q.y, h), col, false, false); };
+              at(110, 100, 40, 140, tr2); at(H * 0.5, 64, 26, H - 240, mixc(T.wall, 0xffffff, 0.06)); at(cz - 50, 96, 40, 46, T.trim); at(H - 230, 96, 40, 50, T.trim); };
+            let n = 0;
+            for (let px = x0 + 300; px < x1 - 150; px += 400, n++) for (const e of [y0, y1]) if (Math.abs(e) < hy - 2 && Math.abs(px) < hx - 10) { pil(px, e, true); if (n % 2) { const o = e === y0 ? -1 : 1; Box(V(px, e + o * 34, 420), V(18, 40, 18), 0x2a2e30, false, false); Glow(V(px, e + o * 50, 446), V(22, 22, 30), T.glow, 2); } }
+            n = 0;
+            for (let py = y0 + 300; py < y1 - 150; py += 400, n++) for (const e of [x0, x1]) if (Math.abs(e) < hx - 2 && Math.abs(py) < hy - 10) { pil(e, py, false); if (n % 2) { const o = e === x0 ? -1 : 1; Box(V(e + o * 34, py, 420), V(40, 18, 18), 0x2a2e30, false, false); Glow(V(e + o * 50, py, 446), V(22, 22, 30), T.glow, 2); } }
             A.masses.push([x0, y0, x1, y1]); }
           else A.masses.push(r);
           const a = ((r.yaw || 0) * Math.PI) / 180; carve.push({ x: cx + r.x, z: cy + r.y, hw: r.w / 2, hd: r.d / 2, c: Math.cos(a), s: Math.sin(a) });
@@ -271,7 +284,16 @@ export function buildDescent(M) {
       // broad steps anything can walk up: three risers of forty
       const terrace = (x, y, w, d, n = 3) => { for (let k = 0; k < n; k++) Box(V(x, y, 20 + k * 40), V(w - k * 360, d - k * 360, 40), k % 2 ? T.trim : T.floor2, true, false); };
       let C;
-      if (boss) {
+      if (raid) {
+        C = craftRaid({ M, T, hx, hy, H, rnd, rr });
+        // nothing walks in the dark past the island: block it on the walking grid, row by row
+        const [ix, iy] = RAID.isle, cy0 = iy + RAID.R - 700;
+        for (let y = -hy; y < hy; y += 100) {
+          const dy = y + 50 - iy, hw = Math.abs(dy) < RAID.R - 80 ? Math.sqrt((RAID.R - 80) ** 2 - dy * dy) : -1, cw = y + 50 > cy0 ? RAID.cause - 60 : -1, open = Math.max(hw, cw);
+          if (open < 0) GM._navBlock(cx - hx, cy + y, 0, cx + hx, cy + y + 100, 200, 1);
+          else { GM._navBlock(cx - hx, cy + y, 0, cx - open, cy + y + 100, 200, 1); GM._navBlock(cx + open, cy + y, 0, cx + hx, cy + y + 100, 200, 1); }
+        }
+      } else if (boss) {
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) { pillar(sx * 2700 * bs, sy * 2700 * bs, 520); Box(V(sx * 1500 * bs, sy * 1500 * bs, 45), V(800, 800, 90), T.trim, true, false); Glow(V(sx * 1500 * bs, sy * 1500 * bs, 92), V(700, 700, 3), T.glow, 0); A.plinths.push([cx + sx * 1500 * bs, cy + sy * 1500 * bs]); }
         for (const s of [-1, 1]) { brazier(s * 3300 * bs, 0, T, 240); brazier(s * 1300 * bs, s * 3300 * bs, T, 240); brazier(-s * 1300 * bs, s * 3300 * bs, T, 240); }
         C = craftBoss(i - N_ROOMS, { M, T, hx, hy, H, rnd, rr });

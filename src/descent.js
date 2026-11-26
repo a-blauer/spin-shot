@@ -11,6 +11,7 @@ import { Interactable } from './interact.js';
 import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
+import { Raid } from './raid.js';
 // boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
 const BOSS_HP = [2.3, 2.5, 2.7, 2.9];
 
@@ -36,7 +37,7 @@ export class Descent {
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
   isBossRoom(r = this.room) { return r > 0 && r % 5 === 0; }
-  arenaFor(room) { return room % 5 === 0 ? N_ROOMS + ((room / 5 - 1) % 2) : this.order[room - 1 - Math.floor(room / 5)]; }
+  arenaFor(room) { return room % 5 === 0 ? (room >= ROOMS ? N_ROOMS + 1 : N_ROOMS) : this.order[room - 1 - Math.floor(room / 5)]; }   // the last room is the Hollow King's, and no other's
   flipFor(room) { return room % 5 === 0 ? (room > 10 ? -1 : 1) : (room % 2 ? 1 : -1); }
   A() { return ARENAS[this.arena]; }
   S() { return spots(this.A(), this.flip); }
@@ -47,13 +48,14 @@ export class Descent {
   tick(dt) {
     const g = this.g;
     this.tickFx(dt);
+    if (this.raid) { this.raid.root.visible = g.phase !== 'Village'; if (g.phase !== 'Village') this.raid.tick(dt); }
     if (g.phase === 'Village') return;   // up in the village: nothing happens down here until the run starts
     if (!this.host) return;
     this.contain(dt);
     if (this.cleared && this.rdy.size) { const N = this.need(); this.rdyN = [N.filter((k) => this.rdy.has(k)).length, N.length]; if (N.length && this.rdyN[0] >= N.length) { this.next(); return; } } else this.rdyN = [0, this.need().length];
     if (g.phase === 'PreGame') { g.phaseTimer -= dt; if (g.phaseTimer <= 0) this.enter(1); return; }
     if (g.phase === 'Round') {
-      if (this.bossT >= 0) { this.bossT -= dt; if (this.bossT < 0) this.spawnBoss(); }
+      if (this.bossT >= 0) { this.bossT -= dt; if (this.bossT < 0) { if (this.room >= ROOMS && this.raid) this.raid.begin(); else this.spawnBoss(); } }
       g.tickRound(dt);
       if (this.isBossRoom() && g.bossSpawned && (!g.boss || g.boss.dead)) {
         if (!this.twinAlive() && (this.deadT = (this.deadT || 0) + dt) > 0.4) { this.deadT = 0; for (const E of g.enemies) if (!E.dead && !E.isBoss) { E.lastHitExplosive = true; E.takeHit(1e9, E.pos, V3(0, 1, 0), false); } g.spawned = g.toSpawn; this.clear(); }
@@ -67,7 +69,7 @@ export class Descent {
     this.conT = (this.conT || 0) - dt; if (this.conT > 0) return; this.conT = 0.4;
     const g = this.g, A = this.A(); if (!A) return;
     for (const E of g.enemies) {
-      if (E.dead || E.remove) continue;
+      if (E.dead || E.remove || E.raidHeart) continue;
       const top = A.H - E.half - 12;
       if (E.ai === 'Flyer' && E.pos.y > top && E.pos.y < A.H + 40) { E.pos.y = top; if (E.vel.y > 0) E.vel.y = 0; }
       const out = Math.abs(E.pos.x - A.c[0]) > A.hx - 20 || Math.abs(E.pos.z - A.c[1]) > A.hy - 20 || E.pos.y - E.half > A.H - 30 || (E.pos.y < -220 && !E.burrowed);
@@ -94,7 +96,7 @@ export class Descent {
     const RAR = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'], want = (room < 6 ? [0, 1] : room < 11 ? [1, 2] : room < 16 ? [2, 3] : [3, 4]).map((k) => RAR[k]);
     const pool = DATA.weapons.map((w, i) => i).filter((i) => i > 0 && !DATA.weapons[i].cash), pick = [];   // nothing that runs on money: there is none down here
     for (let k = 0; k < 2; k++) { const L = pool.filter((i) => !pick.includes(i) && want.includes(DATA.weapons[i].rarity)), L2 = L.length ? L : pool.filter((i) => !pick.includes(i)); pick.push(L2[randInt(0, L2.length - 1)]); }
-    this.guns = pick; this.tier = Math.min(3, chestTier(room) + (boss ? 1 : 0) + (machine('showcase') && Math.random() < 0.5 ? 1 : 0));   // the Showcase: half the time, the chest is a grade better
+    this.guns = pick; this.tier = Math.min(3, chestTier(room) + (boss ? 1 : 0));
     this.arrive(true);
     if (g.net.role === 'host' && g.player.dead) g.player.revive();
   }
@@ -106,6 +108,9 @@ export class Descent {
     P.pos.set(S.spawn[0] + (Math.random() - 0.5) * 300, 100, S.spawn[1]); P.vel.set(0, 0, 0); P.pitch = 0; P.yaw = S.yaw; P.invuln = Math.max(P.invuln || 0, 2.5);
     g.zones.forEach((Z, i) => { Z.unlocked = i === A.zone; });
     if (g.world.showChunk) g.world.showChunk(this.arena);
+    const raidRoom = this.arena === N_ROOMS + 1;
+    if (this.raid && !raidRoom) { this.raid.dispose(); this.raid = null; }
+    if (raidRoom && !this.raid) this.raid = new Raid(g, this);
     g.hud.hurtWhite = 0.3; g.audio.play('S_Enter', 1);
     const boss = this.isBossRoom();
     g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
@@ -153,7 +158,9 @@ export class Descent {
   open() {
     const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 0, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
-    { const P = g.player; P.fortuneUsed = {}; }   // the Fortune Teller rerolls each buff once a room (guns to start with are bought in the village now: no box down here)
+    { const P = g.player; P.fortuneUsed = {}; }   // the Fortune Teller rerolls each buff once a room
+    // the Mystery Box comes up in every third room, with one free roll
+    if (this.room % 3 === 0) { g.player.boxRolls = 1; g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 0, -1, 'Mystery Box'); }
     // the Compressor stands by the workbench every third room
     if (machine('compressor') && this.room % 3 === 0) {
       const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
@@ -249,11 +256,12 @@ export class Descent {
   }
 
   // ------------------------------------------------------------------ co-op
-  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones, this.rdyN]; }
+  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones, this.rdyN, this.raid ? this.raid.state() : 0]; }
   sync(d) {
     const g = this.g, room = d[0] | 0, seq = d[4] | 0;
     if (Array.isArray(d[7])) this.zones = d[7].slice(0, 6).map((Z) => Z.slice(0, 7).map(Number));
     if (Array.isArray(d[8])) this.rdyN = [d[8][0] | 0, Math.max(1, d[8][1] | 0)];
+    if (this.raid && Array.isArray(d[9])) this.raid.sync(d[9]);
     if (seq === this.seen || room < 1 || room > ROOMS) return;
     this.seen = seq;
     if (room !== this.room) {

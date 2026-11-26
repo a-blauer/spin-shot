@@ -20,10 +20,11 @@ export const VSPOTS = {
   casino: {
     c: CASINO,
     // at: where you stand to play; table: where the table stands (and how it is turned); npc: the dealer, facing you
-    roulette: { at: [CASINO[0] - 380, CASINO[1] - 420], table: [CASINO[0] - 380, CASINO[1] - 640, 0], npc: [CASINO[0] - 380, CASINO[1] - 790, Math.PI] },
-    blackjack: { at: [CASINO[0] - 380, CASINO[1] + 380], table: [CASINO[0] - 380, CASINO[1] + 600, 0], npc: [CASINO[0] - 380, CASINO[1] + 780, 0] },
-    dice: { at: [CASINO[0] + 420, CASINO[1] - 420], table: [CASINO[0] + 420, CASINO[1] - 620, 0], npc: [CASINO[0] + 420, CASINO[1] - 760, Math.PI] },
+    roulette: { at: [CASINO[0] - 380, CASINO[1] - 470], table: [CASINO[0] - 380, CASINO[1] - 620, 0], npc: [CASINO[0] - 380, CASINO[1] - 760, Math.PI] },
+    blackjack: { at: [CASINO[0] - 380, CASINO[1] + 440], table: [CASINO[0] - 380, CASINO[1] + 590, 0], npc: [CASINO[0] - 380, CASINO[1] + 730, 0] },
+    dice: { at: [CASINO[0] + 420, CASINO[1] - 480], table: [CASINO[0] + 420, CASINO[1] - 620, 0], npc: [CASINO[0] + 420, CASINO[1] - 740, Math.PI] },
     slots: [[CASINO[0] + 620, CASINO[1] + 160], [CASINO[0] + 620, CASINO[1] + 380], [CASINO[0] + 620, CASINO[1] + 600]],
+    T: 0.7, SL: 0.66, slotOut: 62,   // the tables and machines are built at gnome height: scaled by T and SL; a machine stands slotOut beyond where you play it
   },
   folk: [[-700, -900, 0.6], [1180, -2230, -2.2], [1560, -2560, 0.9], [-3300, 2600, 1.2], [2200, 2700, -1], [-600, 3300, 2.6]],
   fire: [1360, -2420],
@@ -143,11 +144,11 @@ export function buildVillage(M, cx, cy) {
       Box(V(ex + 260, y, 23), V(560, 220, 1), 0x9a2a22, false, false);
       // the tables and machines, and the stools in front of them
       const C = VSPOTS.casino;
-      { const [tx, ty] = C.roulette.table; S(rouletteTable(), tx, ty, 18, 0); Solid(V(tx, ty, 70), V(320, 200, 130), true); }
-      { const [tx, ty] = C.blackjack.table; S(cardTable(true), tx, ty, 18, -90); Solid(V(tx, ty, 60), V(260, 260, 110), true); }
-      { const [tx, ty] = C.dice.table; S(diceTable(), tx, ty, 18, 0); Solid(V(tx, ty, 70), V(290, 150, 130), true); }
-      C.slots.forEach(([sx, sy], i) => { S(slotMachine([0xb8282a, 0x2a6aa8, 0x3a8a4a][i]), sx + 80, sy, 18, 180); Solid(V(sx + 80, sy, 120), V(80, 90, 240), true); Glow(V(sx + 47, sy, 184), V(4, 60, 36), 0xfff0c0, 0); });
-      for (const T of [C.roulette, C.blackjack, C.dice]) for (const s of [-1, 1]) { const sx = T.at[0] + s * 110, sy = T.at[1]; Cyl(V(sx, sy, 50), 44, 8, 0x9a2a22, false, false); Cyl(V(sx, sy, 32), 10, 46, VC.brass, false, false); Cyl(V(sx, sy, 20), 36, 4, VC.brass, false, false); }
+      { const [tx, ty] = C.roulette.table; S(rouletteTable(false), tx, ty, 18, 0, C.T); Solid(V(tx, ty, 50), V(220, 140, 90), true); }
+      { const [tx, ty] = C.blackjack.table; S(cardTable(true, false), tx, ty, 18, -90, C.T); Solid(V(tx, ty, 45), V(180, 180, 80), true); }
+      { const [tx, ty] = C.dice.table; S(diceTable(false), tx, ty, 18, 0, C.T); Solid(V(tx, ty, 50), V(210, 110, 90), true); }
+      C.slots.forEach(([sx, sy], i) => { S(slotMachine([0xb8282a, 0x2a6aa8, 0x3a8a4a][i]), sx + C.slotOut, sy, 18, 180, C.SL); Solid(V(sx + C.slotOut, sy, 90), V(56, 60, 160), true); });
+      for (const T of [C.roulette, C.blackjack, C.dice]) for (const s of [-1, 1]) { const sx = T.at[0] + s * 110, sy = T.at[1]; Cyl(V(sx, sy, 44), 40, 7, 0x9a2a22, false, false); Cyl(V(sx, sy, 30), 9, 28, VC.brass, false, false); Cyl(V(sx, sy, 20), 32, 4, VC.brass, false, false); }
       // a little bar at the back: a counter, bottles, a stack of chips
       Box(V(x + 1050, y - 200, 55), V(100, 500, 110), VC.woodD, true, true); Box(V(x + 1050, y - 200, 114), V(120, 520, 10), VC.brass, false, false);
       for (let i = 0; i < 7; i++) Cyl(V(x + 1080, y - 400 + i * 60, 140), 16, 40, [0x2a6a3a, 0x8a2a2a, 0xc8a24a, 0x3a4a8a][i % 4], false, false); }

@@ -635,7 +635,7 @@ export class Hud {
     if (this.bossTrail == null || this.bossTrail < f) this.bossTrail = f;
     if (B.sinceHit > 0.5) this.bossTrail = Math.max(f, this.bossTrail - dt * 0.45);
     const k = 1 - Math.pow(1 - this.barIn, 3), w = 980 * S * k, x = (W - w) / 2, y = 70 * S, h = 22 * S, a = this.barIn;
-    const col = B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b';
+    const col = B.raidImmune ? '#7a6aa8' : B.ward > 0 ? '#6ab8ff' : B.exposedT > 0 ? '#ffd24d' : B.enraged ? '#ff3b2a' : '#c8211b';
     // plate behind it all
     g.globalAlpha = 0.85 * a; g.fillStyle = 'rgba(14,8,12,0.78)'; g.fillRect(x - 24 * S, y - 56 * S, w + 48 * S, h + 92 * S); g.globalAlpha = a;
     g.fillStyle = INK; g.fillRect(x - 4 * S, y - 4 * S, w + 8 * S, h + 8 * S);
@@ -654,7 +654,8 @@ export class Hud {
     }
     this.text(((B.boss && B.boss.name) || B.displayName()).toUpperCase(), x, y - 14 * S, 32 * S, B.enraged ? '#ff5a3a' : BONE, 'left', F_BIG, 400, 0.14, a);
     // what it is doing, in words: a fight you can read is a fight you can answer
-    const say = B.phaseT > 0 ? 'IT ROARS  -  POUR IT ON' : B.ward > 0 ? 'WARDED  -  KILL THE WISPS TO BREAK IT' : B.exposedT > 0 ? 'STAGGERED  -  HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
+    if (B.raidClock != null) { const c = Math.max(0, B.raidClock), t = `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}`; this.text(t, x + w, y - 14 * S, 26 * S, B.raidClockCol || BONE, 'right', F_BIG, 400, 0.14, a); }
+    const say = B.raidSay != null ? B.raidSay : B.phaseT > 0 ? 'IT ROARS  -  POUR IT ON' : B.ward > 0 ? 'WARDED  -  KILL THE WISPS TO BREAK IT' : B.exposedT > 0 ? 'STAGGERED  -  HIT IT NOW' : B.bossAttack >= 0 ? ATTACK_LABEL[B.attackName()] : '';
     if (say) this.text(say, W / 2, y + h + 26 * S, 20 * S, B.ward > 0 ? '#9fd0ff' : B.exposedT > 0 || B.phaseT > 0 ? '#ffd24d' : '#ffb39a', 'center', F_TXT, 700, 0.14, a);
     g.globalAlpha = 1;
   }

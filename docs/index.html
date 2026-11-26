@@ -104,7 +104,7 @@ body:not(.ready) #title .menu { display: none; }
 #lobby .lbpick.locked { opacity: 0.45; cursor: default; } #lobby .lbpick.locked:hover { background: rgba(255,255,255,0.07); } #lobby .lbpick.locked.sel { opacity: 1; cursor: default; }
 #lobby .lbdesc { margin-top: 9px; font-size: 16px; line-height: 1.35; color: #d9cfbd; max-width: 900px; } #lobby .lbdesc b { color: #f2e8d5; font-weight: 600; } #lobby .dim2 { color: #9a8f86; } #lobby .warn { color: #ff9a4d; }
 #lobby .lbkit { margin: 6px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3px 22px; font-size: 14px; color: #c9bfae; } #lobby .lbkit li { padding-left: 12px; position: relative; } #lobby .lbkit li::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; background: #c8211b; }
-#lobby .lbfoot { display: flex; align-items: center; gap: 18px; margin: 0 -22px; padding: 12px 22px; background: #1c0f16; border-top: 2px solid #ffcd5a; }
+#lobby .lbfoot { display: flex; align-items: center; gap: 18px; margin: 0 -22px; padding: 12px 22px; background: #22170e; border-top: 2px solid #ffcd5a; }
 #lobby .lbsum { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 0; min-width: 0; } #lobby .lbsum b { font-family: "Fraunces", Georgia, serif; font-size: 24px; letter-spacing: 0.25px; color: #f2e8d5; margin-right: 14px; }
 #lobby .lbsum span { font-size: 17px; color: #c9bfae; padding: 0 12px; border-left: 1px solid #6a4a52; } #lobby .lbsum span.gold { color: #ffcd5a; font-weight: 600; }
 #lobby .lbstart { flex: 0 0 auto; font-size: 28px; padding: 10px 44px; white-space: nowrap; }
@@ -266,6 +266,13 @@ body:not(.ready) #title .tfoot { display: none; }
 #lobby #lbline { position: static; inset: auto; display: block; width: 100%; height: auto; aspect-ratio: 536 / 400; margin: -4px 0 10px; border-radius: 8px; background: radial-gradient(ellipse at 50% 85%, #4a2632 0%, #22121a 60%, rgba(0,0,0,0) 100%); }
 #lobby .lbpick.sel { box-shadow: 0 0 0 1px rgba(255,205,90,0.25); }
 #lobby .lbstart { box-shadow: 0 4px 0 #000; }
+#lobby .lbstart.alt { background: transparent; color: #f2e8d5; border: 1px solid rgba(255,255,255,0.3); font-size: 20px; padding: 10px 22px; }
+#lobby .lbstart[disabled] { opacity: 0.55; cursor: default; font-size: 18px; }
+#lobby .lbstart.on { background: #8fe08a; }
+#lobby .lbpick .pk { font-style: normal; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #ffcd5a; color: #140d12; font-size: 12px; margin-right: 6px; }
+#lobby .lbrow em.rdy { font-style: normal; color: #8fe08a; } #lobby .lbrow em.nrdy { font-style: normal; color: #c9bfae; }
+#lobby .lbfoot .lbsum { flex: 1; min-width: 0; overflow: hidden; }
+
 /* locker: every slider card the same width */
 #locker .lsl { border: 1px solid rgba(255,255,255,0.04); }
 #locker .lsl2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
@@ -362,13 +369,13 @@ body:not(.ready) #title .tfoot { display: none; }
 #vpanel .cas-side { width: 300px; flex: none; padding: 20px 22px; border-left: 1px solid rgba(255,205,90,0.12); display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
 #vpanel .cas-side h4 { margin: 0; font-family: "Fraunces", Georgia, serif; font-weight: 900; font-size: 18px; letter-spacing: 0.6px; color: #ffcd5a; }
 #vpanel .cas-side p { margin: 0; font-size: 15px; color: #b8aa9a; line-height: 1.25; }
-#vpanel .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-#vpanel .chip { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: "Fraunces", Georgia, serif; font-size: 17px; color: #fff; cursor: pointer; border: 4px dashed rgba(255,255,255,0.75); box-shadow: 0 3px 0 rgba(0,0,0,0.4); transition: transform 0.08s; }
-#vpanel .chip:hover { transform: translateY(-2px); }
-#vpanel .chip.on { outline: 3px solid #ffcd5a; outline-offset: 2px; }
-#vpanel .chip.off { opacity: 0.3; cursor: default; }
-#vpanel .msg { min-height: 34px; font-family: "Fraunces", Georgia, serif; font-size: 30px; letter-spacing: 0.4px; text-align: center; color: #f2e8d5; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
-#vpanel .msg.win { color: #ffcd5a; } .msg.lose { color: #ff9a8a; }
+#vpanel .cchips { display: flex; flex-wrap: wrap; gap: 8px; }
+#vpanel .cchip { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: "Fraunces", Georgia, serif; font-size: 17px; color: #fff; cursor: pointer; border: 4px dashed rgba(255,255,255,0.75); box-shadow: 0 3px 0 rgba(0,0,0,0.4); transition: transform 0.08s; }
+#vpanel .cchip:hover { transform: translateY(-2px); }
+#vpanel .cchip.on { outline: 3px solid #ffcd5a; outline-offset: 2px; }
+#vpanel .cchip.off { opacity: 0.3; cursor: default; }
+#vpanel .cmsg { min-height: 34px; font-family: "Fraunces", Georgia, serif; font-size: 30px; letter-spacing: 0.4px; text-align: center; color: #f2e8d5; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
+#vpanel .cmsg.win { color: #ffcd5a; } .msg.lose { color: #ff9a8a; }
 #vpanel .paytab { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: 16px; }
 #vpanel .paytab .sy { display: flex; gap: 2px; } .paytab .sy svg { width: 22px; height: 22px; } .paytab b { color: #ffcd5a; font-family: "Fraunces", Georgia, serif; font-size: 18px; text-align: right; }
 #vpanel .hist { display: flex; gap: 5px; flex-wrap: wrap; } .hist span { min-width: 30px; text-align: center; padding: 3px 6px; border-radius: 6px; font-family: "Fraunces", Georgia, serif; font-size: 17px; }
@@ -400,6 +407,26 @@ body:not(.ready) #title .tfoot { display: none; }
 #vpanel .card .c1 { position: absolute; top: 6px; left: 8px; font-size: 24px; line-height: 0.9; text-align: center; } .card .c2 { position: absolute; bottom: 6px; right: 8px; font-size: 24px; line-height: 0.9; transform: rotate(180deg); text-align: center; }
 #vpanel .card .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 44px; }
 #vpanel .card.back { background: repeating-linear-gradient(45deg, #8a1e1a 0 8px, #b8392e 8px 16px); border: 5px solid #fbf8f0; }
+/* the casino's bet bar: docked at the bottom, the table in plain view above it */
+#vpanel.bar { background: none; backdrop-filter: none; align-items: flex-end; pointer-events: none; }
+#vpanel.bar .vp-bar { pointer-events: auto; width: min(1180px, 96vw); margin-bottom: 16px; background: linear-gradient(180deg, rgba(46,32,22,0.95), rgba(30,21,14,0.95)); border: 1px solid rgba(255,205,90,0.4); border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,0.55); padding: 12px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+#vpanel .bar-head { display: flex; align-items: center; gap: 16px; }
+#vpanel .bar-head .tt { min-width: 0; flex: 0 1 auto; }
+#vpanel .bar-head h2 { margin: 0; font-family: "Fraunces", Georgia, serif; font-weight: 900; font-size: 26px; color: #ffcd5a; line-height: 1; white-space: nowrap; }
+#vpanel .bar-head p { margin: 3px 0 0; font-size: 14px; color: #b8aa9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }
+#vpanel .bar-head .cmsg { flex: 1; min-width: 0; font-size: 24px; min-height: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#vpanel .bar-body { display: flex; align-items: center; gap: 18px; }
+#vpanel .bar-body .ctl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#vpanel .bar-body .stakes { flex: none; display: flex; flex-direction: column; gap: 6px; } #vpanel .bar-body .stakes h4 { margin: 0; font-size: 13px; color: #c9bba9; font-family: "Nunito", sans-serif; }
+#vpanel .bar-body .cchip { width: 40px; height: 40px; font-size: 14px; border-width: 3px; }
+#vpanel .bar-body .cchips { max-width: 200px; gap: 6px; }
+#vpanel .bar-body .layout { grid-template-columns: 36px repeat(12, 32px); grid-template-rows: repeat(3, 30px) 28px 28px; gap: 2px; }
+#vpanel .bar-body .layout div { font-size: 14px; }
+#vpanel .bar-body .col { display: flex; flex-direction: column; gap: 8px; }
+#vpanel .bar-body .totals { display: flex; gap: 22px; font-size: 18px; color: #e8dcc8; } #vpanel .bar-body .totals b { font-family: "Fraunces", Georgia, serif; font-size: 28px; color: #fff; margin-left: 6px; } #vpanel .bar-body .totals i { color: #9fe0ff; font-style: normal; font-size: 14px; }
+#vpanel .bar-body .dctl { display: flex; flex-direction: column; gap: 8px; width: 300px; } #vpanel .bar-body .dctl input { width: 100%; accent-color: #ffcd5a; }
+#vpanel .bar-body .paytab { grid-template-columns: auto auto; gap: 2px 8px; font-size: 14px; }
+#vpanel .bar-body .odds b { font-size: 22px; }
 @keyframes deal { from { transform: translateY(-30px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
 #vpanel .acts { display: flex; gap: 10px; }
 /* dice */

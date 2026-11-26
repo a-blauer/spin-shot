@@ -207,6 +207,7 @@ export const GOLD_RATES = { room: 12, round: 8, boss: 40, finalBoss: 150, win: 2
 // a gun to start runs with: bought once, chosen at the gate before any run
 export const GUN_PRICE = { Common: 300, Uncommon: 600, Rare: 1100, Epic: 1800, Legendary: 2800 };
 export const shopGuns = () => DATA.weapons.filter((w) => !w.cash);
+const commonGun = (name) => DATA.weapons.some((w) => w.name === name && w.rarity === 'Common' && !w.cash);
 // cosmetics: the gnome's own face and colouring are free to change; what they wear is bought, earned, or in the starter kit
 export const BODY_SLOTS = ['hair', 'haircol', 'tone', 'nose', 'blush', 'beard', 'stache', 'hatcol', 'hatpat'];
 export const STARTER_COS = { hat: ['gnome', 'stocking'], hattip: ['none', 'pompom'], outfit: ['drifter'], legs: ['denim'], boots: ['work'], gloves: ['bare'], neck: ['none'], shoulder: ['none'], waist: ['belt'], face: ['none'], back: ['none'] };
@@ -361,10 +362,10 @@ export const Meta = {
   payout(n) { n = Math.max(0, Math.round(n)); if (n) { S.gold = (S.gold | 0) + n; dirty = true; this.save(); } },
   // guns to start a run with
   gunPrice(name) { const W = DATA.weapons.find((w) => w.name === name); return W ? GUN_PRICE[W.rarity] || 1000 : 0; },
-  ownsGun(name) { return unlockAll || name === 'Tin Star' || !!(S.owned && S.owned.guns[name]); },
-  gunState(name) { return this.ownsGun(name) ? 'owned' : this.gunLocked(name) ? 'locked' : 'buy'; },
+  ownsGun(name) { return unlockAll || commonGun(name) || !!(S.owned && S.owned.guns[name]); },   // every Common gun is yours from the start
+  gunState(name) { return this.ownsGun(name) ? 'owned' : this.gunLocked(name) ? 'locked' : 'buy'; },   // (Commons are owned, so never locked)
   buyGun(name) { if (this.gunState(name) !== 'buy' || !this.spend(this.gunPrice(name))) return false; S.owned.guns[name] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
-  ownedGuns() { return shopGuns().map((w) => w.name).filter((n) => this.ownsGun(n) && !this.gunLocked(n)); },
+  ownedGuns() { return shopGuns().map((w) => w.name).filter((n) => this.ownsGun(n) && (commonGun(n) || !this.gunLocked(n))); },
   // the challenge board
   board() { const key = dayKey(); if (!S.board || S.board.key !== key) S.board = { key, done: {} }; return boardFor(key).map((c) => Object.assign(c, { done: !!S.board.done[c.id] })); },
   contract() { const id = S.contract; if (!id) return null; const c = this.board().find((q) => q.id === id); return c && !c.done ? c : null; },
@@ -396,8 +397,16 @@ export const Meta = {
   setLooks(o) { const L = this.look(); delete L.shape; for (const k of SLOTS) if (o[k] !== undefined && this.cosUnlocked(k, o[k])) L[k] = cosItem(k, o[k]).id; S.look = L; dirty = true; this.save(); },
   lookStr() { return lookString(this.look()); },
   setLook(slot, id) { if (!SLOTS.includes(slot) || !this.cosUnlocked(slot, id)) return; const L = this.look(); delete L.shape; L[slot] = cosItem(slot, id).id; S.look = L; dirty = true; this.save(); },
-  starterUnlocked(w) { return this.ownsGun(w) && !this.gunLocked(w) && DATA.weapons.some((q) => q.name === w && !q.cash); },
-  starter() { return this.starterUnlocked(S.starter) ? S.starter : 'Tin Star'; },
+  starterUnlocked(w) { return this.ownsGun(w) && (commonGun(w) || !this.gunLocked(w)) && DATA.weapons.some((q) => q.name === w && !q.cash); },
+  starter() { return this.loadout()[0]; },
+  // the guns you go down with: two of the ones you own (one for a class that brings its own, the sniper's rifle)
+  loadoutSize(cls = this.cls()) { return cls === 'sniper' ? 1 : 2; },
+  loadout(cls = this.cls()) {
+    const own = this.ownedGuns(), n = this.loadoutSize(cls), L = (Array.isArray(S.loadout) ? S.loadout : [S.starter]).filter((g, i, a) => g && own.includes(g) && a.indexOf(g) === i).slice(0, n);
+    for (const g of ['Tin Star', 'Copperhead', ...own]) { if (L.length >= n) break; if (own.includes(g) && !L.includes(g)) L.push(g); }
+    return L;
+  },
+  toggleLoadout(name) { const n = this.loadoutSize(), L = this.loadout(); const i = L.indexOf(name); if (i >= 0) { if (L.length > 1) L.splice(i, 1); } else if (this.ownsGun(name)) { L.push(name); while (L.length > n) L.shift(); } S.loadout = L; S.starter = L[0]; dirty = true; this.save(); },
   cls() { return typeof S.cls === 'string' ? S.cls : 'gunslinger'; },
   setCls(id) { S.cls = id; dirty = true; this.save(); },
   // today's challenge: the same map, difficulty and two handicaps for everyone, changing at midnight UTC

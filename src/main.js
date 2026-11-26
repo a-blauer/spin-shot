@@ -621,7 +621,7 @@ window.__locker = () => { locker.style.display = 'block'; renderLocker(); };
 
 // ---- lobby: every run starts here. Character, loadout, map, and inviting friends by lobby code.
 const lobby = document.getElementById('lobby');
-let lobbyBusy = false, lobbyMsg = '', lobbyTimer = 0, lobbySig = '';
+let lobbyBusy = false, lobbyMsg = '', lobbyTimer = 0, lobbySig = '', gateStep = 'run';
 const esc2 = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function myName() { let v = 'Player'; try { v = localStorage.getItem('dmh-name') || 'Player'; } catch (e) { /* private mode */ } return v; }
 function openLobby() { title.style.display = 'none'; lobby.style.display = 'block'; lobbyMsg = ''; renderLobby(); }
@@ -642,7 +642,7 @@ function renderLobby() {
   // party
   h += '<section><h3>PARTY</h3><canvas id="lbline" width="536" height="400"></canvas>';
   const list = Net.active ? Net.lobbyList() : [{ name: nameV, host: true, me: true }];
-  for (const p of list) h += `<div class="lbrow ${p.me ? 'me' : ''}"><b>${esc2(p.name)}</b><span>${p.host ? 'Host' : ''}${p.me ? (p.host ? ' - you' : 'You') : ''}</span></div>`;
+  for (const p of list) h += `<div class="lbrow ${p.me ? 'me' : ''}"><b>${esc2(p.name)}</b><span>${p.host ? 'Host' : p.rdy ? '<em class="rdy">Ready</em>' : Net.active ? '<em class="nrdy">Choosing</em>' : ''}${p.me ? (p.host ? ' - you' : ' - you') : ''}</span></div>`;
   if (!Net.active) {
     h += `<label class="lbl">Your name <input id="lname" maxlength="16" value="${esc2(nameV)}"></label>`;
     if (Net.lobby) h += `<button id="lbinvite" class="wide">INVITE FRIENDS</button><div class="lbor">or join a friend</div><div class="lbjoin"><input id="lcode" maxlength="8" placeholder="CODE" autocapitalize="characters" autocomplete="off" value="${esc2(codeV)}"><button id="lbjoin">JOIN</button></div>`;
@@ -654,48 +654,44 @@ function renderLobby() {
   const Kr = client ? null : Meta.contractRules(), Kc = client ? null : Meta.contract(), daily = !!Kr, dsc0 = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));   // a contract sets the run
   const hm = client ? Net.hostMap() : -1, curMap = client ? (MAPS[hm] ? hm : game.mapId) : Kr ? (Kr.mode === 'descent' ? dsc0 : Kr.map) : (MAPS[Meta.map()] ? Meta.map() : Math.max(0, MAPS.findIndex((M) => M.mode === 'descent')));
   const curDf = client ? difficulty() : Kr ? Kr.diff : Meta.difficulty(), ups = game ? game.data.upgrades : [];
-  // the run
-  h += '<section><h3>THE RUN</h3>';
-  if (client) {
-    h += group('MAP', chip('', true, false, esc2(MAPS[curMap].name), ''), 'The host chooses the map and the difficulty.');
-    h += group('DIFFICULTY', chip('', true, false, 'Host\u2019s choice', ''), 'You will see it when the run starts.');
-  } else {
+  // ---- two steps. The host (or a solo player) sets the run first, then everyone does their loadout; guests only ever
+  // see the loadout, with the host's choices shown, and say when they are ready. The host goes down when all are.
+  const step = client ? 'loadout' : gateStep;
+  if (hosting) Net.setRunInfo({ map: curMap, df: curDf, ct: Kc ? Kc.title : '' });
+  const HI = client ? Net.hostRunInfo() : null;
+  if (step === 'run') {
     const dsc = MAPS.findIndex((M) => M.mode === 'descent'), isD = curMap === dsc; if (!isD) window.__survMap = curMap;
-    h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'side mode: one map, endless rounds'),
+    h += '<section><h3>THE RUN</h3>';
+    h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'one map, endless rounds'),
       isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by your contract' : '');
     if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
       `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by your contract' : '');
     h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by your contract' : '');
-  }
-  h += '</section>';
-  // you
-  h += '<section><h3>YOUR LOADOUT</h3>';
-  { const C = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0], lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id);
+    h += '</section><section><h3>CONTRACT</h3>';
+    if (Kc) { const mods = MUTATORS.filter((M, i) => (Kc.muts >> i) & 1); h += group(esc2(Kc.title), mods.map((M) => chip('', true, true, M.name, '')).join('') + chip('data-drop="1"', false, false, 'Drop it', 'play a plain run'), `${esc2(Kc.flavor)} <span class="dim2">${mods.map((M) => `${M.name}: ${M.desc}`).join(' ')} Win it for <b class="gold">${Kc.gold.toLocaleString()} gold</b> and <b class="gold">${Kc.renown.toLocaleString()} renown</b> on top of the run's pay.</span>`); }
+    else h += group('None taken', chip('', true, false, 'A plain run', 'no modifiers'), 'The challenge board in the square posts six contracts a day: runs with set rules that pay bonus gold and renown when won.');
+    h += '</section>';
+    if (isD) { const nd = MACHINES.filter((D) => machine(D.id)).length;
+      h += '<section><h3>THE DESCENT</h3>' + group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineRank(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Running' : `Rank ${r}`, `data-why="${esc2(`Rank ${r}. ` + D.text)}" data-grp="d"`); }).join(''),
+        info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent once your rank opens them.')) + '</section>'; }
+    h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span>${Kc ? `<span class="gold">contract: ${esc2(Kc.title)}</span>` : ''}</div><button id="lbnext" class="lbstart">NEXT: LOADOUT</button></div>`;
+  } else {
+    // the run as it stands (the host's, for a guest)
+    const rm = client ? (HI && MAPS[HI.map] ? HI.map : curMap) : curMap, rd = client ? (HI ? HI.df : null) : curDf, rc = client ? (HI ? HI.ct : '') : (Kc ? Kc.title : '');
+    h += `<section><h3>THE RUN</h3><div class="lbg"><div class="lbgl">${client ? 'HOST’S CHOICE' : 'SET'}</div><div class="lbgc"><div class="chips">${chip('', true, false, esc2(MAPS[rm].name), rd !== null && rd !== undefined ? DIFFS[rd].name : '')}${rc ? chip('', true, false, esc2(rc), 'contract') : ''}</div></div></div></section>`;
+    const C = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0], lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id);
+    h += '<section><h3>YOUR LOADOUT</h3>';
     h += group('CLASS', CLASSES.map((K) => { const l = Meta.clsLevel(K.id); return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, l ? CLASS_LEVEL_NAMES[l - 1] : 'Novice'); }).join(''),
-      `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`); }
-  { const curW = Meta.starter();
-    { const own = Meta.ownedGuns(); h += group('STARTING GUN', own.map((n) => { const W = game ? game.data.weapons.find((w) => w.name === n) : null; return chip(`data-w="${esc2(n)}"`, curW === n, false, esc2(n), W ? `<em style="color:${RARITY_HEX[W.rarity] || '#ccc'}">${W.rarity}</em> ${W.cls || ''}` : ''); }).join(''), `${own.length} gun${own.length === 1 ? '' : 's'} of ${shopGuns().length}. Buy more at Bramble &amp; Bolt in the square, for gold.`); } }
-  h += '</section>';
-  // the Descent's own progression: what going down has earned, and what you take with you
-  if (MAPS[curMap] && MAPS[curMap].mode === 'descent') {
-    const asc = Meta.ascended().sort(), marks = asc.reduce((a, n) => a + Meta.asc(n), 0), dia = (n) => '\u25C6'.repeat(n) + '\u25C7'.repeat(3 - n), nd = MACHINES.filter((D) => machine(D.id)).length;
-    h += '<section><h3>THE DESCENT</h3>';
-    h += group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineRank(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Running' : `Rank ${r}`, `data-why="${esc2(`Rank ${r}. ` + D.text)}" data-grp="d"`); }).join(''),
-      info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent once your rank opens them. Click one to see what it does and the rank that brings it.'), `${nd} of ${MACHINES.length}`);
-    const cur = Meta.carry();
-    h += group('CARRIED GUN', chip('data-carry=""', !cur, false, 'None', 'the usual start') + asc.map((n) => { const a = Meta.asc(n), T = temperOf(n), A = attuneOf(n); return chip(`data-carry="${esc2(n)}"`, cur === n, false, esc2(n), `${dia(a)}${T.id ? ' ' + T.name : ''}${A.id ? ' ' + A.name : ''}`); }).join(''),
-      asc.length ? `An ascended gun can go down with you from the first room. <span class="dim2">${marks} mark${marks === 1 ? '' : 's'} on ${asc.length} gun${asc.length === 1 ? '' : 's'}. ${ROMAN[2]} lets you choose its temper and ${ROMAN[3]} its element, both at any workbench.</span>` : 'Finish a Descent and the gun that did the most damage ascends. A gun can ascend once on each difficulty, three times in all: I, it can start runs with you; II, you choose its temper; III, you bind it to an element.', asc.length ? '' : 'none ascended yet');
+      `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`);
+    const own = Meta.ownedGuns(), pick = Meta.loadout(), cap = Meta.loadoutSize();
+    h += group(`STARTING GUNS  ${pick.length} / ${cap}`, own.map((nm) => { const W = game ? game.data.weapons.find((w) => w.name === nm) : null, k = pick.indexOf(nm); return chip(`data-w="${esc2(nm)}"`, k >= 0, false, `${k >= 0 ? `<i class="pk">${k + 1}</i>` : ''}${esc2(nm)}`, W ? `<em style="color:${RARITY_HEX[W.rarity] || '#ccc'}">${W.rarity}</em> ${W.cls || ''}` : ''); }).join(''),
+      `${cap === 1 ? 'The sniper brings the Widowmaker: choose one gun to go with it.' : 'Choose two guns to go down with. Click another to swap out the older pick.'} <span class="dim2">${own.length} of ${shopGuns().length} owned. Bramble &amp; Bolt in the square sells the rest.</span>`);
     h += '</section>';
+    const L = Net.active ? Net.lobbyList() : [], waiting = L.filter((p) => !p.host && !p.rdy).map((p) => p.name);
+    const sum = `<div class="lbsum"><b>${esc2(C.name)}</b>${pick.map((g) => `<span>${esc2(g)}</span>`).join('')}${cap === 1 ? '<span>Widowmaker</span>' : ''}</div>`;
+    if (client) h += `</main></div><div class="lbfoot">${sum}<button id="lbready" class="lbstart ${Net.ready ? 'on' : ''}">${Net.ready ? 'READY  -  click to change' : 'I’M READY'}</button></div>`;
+    else h += `</main></div><div class="lbfoot">${sum}<button id="lbprev" class="lbstart alt">RUN SETTINGS</button><button id="lbstart" class="lbstart" ${waiting.length ? 'disabled' : ''}>${waiting.length ? `WAITING FOR ${esc2(waiting.join(', ').toUpperCase())}` : Kc ? 'GO DOWN ON CONTRACT' : 'GO DOWN'}</button></div>`;
   }
-  // the contract, if one was taken at the challenge board
-  if (!client) {
-    h += '<section><h3>CONTRACT</h3>';
-    if (Kc) { const mods = MUTATORS.filter((M, i) => (Kc.muts >> i) & 1); h += group(esc2(Kc.title.toUpperCase()), mods.map((M) => chip('', true, true, M.name, '')).join('') + chip('data-drop="1"', false, false, 'Drop it', 'play a plain run'), `${esc2(Kc.flavor)} <span class="dim2">${mods.map((M) => `${M.name}: ${M.desc}`).join(' ')} Win it for <b class="gold">${Kc.gold.toLocaleString()} gold</b> and <b class="gold">${Kc.renown.toLocaleString()} renown</b> on top of the run's pay.</span>`); }
-    else h += group('NONE TAKEN', chip('', true, false, 'A plain run', 'no modifiers'), 'The challenge board in the square posts six contracts a day: runs with set rules that pay bonus gold and renown when won.');
-    h += '</section>';
-    const W0 = Meta.starter(), C0 = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0];
-    h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span><span>${C0.name}</span><span>${esc2(W0)}</span>${Kc ? `<span class="gold">contract: +${Kc.gold.toLocaleString()} gold</span>` : ''}</div><button id="lbstart" class="lbstart">${Kc ? 'GO DOWN ON CONTRACT' : 'GO DOWN'}</button></div>`;
-  } else h += '</main></div><div class="lbfoot"><div class="lbstart wait">THE HOST CHOOSES THE RUN AND STARTS IT</div></div>';
   lobby.innerHTML = h;
   const q = (id) => lobby.querySelector(id);
   q('#lbback').onclick = (e) => { e.stopPropagation(); closeLobby(); };
@@ -714,9 +710,11 @@ function renderLobby() {
   lobby.querySelectorAll('.lbpick[data-daily]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDaily(!Meta.dailyOn()); Net.setMap(Meta.map()); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.h; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.w; Meta.setStarter(el.dataset.w); renderLobby(); }; });
-  lobby.querySelectorAll('.lbpick[data-carry]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setCarry(el.dataset.carry); renderLobby(); }; });
-  if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
+  lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.toggleLoadout(el.dataset.w); if (Net.role === 'client' && Net.ready) Net.setReady(false); renderLobby(); }; });
+  if (q('#lbnext')) q('#lbnext').onclick = (e) => { e.stopPropagation(); gateStep = 'loadout'; renderLobby(); };
+  if (q('#lbprev')) q('#lbprev').onclick = (e) => { e.stopPropagation(); gateStep = 'run'; renderLobby(); };
+  if (q('#lbready')) q('#lbready').onclick = (e) => { e.stopPropagation(); Net.setReady(!Net.ready); Net.refreshPresence(); renderLobby(); };
+  if (q('#lbstart')) q('#lbstart').onclick = (e) => { e.stopPropagation(); if (Net.role === 'host' && !Net.allReady()) return; saveName(); if (!Net.active) Net.name = myName(); beginRun(); };
 }
 let beginning = false;
 async function beginRun() {
@@ -731,23 +729,21 @@ async function beginRun() {
   if (game.descent && (game.phase === 'Village' || game.phase === 'PreGame') && Net.role !== 'client') { game.phase = 'PreGame'; game.phaseTimer = 0.01; }
   if (game.round === 0) { game.player.setBody(Meta.look()); game.player.setClass(Meta.cls()); }
   lobby.style.display = 'none'; locker.style.display = 'none';
-  // apply the chosen starting weapon to a fresh run
-  const P = game.player, idx = game.data.weapons.findIndex((w) => w.name === Meta.starter());
-  if (idx > 0 && game.round === 0 && P.weapons[0].def === 0) { P.weapons[0].def = idx; P.weapons[0].tier = 0; P.refillAll(); game.vm.setWeapon(idx, 0, false); }
-  // a fresh run: start the renown tally, and hand over the heirloom
+  // the guns you chose at the Way Down: the first in your hands, the second on your back (a sniper brings the Widowmaker as well)
+  const P = game.player, picks = Meta.loadout().map((n) => game.data.weapons.findIndex((w) => w.name === n)).filter((i) => i >= 0);
+  if (game.round === 0 && !game.metaRun && picks.length) {
+    P.weapons[0].def = picks[0]; P.weapons[0].tier = 0; P.refillAll(); game.vm.setWeapon(picks[0], 0, false);
+    for (const d of picks.slice(1)) if (!P.weapons.some((S) => S.def === d)) { const first = P.active; P.giveWeapon(d); P.switchTo(first); game.vm.setWeapon(P.weapons[first].def, 0, false); }
+  }
+  // a fresh run: start the renown tally
   if (game.round === 0 && !game.metaRun) {
     game.metaRun = true; Meta.beginRun();
-    
     // what each class carries in from the start: the sniper has a sniper rifle on the back as well as the starting gun,
     // and the brawler brings a katana instead of a knife
     if (P.cls.id === 'sniper') { const si = game.data.weapons.findIndex((w) => w.name === 'Widowmaker'), first = P.active; if (si > 0 && !P.weapons.some((S) => S.def === si)) { P.giveWeapon(si); P.switchTo(first); game.vm.setWeapon(P.weapons[first].def, 0, false); } }
     if (P.cls.id === 'brawler') { const ki = MELEE.findIndex((m) => /katana/i.test(m.name)); if (ki >= 0) P.meleeDef = ki; }
-    // the Descent: an ascended gun may go down with you
-    if (game.descent) {
-      const cn = Meta.carry(), ci = cn ? game.data.weapons.findIndex((w) => w.name === cn && !w.cash) : -1;
-      if (ci > 0) { P.weapons[0].def = ci; P.weapons[0].tier = 0; P.weapons[0].mods = []; P.weapons[0].evoK = 0; P.recompute(); P.refillAll(); game.vm.setWeapon(ci, 0, false); game.hud.toast(`Carried: ${cn}  -  ascended ${ROMAN[Meta.asc(cn)]}`, '#ff8cff'); }
-    }
   }
+  if (Net.role === 'client') Net.setReady(false);
   game.touch = TOUCH;
   if (Net.role === 'client' && game.round === 0) { const a = Math.random() * 6.28; P.pos.x += Math.cos(a) * 130; P.pos.z += Math.sin(a) * 130; }   // don't spawn inside the host
   start();
@@ -791,7 +787,7 @@ function tickLobby(dt) {
     if (Net.hostStarted()) { beginRun(); return; }
     if (!Net.hostHere()) { Net.leave(); lobbyMsg = 'The host closed the lobby.'; renderLobby(); return; }
   }
-  const sig = Net.hostMap() + '|' + Net.role + '|' + (Net.active ? Net.lobbyList().map((p) => p.name).join(',') : '') + '|' + !!Net.lobby + '|' + Net.tried;
+  const sig = Net.hostMap() + '|' + Net.role + '|' + (Net.active ? Net.lobbyList().map((p) => p.name + (p.rdy ? '+' : '')).join(',') : '') + '|' + !!Net.lobby + '|' + Net.tried + '|' + JSON.stringify(Net.hostRunInfo());
   if (sig !== lobbySig) { lobbySig = sig; renderLobby(); }
 }
 lobby.addEventListener('click', (e) => e.stopPropagation());
@@ -866,7 +862,7 @@ pauseEl.querySelectorAll('input[type=range]').forEach((el) => {
   const mName = pauseEl.querySelector('#pmenun'), mFile = pauseEl.querySelector('#pmenufile');
   const mSync = () => {
     const S = R.menuSong || BUILT_IN; mName.textContent = R.menuSong ? R.menuSong.title : 'Lucky You (built in)  -  pick a file to use your own';
-    const want = !!S && (title.style.display !== 'none' || lobby.style.display === 'block') && !document.hidden;
+    const want = !!S && title.style.display !== 'none' && document.body.classList.contains('ready') && !document.hidden;   // the title screen only: the village and the Way Down have their own music
     if (S !== mFor) { mAudio.pause(); mGain = 0; if (mUrl) URL.revokeObjectURL(mUrl); mUrl = S && S.data ? URL.createObjectURL(new Blob([S.data], { type: S.type || 'audio/mpeg' })) : ''; mAudio.src = S && S.url ? S.url : mUrl; mFor = S || null; }
     mWant = want;
     if (want && mAudio.paused) { mGain = 0; mAudio.volume = 0; mAudio.play().catch(() => { /* waits for the first click */ }); }
@@ -942,7 +938,7 @@ async function goVillage() {
 }
 function onVillage(kind, arg) {
   if (kind === 'wardrobe') { vmode = 'wardrobe'; panelIn(); locker.style.display = 'block'; renderLocker(); }
-  else if (kind === 'gate') { vmode = 'gate'; panelIn(); lobbyMsg = ''; lobby.style.display = 'block'; renderLobby(); }
+  else if (kind === 'gate') { vmode = 'gate'; panelIn(); lobbyMsg = ''; gateStep = 'run'; lobby.style.display = 'block'; renderLobby(); }
   else vui.show(kind, arg);
 }
 
@@ -996,6 +992,7 @@ window.__craft = craft;
 const vui = makeVillageUI({
   audio, preview: () => { ensureLock(); return lockR ? { R: lockR, canvas: lockCanvas } : null; }, thumb: (k, n) => modelThumb(k, n),
   entered: panelIn, left: panelOut, toast: (t, c) => hud.toast(t, c), looked: () => { Net.refreshPresence(); if (game) game.player.setBody(Meta.look()); },
+  rigs: () => game.villageRT.rigs, seat: (k, i) => game.villageRT.seat(k, i), broadcast: (cz) => game.villageRT.broadcast(cz), me: () => (Net.active ? Net.name : myName()),
 });
 window.__vui = vui; window.__metaOff = () => Meta.setUnlockAll(false); window.__Meta = Meta; window.__village = { onVillage, enterVillage, goVillage };
 let last = performance.now(), fpsAcc = 0, fpsN = 0, villT = 0;

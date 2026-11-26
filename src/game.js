@@ -90,7 +90,7 @@ export class Game {
   tips(dt) {
     const P = this.player, F = P.focus; if (P.dead) return;
     this.tipT = (this.tipT || 0) - dt; if (this.tipT > 0) return; this.tipT = 0.5;
-    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom3', 'Nothing is bought down here. The ammo box is free once every minute and a half, and a gun evolves on its own as you kill with it: watch the bar under your ammo.'); if (this.descent.cleared) this.tip('ddoor3', 'The room is clear. By the far door: a workbench to fit the parts you picked up, and a chest. The lit arch leads on.'); }
+    if (this.descent) { if (this.phase === 'Round' && this.round === 1) this.tip('droom3', 'Nothing is bought down here. The ammo box is free once every minute and a half, and a gun evolves on its own as you kill with it: watch the bar under your ammo.'); if (this.descent.cleared) this.tip('ddoor3', 'The room is clear. By the far door: a workbench to fit the parts you picked up, a chest, and in every third room a Mystery Box with one free roll. The lit arch leads on.'); }
     else if (this.phase === 'Round' && this.round === 1) this.tip('money', 'Kills pay money. Spend it on wall guns, doors, chests and the Mystery Box. Press Tab to see what you carry.');
     if (this.round >= 2 && this.quest.def) this.tip('quest', 'The task at the top right is how you reach the final boss. Nothing pauses for it, so fit its steps in while you fight.');
     if (this.round >= 3 && this.phase === 'Round') this.tip('moves', 'Shift dashes through danger, C slides, and you can run along walls. Enemies hit harder every round: keep moving.');

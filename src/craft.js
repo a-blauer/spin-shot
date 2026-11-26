@@ -386,11 +386,12 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   // ---- what this gun has earned on other runs
   function ascHtml(S) {
     const W = DATA.weapons[S.def], a = Meta.asc(W.name), dia = '\u25C6'.repeat(a) + '\u25C7'.repeat(3 - a);
-    if (!a) return `<div class="asc lk"><h4>NOT YET ASCENDED <s>${dia}</s></h4>Finish a Descent with this gun doing the most damage and it ascends: once on each difficulty, three times in all. I: start runs with it. II: choose its temper. III: bind it to an element.</div>`;
+    if (!a) return `<div class="asc lk"><h4>NOT YET ASCENDED <s>${dia}</s></h4>Finish a Descent with this gun doing the most damage and it ascends: once on each difficulty, three times in all. I: choose its temper. II: bind it to an element. III: crowned, one more part slot and faster evolution.</div>`;
     const T = temperOf(W.name), A = attuneOf(W.name);
     let h = `<div class="asc"><h4>ASCENDED ${ROMAN[a]} <s>${dia}</s></h4>`;
-    h += a >= 2 ? `<div class="ar"><label>TEMPER</label>${TEMPERS.map((t) => `<span class="ap${t.id === T.id ? ' on' : ''}" data-k="temper" data-v="${t.id}" title="${esc(t.text)}">${t.name}</span>`).join('')}<em>${esc(T.text)}</em></div>` : `<div>${ROMAN[2]}, Tempered: win with it on another difficulty to choose a temper for it.</div>`;
-    h += a >= 3 ? `<div class="ar"><label>ELEMENT</label>${ATTUNES.map((t) => `<span class="ap${t.id === A.id ? ' on' : ''}" data-k="attune" data-v="${t.id}" title="${esc(t.text)}" ${t.hex && t.id !== A.id ? `style="color:${t.hex}"` : ''}>${t.name}</span>`).join('')}<em>${esc(A.text)}</em></div>` : a >= 2 ? `<div style="margin-top:4px">${ROMAN[3]}, Attuned: win with it on the third difficulty to bind it to an element.</div>` : '';
+    h += a >= 1 ? `<div class="ar"><label>TEMPER</label>${TEMPERS.map((t) => `<span class="ap${t.id === T.id ? ' on' : ''}" data-k="temper" data-v="${t.id}" title="${esc(t.text)}">${t.name}</span>`).join('')}<em>${esc(T.text)}</em></div>` : `<div>${ROMAN[1]}, Tempered: win with it to choose a temper for it.</div>`;
+    h += a >= 2 ? `<div class="ar"><label>ELEMENT</label>${ATTUNES.map((t) => `<span class="ap${t.id === A.id ? ' on' : ''}" data-k="attune" data-v="${t.id}" title="${esc(t.text)}" ${t.hex && t.id !== A.id ? `style="color:${t.hex}"` : ''}>${t.name}</span>`).join('')}<em>${esc(A.text)}</em></div>` : `<div style="margin-top:4px">${ROMAN[2]}, Attuned: win with it on another difficulty to bind it to an element.</div>`;
+    h += a >= 3 ? '<div class="ar"><label>CROWNED</label><em>One more part slot than any other gun, and it evolves a third faster.</em></div>' : `<div style="margin-top:4px">${ROMAN[3]}, Crowned: win with it on the third difficulty for one more part slot and faster evolution.</div>`;
     return h + '</div>';
   }
   function refreshStats() { const c = el.querySelector('#cstats'); if (c) { const keep = lastSheet; c.innerHTML = statsHtml(false); lastSheet = keep; } }

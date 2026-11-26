@@ -7,7 +7,7 @@ import { Meta } from './meta.js';
 // Machines: account-wide helpers that appear in the Descent, opened by rank (see RANKS in meta.js). The old deeds are gone.
 export const MACHINES = [
   { id: 'compressor', name: 'The Compressor', short: 'A second bench every third room: two of the same gun part become one, half as strong again.', text: 'Every third room a second bench stands by the workbench. Feed it two of the same gun part and it presses them into one that is half as strong again: two Incendiary (20%) make one at 30%. A pressed part cannot be pressed again.' },
-  { id: 'showcase', name: 'The Showcase', short: 'Half the time, the chest at the end of a room is a grade better.', text: 'Half the time, the chest waiting at the end of a room comes up a grade better than it would have: better buffs, sooner.' },
+  { id: 'showcase', name: 'The Showcase', short: 'The mystery box shows two guns, and you take the one you want.', text: 'The mystery box turns up two guns instead of one, side by side, and you take the one you want.' },
   { id: 'recycler', name: 'The Recycler', short: 'Break parts into scrap; spend scrap to make the part you want.', text: 'At every workbench: break gun parts you do not want down into scrap, and spend scrap on the gun part you do want. Rarer parts give more scrap and cost more to make.' },
   { id: 'fortune', name: 'The Fortune Teller', short: 'Reroll your character buffs, or trade two for one of the next rarity.', text: 'At every workbench: each room, reroll any character buff you carry (once each) into another of the same rarity, or give up two of one rarity for one of the next rarity up.' },
   { id: 'fusion', name: 'Compressor: Fusion', short: 'The Compressor fuses two different elemental parts into one with a new effect.', text: 'The Compressor can now fuse two different elemental parts (Incendiary, Cryo Cell, Serrated, Arc Coil) into one part that carries both, and does something neither does alone.' },
@@ -21,9 +21,9 @@ export const ROMAN = ['', 'I', 'II', 'III', 'IV'];
 
 // ascension: 1 Carried, 2 Tempered, 3 Attuned
 export const ASC = [
-  { name: 'Carried', text: 'You may begin any Descent with it in your hands.' },
   { name: 'Tempered', text: 'Choose its temper at any workbench: one strength traded for another.' },
   { name: 'Attuned', text: 'Bind it to an element at any workbench: its hits carry it.' },
+  { name: 'Crowned', text: 'It takes one more part than any other gun, and evolves a third faster.' },
 ];
 export const TEMPERS = [
   { id: '', name: 'Balanced', text: 'As it came.', mods: [] },
@@ -40,8 +40,9 @@ export const ATTUNES = [
   { id: 'storm', name: 'Storm', text: 'Hits can arc to two enemies nearby.', col: [0.65, 0.6, 1], hex: '#9a8cff' },
   { id: 'venom', name: 'Venom', text: 'Hits can poison the target.', col: [0.5, 0.9, 0.35], hex: '#8fe08a' },
 ];
-export const temperOf = (name) => (Meta.asc(name) >= 2 ? TEMPERS.find((T) => T.id === (Meta.ascPick(name).temper || '')) || TEMPERS[0] : TEMPERS[0]);
-export const attuneOf = (name) => (Meta.asc(name) >= 3 ? ATTUNES.find((A) => A.id === (Meta.ascPick(name).attune || '')) || ATTUNES[0] : ATTUNES[0]);
+export const temperOf = (name) => (Meta.asc(name) >= 1 ? TEMPERS.find((T) => T.id === (Meta.ascPick(name).temper || '')) || TEMPERS[0] : TEMPERS[0]);
+export const attuneOf = (name) => (Meta.asc(name) >= 2 ? ATTUNES.find((A) => A.id === (Meta.ascPick(name).attune || '')) || ATTUNES[0] : ATTUNES[0]);
+export const crowned = (name) => Meta.asc(name) >= 3;   // Ascension III
 // what an attuned gun does to the thing it hits (about one hit in six, weighed by how much of a shot the hit was)
 export function attuneHit(p, E, A, dealt, procCoef, at) {
   if (!A || !A.id || E.dead || Math.random() >= 0.18 * Math.max(0.1, procCoef)) return;

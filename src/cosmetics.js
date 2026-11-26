@@ -113,7 +113,7 @@ export const COSMETICS = {
     { id: 't9', name: 'Porcelain', c: 0xf3d3bd }, { id: 't10', name: 'Honey', c: 0xd9a06c }, { id: 't11', name: 'Bronze', c: 0xa86c44 }, { id: 't12', name: 'Chestnut', c: 0x74472e }, { id: 't13', name: 'Ebony', c: 0x40291f },
   ],
   outfit: [
-    { id: 'drifter', name: 'Drifter', a: 0xB0603A, b: 0xE8C24A, c: 0x4E3324, style: 'poncho' },
+    { id: 'drifter', name: 'Drifter', a: 0xd8c6a0, b: 0x5c6a3c, c: 0x6a4228, style: 'wanderer' },   // linen shirt, leather vest, a hooded wool mantle
     { id: 'rancher', name: 'Rancher', a: 0x3f6f8a, b: 0xf2e8d5, c: 0x6a4a32, style: 'shirt' },
     { id: 'mechanic', name: 'Mechanic', a: 0x46586a, b: 0xffcd5a, c: 0x2a2430, style: 'overalls', need: ['runs', 9] },
     { id: 'undertaker', name: 'Undertaker', a: 0x24202a, b: 0x6a2030, c: 0xece6d6, style: 'coat', need: ['kills', 300] },

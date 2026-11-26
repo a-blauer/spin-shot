@@ -412,6 +412,29 @@ export function buildCharacter(look) {
     for (let i = 0; i < 4; i++) { const Y = 50 - i * 9, W = 18 - i * 2; strip('rib' + i, O.b, (t) => { const x = -W + 2 * W * t; return [x, Y - 0.014 * x * x]; }, 4, 1.4); }
     for (let i = 0; i < 6; i++) panel('vt' + i, O.b, 10.6 + i * 8, 15.4 + i * 8, () => [-3.2, 3.2], 1.4, true);   // the spine down the back
     add(body, G.box, O.b, 22, 4.4, 1.6, 0, 3, 19.4); for (const sg of [-1, 1]) add(body, G.box, O.b, 10, 4, 1.6, sg * 13, -1, 18.6).rotation.z = -sg * 0.5;
+  } else if (st === 'wanderer') {   // the drifter: a linen shirt with the sleeves rolled, a laced leather vest, a satchel strap, and a short hooded wool mantle
+    const LEA = O.c, LEAd = shade(O.c, 0.72), WOOL = O.b;
+    torso(63, (ph, y, y0) => (y0 > 50.9 && y0 < 52.3 ? shade(O.a, 0.88) : O.a), [50.9, 52.3]);
+    collar(mix(O.a, 0xffffff, 0.12)); placket(shade(O.a, 0.92), 30, 60, 0x6a4a2a);
+    // the vest: open down the front, its edges bound in darker leather, two pockets with flaps, lacing at the opening
+    const xo = (y) => (y > 44 ? 6 + (y - 44) * 0.35 : 6);
+    wrapPanel('wv', LEA, 10.6, 57, xo, 1.6, (ph, y) => { const a = torsoPh(Math.max(0.3, xo(y)), y); return ph - a < 0.16 || 2 * Math.PI - a - ph < 0.16 || y < 12.4 ? LEAd : LEA; });
+    for (const sg of [-1, 1]) { panel('wpk' + sg, shade(LEA, 0.86), 16, 24, () => (sg > 0 ? [10, 19] : [-19, -10]), 2.0); panel('wpf' + sg, LEAd, 23, 26, () => (sg > 0 ? [9.6, 19.4] : [-19.4, -9.6]), 2.4); }
+    for (const y of [18, 26, 34, 42]) for (const sg of [-1, 1]) disc(0x2a1a10, sg * (xo(y) + 1.6), y, 1.8, 2.2);
+    for (let k = 0; k < 3; k++) strip('lace' + k, 0x2a1a10, (t) => [(-1 + 2 * t) * (xo(20 + k * 8) + 1.6), 20 + k * 8 + (t - 0.5) * 8 * (k % 2 ? 1 : -1)], 0.8, 0.5, false, 2.2);
+    for (const bk of [false, true]) panel('wsd' + bk, shade(LEA, 0.9), 10.6, 52, () => [-1.2, 1.2], 0.6, true);   // the back seam
+    // the satchel strap, right shoulder to left hip, front and back, with a buckle
+    strip('sf', 0x4a3220, (t) => [11 - 30 * t, 60 - 46 * t], 4.2, 1.2, false, 2.4); strip('sb', 0x4a3220, (t) => [-11 + 30 * t, 60 - 46 * t], 4.2, 1.2, true, 2.4);
+    { const g = disc(0xc9a43a, -1.5, 40.5, 4.2, 3.8); add(g, G.box, 0x4a3220, 2.6, 1.2, 1.6, 0, 0, 0.5); }
+    // the mantle: a short circle of wool over the shoulders, its hem cut in soft points, a woven band above it, and the
+    // hood fallen back behind the neck in bunched folds
+    const cp = (ph, y) => { const t = Math.max(0, Math.min(1, (66 - y) / 24)), q = 1 - Math.pow(1 - Math.min(1, t * 1.9), 2.2), k = 1 + 0.07 * t * t * Math.cos(8 * ph + 0.5), a = (17 + 27 * q + 2 * t) * k, b = (15.5 + 16 * q + 1.5 * t) * k, sn = Math.sin(ph), c = Math.cos(ph);   // it rounds over the shoulders and falls
+      return [a * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / 2.1), y - (t > 0.96 ? 2.4 * Math.max(0, Math.cos(8 * ph)) : 0), b * Math.sign(c) * Math.pow(Math.abs(c), 2 / 2.1)]; };
+    wrapSurf(body, 'wmant' + OKY, rowsOf(42, 66, 1.2, [44.6, 46]), 112, cp, (ph, y, y0) => (y0 > 44.6 && y0 < 46 ? shade(WOOL, 0.68) : y0 < 44.6 ? shade(WOOL, 0.9) : WOOL));
+    for (const [x, y, z, sx, sy, sz] of [[0, 65, -18, 30, 13, 13], [0, 59, -24.5, 22, 12, 8]]) add(body, G.ball, shade(WOOL, 0.95 - (66 - y) * 0.01), sx, sy, sz, x, y, z);
+    { const m = add(body, G.tor, shade(WOOL, 0.86), 26, 24, 10, 0, 64, -19); m.rotation.x = Math.PI / 2 - 0.55; }   // the hood's rim, fallen back
+    { const m = add(body, G.tor, shade(WOOL, 0.8), 34, 31, 16, 0, 64.6, 0); m.rotation.x = Math.PI / 2; }   // the rolled neck of the mantle
+    for (const sg of [-1, 1]) { const g = disc(0xb8a070, sg * 5, 57.6, 3.2, 3.4); add(g, G.box, 0x6a5a3a, 1, 3.6, 1, 0, 0, 0.8); }   // two horn toggles at the throat
   } else if (st === 'duster') {   // a long riding duster: open down the front over a shirt, a short cape across the shoulders, skirts to the boots
     const xo = opening(26, 2, 12);
     torso(63, (ph, y) => (Math.abs(Math.sin(ph)) < 0.5 && Math.cos(ph) > 0 ? O.c : O.a));
@@ -512,6 +535,7 @@ export function buildCharacter(look) {
       if (st === 'apron') band(-20, -14, shade(O.c, 0.86), 0.1);
       if (st === 'quilted') for (let i = 0; i < 4; i++) band(-8 - i * 8.4, -7 - i * 8.4, shade(O.a, 0.7), -0.02);
       if (st === 'duster') band(-37.6, -33.4, shade(O.a, 0.8), 0.05);
+      if (st === 'wanderer') { band(-21, -15.6, shade(O.a, 0.86), 0.12); band(-39, -21, tone, -0.1); }   // sleeves rolled to the elbow, bare forearms below
       const inB = (t) => B.find((q) => t > q[0] && t < q[1]);
       const radAt = (t) => cprof([[0, 11.8], [0.25, 10.8], [0.5, 9.9], [0.62, 9.8], [0.8, 9.9], [1, 8.9]], t) * (1 + ((inB(t) || [])[3] || 0));
       const fold = (t, ph) => 1 - 0.055 * Math.exp(-(((t - 0.56) / 0.1) ** 2)) * Math.pow(0.5 + 0.5 * Math.cos(t * 41 * 2.1 + Math.cos(ph) * 0.8), 2);

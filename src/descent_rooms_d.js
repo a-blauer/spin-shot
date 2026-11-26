@@ -41,15 +41,11 @@ export const ROOMS_D = [
   // Heaps. Stacked hulks make canyon walls, a crusher squats in the middle, and a magnet hangs over the lot. Nothing
   // is square to anything else; the lanes wind, and there is always another heap to get behind.
   mk(TH('The Scrapyard', 0x24221e, 0x302c26, 0x3a3630, 0x8a6a3a, 0xffb040, [1, 0.8, 0.5], 0x1e1a14, [0.6, 0.56, 0.48]), [5000, 4600, 1400], { panel: 'planks', hang: 'chain', corner: 'rubble', c1: 0x6a5a4a, c2: 0x5a4a3a, n: 10 },
-    ({ hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, barrel, AX, AY, P }) => {
+    ({ M, hx, hy, H, T, Box, BoxRot, Cyl, Oct, Glow, slabs, tile, plat, solid, deco, hit, tall, L, barrel, AX, AY, P }) => {
       const rust = 0x8a4a2a, iron = 0x3a3e46, yel = 0xc8a03a, body = [0x7a3a2a, 0x3a5a6a, 0x5a6a3a, 0x8a7a4a, 0x4a4e56];
       for (let i = 0; i < 70; i++) { const x = ((i * 823) % (hx * 2 - 300)) - hx + 150, y = ((i * 467) % (hy * 2 - 300)) - hy + 150, w = 220 + (i % 5) * 100; tile(x - w, y - w * 0.7, x + w, y + w * 0.7, 1.6, i % 3 ? T.floor2 : 0x1a1612); }
       // a hulk: a boxy body with a cab, no wheels; stacked up to three high, each skewed on the last
-      let hi = 0; const hulk = (x, y, z, yaw) => { const c = body[(hi++) % 5]; const c0 = Math.cos(yaw * Math.PI / 180), s0 = Math.sin(yaw * Math.PI / 180), at = (u, w, zz) => V(x + u * c0 - w * s0, y + u * s0 + w * c0, z + zz);
-        Box(V(x, y, z + 62), V(380, 170, 96), c, true, z === 0, yaw); Box(at(-20, 0, 132), V(200, 156, 56), c, false, false, yaw); Box(at(-20, 0, 134), V(206, 140, 36), 0x1a1e22, false, false, yaw); Box(at(-20, 0, 134), V(150, 162, 36), 0x1a1e22, false, false, yaw);   // body, cab, glass
-        Box(V(x, y, z + 14), V(392, 176, 14), iron, false, false, yaw); Box(at(192, 0, 60), V(10, 130, 40), iron, false, false, yaw); for (const e of [-1, 1]) { Box(at(194, e * 56, 76), V(8, 30, 22), 0xe8e0c0, false, false, yaw); Box(at(-192, e * 60, 76), V(8, 26, 18), 0x8a2a22, false, false, yaw); }   // sills, grille, lamps
-        for (const a of [-1, 1]) for (const e of [-1, 1]) { Cyl(at(a * 120, e * 80, 34), 76, 26, 0x17181c, false, false, R(90, yaw, 0)); Cyl(at(a * 120, e * 92, 34), 34, 8, 0x6a6e76, false, false, R(90, yaw, 0)); }   // wheels
-        if (hi % 3 === 0) Box(at(110, 0, 116), V(150, 150, 8), rust, false, false, yaw + 6); };
+      let hi = 0; const hulk = (x, y, z, yaw) => { const c = body[(hi++) % 5]; M.Solid(V(x, y, z + 70), V(390, 176, 140), z === 0, yaw); const [k, b] = SH.car(c, hi); M.Shape(k, b, V(x, y, z), R(0, yaw, 0)); };
       const stackOf = (x, y, n, yaw) => { for (let k = 0; k < n; k++) hulk(x + (k % 2) * 30, y - (k % 2) * 20, k * 166, yaw + k * 9); if (n > 2) tall(x, y, 320); };
       for (const s of [-1, 1]) { stackOf(s * 1900, s * 600, 3, 80); stackOf(s * 1900, s * 1050, 2, 95); stackOf(s * 1900, s * 1500, 3, 86); stackOf(-s * 800, s * 2300, 2, 10); stackOf(-s * 1350, s * 2350, 3, -6); stackOf(s * 3300, -s * 1700, 3, 20); stackOf(s * 3800, -s * 1500, 2, 35); stackOf(s * 3400, s * 2900, 2, 70); stackOf(-s * 3500, s * 600, 1, 50); stackOf(s * 600, s * 3500, 1, -20); }
       // the crusher
@@ -159,7 +155,7 @@ export const ROOMS_D = [
   // A king's burying place, half filled with sand. A stepped pyramid at the middle with the sarcophagus on top, four
   // obelisks at its corners, seated guardians along the walls, and drifts of sand you fight across.
   mk(TH('Sand Tomb', 0x3a3020, 0x4a3e28, 0x5a4a2e, 0xd8b04a, 0x5ae0d0, [1, 0.88, 0.6], 0x2e2414, [0.68, 0.6, 0.46]), [4800, 4800, 1700], { panel: 'niche', hang: 'none', corner: 'rubble', c1: 0xc8a86a, c2: 0x8a6a3a, glow: 0x5ae0d0 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, Pyramid, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
+    ({ M, hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, Pyramid, slabs, tile, plat, solid, deco, hit, tall, L, AX, AY, P }) => {
       const sandst = 0xc8a86a, gold = 0xd8b04a, lapis = 0x2a5a9a, sand = 0xd8c08a, dark = 0x6a5430;
       slabs(520, T.floor, T.floor2, 0x2a2214, (x, y) => Math.abs(x) < 1400 && Math.abs(y) < 1400);
       // the pyramid: five steps (each a riser of forty), then the bier
@@ -169,8 +165,8 @@ export const ROOMS_D = [
       L(0, 0, 700, T.lamp, 3000, 3.2); tall(0, 0, 400);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) P.obelisk(sx * 1700, sy * 1700, 1000, sandst, T.glow, 190);
       // seated guardians in two ranks
-      const guard = (x, y, face) => { solid(x, y, 0, 300, 360, 200, sandst); deco(x, y - face * 60, 200, 240, 200, 260, sandst); deco(x, y + face * 70, 200, 220, 180, 90, sandst); Ball(V(x, y - face * 60, 540), V(150, 150, 170), sandst); deco(x, y - face * 60, 610, 190, 170, 50, lapis); for (const e of [-1, 1]) deco(x + e * 90, y - face * 60, 480, 30, 150, 160, gold); hit(x, y - face * 60, 200, 240, 200, 400, false); tall(x, y, 360); };
-      for (const s of [-1, 1]) for (const x of [-3300, -1100, 1100, 3300]) guard(x, s * 3300, s);
+      const guard = (x, y, face) => { hit(x, y, 0, 320, 380, 200, true); hit(x, y, 200, 220, 300, 420, false); const [k, b] = SH.guardian(sandst, gold, lapis, dark); M.Shape(k, b, V(x, y, 0), R(0, face > 0 ? 0 : 180, 0)); tall(x, y, 360); };
+      for (const s of [-1, 1]) for (const x of [-3300, -1100, 1100, 3300]) guard(x, s * 3300, -s);   // facing into the room
       for (const s of [-1, 1]) { P.column(s * 3600, s * 1100, 320, sandst, gold, 'round'); P.column(s * 3600, -s * 1100, 320, sandst, gold, 'round'); }
       // sand: drifts against things (soft mounds), and the grave goods half buried in them
       const drift = (x, y, w, d, h) => { Ball(V(x, y, 0), V(w, d, h * 2), sand); hit(x, y, 0, w * 0.55, d * 0.55, h * 0.5, true); };

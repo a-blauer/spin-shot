@@ -22,7 +22,7 @@ import { gunFeel } from './guns.js';
 import { CLASSES, classById, rollBuff, rollGunMod, ALT_STATS } from './classes.js';
 import { Turret, ShoulderTurret, turretStats } from './turret.js';
 import { isCore, coreKind, rollCoreAt, coreTier, BLADE, CORE0, fusionOf } from './cores.js';
-import { machine, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit } from './deeds.js';
+import { machine, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit, crowned } from './deeds.js';
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
@@ -2460,7 +2460,7 @@ export class Player {
   // A gun evolves by being used. Kills with it in this run count toward the next of four evolutions (what a paid
   // tune-up was); an elite counts three and a boss ten. A gun you put down keeps what it has earned only while you hold it.
   honeNeed() { return Math.round(12 / (1 + Math.max(0, this.stat('BladeHone')))); }
-  evoNeed(S) { return S.mods.length >= 4 ? Infinity : Math.round(EVO_NEED[S.mods.length] / (1 + Math.max(0, this.stat('EvolveSpeed')))); }
+  evoNeed(S) { return S.mods.length >= 4 ? Infinity : Math.round(EVO_NEED[S.mods.length] / (1 + Math.max(0, this.stat('EvolveSpeed'))) / (S.def >= 0 && DATA.weapons[S.def] && crowned(DATA.weapons[S.def].name) ? 1.33 : 1)); }
   creditKill(E) {
     const C = this.shotCtx || (E.sgLast && this.game.time - E.sgLast.t < 1.5 ? E.sgLast.C : null), n = E.isBoss ? 10 : E.elite ? 3 : 1;
     if (this.meleeHitting || (this.wield && !C)) {   // the blade hones itself the same way
@@ -2542,7 +2542,7 @@ export class Player {
     if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), false);
   }
   // A gun has four part slots and one more each time it evolves; the blade has four and one more each time it is honed.
-  partSlots(S) { return S && S.turret ? 4 : S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0); }
+  partSlots(S) { return S && S.turret ? 4 : S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0) + (S && S.def >= 0 && this.game.descent && DATA.weapons[S.def] && crowned(DATA.weapons[S.def].name) ? 1 : 0); }   // a Crowned gun (Ascension III) takes one more
   fitCore(S, u) {
     if (S.turret) { const U = DATA.upgrades[u]; if (!(this.coreInv[u] > 0) || U.kind !== 'gun') return false; const tc = this.turretCores || (this.turretCores = []); if (tc.length >= 4) { this.toast('The turret has four slots, and they are full', '#ffb057'); return false; } this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u]; tc.push(u); return true; }
     if (S.blade) return this.fitBlade(u);

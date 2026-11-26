@@ -31,29 +31,21 @@ export function props(K, Q) {
   P.rug = (x, y, w, d, col, edge) => sh(S.rug(w, d, col, edge), x, y, 2.2);
   // ---- furniture
   P.table = (x, y, along, len = 240, col = wood, z = 0) => {
-    const [w, d] = xy(along, len, 92); solid(x, y, z + 68, w, d, 10, col, false);
-    for (const e of [-1, 1]) deco(x + (along ? e * (len / 2 - 22) : 0), y + (along ? 0 : e * (len / 2 - 22)), z, along ? 12 : 72, along ? 72 : 12, 68, wdark);
-    hit(x, y, z, w, d, 78, len >= 200);
+    const [w, d] = xy(along, len, 92); hit(x, y, z, w, d, 78, len >= 200);
+    sh(S.table(len, 92, col, wdark), x, y, z, along ? 0 : 90);
   };
   P.bench = (x, y, along, len = 220, col = wood, z = 0) => {
-    const [w, d] = xy(along, len, 40); solid(x, y, z + 36, w, d, 8, col, false);
-    for (const e of [-1, 1]) deco(x + (along ? e * (len / 2 - 18) : 0), y + (along ? 0 : e * (len / 2 - 18)), z, along ? 10 : 34, along ? 34 : 10, 36, wdark);
-    hit(x, y, z, w, d, 44, false);
+    const [w, d] = xy(along, len, 40); hit(x, y, z, w, d, 44, false);
+    sh(S.bench(len, col, wdark), x, y, z, along ? 0 : 90);
   };
   // a long table with a bench each side
   P.mess = (x, y, along, len = 320, col = wood) => { P.table(x, y, along, len, col); for (const e of [-1, 1]) P.bench(x + (along ? 0 : e * 96), y + (along ? e * 96 : 0), along, len - 30, col); };
   P.pew = (x, y, len = 300, face = 1, col = wood, z = 0) => {   // a pew across X; `face` is which way (+Y or -Y) it looks
-    solid(x, y, z + 36, len, 46, 8, col, false); deco(x, y - face * 24, z, len, 8, 92, col); for (const e of [-1, 1]) deco(x + e * (len / 2 - 4), y, z, 8, 52, 60, wdark);
-    hit(x, y, z, len, 54, 92, true);
+    hit(x, y, z, len, 54, 92, true); sh(S.pew(len, col), x, y, z, face > 0 ? 0 : 180);
   };
   P.shelf = (x, y, along, len = 400, h = 230, col = 0x4a3626, books = [0x7a2a22, 0x2a4a6a, 0x3a5a2a, 0x8a6a2a, 0x4a2a5a]) => {
-    const [w, d] = xy(along, len, 70); solid(x, y, 0, w, d, h, col);
-    for (let z = 4; z < h; z += 56) deco(x, y, z, w + 8, d + 8, 8, wdark);
-    for (let z = 12, t = 0; z + 40 < h; z += 56, t++) for (let p = -len / 2 + 18, i = t; p < len / 2 - 50; i++) {
-      const bw = 44 + ((i * 37) % 50), bh = 30 + ((i * 13) % 14), c = books[(i * 7 + t) % books.length];
-      for (const e of [-1, 1]) deco(x + (along ? p + bw / 2 : e * (d / 2 + 1)), y + (along ? e * (d / 2 + 1) : p + bw / 2), z, along ? bw - 6 : 4, along ? 4 : bw - 6, bh, c);
-      p += bw;
-    }
+    const [w, d] = xy(along, len, 70); hit(x, y, 0, w, d, h, true);
+    sh(S.bookcase(len, h, 70, col, books, (Math.abs(Math.round(x / 100 + y / 37)) % 3) + 1), x, y, 0, along ? 0 : 90);
     if (h > 400) tall(x, y, len / 2 + 60);
   };
   P.bed = (x, y, along, col = 0x6a6a5a, z = 0) => {

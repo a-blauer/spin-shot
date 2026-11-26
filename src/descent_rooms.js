@@ -34,6 +34,8 @@ export const ROOM_DIMS = [
 ];
 export const BOSS_DIMS = [6000, 6000, 2000];
 
+// blend two colours: k of the way from a to b (b = 0 darkens, 0xffffff lightens)
+const mix = (a, b, k) => { const f = (sh) => Math.round(((a >> sh) & 255) * (1 - k) + ((b >> sh) & 255) * k); return (f(16) << 16) | (f(8) << 8) | f(0); };
 function kit(K) {
   const { M, T, hx, hy, H, rnd, rr } = K;
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Floor, Lamp } = M;
@@ -54,7 +56,11 @@ function kit(K) {
     slabs: (s, a, b, c, skip = () => false) => {
       for (let x = -hx; x < hx - 1; x += s) for (let y = -hy; y < hy - 1; y += s) {
         if (skip(x + s / 2, y + s / 2)) continue;
-        Floor(V2(x + 5, y + 5), V2(Math.min(hx, x + s) - 5, Math.min(hy, y + s) - 5), 1.4, rnd() < 0.1 ? c : (Math.round(x / s) + Math.round(y / s)) % 2 ? a : b);
+        // the two tones closer together than they were (a floor, not a chess board), every slab a shade of its own,
+        // and the joints between them dark and fine
+        const k = (Math.round(x / s) + Math.round(y / s)) % 2 ? 0.32 : 0.68, j = 0.92 + rnd() * 0.14, t = rnd() < 0.07 ? c : mix(mix(a, b, k), 0, 1 - j);
+        Floor(V2(x + 4, y + 4), V2(Math.min(hx, x + s) - 4, Math.min(hy, y + s) - 4), 1.4, t);
+        if (s >= 400 && rnd() < 0.5) { const h = s / 2; for (const [u, v] of [[0, 0], [h, h]]) Floor(V2(x + u + 6, y + v + 6), V2(Math.min(hx, x + u + h) - 6, Math.min(hy, y + v + h) - 6), 1.8, mix(t, 0, 0.06)); }   // some laid as four smaller stones
       }
     },
     // a raised floor, stepped on all four sides: `h` in risers of forty, each tread seventy deep; the top is w by d
@@ -457,5 +463,78 @@ export function craftBoss(which, K) {
     for (let q = 0; q < 32; q++) { const a = q / 32 * 6.283; Glow(V(Math.cos(a) * 2200 * s, Math.sin(a) * 2200 * s, 9), V(2200 * s, 8, 2), pur, 0, R(0, a * 57.3, 0)); }
     for (const sx of [-1, 1]) { const x = sx * (hx - 6); [[2400, pur], [2200, voidc], [1800, 0x8a7ab8], [1600, voidc], [1100, pur], [900, voidc], [560, white]].forEach(([d, c], n) => (c === voidc ? Cyl(V(x - sx * (4 + n * 5), 0, 1000), d, 3, c, false, false, R(90, 0, 0)) : Glow(V(x - sx * (4 + n * 5), 0, 1000), V(d, d, 3), c, 1, R(90, 0, 0)))); }
   }
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ THE HOLLOW KING'S DEEP
+// The last room is not a room. A causeway runs out from the door to an island of carved stone hanging over a violet
+// dark, and out in the dark the King rises (raid.js draws and moves it). On the island: a sigil worked into the floor,
+// three pyres on stepped daises joined to it by lines of light, broken columns and fallen drums to hide behind, and a
+// balustrade round the lip (solid: you go over it only by jumping, and the deep throws you back if you do). Far off in
+// the dark stand the ruins of whatever stood here before.
+import { RAID } from './raid.js';
+export const RAID_DIMS = [6000, 6000, 7000];
+export function craftRaid(K) {
+  const { M, T, hx, hy, H, rnd, rr } = K;
+  const { Box, Glow, Cyl, Oct, Ball, Floor, Pyramid } = M;
+  const Q = kit(K), { out, L, ring, hit, lowWall } = Q;
+  const [ix, iy] = RAID.isle, R0 = RAID.R, stone = 0x2c2a34, stone2 = 0x3a3644, dk = 0x141218, glow = 0xa070ff, gold = 0xb8923a, bone = 0xd6ccb4;
+  out.noCorners = true;
+  Floor(V2(-hx, -hy), V2(hx, hy), 1.0, 0x07050b);                                                     // the dark below
+  // the island: a disc of stone, a bright lip, rings and spokes worked into it, the sigil in the middle
+  Cyl(V(ix, iy, 1.6), R0 * 2, 2, stone, false, false); ring(ix, iy, 2.8, R0 * 2 - 40, 50, glow, stone);
+  for (const [r, w] of [[2900, 30], [2050, 24], [1300, 34], [620, 20]]) ring(ix, iy, 3.2 + r / 1e4, r * 2, w, r === 1300 ? glow : stone2, stone);
+  for (let k = 0; k < 36; k++) { const a = (k / 36) * Math.PI * 2, r = k % 3 ? 2470 : 1680, len = k % 3 ? 840 : 760; Box(V(ix + Math.cos(a) * r, iy + Math.sin(a) * r, 3.6), V(len, 16, 2), dk, false, false, (a * 180) / Math.PI); }
+  for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2; Glow(V(ix + Math.cos(a) * 1000, iy + Math.sin(a) * 1000, 4.4), V(rr(120, 220), 22, 2), k % 3 ? glow : 0xffffff, 0, R(0, (a * 180) / Math.PI + 90, 0)); }
+  ring(ix, iy, 5, 360, 30, 0xffffff, stone); Glow(V(ix, iy, 5.2), V(120, 120, 2), glow, 1);
+  // lines of light from the sigil out to each pyre
+  for (const [x, y] of RAID.pyres) { const dx = x - ix, dy = y - iy, d = Math.hypot(dx, dy), a = (Math.atan2(dy, dx) * 180) / Math.PI; Glow(V(ix + dx * 0.52, iy + dy * 0.52, 4.8), V(d - 1200, 18, 2), 0xffb070, 0, R(0, a, 0)); }
+  // the causeway in from the door, kerbed, with a lamp each side at the island end
+  const cy0 = iy + R0 - 700; Box(V(0, (cy0 + hy) / 2, 1.8), V(RAID.cause * 2, hy - cy0, 3.6), stone2, false, false);
+  for (let y = cy0 + 200; y < hy; y += 280) Box(V(0, y, 4), V(RAID.cause * 2 - 120, 14, 2), dk, false, false);
+  for (const e of [-1, 1]) { const x = e * (RAID.cause - 30);
+    Box(V(x, (cy0 + hy) / 2, 60), V(50, hy - cy0, 120), stone2, false, false); Box(V(x, (cy0 + hy) / 2, 126), V(80, hy - cy0, 14), gold, false, false);
+    M.Solid(V(x, (cy0 + hy) / 2, 700), V(60, hy - cy0, 1400), true);
+    for (let y = cy0 + 150; y < hy - 100; y += 380) { Cyl(V(x, y, 80), 70, 160, stone, false, false); Ball(V(x, y, 180), V(60, 60, 60), gold); }
+    Cyl(V(x, iy + R0 - 260, 260), 60, 520, dk, false, false); Glow(V(x, iy + R0 - 260, 560), V(46, 46, 60), 0xffc070, 2); L(x, iy + R0 - 260, 600, [1, 0.75, 0.45], 1200, 1.4);
+  }
+  // the balustrade round the lip: posts, a rail, a cap; a few spans broken (it is still a wall where they are gone)
+  const N = 72;
+  for (let k = 0; k < N; k++) {
+    const a0 = (k / N) * Math.PI * 2, a1 = ((k + 1) / N) * Math.PI * 2, am = (a0 + a1) / 2, r = R0 - 40;
+    const x0 = ix + Math.cos(a0) * r, y0 = iy + Math.sin(a0) * r, xm = ix + Math.cos(am) * r, ym = iy + Math.sin(am) * r, len = 2 * r * Math.sin(Math.PI / N) + 4;
+    if (Math.abs(xm) < RAID.cause + 40 && ym > iy) continue;   // the causeway comes in here
+    Cyl(V(x0, y0, 70), 64, 140, stone2, false, false); Ball(V(x0, y0, 150), V(56, 56, 40), stone2);
+    if (k % 11 !== 5) { Box(V(xm, ym, 118), V(len, 46, 22), stone2, false, false, (am * 180) / Math.PI + 90); for (let b = -1; b <= 1; b++) Cyl(V(xm + Math.cos(am + Math.PI / 2) * b * len * 0.3, ym + Math.sin(am + Math.PI / 2) * b * len * 0.3, 55), 26, 110, stone, false, false); }
+    else Box(V(xm, ym, 20), V(len * 0.6, 40, 30), stone2, false, false, (am * 180) / Math.PI + 70);   // a broken span: the rail fallen in pieces
+    M.Solid(V(xm, ym, 75), V(len + 10, 60, 150), true, (am * 180) / Math.PI + 90);
+  }
+  // the three pyres: two stepped daises each, a pedestal and a bowl of iron, four candles round the step
+  for (const [x, y] of RAID.pyres) {
+    Oct(V(x, y, 20), V(600, 600, 40), stone2, true, false); Oct(V(x, y, 60), V(440, 440, 40), stone, true, false); out.tops.push([x + 250, y, 80]);
+    Cyl(V(x, y, 120), 130, 80, dk, true, false); Cyl(V(x, y, 166), 280, 26, 0x2a2e30, false, false); Cyl(V(x, y, 182), 300, 10, gold, false, false); Cyl(V(x, y, 178), 220, 12, 0x0e0c10, false, false);
+    for (let q = 0; q < 4; q++) { const a = q * 1.571 + 0.785; Q.candle(x + Math.cos(a) * 250, y + Math.sin(a) * 250, 80, 26 + q * 6); }
+    hit(x, y, 80, 160, 160, 120, false); L(x, y, 420, [1, 0.62, 0.3], 1600, 2.4);
+  }
+  // cover: broken columns standing, drums fallen, low ruined walls
+  for (let k = 0; k < 6; k++) {
+    const a = -Math.PI / 2 + (k - 2.5) * 0.72, r = k % 2 ? 2600 : 2900, x = ix + Math.cos(a) * r, y = iy + Math.sin(a) * r, h = 380 + ((k * 211) % 5) * 160;
+    if (Math.min(...RAID.pyres.map(([px, py]) => Math.hypot(px - x, py - y))) < 700) continue;
+    Oct(V(x, y, 40), V(380, 380, 80), stone2, true, true); Cyl(V(x, y, 80 + h / 2), 240, h, stone, true, true); Oct(V(x, y, 80 + h), V(300, 300, 50), stone2, false, false);
+    for (let q = 0; q < 3; q++) { const ab = a + 0.6 + q * 0.4, d = 300 + q * 220; Cyl(V(x + Math.cos(ab) * d, y + Math.sin(ab) * d, 110), 220, 200, stone, true, true, R(90, (ab * 180) / Math.PI, 0)); }
+    if (h > 500) out.tall.push([x, y, 240]);
+  }
+  for (const [x, y, len, along] of [[-1100, 2400, 700, true], [1150, 2300, 700, true], [-2300, 2300, 600, false], [2300, 2200, 600, false], [0, 1000, 900, true], [-900, -500, 500, false], [900, -500, 500, false]]) {
+    lowWall(x, y, len, along, stone2, gold, 130, 80); for (let q = 0; q < 3; q++) Box(V(x + (along ? (q - 1) * len * 0.45 : 70), y + (along ? 70 : (q - 1) * len * 0.45), 20), V(90, 70, 40), stone, false, false, q * 31);
+  }
+  // in the dark: the ruins of older things, standing and fallen, and rocks hung in the air
+  for (const [x, y, w, h, yaw] of [[-4600, -2600, 700, 3800, 8], [4700, -1800, 600, 3200, -6], [-4400, 3400, 800, 2600, 12], [4500, 4000, 500, 3600, -4], [-2600, -5300, 900, 4200, 0], [2900, -5400, 900, 3900, 0]]) {
+    Box(V(x, y, h / 2), V(w, w, h), dk, false, false, yaw); Box(V(x, y, h + 60), V(w + 160, w + 160, 120), stone, false, false, yaw);
+    for (let z = 500; z < h; z += 700) Box(V(x, y, z), V(w + 40, w + 40, 40), stone2, false, false, yaw);
+  }
+  Box(V(0, -5700, 3600), V(6200, 600, 500), dk, false, false); for (const e of [-1, 1]) Box(V(e * 2800, -5700, 1800), V(700, 700, 3600), dk, false, false);   // an arch the King once came through
+  for (let k = 0; k < 18; k++) { const a = rnd() * Math.PI * 2, r = R0 + 900 + rnd() * 1800, x = ix + Math.cos(a) * r, y = iy + Math.sin(a) * r; if (Math.abs(x) > hx - 300 || Math.abs(y) > hy - 300 || (Math.abs(x) < RAID.cause + 200 && y > iy)) continue; const s = rr(160, 520); Oct(V(x, y, rr(600, 2600)), V(s, s * 0.9, s * 0.7), k % 3 ? dk : stone, false, false, R(rr(0, 40), rr(0, 360), rr(0, 40))); }
+  // the light: cold from far above onto the King, warm on the island
+  L(0, -3600, 3400, [0.7, 0.6, 1], 7000, 3.6); L(0, -2400, 1800, [0.6, 0.5, 1], 4000, 2.4); L(0, -3000, 600, [0.5, 0.35, 1], 3500, 2.2); L(ix, iy, 1400, [0.7, 0.65, 0.95], 3200, 1.6);
   return out;
 }

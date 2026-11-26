@@ -287,6 +287,7 @@ export class Enemy {
       return;
     }
     this.life += dt; this.sinceHit += dt;
+    if (this.raidHeart && !this.remote) { this.raidHeart(dt); return; }   // the Hollow King's heart goes where the King's chest goes
     if (this.remote) {   // co-op mirror: the host simulates, we glide to its last reported position
       const px = this.pos.x, py = this.pos.y, pz = this.pos.z;
       this.pos.lerp(this.netPos, Math.min(1, dt * 9));
@@ -629,6 +630,7 @@ export class Enemy {
   // returns damage dealt (0 if immune). sets this.dead on kill.
   takeHit(amount, at, fromDir, headshot) {
     if (this.dead || amount <= 0 || this.burrowed) return 0;
+    if (this.raidImmune) { if (!(this.game.time - (this.immSay || -9) < 0.6)) { this.immSay = this.game.time; this.game.hud.floater(this.pos.clone(), 'IMMUNE', [0.7, 0.6, 1], 1.2); } return 0; }   // the Hollow King's heart, shut
     if (this.remote) return this.game.net.sendHit(this, amount, fromDir, headshot);
     if (this.finalInv > 0) return 0;
     if (this.ward > 0) { if (!(this.wardSay > 0)) { this.wardSay = 0.5; this.game.hud.floater(this.pos.clone().add(new THREE.Vector3(0, this.half * 0.6, 0)), 'WARDED', [0.55, 0.8, 1], 1.4); } amount *= 0.3; }   // a ward blunts, it does not stop: the wisps are the fast way through
@@ -1098,6 +1100,7 @@ export class Enemy {
   phaseName() { return this.isBoss && this.boss.tier ? phaseName(this) : ''; }
 
   draw(batches) {
+    if (this.isBoss && this.boss.raid) return;   // the Hollow King is drawn by the raid, not as a creature
     this.puppet.draw(batches[this.ckind] || batches.creature, batches.fx, batches.add, !this.dead);
   }
 }

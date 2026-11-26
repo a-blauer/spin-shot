@@ -292,36 +292,38 @@ export function slotMachine(col = 0xb8282a) {
     G.blob(36, 0, 60, 2, 30, 8, VC.brass, { e: 8 });
   })];
 }
-export function rouletteTable() {
-  return ['vroul', shape((G) => {
+export function rouletteTable(wheel = true) {
+  return ['vroul' + (wheel ? '' : 'n'), shape((G) => {
     G.blob(0, 0, 84, 150, 90, 8, VC.felt, { e: 8 });
     G.blob(0, 0, 80, 158, 98, 10, VC.woodD, { e: 8 });
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.tube([[sx * 120, sy * 70, 0], [sx * 120, sy * 70, 76]], 7, VC.woodD, { S: 6 });
-    // the wheel, at one end
+    // the wheel, at one end (left off when the casino turns a live one there)
+    if (wheel) {
     G.lathe([[60, 0], [62, 10], [56, 14], [44, 12], [40, 8], [0, 12]], (k) => (k === 3 ? 0x1a1a1a : VC.woodL), 37, [-90, 0, 90]);
-    for (let i = 0; i < 37; i++) { const a = (i / 37) * Math.PI * 2, c = i === 0 ? 0x2a8a3a : i % 2 ? 0xb82a2a : 0x1a1a1a; G.surf((u, v) => { const t = a + u * (Math.PI * 2 / 37), r = 40 + v * 12; return [-90 + Math.cos(t) * r, Math.sin(t) * r, 103]; }, 0, 1, 1, 0, 1, 1, c); }
-    G.lathe([[10, 0], [8, 12], [2, 22], [0, 26]], VC.brass, 10, [-90, 0, 102]);
-    // the layout: numbered squares in three rows
-    for (let c = 0; c < 12; c++) for (let r = 0; r < 3; r++) { const n = c * 3 + r + 1, red = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(n); G.blob(-10 + c * 13, (r - 1) * 22, 93, 6, 10, 0.6, red ? 0xb82a2a : 0x1a1a1a, { e: 10, nu: 4, nv: 2 }); }
+      for (let i = 0; i < 37; i++) { const a = (i / 37) * Math.PI * 2, c = i === 0 ? 0x2a8a3a : i % 2 ? 0xb82a2a : 0x1a1a1a; G.surf((u, v) => { const t = a + u * (Math.PI * 2 / 37), r = 40 + v * 12; return [-90 + Math.cos(t) * r, Math.sin(t) * r, 103]; }, 0, 1, 1, 0, 1, 1, c); }
+      G.lathe([[10, 0], [8, 12], [2, 22], [0, 26]], VC.brass, 10, [-90, 0, 102]);
+    }
+    // the layout: numbered squares in three rows (the live casino paints its own, with the numbers on it)
+    if (wheel) for (let c = 0; c < 12; c++) for (let r = 0; r < 3; r++) { const n = c * 3 + r + 1, red = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(n); G.blob(-10 + c * 13, (r - 1) * 22, 93, 6, 10, 0.6, red ? 0xb82a2a : 0x1a1a1a, { e: 10, nu: 4, nv: 2 }); }
   })];
 }
-export function cardTable(round = true) {
-  return ['vcard|' + (round ? 1 : 0), shape((G) => {
+export function cardTable(round = true, props = true) {
+  return ['vcard|' + (round ? 1 : 0) + (props ? '' : 'n'), shape((G) => {
     if (round) { G.lathe([[130, 76], [132, 84], [122, 92], [0, 92]], (k) => (k === 2 ? VC.felt : VC.woodD), 32); G.lathe([[122, 92], [0, 92.4]], VC.felt, 32); }
     G.lathe([[50, 0], [24, 10], [20, 74], [60, 78]], VC.woodD, 12);
-    for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45, b = G.n; G.blob(0, 0, 0, 12, 17, 0.6, 0xf4ecd6, { e: 10, nu: 4, nv: 2 }); G.place(b, { x: Math.cos(a) * 80, y: Math.sin(a) * 80, z: 93.4, yaw: (a * 180) / Math.PI }); }
+    if (props) for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45, b = G.n; G.blob(0, 0, 0, 12, 17, 0.6, 0xf4ecd6, { e: 10, nu: 4, nv: 2 }); G.place(b, { x: Math.cos(a) * 80, y: Math.sin(a) * 80, z: 93.4, yaw: (a * 180) / Math.PI }); }
     for (let k = 0; k < 4; k++) G.lathe([[7, 0], [7, 2]], [0xd8302a, 0x1a1a1a, 0x2a6ad0, 0xf2eee4][k], 12, [-40, -30 + k * 18, 92.5 + 0]);
   })];
 }
 // a dice table: a long felt tray with a padded rail, two dice resting in it
-export function diceTable() {
-  return ['vdice', shape((G) => {
+export function diceTable(props = true) {
+  return ['vdice' + (props ? '' : 'n'), shape((G) => {
     G.blob(0, 0, 80, 140, 70, 10, VC.woodD, { e: 8 });
     G.blob(0, 0, 92, 128, 58, 3, 0x2a5a8a, { e: 10 });
     G.blob(0, 0, 100, 142, 72, 10, 0x6a2a1a, { e: 6, warp: (x, y, z) => [x, y, z] });
     G.blob(0, 0, 97, 126, 56, 10, 0x2a5a8a, { e: 10 });
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.tube([[sx * 110, sy * 50, 0], [sx * 110, sy * 50, 74]], 7, VC.woodD, { S: 6 });
-    for (const [x, y, a] of [[30, 10, 20], [52, -14, -35]]) { const b = G.n; G.blob(0, 0, 0, 9, 9, 9, 0xf4ecd6, { e: 8 }); for (const [dx, dy] of [[0, 0], [4, 4], [-4, -4]]) G.blob(9.2, dx, dy, 0.6, 1.6, 1.6, 0x1a1a1a, { nu: 6, nv: 3 }); G.place(b, { x, y, z: 109, yaw: a }); }
+    if (props) for (const [x, y, a] of [[30, 10, 20], [52, -14, -35]]) { const b = G.n; G.blob(0, 0, 0, 9, 9, 9, 0xf4ecd6, { e: 8 }); for (const [dx, dy] of [[0, 0], [4, 4], [-4, -4]]) G.blob(9.2, dx, dy, 0.6, 1.6, 1.6, 0x1a1a1a, { nu: 6, nv: 3 }); G.place(b, { x, y, z: 109, yaw: a }); }
   })];
 }
 
