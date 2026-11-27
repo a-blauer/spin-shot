@@ -447,30 +447,42 @@ export const SIG2 = {
     },
   },
   Tumbleweed: {
-    name: 'Snowball', short: 'Bowls a tumbleweed along the ground. It rolls through everything, growing bigger and 15% deadlier with each thing it runs over.',
-    text: 'It bowls a tumbleweed along the ground in the way you are facing. It rolls straight through every enemy in its path, growing bigger and 15% deadlier with each one, ten times over, turns off walls twice, and bursts as big as it grew when it stops.',
+    name: 'Snowball', short: 'Flings a tumbleweed out ahead to roll along the ground. It rolls through everything, growing bigger and 15% deadlier with each thing it runs over.',
+    text: 'It flings a big tumbleweed out ahead of you; it lands and rolls on in the way you are facing. It rolls straight through every enemy in its path, growing bigger and 15% deadlier with each one, ten times over, turns off walls twice, and bursts as big as it grew when it stops.',
     play: 'Bowl it down the longest line of them you can find: up a corridor, along a wall. It goes under anything flying.', fav: ['Heavy Rounds', 'Blast Cap', 'Incendiary'], aff: { ExplosionRadius: 1.5 },
     snd: ['S_SwingBig', 0.7, 0.75],
-    // It does not fly: it is set down on the floor just ahead of you and rolls along it, following the ground up and
-    // down slopes, until its time runs out or it has turned off two walls.
+    // It is flung out of the bell in a short low arc (opening out to full size as it leaves), lands a few strides ahead
+    // and rolls on along the floor, following the ground up and down slopes, until its time runs out or it has turned off
+    // two walls.
     fire(p, S, W, g, C, F) {
       const G = p.game, d = V3(F.dir.x, 0, F.dir.z); if (d.lengthSq() < 1e-4) d.set(Math.sin(p.yaw), 0, -Math.cos(p.yaw)); d.normalize();
       const P = p.fireProjectile(F.muzzle, d, F.damage, 0.6, W);
-      P.gravity = 0; P.pierce = 99; P.bounces = 0; P.life = 3.2; P.tw = 0; P.wb = 0; P.spin = 0; P.group.scale.setScalar(22 / P.radius); P.radius = 22; P.roll = d; P.spd = W.projSpeed || 1300; P.dust = 0; P.air = true;
-      // put it on the ground in front of you; with no floor there it drops until it finds one
-      const at = F.muzzle.clone().addScaledVector(d, 40), dn = G.phys.raycastDown(at.clone().add(V3(0, 40, 0)), 520);
-      if (dn) { P.pos.copy(dn.point).add(V3(0, P.radius, 0)); P.air = false; }
-      P.vel.copy(d).multiplyScalar(P.spd); P.group.position.copy(P.pos);
-      G.fx.puff(P.pos.clone().add(V3(0, -P.radius * 0.6, 0)), [0.62, 0.52, 0.36], 50, 0.5);
+      P.scl = 44 / P.radius; P.group.scale.setScalar(P.scl * 0.3); P.radius = 44;
+      P.gravity = 0; P.pierce = 99; P.bounces = 0; P.life = 3.6; P.tw = 0; P.wb = 0; P.spin = 0; P.roll = d; P.base = P.spd = W.projSpeed || 1300; P.dust = 0; P.air = true; P.fly = 0; P.hop = 1;
+      // out of the bell, never through a wall you are standing against
+      // against a wall it starts short of it, drops and rolls off it
+      const w = G.phys.raycast(F.muzzle, d, 120); P.pos.copy(F.muzzle).addScaledVector(d, w ? Math.max(0, w.distance - P.radius) : 30);
+      P.vel.copy(d).multiplyScalar(Math.min(P.spd, 1300) * 0.62).add(V3(0, 280, 0)); P.group.position.copy(P.pos);
+      G.fx.puff(P.pos.clone(), [0.62, 0.52, 0.36], 36, 0.35);
     },
     pTick(p, P, dt) {
       const G = p.game, d = P.roll;
-      if (P.air) {   // falling to the floor
+      if (P.air) {   // in the air: flung out of the bell, or off an edge
+        P.fly += dt; if (P.fly < 0.2) P.group.scale.setScalar(P.scl * (0.3 + 0.7 * Math.sin(Math.min(1, P.fly / 0.2) * Math.PI / 2)));   // opens out to full size as it leaves the bell
+        const hv = V3(P.vel.x, 0, P.vel.z), hs = hv.length() * dt;
+        if (hs > 0) { const w = G.phys.raycast(P.pos, hv.normalize(), hs + P.radius); if (w && Math.abs(w.normal.y) < 0.6) { P.vel.x = 0; P.vel.z = 0; } }   // into a wall: it drops there
+        P.group.rotateOnWorldAxis(V3(-d.z, 0, d.x), -7 * dt);   // tumbling as it flies
         P.vel.y -= 1960 * dt; P.pos.addScaledVector(P.vel, dt);
         const dn = G.phys.raycastDown(P.pos.clone().add(V3(0, 10, 0)), P.radius + 14);
-        if (dn && P.vel.y <= 0) { P.pos.y = dn.point.y + P.radius; P.vel.y = 0; P.air = false; G.fx.puff(dn.point, [0.62, 0.52, 0.36], 60, 0.5); G.audio.playAt('S_Land', P.pos, 0.6, 0.8); }
+        if (dn && P.vel.y <= 0) {
+          P.pos.y = dn.point.y + P.radius; G.fx.puff(dn.point, [0.62, 0.52, 0.36], 60, 0.5); G.audio.playAt('S_Land', P.pos, 0.6, 0.8);
+          // one small hop off its first landing, then it rolls off at the speed it landed with and gathers pace
+          if (P.hop > 0 && P.vel.y < -350) { P.hop--; P.vel.y *= -0.3; }
+          else { P.spd = Math.hypot(P.vel.x, P.vel.z); P.vel.y = 0; P.air = false; }
+        }
       } else {
-        P.spd = Math.min(P.spd * (1 + 0.35 * dt), 2400);   // it picks up speed as it goes
+        P.base = Math.min(P.base * (1 + 0.35 * dt), 2400);   // it picks up speed as it goes
+        P.spd += (P.base - P.spd) * Math.min(1, dt * 4);
         const step = P.spd * dt, mid = P.pos.clone(), wall = G.phys.raycast(mid, d, step + P.radius);
         if (wall && Math.abs(wall.normal.y) < 0.6) {
           if (P.wb >= 2) { G.projectiles.detonate(P, wall.point.clone().addScaledVector(wall.normal, P.radius)); return true; }
@@ -494,7 +506,7 @@ export const SIG2 = {
       return true;
     },
     pHit(p, P, E, at) {
-      if (P.tw < 10) { P.tw++; P.damage *= 1.15; P.splash += 24; P.radius += 3.4; P.group.scale.multiplyScalar(1.1); }
+      if (P.tw < 10) { P.tw++; P.damage *= 1.15; P.splash += 24; P.radius *= 1.1; P.scl *= 1.1; P.group.scale.multiplyScalar(1.1); }
       if (!E.dead && !E.isBoss) E.applyKnock(V3(P.roll.x * 380 - P.roll.z * 260 * (P.tw % 2 ? 1 : -1), 260, P.roll.z * 380 + P.roll.x * 260 * (P.tw % 2 ? 1 : -1)));   // bowled aside
       p.game.fx.puff(at, [0.62, 0.52, 0.36], 50 + P.radius, 0.4); p.game.audio.playAt('S_Blunt', at, 0.5, 1.2 - Math.min(0.4, P.tw * 0.04));
       return true;

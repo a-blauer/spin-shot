@@ -411,3 +411,22 @@
 - Movement: the Sprinter weave ('zigzag') 0.55 side at 2.4 rad/s (was 1.1 at 4); the crosshair dodge (Runner, Leaper,
   elites) eases in and out over 0.3 s (sin envelope) at 1.1 side and +20% speed (was a 0.38 s snap at 1.6 and +30%),
   every 2.2-4.2 s (1.4-3). zig.json / zig2.json / zig3.json log heading against the line to the player.
+
+## (64) Tumbleweed: flung out of the bell, twice the size, a new gun
+- User: the weed should shoot out a bit before rolling instead of coming out on the floor; make it 100% bigger; the
+  weed on top of the gun looked weird and it glitched when aiming down sights.
+- Shot (signatures2.js): leaves the bell at 0.3 size and opens to full over 0.2 s, flies in a short arc (0.62 of its
+  speed forward, 280 up, gravity 1960, tumbling), lands about 460 ahead after ~0.47 s, makes one small hop (-0.3 of
+  its fall if faster than 350) and rolls off at the speed it landed with, gathering pace to the old roll speed (time
+  constant 0.25 s; base speed still +35%/s up to 2400). Radius 44 (22). Into a wall in the air: it drops there.
+  The velocity line had been eaten by a mid-line comment on the first try (the weed fell flat at full speed).
+- Gun (guns.js): the hopper and the weed on top are gone. An oak cask with iron hoops, twine and a side crank; a tin
+  chute into a brass bell with the next weed stuffed in its mouth (MagRoot 27.4,0,7.6); open sights along the top
+  (brass strap, notch on a base at the back, short bead on the bell's lip). Stave joins are rolled round the cask
+  (R(0,0,-i*30)); pitched, they stuck out like spokes. Loaded from the front: reload 'muzzle', rp [-12,-28,12]; the
+  off hand brings a weed up from below and pushes it into the bell.
+- ADS: the bead's top (16.2) stood above the eye line (Sight 15.6 + 0.45), so the sight-line check called the gun
+  blocked and auto-canted it onto its side. Bead 1.15 tall (top 15.75), notch on a base (tops 15.8): no cant, the bead
+  sits in the notch just under the crosshair; the bell's lip (15.55) clears.
+- tests: tw/fly.py (first person + side stills of one shot into a held line of three); gscan no new floats; dg0
+  [55,[],[]]; a 15 s soak firing into six enemies, no errors.

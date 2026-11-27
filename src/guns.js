@@ -103,7 +103,7 @@ const FEEL_GUN = {
   Poltergeist: { odd: true, pos: 1.4, rise: 0.6, k: 180, shake: 0.15, cam: { up: 0.4, snap: 1, side: 0.3, fov: 2 }, flash: 0.9, flashTint: [0.6, 1, 0.85] },
   Bullwhip: { odd: true, atk: 'lash', pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
   'Live Wire': { odd: true, reload: 'muzzle', rp: [-12, -28, 12], pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
-  Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'drumtop', rp: [4, -12, -34], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
+  Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'muzzle', rp: [-12, -28, 12], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
   Gusher: { odd: true, pos: 0.2, rise: 0.1, side: 1.4, weight: 1.5, cam: { up: 0.03, snap: 0.04, side: 0.06 } },
   'Hocus Pocus': { odd: true, atk: 'flick', pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
   "Dead Man's Hand": { odd: true, atk: 'throw', pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
@@ -1082,11 +1082,11 @@ function buildGunWith(vm, W, tier, PAL) {
     }
     case 'Tumbleweed': {
       // A prairie bowler: a little oak cask the weed is wound through, a hand crank on its flank, a tin chute that opens
-      // into a brass bell, and a wire hopper on top with the next tumbleweed in it.
+      // into a brass bell with the next tumbleweed stuffed in its mouth (loaded from the front), open sights along the top.
       const oak = C(0xA0703E), oakD = C(0x6A4626), tin = C(0xB9B2A0), dry = C(0x9C7A44), dryD = C(0x6E5530); oak.grain = 1; oakD.grain = 1;
       const weed = (x, y, z, d) => { Ball(x, y, z, d * 0.55, dryD); for (let i = 0; i < 9; i++) Pt(8, x, y, z, d * 0.06, d, d, i % 3 ? dry : (i % 2 ? Accent : dryD), R(i * 37, i * 61, i * 23)); };   // a ball of dry twigs
       T(-6, 15, 11.6, 7.6, oak); T(-6.8, -5.6, 10.4, 7.6, oakD); T(14.6, 15.8, 10.4, 7.6, oakD);                                     // the cask and its heads
-      for (let i = 0; i < 12; i++) { const a = d2r(i * 30); B(4.5, Math.cos(a) * 5.82, 7.6 + Math.sin(a) * 5.82, 20.6, 0.26, 0.5, dk(oak, 0.8), R(i * 30, 0, 0)); }   // the joins between its staves
+      for (let i = 0; i < 12; i++) { const a = d2r(i * 30); B(4.5, Math.cos(a) * 5.82, 7.6 + Math.sin(a) * 5.82, 20.6, 0.26, 0.5, dk(oak, 0.8), R(0, 0, -i * 30)); }   // the joins between its staves (rolled round the cask; they were pitched out like spokes)
       for (const x of [-3.6, 4.5, 12.6]) { Ring(x, 7.6, 12.4, 1.3, PAL.steelD); for (let i = 0; i < 6; i++) { const a = d2r(i * 60 + 30); Ball(x, Math.cos(a) * 6.1, 7.6 + Math.sin(a) * 6.1, 0.6, PAL.steelL); } }   // iron hoops, riveted
       // the crank, on the side you see: an axle out of the cask, a forged arm and a turned wooden knob
       Ty(4.5, 7.6, 2.6, 2.4, PAL.steelD, -6.6); Ty(4.5, 7.6, 3.4, 0.8, PAL.brass, -7.6);
@@ -1095,15 +1095,18 @@ function buildGunWith(vm, W, tier, PAL) {
       Hol(15.6, 24, 8.4, 7.6, tin); Ring(16.6, 7.6, 9.4, 1, PAL.brass); Ring(23.4, 7.6, 9.4, 1, PAL.brass);
       for (const y of [-1, 1]) B(20, y * 4.3, 7.6, 6.6, 0.3, 1.2, PAL.steelL);                                                         // rivet straps
       Cone(28, 7.6, 14.6, 8.4, PAL.brass, false); Ring(32.1, 7.6, 14.8, 1.1, dk(PAL.brass, 0.8)); Hol(24, 32, 14.2, 7.6, C(0x3A2A1A));   // the bell, dark inside
-      weed(27.4, 0, 7.6, 6.4);
-      // a wire hopper on top, out of the way when you aim, with the next one waiting in it
-      hideAds(() => { Tz(4.5, 13, 15.2, 4.4, oakD); for (const a of [0, 60, 120]) Pt(8, 4.5, 0, 20.4, 0.12, 11.6, 11.6, PAL.steelL, R(0, a, 0)); Pt(8, 4.5, 0, 20.4, 0.12, 11.6, 11.6, PAL.steelL, R(0, 0, 90)); Ring(4.5, 15.6, 6, 0.8, PAL.steelD); Tz(4.5, 25.8, 26.8, 1.4, PAL.steelD); });
-      vm.MagRoot = group(4.5, 0, 20.4); into(vm.MagRoot, () => weed(0, 0, 0, 8.4));
+      vm.MagRoot = group(27.4, 0, 7.6); into(vm.MagRoot, () => weed(0, 0, 0, 6.8));                                    // the next weed, stuffed in the bell
+      // open sights along the top: a brass strap down the cask with a notch at the back, a bead on the bell's lip
+      B(4.5, 0, 13.7, 16, 2.4, 0.7, PAL.brass); for (const x of [-2.4, 11.4]) Ball(x, 0, 14.1, 0.9, PAL.steelL);
+      // the notch stands on a little base and the bead is short, so both tops sit just under the line you aim along (16.05)
+      B(-3.4, 0, 14.45, 1.2, 3.4, 0.9, PAL.steelD); notch(-3.4, 14.9, 3.4, PAL.steelD); post(30.6, 14.6, 1.15, PAL.brass);
+      // twine wound round the cask between the hoops
+      for (const x of [0.4, 8.6]) Ring(x, 7.6, 12.1, 1.6, C(0x8A7A50));
       // hold: a pistol grip under the cask, a fore grip under the chute, a real stock behind
       grip(-1.2, 2.6, oakD, 11.4, 14, 5.4, 4); guard(1.4, 2.4, PAL.brass, 6.6, 4.4);
       E([[16.6, 3.8], [23, 3.8], [22.2, -3.4], [17.6, -3.4]], 3.6, oakD, { bevel: 0.9 }); for (let i = 0; i < 4; i++) B(20, 0, 2.2 - i * 1.5, 5.2, 3.8, 0.35, dk(oakD, 0.7));
       stock(-6.8, 10.8, oak, 19, 3, 9, 4.4, 5.4);
-      Muzzle = V(32.4, 0, 7.6); Support = V(20, 0, 1.6); Sight = 16.6;
+      Muzzle = V(32.4, 0, 7.6); Support = V(20, 0, 1.6); Sight = 15.6;
       break;
     }
     case 'Gusher': {
@@ -1827,7 +1830,7 @@ function buildGunWith(vm, W, tier, PAL) {
       case 'Tumbleweed':
         T(-7.1, -6.6, 8, 7.6, gold); T(15.6, 16.1, 8, 7.6, gold);                                                      // I brass on the cask heads
         if (t2) Ring(32.3, 7.6, 15.6, 1.4, gold);                                                                      // II a gold lip on the bell
-        if (t3) { Ball(27.4, 0, 7.6, 3.4, C(0xFF7A2A), 2.6); Ring(4.5, 7.6, 12.7, 0.6, g, 2.2); }                       // III the weed alight, a lit hoop
+        if (t3) { Ring(31.9, 7.6, 14.2, 0.6, C(0xFF7A2A), 2.4); Ring(4.5, 7.6, 12.7, 0.6, g, 2.2); }                     // III an ember-lit lip on the bell, a lit hoop
         break;
       case 'Gusher':
         Ty(4, 7.4, 3, 0.6, PAL.bone, -2.9); B(4.2, -3.25, 7.8, 1.2, 0.1, 0.3, PAL.red);                                // I a pressure gauge
