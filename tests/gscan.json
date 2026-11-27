@@ -1,0 +1,5 @@
+{"w":640,"h":360,"steps":[
+{"js":"const g=__dmh,P=g.player;g.godMode=true;g.hud.helpT=0;g.phase='Intermission';g.phaseTimer=1e9;P.pos.set(-1500,114,0);__sim(10);1"},
+{"js":"(()=>{const o=[];for(let d=0;d<28;d++)for(const t of [0,1,2,3]){let f=[],s=[];try{f=__floatScan(d,t);s=__sculptGapScan(d,t);}catch(e){o.push([d,t,'ERR '+e.message]);continue;}if(f.length||s.length)o.push([d,t,f.length,s.length,JSON.stringify(f.slice(0,4)),JSON.stringify(s.slice(0,3))]);}return JSON.stringify(o)})()"},
+{"js":"(()=>{const o=[];for(let d=28;d<55;d++)for(const t of [0,1,2,3]){let f=[],s=[];try{f=__floatScan(d,t);s=__sculptGapScan(d,t);}catch(e){o.push([d,t,'ERR '+e.message]);continue;}if(f.length||s.length)o.push([d,t,f.length,s.length,JSON.stringify(f.slice(0,4)),JSON.stringify(s.slice(0,3))]);}return JSON.stringify(o)})()"}
+]}

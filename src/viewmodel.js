@@ -934,11 +934,14 @@ export class ViewModel {
       handOff.add(U(1, 4.2, 6.2).multiplyScalar(reach)).add(U(-7.5 * pull, -1.6 * lift, 2.6 * lift));
       addR(5, -4, 15, mid); add(-2, 0, -1.2, mid);
     };
-    const chargeCycle = (u) => {   // the off hand racks the handle
+    // the off hand racks the handle on the receiver's left side: the gun dips and turns its flank to the hand, so the
+    // arm comes up from below and to the left, under the sights, instead of across the eye
+    const chargeCycle = (u) => {
       const reach = bump(u, 0, 0.3, 0.72, 1), pull = bump(u, 0.28, 0.5, 0.56, 0.7);
       const cp = (A.charge ? A.charge.userData.rest : this.magRest).clone();
       mv('charge', -5.5 * pull);
-      supTo(cp.add(U(-1 - 5.5 * pull, -1.5, 1)), reach);
+      add(1.5, 0.5, -3.2, reach); addR(-3, 4, -12, reach);
+      supTo(cp.add(U(-1 - 5.5 * pull, -2.6, -1.4)), reach);
     };
 
     // ---- the action cycling after a shot
@@ -1024,6 +1027,7 @@ export class ViewModel {
       };
       const md = f.magDir ? U(f.magDir[0], f.magDir[1], f.magDir[2]) : U(-3, -9, -28);
       const racks = wasEmpty || ['slap', 'rev'].includes(f.charge), st = racks ? 1 : 1.2;   // with nothing to rack the swap takes its time
+      const vents = f.vent !== undefined ? f.vent : this.cls === 'Energy' || this.cls === 'Wonder';   // a spent cell vents and the new one hums; a box of nails does not
       switch (f.reload) {
         case 'twin': {   // no free hand: both magazines are thumbed out, the guns dip out of sight and come back loaded
           const tip = bump(T, 0.04, 0.16, 0.74, 0.86), dip = bump(T, 0.26, 0.4, 0.58, 0.74), fall = sstep(0.18, 0.34, T);
@@ -1100,13 +1104,13 @@ export class ViewModel {
         }
         case 'drumtop': {
           pose(0, 0.1, 0.88, 1, 6, -1, -4);
-          magSwap([0.08, 0.18, 0.32, 0.46, 0.6, 0.7], U(-2, -34, -8), U(-1, -4.5, -2));   // slid off to the side, never over the sights
+          magSwap([0.08, 0.18, 0.32, 0.46, 0.6, 0.7], U(-4, -13, -19), U(-1, -4.5, -2));   // lifted off and down to the left: never over the sights, never out at arm's length
           if (T > 0.78 && T < 0.96) { this.crankA = (this.crankA || 0) + dt * 540; this.spinSpeed = Math.max(this.spinSpeed, 500); }   // a turn of the crank to seat the first round
           cue(0.79, () => play('S_Rack', 0.7, 0.9)); cue(0.88, () => play('S_Rack', 0.4, 1.6));
           break;
         }
-        case 'muzzle': {
-          pose(0, 0.14, 0.84, 1, -4, -2, 2);
+        case 'muzzle': {   // the muzzle is tipped down and across to the off hand, so a round goes in at arm's length, not overhead
+          pose(0, 0.14, 0.84, 1, -7, -3, -2);
           const front = this.magRest.clone().add(U(16, 0, 0));
           if (wasEmpty) {
             const mp = U(26, -16, -30).lerp(front, sstep(0.26, 0.5, T)).lerp(this.magRest, sstep(0.54, 0.7, T));
@@ -1126,23 +1130,28 @@ export class ViewModel {
           pose(0, 0.12, 0.84, 1, -2, -2, 3);
           if (A.mag) A.mag.rotation.y = d2r(90) * bump(T, 0.12, 0.2, 0.6, 0.68);
           magSwap([0.06, 0.2, 0.32, 0.46, 0.6, 0.72], U(-2, -8, -28), U(0, -0.5, -6), 'S_MagIn');
-          cue(0.21, () => { play('S_Flame', 0.4, 1.6); const p = this.toWorld(this.MagRoot, 60); for (let i = 0; i < 3; i++) this.game.fx.puff(p, [0.85, 0.9, 0.95], 16 + i * 6, 0.5 + i * 0.1, new THREE.Vector3(0, -40 - i * 20, 0).add(this.game.player.vel)); });   // spent cell vents
+          if (vents) cue(0.21, () => { play('S_Flame', 0.4, 1.6); const p = this.toWorld(this.MagRoot, 60); for (let i = 0; i < 3; i++) this.game.fx.puff(p, [0.85, 0.9, 0.95], 16 + i * 6, 0.5 + i * 0.1, new THREE.Vector3(0, -40 - i * 20, 0).add(this.game.player.vel)); });   // spent cell vents
           emitScale = T < 0.2 ? emitScale : T < 0.7 ? 0.12 : emitScale + 1.1 * (1 - sstep(0.7, 0.92, T));
-          cue(0.7, () => { play('S_PowerUp', 0.35, 1.6); this.jolt(0.5); });
+          if (vents) cue(0.7, () => { play('S_PowerUp', 0.35, 1.6); this.jolt(0.5); });
           break;
         }
-        case 'charge': {   // throw the lever: the rotors spin up, a fresh capacitor stack goes in, and it hums back to life
+        case 'charge': {   // throw the lever, take the spent capacitor stack out from under the gun, seat a fresh one, and it hums back to life
           pose(0, 0.1, 0.88, 1, -2, -1, 2);
           const lev = A.lever ? A.lever.userData.rest.clone().add(U(0, 0.5, 6)) : this.magRest.clone();
           const pull = bump(T, 0.12, 0.22, 0.26, 0.38);
           rx('lever', 62 * pull);
-          supTo(lev.add(U(-5.4 * pull, 0, -2 * pull)), bump(T, 0.03, 0.12, 0.3, 0.42));
+          supTo(lev.add(U(-5.4 * pull, 0, -2 * pull)), bump(T, 0.03, 0.12, 0.3, 0.4));
           cue(0.14, () => play('S_Rack', 0.8, 0.7));
           this.reelA = this.reelA || [0, 0, 0];
           for (let i = 0; i < 3; i++) if (T > 0.2 && T < 0.58 + i * 0.1) this.reelA[i] += dt * 1400;
           for (let i = 0; i < 3; i++) cue(0.58 + i * 0.1, () => { play('S_Chain', 0.35, 1 + i * 0.15); this.jolt(0.3); this.reelA[i] = Math.round(this.reelA[i] / 120) * 120; this.reelSpin = Math.round(this.reelA[i] / 120); });
-          magOff.copy(U(0, 0, -16)).multiplyScalar(T < 0.3 ? sstep(0.04, 0.14, T) : 1 - sstep(0.4, 0.74, T));
-          cue(0.62, () => play('S_MagIn', 0.8, 0.9));
+          // the stack goes nowhere on its own: the hand comes under it, draws it down out of sight, and brings the new one up
+          const out = sstep(0.44, 0.56, T) * (1 - sstep(0.6, 0.72, T));
+          magOff.copy(U(-2, -9, -30)).multiplyScalar(out);
+          supTo(this.magRest.clone().add(magOff).add(U(0, -0.5, -6)), bump(T, 0.36, 0.44, 0.74, 0.84));
+          { const M = A.mag || this.MagRoot; if (M) M.visible = !(T > 0.555 && T < 0.6); }
+          cue(0.48, () => play('S_MagOut', 0.7));
+          cue(0.72, () => { play('S_MagIn', 0.8, 0.9); this.jolt(0.6); });
           cue(0.84, () => { play('S_PowerUp', 0.4, 1.3); this.jolt(0.8); this.emitP = 1.5; });
           break;
         }
@@ -1223,7 +1232,7 @@ export class ViewModel {
     const Y = rot.Y + (this.swayRot.y * still + bobRot.y + this.recoilRot.y) * MOVE;
     const Rr = rot.R + (this.swayRot.z * still + bobRot.z + this.recoilRot.z) * MOVE;
     this.gun.quaternion.copy(quatVM(R(P, Y, Rr)));
-    if (this.inspect) { this.gun.position.copy(P3({ X: this.inspect[0], Y: this.inspect[1], Z: this.inspect[2] })); this.gun.quaternion.copy(quatVM(R(this.inspect[3], this.inspect[4], this.inspect[5]))); if (this.hand) this.hand.visible = false; if (this.support) this.support.visible = false; }
+    if (this.inspect) { this.gun.position.copy(P3({ X: this.inspect[0], Y: this.inspect[1], Z: this.inspect[2] })); this.gun.quaternion.copy(quatVM(R(this.inspect[3], this.inspect[4], this.inspect[5]))); if (!this.inspectHands) { if (this.hand) this.hand.visible = false; if (this.support) this.support.visible = false; } }   // (inspectHands: a test hook that keeps the hands on to check grips from the side)
     if (gunSpin) {   // a spin around the trigger finger: the gun turns, the hand holding it does not
       const sq = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d2r(gunSpin));
       this.gun.quaternion.multiply(sq);

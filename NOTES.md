@@ -354,3 +354,25 @@
 - All your own rounds: the glow fades in over the first ~4 m from the camera, so nothing flares in your face leaving the
   muzzle (hostile rounds unchanged).
 - Results: village float 0, ghost 0, all 13 stations reachable, dg0 [55,[],[]], wt ok. Judged from stills.
+
+## (60) Gun animation pass 1: arms out of your face, nothing moves on its own
+- Every gun reviewed in first person (idle, a shot, reload at 20/40/60/80%) and grips checked from both flanks and from
+  above with the hands kept on (vm.inspectHands, a test hook). Tools: tests gview.py (strips), rframe.py (full reload
+  frames), rfire.py (frames after a shot), hview.py (hand close-ups), hside.py (grips from outside), hprobe.json (closest
+  the off hand comes to the eye in each reload), gsheet.py (workbench side sheets).
+- Charging handle (SMGs, rifles, LMGs from empty): the hand takes the handle on the receiver's left flank from below
+  instead of reaching over the top past the eye; the gun dips 3 and turns its flank to the hand. Rustler's cocking handle
+  moved up front (x 10) over the handguard.
+- Launchers (Dynamite Dan, Boomtown, Fireworks Finale) and the Whaler and Live Wire: the muzzle is tipped down and across
+  to the off hand (rp [-14,-32,12] / [-12,-28,12]) so a round goes in at arm's length, not with the arm stretched overhead.
+  Whaler and Live Wire now load at the muzzle (were sliding the harpoon/rod out sideways through the barrel).
+- Drums on top (Thresher, Tumbleweed): lifted off down and to the left (U(-4,-13,-19)), not out at arm's length; the
+  Tumbleweed rolls left for its reload so the hopper comes to the hand and the arm never crosses the cask.
+- Thunderhead: the pull lever sits forward on the near flank (x 11); the capacitor stack is taken out under the gun and a
+  fresh one brought up by the hand (it used to drop and rise by itself).
+- 'cell' reloads: the steam vent and the power-up hum only on things that run on charge (Energy, Wonder, or feel.vent);
+  oddities with a box or canister just swap it.
+- Hands: idle grips and the changed poses were checked from outside the gun: right hand thumb on the left of the grip and
+  trigger finger on the right; off hand palm up under the handguard, fingers over the far side, thumb on the near side;
+  palms on what they hold (magazine, handle, drum, rocket, harpoon, capacitor).
+- Checks: gun float/gap scans unchanged (only the known twin-pistol pair and a sunk grip screw), dg0 [55,[],[]], wt ok.

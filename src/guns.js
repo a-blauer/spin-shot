@@ -41,7 +41,7 @@ const FEEL_CLASS = {
   Shotgun: { pos: 1.9, rise: 1.15, side: 0.8, k: 170, d: 16, shake: 0.28, weight: 1.15, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: 'shot', reload: 'shell', rp: [12, -12, 26], shells: 3, cam: { up: 1.8, snap: 2.1, side: 0.4, fov: 3 }, flash: 1.5 },
   LMG: { pos: 0.8, rise: 0.5, side: 1.9, k: 260, d: 20, shake: 0.06, weight: 1.7, hip: [-2, 0.5, -1.5, 0, -2, -7], action: 'recip', cycle: 0.07, shell: 'rifle', reload: 'box', rp: [4, -18, 34], charge: 'handle', cam: { up: 0.45, snap: 0.6, side: 0.3, taper: 0.12 }, flash: 1.2, draw: 'heavy' },
   Sniper: { pos: 2.6, rise: 0.85, side: 0.5, k: 120, d: 13, shake: 0.4, weight: 1.4, hip: [-1, 0, -0.5, 0, -1.5, -6], action: 'none', shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', cam: { up: 2.4, snap: 2.9, side: 0.2, fov: 4 }, flash: 1.5 },
-  Launcher: { pos: 2.5, rise: 1, side: 0.6, k: 110, d: 12, shake: 0.45, weight: 1.6, hip: [-2, 0, -2, 0, -2, -6], action: 'load', cycle: 0.55, shell: null, reload: 'muzzle', rp: [30, -16, 16], cam: { up: 1.5, snap: 1.8, side: 0.3, fov: 3.5 }, flash: 1.6, draw: 'heavy' },
+  Launcher: { pos: 2.5, rise: 1, side: 0.6, k: 110, d: 12, shake: 0.45, weight: 1.6, hip: [-2, 0, -2, 0, -2, -6], action: 'load', cycle: 0.55, shell: null, reload: 'muzzle', rp: [-14, -32, 12], cam: { up: 1.5, snap: 1.8, side: 0.3, fov: 3.5 }, flash: 1.6, draw: 'heavy' },
   Energy: { pos: 0.3, rise: 0.22, side: 0.8, k: 300, d: 24, shake: 0, weight: 1, hip: [0, 0, 0, 0, -1.5, -6], action: 'pulse', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.35, snap: 0.5, side: 0.2 }, flash: 1 },
   Wonder: { pos: 1, rise: 1, side: 1, k: 220, d: 18, shake: 0.15, weight: 1.1, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.5, snap: 0.5, side: 0.2 }, flash: 1 },
   Oddity: { pos: 1, rise: 0.8, side: 0.8, k: 220, d: 18, shake: 0.1, weight: 1.1, hip: [0, 0, 0, 0, -1.5, -6], action: 'none', shell: null, reload: 'cell', rp: [8, -16, 36], cam: { up: 0.5, snap: 0.6, side: 0.2 }, flash: 0 },
@@ -88,7 +88,7 @@ const FEEL_GUN = {
   'Black Cat': { action: 'bolt', cycle: 0.66, shellAt: 0.42, shell: 'rifle', reload: 'mag', rp: [14, -8, 30], charge: 'bolt', weight: 1.3, pos: 9, rise: 5.5, k: 150, d: 15, shake: 0.3, cam: { up: 1.4, snap: 2, side: 0.12, fov: 3 }, flash: 0.25 },
   // --- oddities
   'Come-Back Kid': { odd: true, atk: 'throw', pos: 2.6, rise: 2, side: 1.4, k: 160, weight: 0.8, cam: { up: 0.6, snap: 1.4, side: 0.4 } },
-  Whaler: { odd: true, pos: 3, rise: 1, k: 110, d: 12, shake: 0.4, weight: 1.6, cam: { up: 1.6, snap: 2.4, side: 0.2, fov: 3.5 } },
+  Whaler: { odd: true, reload: 'muzzle', rp: [-12, -28, 12], pos: 3, rise: 1, k: 110, d: 12, shake: 0.4, weight: 1.6, cam: { up: 1.6, snap: 2.4, side: 0.2, fov: 3.5 } },
   'Bear Trap': { odd: true, atk: 'throw', pos: 2.2, rise: 1.2, k: 130, shake: 0.3, weight: 1.5, cam: { up: 1.4, snap: 1.8, side: 0.3, fov: 2.5 } },
   'Jack-in-the-Box': { odd: true, pos: 2, rise: 1.4, k: 140, shake: 0.25, weight: 1.3, cam: { up: 1.2, snap: 1.6, side: 0.4, fov: 2 } },
   'William Tell': { odd: true, pos: 2.2, rise: 0.6, k: 150, d: 14, shake: 0.2, weight: 1.2, cam: { up: 1, snap: 2, side: 0.15, fov: 3 } },
@@ -102,8 +102,8 @@ const FEEL_GUN = {
   Tilt: { odd: true, pos: 2.2, rise: 1, k: 170, shake: 0.2, cam: { up: 0.8, snap: 1.4, side: 0.3, fov: 2 } },
   Poltergeist: { odd: true, pos: 1.4, rise: 0.6, k: 180, shake: 0.15, cam: { up: 0.4, snap: 1, side: 0.3, fov: 2 }, flash: 0.9, flashTint: [0.6, 1, 0.85] },
   Bullwhip: { odd: true, atk: 'lash', pos: 3.4, rise: 2.6, side: 2, k: 190, weight: 0.6, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 1.6, side: 0.6 } },
-  'Live Wire': { odd: true, pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
-  Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'drumtop', rp: [2, -18, 30], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
+  'Live Wire': { odd: true, reload: 'muzzle', rp: [-12, -28, 12], pos: 2, rise: 0.9, k: 150, shake: 0.2, weight: 1.3, cam: { up: 1, snap: 1.5, side: 0.2, fov: 2 }, flash: 0.8, flashTint: [0.6, 0.9, 1] },
+  Tumbleweed: { odd: true, pos: 2.2, rise: 1.0, k: 150, shake: 0.22, weight: 1.5, reload: 'drumtop', rp: [4, -12, -34], cam: { up: 0.9, snap: 1.2, side: 0.25, fov: 2 } },
   Gusher: { odd: true, pos: 0.2, rise: 0.1, side: 1.4, weight: 1.5, cam: { up: 0.03, snap: 0.04, side: 0.06 } },
   'Hocus Pocus': { odd: true, atk: 'flick', pos: 1.6, rise: 2, k: 190, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.6, snap: 1.2, side: 0.3, fov: 2 }, flash: 1, flashTint: [1, 0.6, 0.9] },
   "Dead Man's Hand": { odd: true, atk: 'throw', pos: 1.6, rise: 1.6, side: 1.4, k: 220, weight: 0.7, hip: [3, -1.5, 2, 0, -1, -4], cam: { up: 0.5, snap: 0.9, side: 0.3 } },
@@ -462,7 +462,7 @@ function buildGunWith(vm, W, tier, PAL) {
     case 'Rustler': {
       E([[-6, 3.6], [-6, 9.4], [-3, 10.4], [14, 10.4], [18, 8.6], [18, 3.6]], 4.2, Accent, { bevel: 0.6 });
       E(rect(-4, 10.4, 12, 11.2), 2, PAL.steelD, { bevel: 0.2 });
-      part('charge', 3, -2.2, 8.8, () => { B(3, -2.5, 8.8, 2.6, 1, 1.1, PAL.steelL); }); B(5, -2.15, 8.8, 7, 0.25, 1.3, PAL.black);
+      part('charge', 10, -2.2, 8.8, () => { B(10, -2.5, 8.8, 2.6, 1, 1.1, PAL.steelL); }); B(10, -2.15, 8.8, 7, 0.25, 1.3, PAL.black);   // the cocking handle runs in a slot up front, over the handguard
       T(18, 20, 3, 7, PAL.steelD); T(20, 36, 4.6, 7, PAL.black); T(35.6, 36.2, 3, 7, PAL.steelD);   // suppressor
       for (const s of [-1, 1]) { E([[2.6, 5.4], [7.4, 7.6], [5.8, 5.4], [7.4, 3.4]], 0.3, PAL.bone, { y: s * 2.2, bevel: 0.04, glow: 0.3 }); }
       E([[18, 3.2], [18, 5.4], [8, 5.4], [8, 3.2]], 4.8, PAL.black, { bevel: 0.8 });                // handguard
@@ -798,7 +798,7 @@ function buildGunWith(vm, W, tier, PAL) {
       for (const s of [-1, 1]) E(rect(-4, 6.8, 14, 12), 0.4, C(0x10161f), { y: s * 3.2, bevel: 0.05 });
       for (let i = 0; i < 3; i++) part('reel' + i, -1 + i * 6, 0, 9.4, () => { for (const s of [-1, 1]) { Ty(-1 + i * 6, 9.4, 4.4, 0.3, PAL.black, s * 3.45); Ball(-1 + i * 6, s * 3.5, 10.6, 2, reels[i], 1.4); Ball(-1 + i * 6, s * 3.5, 8.3, 1.5, reels[(i + 1) % 3], 1.2); } });
       for (let i = 0; i < 5; i++) { Tz(-2 + i * 3.6, 16.2, 17.2, 1.4, PAL.bone); Ball(-2 + i * 3.6, 0, 17.5, 1.1, C(0xBFEFFF), 2.6); }   // insulators along the top
-      part('lever', -6, -4.4, 6.4, () => { Tz(-6, 6, 11.6, 1.2, PAL.steelL, -4.4); Ball(-6, -4.4, 12.4, 2.8, PAL.black); }); Ty(-6, 6.4, 2.4, 1.4, gold, -4);   // pull lever, on the side the off hand can reach
+      part('lever', 11, -4.4, 6.4, () => { Tz(11, 6, 11.6, 1.2, PAL.steelL, -4.4); Ball(11, -4.4, 12.4, 2.8, PAL.black); }); Ty(11, 6.4, 2.4, 1.4, gold, -4);   // pull lever, forward on the near flank where the off hand already is
       T(18, 30, 5, 9, gold, 0, 0.3); Ring(22, 9, 7.4, 1, goldD); Ring(27, 9, 7.4, 1, goldD);
       for (let i = 0; i < 3; i++) { const a = d2r(i * 120 + 90); E([[30, -0.8], [40, -0.3], [44, 0], [40, 0.3], [30, 0.8]], 1, gold, { bevel: 0.2, glow: 1.4 }).position.add(new THREE.Vector3(Math.cos(a) * 3, 9 + Math.sin(a) * 3, 0)); }   // lightning prongs
       Ball(38, 0, 9, 3.4, C(0xBFEFFF), 3);
