@@ -1,0 +1,9 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent,r=[];g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(200);for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(60);P.giveWeapon(46);__sim(40);const fw=new (P.pos.constructor)(Math.sin(P.yaw),0,-Math.cos(P.yaw));const def=g.enemies.length;const L=[];for(let i=0;i<6;i++){const at=P.pos.clone().addScaledVector(fw,350+i*160);at.x+=(i%2?40:-40);const f=g.findFreeLocationNear(at,0,200)||at;L.push(g.spawnEnemy(0,f,false,-1,1,3,0,false));}__sim(120);const hp0=L.map(E=>Math.round(E.health));P.pitch=-0.05;__sim(1,{fire:true,firePressed:1});const tr=[];for(let k=0;k<40;k++){__sim(3);const W=g.projectiles.list.find(q=>!q.done&&q.roll);if(W)tr.push([Math.round(W.pos.y-P.pos.y),W.tw,Math.round(W.radius)].join('/'));}r.push('track',tr.slice(0,14).join(' '));r.push('hp',hp0.join(','),'->',L.map(E=>E.dead?'X':Math.round(E.health)).join(','));JSON.stringify(r)"},
+{"js":"const g=__dmh,P=g.player;P.pitch=-0.05;__sim(30);__sim(1,{fire:true,firePressed:1});__sim(14);window.__dmhHold=true;1"},
+{"wait":300},{"shot":"tw_roll"},
+{"js":"window.__dmhHold=false;const g=__dmh,P=g.player;__sim(80);__sim(1,{reload:1});__sim(30);window.__dmhHold=true;1"},
+{"wait":300},{"shot":"tw_reload"},
+{"js":"window.__dmhHold=false;__sim(120);__sim(40,{aim:true});window.__dmhHold=true;1"},
+{"wait":300},{"shot":"tw_ads"}
+]}

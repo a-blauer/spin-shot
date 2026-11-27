@@ -1,0 +1,2 @@
+{"steps":[{"js":"const a = __dmh.audio; a.init && a.init(); a.ctx && a.ctx.resume(); 1"},{"wait":2500},
+{"js":"const a = __dmh.audio; const ks = [...a.buffers.keys()].filter(k => k.startsWith('guns/')); const b = a.buffers.get('guns/G_V0'); let lead = -1; if (b) { const d = b.getChannelData(0); let i = 0; while (i < d.length && Math.abs(d[i]) < 0.03) i++; lead = i / b.sampleRate; } JSON.stringify({state: a.ctx && a.ctx.state, loaded: ks.length, dur: b && b.duration, ch: b && b.numberOfChannels, lead})"}]}

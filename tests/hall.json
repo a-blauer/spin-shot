@@ -1,0 +1,1 @@
+{"w": 1600, "h": 700, "query": "&map=6", "steps": [{"js": "const g=__dmh;g.godMode=true;g.tip=()=>{};g.hud.toast=()=>{};__sim(30);for(const E of g.enemies){E.dead=true;E.pos.y=-1e5;}__sim(5);const P=g.player;JSON.stringify([P.pos.x|0,P.pos.y|0,P.pos.z|0,g.phase])"}, {"wait": 300}, {"shot": "look/hall0"}]}

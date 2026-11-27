@@ -1,0 +1,3 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player, V = P.pos.constructor; g.godMode = true; g.phase='Round'; g.round=3; g.toSpawn=3; g.spawned=3; const A = g.spawnEnemy(0, new V(3000, 110, 3000), false, -1, 1, 1, 0, false); A.emerge = 0; __sim(120); JSON.stringify({farT: A.farT, lostT: A.lostT, hurry: A.hurry, emerge: A.emerge, alive: g.aliveCount(), spawned: g.spawned, toSpawn: g.toSpawn, phase: g.phase, barr: g.barricadeT, free: !!g.findFreeLocationNear(P.pos, 900, 1500), role: g.net.role})"}
+]}

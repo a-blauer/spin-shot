@@ -1,0 +1,12 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh; g.godMode = true; window.tp = (x,z,yaw,pitch=0) => { const P = g.player; const h = g.phys.raycastDown(new g.player.pos.constructor(x, 3000, z), 4000); P.pos.set(x, (h?h.point.y:0)+95, z); P.vel.set(0,0,0); P.yaw = yaw; P.pitch = pitch; __sim(40); return g.zone; }; tp(-4000, 0, Math.PI*0.5)"},
+ {"wait":1500,"shot":"m_mainstreet"},
+ {"js":"tp(0, -3500, Math.PI)"},
+ {"wait":1500,"shot":"n_chapel"},
+ {"js":"tp(0, 3500, 0)"},
+ {"wait":1500,"shot":"o_rail"},
+ {"js":"tp(0, -1600, Math.PI)"},
+ {"wait":1500,"shot":"p_plaza"},
+ {"js":"tp(4000, 0, -Math.PI*0.5)"},
+ {"wait":1500,"shot":"q_mesa"}
+]}

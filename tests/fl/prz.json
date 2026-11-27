@@ -1,0 +1,7 @@
+{"w": 1400, "h": 800, "query": "&map=6", "steps": [
+{"js": "const g=__dmh;g.godMode=true;g.tip=()=>{};g.hud.toast=()=>{};__sim(10);'a'"}, {"wait": 300},
+{"js": "const g=__dmh,D=g.descent,P=g.player;for(const E of g.enemies)E.dead=true;D.prize={kind:'gnome',id:'trainer'};D.prizeO=null;D.room=20;D.arena=D.arenaFor(20);D.flip=1;D.arrive(false);__sim(30);for(const E of g.enemies){E.dead=true;E.pos.y=-1e5;}const q=D.prizeO.root.getWorldPosition(new (D.prizeO.root.position.constructor)());P.pos.set(q.x+0,q.y+90,q.z+520);P.vel.set(0,0,0);P.yaw=0;P.pitch=0.05;window.__dmhHold=true;__sim(5);JSON.stringify([q.x|0,q.y|0,q.z|0, !!D.raid])"}, {"wait": 500}, {"shot": "look/prz_a"},
+{"js": "const g=__dmh,P=g.player;P.yaw=Math.PI;__sim(3);1"}, {"wait": 300}, {"shot": "look/prz_b"},
+{"js": "const g=__dmh,D=g.descent,P=g.player;P.yaw=0;D.prizeO.free();for(let i=0;i<40;i++)__sim(4);1"}, {"wait": 400}, {"shot": "look/prz_c"},
+{"js": "const g=__dmh,D=g.descent,P=g.player;const r=D.raid;r.root.remove(D.prizeO.root);D.prize={kind:'machine',id:'recycler'};D.prizeO=null;D.arrive(false);__sim(5);const q=D.prizeO.root.getWorldPosition(new (D.prizeO.root.position.constructor)());P.pos.set(q.x,q.y+90,q.z+520);P.yaw=0;__sim(5);1"}, {"wait": 400}, {"shot": "look/prz_d"}
+]}

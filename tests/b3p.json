@@ -1,0 +1,6 @@
+{"w":1100,"h":560,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player;g.godMode=true;g.tip=()=>{};g.hud.helpT=0;g.phaseTimer=0;__sim(260);const t0=performance.now();__sim(120);const ms=(performance.now()-t0)/120;JSON.stringify([g.enemies.length,g.b3(),'ms/frame(sim+draw?)',ms.toFixed(2)])"},
+{"shot":"b3p1"},
+{"js":"__sim(140);const g=__dmh;JSON.stringify([g.enemies.length,g.b3(),g.renderer?g.renderer.info.render:0])"},
+{"shot":"b3p2"}
+]}

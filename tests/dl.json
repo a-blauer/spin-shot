@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player, V = P.pos.constructor; g.phase='Round'; g.round=9; g.toSpawn=0; g.spawned = 0; P.invuln = 0; const mk = (def, aff) => { const E = g.spawnEnemy(def, P.pos.clone().add(new V(120, 0, 60)), false, -1, 1, 1, aff, false); E.emerge = 0; return E; }; mk(0, 0); mk(0, 0); mk(7, 0); const X = mk(0, 1 << 8); __sim(40); X.takeHit(1e9, X.pos, new V(1,0,0), false); __sim(400); JSON.stringify({dead: P.dead, report: P.damageReport().slice(0,5)})"},
+ {"wait":2600,"shot":"dl_death"}
+]}

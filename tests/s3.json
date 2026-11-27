@@ -1,0 +1,9 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; window.__dmh.godMode = true; window.aimAt = (E, hy=0.2) => { const g = window.__dmh, P = g.player; const eye = g.camera.position; const t = E.pos.clone(); t.y = E.pos.y + E.half*hy; const d = t.sub(eye); P.yaw = Math.atan2(-d.x, -d.z); P.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); }; window.nearest = () => { const g = window.__dmh; let b=null, bd=1e9; for (const E of g.enemies) { if (E.dead||E.emerging) continue; const d = E.pos.distanceTo(g.player.pos); if (d<bd){bd=d;b=E;} } return b; }; 'ok'"},
+ {"js":"__sim(400); __sim(700); const E = nearest(); if (E) aimAt(E); __sim(1); JSON.stringify({n: window.__dmh.enemies.length, d: E && Math.round(E.pos.distanceTo(window.__dmh.player.pos)), hp: window.__dmh.player.health})"},
+ {"wait":1200,"shot":"f_close"},
+ {"js":"const g = window.__dmh; g.player.giveWeapon(12); __sim(40); const E = nearest(); if (E) aimAt(E); __sim(1, {fire:true, firePressed:1}); __sim(3); 'shotgun'"},
+ {"wait":1000,"shot":"g_shotgun"},
+ {"js":"const g = window.__dmh; __sim(20); const E = nearest(); if (E) aimAt(E); __sim(1, {fire:true, firePressed:1}); __sim(2); JSON.stringify({kills: g.player.kills})"},
+ {"wait":800,"shot":"h_shotgun2"}
+]}

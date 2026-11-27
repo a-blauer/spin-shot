@@ -1,0 +1,1 @@
+{"w":1280,"h":720,"steps":[{"js":"const g=__dmh,P=g.player;__meta.Meta.tipsReset();g.godMode=true;g.hud.helpT=-5;g.round=2;g.startRound();__sim(120);window.__dmhHold=true;JSON.stringify([g.hud.tipQ&&g.hud.tipQ.length,g.round,g.phase])"},{"wait":300},{"shot":"tip"}]}

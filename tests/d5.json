@@ -1,0 +1,6 @@
+{"w":1600,"h":800,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(30);g.toSpawn=0;g.spawned=0;for(const E of g.enemies)E.remove=true;__sim(2);const A=D.A();const V=P.pos.constructor;const ids=g.data.enemies.map((e,i)=>e.map===6?i:-1).filter(i=>i>=0);window.__ids=ids;const put=(lo,hi)=>{for(const E of g.enemies)E.remove=true;__sim(2);for(let k=lo;k<hi;k++){const E=g.spawnEnemy(ids[k],new V(A.c[0]+(k-lo-4.5)*330,200,A.c[1]),false,-1,1,1,0,false);E.emerge=0;E.frozenT=999;}g.toSpawn=99;g.spawned=99;__sim(50);for(const E of g.enemies){E.vel.set(0,0,-300);}__sim(3);P.pos.set(A.c[0],100,A.c[1]-1500);P.yaw=Math.PI;P.pitch=0;g.hud.hurtWhite=0;};window.__put=put;put(0,10);__sim(1);window.__dmhHold=true;JSON.stringify(g.enemies.filter(E=>!E.dead).map(E=>[E.def.name,Math.round(E.pos.y-E.feetOffset)]))"},
+{"wait":400},{"shot":"d5a"},
+{"js":"window.__dmhHold=false;__put(10,20);__sim(1);window.__dmhHold=true;JSON.stringify(__dmh.enemies.filter(E=>!E.dead).map(E=>[E.def.name,Math.round(E.pos.y-E.feetOffset)]))"},
+{"wait":400},{"shot":"d5b"}
+]}

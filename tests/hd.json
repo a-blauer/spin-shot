@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = false; P.money = 12450; P.luck = 7; g.round = 12; g.phase='Round'; g.toSpawn = 6; P.giveWeapon(8); P.refillAll(); __sim(60); P.invuln=0; P.receiveDamage(45, {pos: P.pos.clone().add(new P.pos.constructor(200,0,0))}, true); __sim(6); 'ok ' + P.health"},
+ {"wait":400,"shot":"h_hud"}
+]}

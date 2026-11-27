@@ -1,0 +1,2 @@
+{"url":"?","steps":[{"wait":800,"shot":"menu1"},{"js":"document.getElementById('playbtn').click(); 1"},{"wait":900,"shot":"menu2"},
+{"js":"document.getElementById('lbstart').click(); __dmh.player.W.name + ' title=' + document.getElementById('title').style.display"},{"wait":600,"shot":"menu3"}]}

@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player; g.godMode = true; g.hud.helpT = 9999; for (let i = 0; i < 7; i++) g.unlockZone(i); for (const I of g.interactables) if (I.type === 'Door' && !I.open) g.openDoor(I); P.pos.set(-1750, 114, 0); __sim(20); for (let k = 0; k < 16; k++) { P.yaw = k * Math.PI / 8; P.pitch = 0.05; P.updateCamera(0.016); g.camera.updateMatrixWorld(true); const d = new P.pos.constructor(); g.camera.getWorldDirection(d); if (d.x > 0.9) break; } __sim(5); window.__dmhHold = true; JSON.stringify(g.interactables.filter(I => Math.abs(I.pos.x + 900) < 400 && Math.abs(I.pos.z) < 600).map(I => I.type + ' ' + Math.round(I.pos.x) + ',' + Math.round(I.pos.z)))"},
+ {"wait":700,"shot":"ent_a"},
+ {"js":"window.__dmhHold = false; const g = __dmh, P = g.player; P.pos.set(-1150, 114, 0); __sim(5); window.__dmhHold = true; 1"},
+ {"wait":700,"shot":"ent_b"}
+]}

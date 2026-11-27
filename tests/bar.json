@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; for (const D of g.interactables) if (D.type==='Door' && D.cost>0 && !D.open) g.openDoor(D); g.round = 3; g.startRound(); P.pos.set(0, 95, 0); __sim(1500); const inside = g.enemies.filter(e=>!e.dead && g.inCasino(e.pos)).length; JSON.stringify({alive: g.aliveCount(), inside, doorsOpen: g.casinoDoors.map(d=>d.open)})"},
+ {"js":"const g = window.__dmh, P = g.player; __sim(1,{barricade:1}); for (const E of g.enemies) if (g.inCasino(E.pos)) { E.dead = true; E.remove = true; } g.toSpawn = 40; __sim(1200); const inside = g.enemies.filter(e=>!e.dead && g.inCasino(e.pos)).length; JSON.stringify({bt: g.barricadeT.toFixed(0), alive: g.aliveCount(), inside, doorsOpen: g.casinoDoors.map(d=>d.open)})"},
+ {"wait":300,"shot":"c_barricade"},
+ {"js":"const g = window.__dmh; __sim(2600); const inside = g.enemies.filter(e=>!e.dead && g.inCasino(e.pos)).length; JSON.stringify({bt: g.barricadeT, cd: g.barricadeCd.toFixed(0), inside})"}
+]}

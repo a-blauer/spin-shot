@@ -1,0 +1,1 @@
+{"url":"?","w":760,"h":900,"steps":[{"wait":800},{"js":"document.getElementById('playbtn').click(); 1"},{"wait":700,"shot":"lob_c"},{"js":"document.getElementById('lobby').scrollTop=700;1"},{"wait":300,"shot":"lob_c2"}]}

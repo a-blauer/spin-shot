@@ -1,0 +1,6 @@
+{"steps":[
+{"js":"window.__dmhHold = true; const g = __dmh, P = g.player; g.godMode = true; __diffTest.setDifficulty(0); window.runRound=(r,killEvery)=>{ for (const E of g.enemies){E.dead=true;E.remove=true;} g.round=r-1; g.phase='Intermission'; g.startRound(); const tl=[]; let t=0, kt=0, n=0; while(g.phase==='Round' && t<400){ __sim(6); t+=0.1; kt+=0.1; if(kt>=killEvery){ kt=0; const L=g.enemies.filter(e=>!e.dead&&!e.emerging&&!e.isBoss); if(L.length){ L[0].kill(P,false); n++; } const B=g.enemies.find(e=>!e.dead&&e.isBoss); if(B&&L.length===0) B.kill(P,false); } if(Math.round(t*10)%100===0) tl.push(g.aliveCount()); } return {round:r,total:g.toSpawn,seconds:Math.round(t),aliveEvery10s:tl.join(','),chests:g.interactables.filter(I=>I.type==='Chest'&&!I.opened).length}; }; 'chests at start '+g.interactables.filter(I=>I.type==='Chest').length"},
+{"js":"JSON.stringify(runRound(2,1.6))"},
+{"js":"JSON.stringify(runRound(5,1.0))"},
+{"js":"JSON.stringify(runRound(8,0.7))"}
+]}

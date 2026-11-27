@@ -1,0 +1,1 @@
+{"w":320,"h":180,"query":"&map=3&scan=1","steps":[{"js":"const W=__dmh.world;JSON.stringify({h:W.hangs,n:(W.scanAll||[]).filter(r=>r[5]==='hang').length,fin:typeof W.finish,ha:typeof W._hangAll})"}]}

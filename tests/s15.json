@@ -1,0 +1,7 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; g.phase = 'Round'; g.round = 12; g.toSpawn = 0; g.spawned = 0; const V = P.pos.constructor; P.pos.set(-4000, 95, -1500); P.yaw = Math.PI; P.pitch = -0.02; const fw = new V(0,0,1); const types = [0,1,2,3,4,5,7,8,9,10,11,12]; types.forEach((t,i) => { const E = g.spawnEnemy(t, new V(-4500 + (i%6)*200, 150, -800 + Math.floor(i/6)*350), i===6, -1, 1, 1, 0, false); E.emerge = 0; }); const F = g.spawnEnemy(6, new V(-3800, 400, -900), false, -1, 1,1,0,false); F.emerge=0; __sim(30); g.enemies.forEach(e=>{ e.attackCd = 99; e.special = 99; }); for (const E of g.enemies) { E.moveDir.set(0,0,0); } JSON.stringify(g.enemies.map(e=>e.def.name))"},
+ {"js":"const g = window.__dmh; g.enemies.forEach(e=>{ e.baseSpeed = 0; }); __sim(20); 'frozen'"},
+ {"wait":1500,"shot":"w_lineup"},
+ {"js":"const g = window.__dmh, P = g.player; const V = P.pos.constructor; for (const E of g.enemies) { E.dead = true; E.remove = true; } const B = g.spawnEnemy(0, new V(-4000, 300, -500), false, 0, 1, 1, 0, false); B.emerge = 0; g.boss = B; __sim(30); B.baseSpeed = 0; __sim(10); 'boss'"},
+ {"wait":1500,"shot":"x_boss"}
+]}

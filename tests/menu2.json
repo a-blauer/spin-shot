@@ -1,0 +1,3 @@
+{"url":"?","steps":[{"wait":800},{"js":"document.getElementById('playbtn').click(); 1"},{"wait":700},
+{"js":"const el=document.querySelector('.lbpick[data-cls=\"engineer\"]'); el.click(); document.querySelectorAll('.lbpick[data-cls]').length+' classes, sel '+document.querySelector('.lbpick.sel[data-cls]').dataset.cls"},{"wait":500,"shot":"menu_cls"},
+{"js":"document.getElementById('lbstart').click(); const P=__dmh.player; P.cls.name+' slots '+P.maxSlots+' money '+P.money+' df '+__dmh.hud.constructor.name"},{"wait":900,"shot":"menu_play"}]}

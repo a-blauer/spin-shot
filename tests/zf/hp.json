@@ -1,0 +1,1 @@
+{"w": 320, "h": 180, "query": "&map=3&scan=1", "steps": [{"js": "(()=>{const W=__dmh.world,o=[];for(const r of W.scanAll){if(r[5]!=='hang')continue;const b=r[3];o.push([(b.min.x+b.max.x)/2,(b.min.y+b.max.y)/2,(b.min.z+b.max.z)/2,Math.round(b.max.x-b.min.x),Math.round(b.max.y-b.min.y),Math.round(b.max.z-b.min.z)]);}return JSON.stringify(o)})()"}]}

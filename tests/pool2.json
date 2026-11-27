@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = __dmh, P = g.player, V = P.pos.constructor; g.godMode = true; g.phase='Round'; g.round=1; g.toSpawn=0; for (let i = 0; i < 6; i++) { const E = g.spawnEnemy(0, new V(-4400 + i*200, 110, -3650 + (i%2)*150), false, -1, 1, 1, 0, false); E.emerge = 0; E.baseSpeed = 0; E.attackCd = 99; } const E2 = g.spawnEnemy(0, new V(-3900, 110, -3200), false, -1, 1, 1, 0, false); E2.emerge = 0; E2.baseSpeed = 0; __sim(40); P.pos.set(-3900, 114, -4500); for (let k = 0; k < 32; k++) { P.yaw = k * Math.PI / 16; P.pitch = -0.15; P.updateCamera(0.016); g.camera.updateMatrixWorld(true); const d = new V(); g.camera.getWorldDirection(d); if (d.z > 0.98) break; } JSON.stringify(g.enemies.map(e => [Math.round(e.pos.x), Math.round(e.pos.y), Math.round(e.pos.z), e.grounded, e.dead, e.remove]))"},
+ {"wait":900,"shot":"pool_a"}
+]}

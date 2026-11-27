@@ -1,0 +1,5 @@
+{"w":900,"h":500,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(60);let drops=0,kills=0;const before=g.pickups.list.length;for(let r=0;r<40;r++){__sim(20);for(const E of g.enemies){if(!E.dead&&!E.remove){E.takeHit(1e6,E.pos,new (P.pos.constructor)(),false);kills++;}}}__sim(30);const B=g.pickups.list.filter(k=>k.type==='Buff');JSON.stringify([D.room,'kills',kills,'buffdrops',B.length,B.slice(0,6).map(k=>g.data.upgrades[k.amount].name),'cleared',D.cleared,[...new Set(g.interactables.filter(I=>I.descent).map(I=>I.type))]])"},
+{"js":"const g=__dmh,P=g.player;const B=g.pickups.list.filter(k=>k.type==='Buff');for(const k of B){P.collectPickup('Buff',k.amount);k.life=0;}__sim(5);JSON.stringify([P.coreInv,P.upgradeOrder.map(u=>g.data.upgrades[u].name)])"},
+{"shot":"dk"}
+]}

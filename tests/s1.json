@@ -1,0 +1,6 @@
+{"steps":[
+ {"wait":3000,"shot":"a_start"},
+ {"js":"(() => { const g = window.__dmh; return JSON.stringify({pos: g.player.pos, phase: g.phase, enemies: g.enemies.length, zones: g.zones.length, sp: g.spawnPoints.length, inter: g.interactables.length, fps: 0}); })()"},
+ {"wait":6000,"shot":"b_round1"},
+ {"js":"(() => { const g = window.__dmh; return JSON.stringify({pos: g.player.pos, phase: g.phase, round: g.round, enemies: g.enemies.map(e=>[e.def.name, Math.round(e.pos.x), Math.round(e.pos.y), Math.round(e.pos.z)])}); })()"}
+]}

@@ -1,0 +1,1 @@
+{"w": 640, "h": 360, "steps": [{"js": "const g=__dmh;JSON.stringify([g.zones.map(z=>[z.name,Math.round((z.min?z.min.x+z.max.x:0)/2),Math.round((z.min?z.min.z+z.max.z:0)/2),z.z||0]).slice(0,12), g.interactables.filter(I=>I.type==='Door').length, Object.keys(g.zones[0]).slice(0,12)])"}], "query": "&map=3"}

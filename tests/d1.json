@@ -1,0 +1,8 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player;g.godMode=true;g.hud.helpT=-5;g.hud.showHelp=false;__meta.Meta.tipMark&&0;g.phaseTimer=0;__sim(30);for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(400);const D=g.descent;const G0=D.gates[0];P.pos.set(D.A().c[0],100,G0.pos.z-1100);P.yaw=Math.PI;P.pitch=0.12;__sim(2);window.__dmhHold=true;JSON.stringify([g.phase,D.cleared,D.offers,D.things.length,D.gates.length])"},
+{"wait":400},{"shot":"d1c"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;D.choose(0);__sim(200);window.__dmhHold=true;JSON.stringify([D.room,D.arena,D.reward,g.toSpawn,g.aliveCount(),g.interactables.length,D.roster])"},
+{"wait":400},{"shot":"d1d"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;for(let r=0;r<3;r++){for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(30);if(r<2)D.choose(0);__sim(30);}D.choose(0);__sim(400);window.__dmhHold=true;JSON.stringify([D.room,D.arena,g.boss&&g.boss.boss.name,g.boss&&Math.round(g.boss.puppet.heightCm),g.toSpawn])"},
+{"wait":400},{"shot":"d1e"}
+]}

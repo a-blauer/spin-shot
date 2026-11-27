@@ -1,0 +1,5 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; g.phase = 'Round'; g.round = 1; g.toSpawn = 0; g.spawned = 0; const V = P.pos.constructor; P.pos.set(-4000, 95, -1500); P.yaw = Math.PI; P.pitch = -0.1; for (let i = 0; i < 4; i++) { const E = g.spawnEnemy(0, new V(-4300 + i*200, 110, -1000), false, -1, 1, 1, 0, false); E.emerge = 1.5 - i * 0.35; } __sim(14); 1"},
+ {"wait":900,"shot":"dig_a"},
+ {"js":"const g = __dmh; g.enemies.forEach(e => { e.remove = true; e.dead = true; }); g.phase='PreGame'; g.phaseTimer = 0; g.round = 5; __sim(1500); const E = g.enemies.filter(e => !e.dead); JSON.stringify({n: E.length, minY: Math.round(Math.min(...E.map(e => e.pos.y - e.half))), inWall: E.filter(e => g.phys.overlapsCapsule(new (g.player.pos.constructor)(e.pos.x, e.pos.y + 16, e.pos.z), e.radius * 0.6, Math.max(e.radius*0.6, e.half - 18))).length, blocked: E.filter(e => { const [cx, cy] = g.cellOf(e.pos.x, e.pos.z); return !g.navFree(cx, cy); }).length, round: g.round})"}
+]}

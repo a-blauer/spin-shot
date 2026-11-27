@@ -1,0 +1,1928 @@
+[
+[
+"enemy",
+"Rotcap",
+"Walker",
+"Rotcap",
+{
+"H": 202,
+"R": 49,
+"headAt": 117,
+"top": 202,
+"bot": 1,
+"r50": 44,
+"r90": 87,
+"rMax": 123,
+"band90": 88,
+"inside": 0.55,
+"off": 12,
+"head": [
+102,
+161,
+205
+],
+"headAbove": 0.96,
+"bodyAbove": 0.07,
+"bs": 1,
+"walkR": 34,
+"feetOff": 100
+}
+],
+[
+"enemy",
+"Sporeling",
+"Runner",
+"Sporeling",
+{
+"H": 170,
+"R": 26,
+"headAt": 135,
+"top": 169,
+"bot": 1,
+"r50": 20,
+"r90": 50,
+"rMax": 88,
+"band90": 53,
+"inside": 0.65,
+"off": 15,
+"head": [
+133,
+151,
+173
+],
+"headAbove": 0.99,
+"bodyAbove": 0.07,
+"bs": 0.95,
+"walkR": 32,
+"feetOff": 95
+}
+],
+[
+"enemy",
+"Creeper",
+"Crawler",
+"Creeper",
+{
+"H": 89,
+"R": 38,
+"headAt": 49,
+"top": 32,
+"bot": -52,
+"r50": 42,
+"r90": 59,
+"rMax": 78,
+"band90": 52,
+"inside": 0.19,
+"off": 6,
+"head": [
+-35,
+-10,
+10
+],
+"headAbove": 0,
+"bodyAbove": 0,
+"bs": 0.8,
+"walkR": 27,
+"feetOff": 40
+}
+],
+[
+"enemy",
+"Puffball",
+"Bloater",
+"Puffball",
+{
+"H": 277,
+"R": 68,
+"headAt": 227,
+"top": 270,
+"bot": 15,
+"r50": 63,
+"r90": 116,
+"rMax": 144,
+"band90": 125,
+"inside": 0.57,
+"off": 14,
+"head": [
+211,
+258,
+273
+],
+"headAbove": 0.82,
+"bodyAbove": 0.01,
+"bs": 1.25,
+"walkR": 60,
+"feetOff": 125
+}
+],
+[
+"enemy",
+"Inkcap",
+"Spitter",
+"Inkcap",
+{
+"H": 240,
+"R": 27,
+"headAt": 133,
+"top": 211,
+"bot": 2,
+"r50": 23,
+"r90": 43,
+"rMax": 72,
+"band90": 44,
+"inside": 0.66,
+"off": 10,
+"head": [
+120,
+155,
+233
+],
+"headAbove": 0.84,
+"bodyAbove": 0.04,
+"bs": 1,
+"walkR": 34,
+"feetOff": 100
+}
+],
+[
+"enemy",
+"Blight Rat",
+"Leaper",
+"BlightRat",
+{
+"H": 121,
+"R": 33,
+"headAt": 67,
+"top": 98,
+"bot": 2,
+"r50": 33,
+"r90": 79,
+"rMax": 115,
+"band90": 81,
+"inside": 0.49,
+"off": 3,
+"head": [
+28,
+47,
+78
+],
+"headAbove": 0.11,
+"bodyAbove": 0.05,
+"bs": 0.9,
+"walkR": 31,
+"feetOff": 45
+}
+],
+[
+"enemy",
+"Drifter",
+"Flyer",
+"Drifter",
+{
+"H": 88,
+"R": 27,
+"headAt": 44,
+"top": 86,
+"bot": 0,
+"r50": 13,
+"r90": 27,
+"rMax": 36,
+"band90": 28,
+"inside": 0.9,
+"off": 4,
+"head": [
+13,
+26,
+57
+],
+"headAbove": 0.07,
+"bodyAbove": 0.42,
+"bs": 0.75,
+"walkR": 26,
+"feetOff": 30
+}
+],
+[
+"enemy",
+"Bracketback",
+"Brute",
+"Bracketback",
+{
+"H": 357,
+"R": 104,
+"headAt": 266,
+"top": 496,
+"bot": 2,
+"r50": 80,
+"r90": 157,
+"rMax": 255,
+"band90": 166,
+"inside": 0.66,
+"off": 32,
+"head": [
+247,
+284,
+317
+],
+"headAbove": 0.8,
+"bodyAbove": 0.24,
+"bs": 1.6,
+"walkR": 54,
+"feetOff": 160
+}
+],
+[
+"enemy",
+"Shrieker",
+"Screamer",
+"Shrieker",
+{
+"H": 245,
+"R": 29,
+"headAt": 135,
+"top": 217,
+"bot": 1,
+"r50": 26,
+"r90": 60,
+"rMax": 89,
+"band90": 63,
+"inside": 0.58,
+"off": 10,
+"head": [
+119,
+170,
+233
+],
+"headAbove": 0.89,
+"bodyAbove": 0.01,
+"bs": 1,
+"walkR": 34,
+"feetOff": 100
+}
+],
+[
+"enemy",
+"Rootworm",
+"Burrower",
+"Rootworm",
+{
+"H": 138,
+"R": 50,
+"headAt": 76,
+"top": 136,
+"bot": 0,
+"r50": 36,
+"r90": 60,
+"rMax": 86,
+"band90": 57,
+"inside": 0.73,
+"off": 10,
+"head": [
+66,
+108,
+140
+],
+"headAbove": 0.94,
+"bodyAbove": 0.22,
+"bs": 1,
+"walkR": 34,
+"feetOff": 50
+}
+],
+[
+"enemy",
+"Golden Truffle",
+"Gilded",
+"GoldenTruffle",
+{
+"H": 157,
+"R": 46,
+"headAt": 122,
+"top": 150,
+"bot": 0,
+"r50": 28,
+"r90": 61,
+"rMax": 76,
+"band90": 66,
+"inside": 0.64,
+"off": 9,
+"head": [
+111,
+134,
+156
+],
+"headAbove": 0.83,
+"bodyAbove": 0.01,
+"bs": 0.9,
+"walkR": 31,
+"feetOff": 90
+}
+],
+[
+"enemy",
+"Shelfshield",
+"Shield",
+"Shelfshield",
+{
+"H": 223,
+"R": 37,
+"headAt": 142,
+"top": 213,
+"bot": 2,
+"r50": 31,
+"r90": 58,
+"rMax": 85,
+"band90": 69,
+"inside": 0.71,
+"off": 12,
+"head": [
+131,
+164,
+220
+],
+"headAbove": 0.85,
+"bodyAbove": 0.1,
+"bs": 1.1,
+"walkR": 37,
+"feetOff": 110
+}
+],
+[
+"enemy",
+"Sporecaller",
+"Priest",
+"Sporecaller",
+{
+"H": 263,
+"R": 42,
+"headAt": 177,
+"top": 249,
+"bot": 2,
+"r50": 21,
+"r90": 46,
+"rMax": 66,
+"band90": 45,
+"inside": 0.81,
+"off": 9,
+"head": [
+163,
+189,
+259
+],
+"headAbove": 0.79,
+"bodyAbove": 0.05,
+"bs": 1.05,
+"walkR": 36,
+"feetOff": 105
+}
+],
+[
+"enemy",
+"Spore Pod",
+"Totem",
+"SporePod",
+{
+"H": 137,
+"R": 108,
+"headAt": 62,
+"top": 136,
+"bot": -2,
+"r50": 42,
+"r90": 87,
+"rMax": 121,
+"band90": 68,
+"inside": 0.95,
+"off": 12,
+"head": [
+30,
+83,
+139
+],
+"headAbove": 0.73,
+"bodyAbove": 0,
+"bs": 1.6,
+"walkR": 54,
+"feetOff": 160
+}
+],
+[
+"enemy",
+"Grasping Mycel",
+"Totem",
+"GraspingMycel",
+{
+"H": 287,
+"R": 102,
+"headAt": 140,
+"top": 285,
+"bot": -4,
+"r50": 21,
+"r90": 73,
+"rMax": 145,
+"band90": 28,
+"inside": 0.95,
+"off": 11,
+"head": [
+118,
+245,
+290
+],
+"headAbove": 0.92,
+"bodyAbove": 0.01,
+"bs": 1.8,
+"walkR": 61,
+"feetOff": 180
+}
+],
+[
+"boss",
+"Big Tony",
+"",
+"B_Foreman",
+{
+"H": 410,
+"R": 107,
+"headAt": 301,
+"top": 396,
+"bot": 3,
+"r50": 81,
+"r90": 160,
+"rMax": 337,
+"band90": 161,
+"inside": 0.69,
+"off": 44,
+"head": [
+283,
+354,
+415
+],
+"headAbove": 0.89,
+"bodyAbove": 0.11,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Abomination",
+"",
+"B_Abomination",
+{
+"H": 454,
+"R": 104,
+"headAt": 323,
+"top": 440,
+"bot": 3,
+"r50": 74,
+"r90": 156,
+"rMax": 310,
+"band90": 162,
+"inside": 0.74,
+"off": 24,
+"head": [
+311,
+395,
+464
+],
+"headAbove": 0.9,
+"bodyAbove": 0.07,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Mother Carrion",
+"",
+"B_Thunderhead",
+{
+"H": 515,
+"R": 178,
+"headAt": 232,
+"top": 521,
+"bot": 64,
+"r50": 123,
+"r90": 182,
+"rMax": 209,
+"band90": 188,
+"inside": 0.86,
+"off": 34,
+"head": [
+227,
+343,
+424
+],
+"headAbove": 0.98,
+"bodyAbove": 0.57,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Undertaker",
+"",
+"B_Hydra",
+{
+"H": 588,
+"R": 204,
+"headAt": 265,
+"top": 565,
+"bot": 3,
+"r50": 144,
+"r90": 243,
+"rMax": 309,
+"band90": 245,
+"inside": 0.78,
+"off": 29,
+"head": [
+179,
+380,
+597
+],
+"headAbove": 0.82,
+"bodyAbove": 0,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Gravedigger",
+"",
+"B_Furnace",
+{
+"H": 496,
+"R": 155,
+"headAt": 376,
+"top": 475,
+"bot": 5,
+"r50": 106,
+"r90": 230,
+"rMax": 365,
+"band90": 243,
+"inside": 0.72,
+"off": 43,
+"head": [
+358,
+399,
+434
+],
+"headAbove": 0.79,
+"bodyAbove": 0.12,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Founder",
+"",
+"B_Founder",
+{
+"H": 757,
+"R": 76,
+"headAt": 511,
+"top": 734,
+"bot": 4,
+"r50": 55,
+"r90": 103,
+"rMax": 237,
+"band90": 120,
+"inside": 0.78,
+"off": 25,
+"head": [
+491,
+602,
+759
+],
+"headAbove": 0.88,
+"bodyAbove": 0.01,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"The Shift Boss",
+"",
+"B_ShiftBoss",
+{
+"H": 391,
+"R": 55,
+"headAt": 285,
+"top": 372,
+"bot": 3,
+"r50": 65,
+"r90": 118,
+"rMax": 187,
+"band90": 125,
+"inside": 0.37,
+"off": 38,
+"head": [
+260,
+324,
+383
+],
+"headAbove": 0.87,
+"bodyAbove": 0.12,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Canary",
+"",
+"B_Lantern",
+{
+"H": 457,
+"R": 149,
+"headAt": 332,
+"top": 461,
+"bot": 118,
+"r50": 138,
+"r90": 243,
+"rMax": 317,
+"band90": 247,
+"inside": 0.56,
+"off": 19,
+"head": [
+316,
+421,
+469
+],
+"headAbove": 0.93,
+"bodyAbove": 0.07,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Motherlode",
+"",
+"B_Wyrm",
+{
+"H": 317,
+"R": 134,
+"headAt": 143,
+"top": 308,
+"bot": -1,
+"r50": 99,
+"r90": 186,
+"rMax": 247,
+"band90": 185,
+"inside": 0.69,
+"off": 43,
+"head": [
+104,
+232,
+316
+],
+"headAbove": 0.94,
+"bodyAbove": 0.37,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The King Below",
+"",
+"B_Carapace",
+{
+"H": 411,
+"R": 225,
+"headAt": 185,
+"top": 367,
+"bot": 1,
+"r50": 174,
+"r90": 338,
+"rMax": 433,
+"band90": 327,
+"inside": 0.8,
+"off": 63,
+"head": [
+94,
+174,
+238
+],
+"headAbove": 0.43,
+"bodyAbove": 0.12,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Baron Blackwater",
+"",
+"B_Baron",
+{
+"H": 581,
+"R": 137,
+"headAt": 382,
+"top": 537,
+"bot": 3,
+"r50": 97,
+"r90": 196,
+"rMax": 318,
+"band90": 206,
+"inside": 0.7,
+"off": 33,
+"head": [
+352,
+437,
+575
+],
+"headAbove": 0.82,
+"bodyAbove": 0.06,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"The Stoker",
+"",
+"B_Toad",
+{
+"H": 408,
+"R": 185,
+"headAt": 183,
+"top": 359,
+"bot": 5,
+"r50": 189,
+"r90": 247,
+"rMax": 281,
+"band90": 250,
+"inside": 0.47,
+"off": 59,
+"head": [
+123,
+217,
+337
+],
+"headAbove": 0.71,
+"bodyAbove": 0.14,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Conductor",
+"",
+"B_KingPuff",
+{
+"H": 481,
+"R": 142,
+"headAt": 392,
+"top": 464,
+"bot": 3,
+"r50": 96,
+"r90": 182,
+"rMax": 224,
+"band90": 192,
+"inside": 0.75,
+"off": 32,
+"head": [
+365,
+418,
+475
+],
+"headAbove": 0.86,
+"bodyAbove": 0,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The White Widow",
+"",
+"B_DriftQueen",
+{
+"H": 477,
+"R": 152,
+"headAt": 215,
+"top": 479,
+"bot": 12,
+"r50": 75,
+"r90": 152,
+"rMax": 181,
+"band90": 161,
+"inside": 0.88,
+"off": 11,
+"head": [
+109,
+173,
+242
+],
+"headAbove": 0.2,
+"bodyAbove": 0.43,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Wendigo",
+"",
+"B_Reaper",
+{
+"H": 524,
+"R": 54,
+"headAt": 348,
+"top": 445,
+"bot": 9,
+"r50": 109,
+"r90": 190,
+"rMax": 254,
+"band90": 152,
+"inside": 0.1,
+"off": 20,
+"head": [
+333,
+415,
+537
+],
+"headAbove": 0.95,
+"bodyAbove": 0.06,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Stationmaster",
+"",
+"B_Nameless",
+{
+"H": 760,
+"R": 223,
+"headAt": 548,
+"top": 746,
+"bot": 8,
+"r50": 136,
+"r90": 293,
+"rMax": 481,
+"band90": 240,
+"inside": 0.73,
+"off": 68,
+"head": [
+524,
+614,
+751
+],
+"headAbove": 0.87,
+"bodyAbove": 0.02,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"Old Scratch",
+"",
+"B_Titan",
+{
+"H": 574,
+"R": 181,
+"headAt": 440,
+"top": 558,
+"bot": 5,
+"r50": 110,
+"r90": 268,
+"rMax": 426,
+"band90": 284,
+"inside": 0.73,
+"off": 44,
+"head": [
+418,
+510,
+572
+],
+"headAbove": 0.96,
+"bodyAbove": 0.05,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Mama Skeeter",
+"",
+"B_Leviathan",
+{
+"H": 478,
+"R": 285,
+"headAt": 215,
+"top": 451,
+"bot": -2,
+"r50": 235,
+"r90": 283,
+"rMax": 346,
+"band90": 276,
+"inside": 0.9,
+"off": 102,
+"head": [
+76,
+217,
+351
+],
+"headAbove": 0.51,
+"bodyAbove": 0.57,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Deacon Moss",
+"",
+"B_Deacon",
+{
+"H": 476,
+"R": 62,
+"headAt": 355,
+"top": 458,
+"bot": 3,
+"r50": 50,
+"r90": 114,
+"rMax": 167,
+"band90": 126,
+"inside": 0.64,
+"off": 28,
+"head": [
+336,
+429,
+480
+],
+"headAbove": 0.93,
+"bodyAbove": 0.05,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Ferryman",
+"",
+"B_Ferryman",
+{
+"H": 604,
+"R": 75,
+"headAt": 383,
+"top": 550,
+"bot": 9,
+"r50": 44,
+"r90": 103,
+"rMax": 198,
+"band90": 109,
+"inside": 0.76,
+"off": 22,
+"head": [
+364,
+431,
+492
+],
+"headAbove": 0.93,
+"bodyAbove": 0.07,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Mother Mourn",
+"",
+"B_Mourn",
+{
+"H": 650,
+"R": 144,
+"headAt": 480,
+"top": 595,
+"bot": 3,
+"r50": 57,
+"r90": 132,
+"rMax": 230,
+"band90": 131,
+"inside": 0.93,
+"off": 29,
+"head": [
+449,
+537,
+638
+],
+"headAbove": 0.88,
+"bodyAbove": 0,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"The Human Cannonball",
+"",
+"B_Cannonball",
+{
+"H": 420,
+"R": 74,
+"headAt": 258,
+"top": 400,
+"bot": 2,
+"r50": 64,
+"r90": 120,
+"rMax": 167,
+"band90": 133,
+"inside": 0.63,
+"off": 15,
+"head": [
+245,
+320,
+421
+],
+"headAbove": 0.97,
+"bodyAbove": 0.1,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Madame Zora",
+"",
+"B_Unblinking",
+{
+"H": 448,
+"R": 177,
+"headAt": 204,
+"top": 412,
+"bot": 17,
+"r50": 100,
+"r90": 153,
+"rMax": 200,
+"band90": 160,
+"inside": 0.96,
+"off": 27,
+"head": [
+206,
+282,
+347
+],
+"headAbove": 1,
+"bodyAbove": 0.42,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Twins",
+"",
+"B_Twins",
+{
+"H": 452,
+"R": 75,
+"headAt": 309,
+"top": 431,
+"bot": 2,
+"r50": 70,
+"r90": 145,
+"rMax": 200,
+"band90": 153,
+"inside": 0.54,
+"off": 19,
+"head": [
+293,
+375,
+456
+],
+"headAbove": 0.94,
+"bodyAbove": 0.06,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Grin",
+"",
+"B_Grin",
+{
+"H": 486,
+"R": 71,
+"headAt": 289,
+"top": 450,
+"bot": 4,
+"r50": 65,
+"r90": 124,
+"rMax": 180,
+"band90": 135,
+"inside": 0.58,
+"off": 27,
+"head": [
+257,
+339,
+481
+],
+"headAbove": 0.9,
+"bodyAbove": 0.01,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Ringmaster",
+"",
+"B_Ringmaster",
+{
+"H": 747,
+"R": 105,
+"headAt": 488,
+"top": 717,
+"bot": 3,
+"r50": 54,
+"r90": 157,
+"rMax": 288,
+"band90": 173,
+"inside": 0.72,
+"off": 29,
+"head": [
+450,
+569,
+745
+],
+"headAbove": 0.91,
+"bodyAbove": 0.01,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"The Harbourmaster",
+"",
+"B_Harbourmaster",
+{
+"H": 462,
+"R": 97,
+"headAt": 331,
+"top": 452,
+"bot": 2,
+"r50": 68,
+"r90": 145,
+"rMax": 218,
+"band90": 154,
+"inside": 0.7,
+"off": 24,
+"head": [
+320,
+388,
+462
+],
+"headAbove": 0.87,
+"bodyAbove": 0.1,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Net-Mender",
+"",
+"B_BroodMother",
+{
+"H": 516,
+"R": 102,
+"headAt": 318,
+"top": 461,
+"bot": 3,
+"r50": 122,
+"r90": 229,
+"rMax": 304,
+"band90": 237,
+"inside": 0.35,
+"off": 88,
+"head": [
+297,
+413,
+507
+],
+"headAbove": 0.95,
+"bodyAbove": 0.02,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Keeper",
+"",
+"B_Rotwing",
+{
+"H": 315,
+"R": 59,
+"headAt": 205,
+"top": 409,
+"bot": 112,
+"r50": 223,
+"r90": 325,
+"rMax": 387,
+"band90": 326,
+"inside": 0.05,
+"off": 41,
+"head": [
+192,
+233,
+300
+],
+"headAbove": 0.93,
+"bodyAbove": 0.58,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Captain Graves",
+"",
+"B_Graves",
+{
+"H": 454,
+"R": 72,
+"headAt": 331,
+"top": 425,
+"bot": 7,
+"r50": 59,
+"r90": 127,
+"rMax": 196,
+"band90": 139,
+"inside": 0.66,
+"off": 27,
+"head": [
+302,
+385,
+443
+],
+"headAbove": 0.87,
+"bodyAbove": 0.03,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Hangman",
+"",
+"B_Hangman",
+{
+"H": 677,
+"R": 81,
+"headAt": 500,
+"top": 623,
+"bot": 4,
+"r50": 60,
+"r90": 139,
+"rMax": 386,
+"band90": 157,
+"inside": 0.7,
+"off": 26,
+"head": [
+469,
+515,
+678
+],
+"headAbove": 0.59,
+"bodyAbove": 0.01,
+"bs": 2.5,
+"walkR": 85,
+"feetOff": 250
+}
+],
+[
+"boss",
+"The Brood Mother",
+"",
+"B_BroodMother",
+{
+"H": 490,
+"R": 97,
+"headAt": 302,
+"top": 442,
+"bot": 3,
+"r50": 117,
+"r90": 219,
+"rMax": 287,
+"band90": 230,
+"inside": 0.33,
+"off": 85,
+"head": [
+287,
+397,
+480
+],
+"headAbove": 0.97,
+"bodyAbove": 0.04,
+"bs": 1.9,
+"walkR": 65,
+"feetOff": 190
+}
+],
+[
+"boss",
+"Old Barkhide",
+"",
+"Ironhide",
+{
+"err": "custom rig",
+"bs": 1.8,
+"walkR": 61,
+"feetOff": 180
+}
+],
+[
+"boss",
+"The Drift Queen",
+"",
+"B_DriftQueen",
+{
+"H": 334,
+"R": 106,
+"headAt": 150,
+"top": 333,
+"bot": 16,
+"r50": 51,
+"r90": 105,
+"rMax": 127,
+"band90": 112,
+"inside": 0.89,
+"off": 5,
+"head": [
+77,
+123,
+172
+],
+"headAbove": 0.21,
+"bodyAbove": 0.44,
+"bs": 1.4,
+"walkR": 48,
+"feetOff": 140
+}
+],
+[
+"boss",
+"King Puffcap",
+"",
+"B_KingPuff",
+{
+"H": 457,
+"R": 135,
+"headAt": 372,
+"top": 442,
+"bot": 3,
+"r50": 92,
+"r90": 169,
+"rMax": 213,
+"band90": 180,
+"inside": 0.76,
+"off": 31,
+"head": [
+347,
+400,
+454
+],
+"headAbove": 0.86,
+"bodyAbove": 0,
+"bs": 1.9,
+"walkR": 65,
+"feetOff": 190
+}
+],
+[
+"boss",
+"The Lamplighter",
+"",
+"B_Lantern",
+{
+"H": 366,
+"R": 119,
+"headAt": 266,
+"top": 367,
+"bot": 98,
+"r50": 111,
+"r90": 195,
+"rMax": 255,
+"band90": 198,
+"inside": 0.56,
+"off": 16,
+"head": [
+258,
+334,
+370
+],
+"headAbove": 0.93,
+"bodyAbove": 0.1,
+"bs": 1.6,
+"walkR": 54,
+"feetOff": 160
+}
+],
+[
+"boss",
+"Carapace",
+"",
+"B_Carapace",
+{
+"H": 309,
+"R": 168,
+"headAt": 139,
+"top": 274,
+"bot": 2,
+"r50": 131,
+"r90": 253,
+"rMax": 325,
+"band90": 245,
+"inside": 0.8,
+"off": 47,
+"head": [
+68,
+130,
+179
+],
+"headAbove": 0.43,
+"bodyAbove": 0.12,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"The Great Rootworm",
+"",
+"B_Wyrm",
+{
+"H": 317,
+"R": 134,
+"headAt": 143,
+"top": 297,
+"bot": -1,
+"r50": 98,
+"r90": 189,
+"rMax": 248,
+"band90": 185,
+"inside": 0.68,
+"off": 44,
+"head": [
+95,
+224,
+308
+],
+"headAbove": 0.9,
+"bodyAbove": 0.34,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"Thunderhead",
+"",
+"B_Thunderhead",
+{
+"H": 437,
+"R": 152,
+"headAt": 197,
+"top": 433,
+"bot": 56,
+"r50": 106,
+"r90": 156,
+"rMax": 180,
+"band90": 160,
+"inside": 0.86,
+"off": 30,
+"head": [
+187,
+280,
+355
+],
+"headAbove": 0.96,
+"bodyAbove": 0.57,
+"bs": 1.7,
+"walkR": 58,
+"feetOff": 170
+}
+],
+[
+"boss",
+"Ash and Ember",
+"",
+"B_Hound",
+{
+"H": 201,
+"R": 41,
+"headAt": 127,
+"top": 181,
+"bot": 4,
+"r50": 76,
+"r90": 159,
+"rMax": 215,
+"band90": 177,
+"inside": 0.06,
+"off": 9,
+"head": [
+112,
+143,
+186
+],
+"headAbove": 0.83,
+"bodyAbove": 0.24,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"The Furnace",
+"",
+"B_Furnace",
+{
+"H": 397,
+"R": 124,
+"headAt": 301,
+"top": 395,
+"bot": 4,
+"r50": 85,
+"r90": 167,
+"rMax": 284,
+"band90": 179,
+"inside": 0.74,
+"off": 35,
+"head": [
+298,
+333,
+364
+],
+"headAbove": 0.99,
+"bodyAbove": 0.15,
+"bs": 1.6,
+"walkR": 54,
+"feetOff": 160
+}
+],
+[
+"boss",
+"The Hydra",
+"",
+"B_Hydra",
+{
+"H": 441,
+"R": 153,
+"headAt": 199,
+"top": 410,
+"bot": 2,
+"r50": 108,
+"r90": 179,
+"rMax": 226,
+"band90": 185,
+"inside": 0.79,
+"off": 14,
+"head": [
+134,
+276,
+429
+],
+"headAbove": 0.81,
+"bodyAbove": 0,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"The Mirror Queen",
+"",
+"B_MirrorQueen",
+{
+"H": 346,
+"R": 68,
+"headAt": 242,
+"top": 305,
+"bot": 3,
+"r50": 26,
+"r90": 127,
+"rMax": 160,
+"band90": 137,
+"inside": 0.68,
+"off": 10,
+"head": [
+234,
+283,
+348
+],
+"headAbove": 0.93,
+"bodyAbove": 0.01,
+"bs": 1.3,
+"walkR": 44,
+"feetOff": 130
+}
+],
+[
+"boss",
+"The Unblinking",
+"",
+"B_Unblinking",
+{
+"H": 314,
+"R": 124,
+"headAt": 142,
+"top": 309,
+"bot": 17,
+"r50": 69,
+"r90": 107,
+"rMax": 140,
+"band90": 113,
+"inside": 0.96,
+"off": 17,
+"head": [
+152,
+206,
+261
+],
+"headAbove": 1,
+"bodyAbove": 0.48,
+"bs": 1.4,
+"walkR": 48,
+"feetOff": 140
+}
+],
+[
+"boss",
+"The Reaper",
+"",
+"B_Reaper",
+{
+"H": 393,
+"R": 41,
+"headAt": 261,
+"top": 355,
+"bot": 15,
+"r50": 102,
+"r90": 147,
+"rMax": 200,
+"band90": 146,
+"inside": 0.08,
+"off": 37,
+"head": [
+252,
+319,
+428
+],
+"headAbove": 0.99,
+"bodyAbove": 0.25,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"Grandfather Toad",
+"",
+"B_Toad",
+{
+"H": 408,
+"R": 185,
+"headAt": 183,
+"top": 352,
+"bot": 2,
+"r50": 192,
+"r90": 249,
+"rMax": 284,
+"band90": 251,
+"inside": 0.46,
+"off": 60,
+"head": [
+118,
+198,
+321
+],
+"headAbove": 0.59,
+"bodyAbove": 0.14,
+"bs": 2,
+"walkR": 68,
+"feetOff": 200
+}
+],
+[
+"boss",
+"The Rotwing",
+"",
+"B_Rotwing",
+{
+"H": 236,
+"R": 44,
+"headAt": 153,
+"top": 306,
+"bot": 83,
+"r50": 167,
+"r90": 243,
+"rMax": 290,
+"band90": 244,
+"inside": 0.05,
+"off": 30,
+"head": [
+140,
+172,
+223
+],
+"headAbove": 0.89,
+"bodyAbove": 0.59,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"The Stump Titan",
+"",
+"B_Titan",
+{
+"H": 488,
+"R": 154,
+"headAt": 374,
+"top": 475,
+"bot": 3,
+"r50": 97,
+"r90": 221,
+"rMax": 352,
+"band90": 243,
+"inside": 0.75,
+"off": 40,
+"head": [
+352,
+428,
+486
+],
+"headAbove": 0.96,
+"bodyAbove": 0.05,
+"bs": 1.7,
+"walkR": 58,
+"feetOff": 170
+}
+],
+[
+"boss",
+"The Leviathan",
+"",
+"B_Leviathan",
+{
+"H": 358,
+"R": 214,
+"headAt": 161,
+"top": 347,
+"bot": 0,
+"r50": 175,
+"r90": 210,
+"rMax": 260,
+"band90": 203,
+"inside": 0.92,
+"off": 75,
+"head": [
+93,
+181,
+283
+],
+"headAbove": 0.68,
+"bodyAbove": 0.58,
+"bs": 1.5,
+"walkR": 51,
+"feetOff": 150
+}
+],
+[
+"boss",
+"The Devourer",
+"",
+"B_Devourer",
+{
+"H": 387,
+"R": 153,
+"headAt": 174,
+"top": 360,
+"bot": 2,
+"r50": 189,
+"r90": 295,
+"rMax": 327,
+"band90": 231,
+"inside": 0.3,
+"off": 10,
+"head": [
+64,
+217,
+363
+],
+"headAbove": 0.7,
+"bodyAbove": 0.28,
+"bs": 1.9,
+"walkR": 65,
+"feetOff": 190
+}
+],
+[
+"boss",
+"The Nameless",
+"",
+"B_Nameless",
+{
+"H": 395,
+"R": 116,
+"headAt": 285,
+"top": 379,
+"bot": 3,
+"r50": 71,
+"r90": 167,
+"rMax": 255,
+"band90": 138,
+"inside": 0.71,
+"off": 37,
+"head": [
+265,
+319,
+391
+],
+"headAbove": 0.86,
+"bodyAbove": 0.02,
+"bs": 1.3,
+"walkR": 44,
+"feetOff": 130
+}
+],
+[
+"boss",
+"The Mother Mold",
+"",
+"DeepKing",
+{
+"H": 336,
+"R": 44,
+"headAt": 247,
+"top": 301,
+"bot": 4,
+"r50": 29,
+"r90": 61,
+"rMax": 123,
+"band90": 66,
+"inside": 0.75,
+"off": 9,
+"head": [
+233,
+278,
+313
+],
+"headAbove": 0.85,
+"bodyAbove": 0,
+"bs": 1,
+"walkR": 34,
+"feetOff": 100
+}
+]
+]

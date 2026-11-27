@@ -1,0 +1,5 @@
+{"url": "?", "steps": [{"wait": 600, "js": "document.getElementById('playbtn').click(); __dmh.map.name"}, {"wait": 500, "shot": "mm1"},
+ {"js": "document.querySelector('.lbpick[data-map=\"1\"]').click(); document.querySelectorAll('.lbpick[data-map]').length + ' maps, sel ' + document.querySelector('.lbpick[data-map].sel b').textContent"}, {"wait": 300, "shot": "mm2"},
+ {"js": "document.getElementById('lbstart').click(); 1"}, {"wait": 9000},
+ {"js": "__dmh.map.name + ' zone ' + __dmh.zones[0].name + ' title=' + document.getElementById('title').style.display + ' lobby=' + document.getElementById('lobby').style.display + ' phase ' + __dmh.phase + ' cls ' + __dmh.player.cls"}, {"wait": 2500, "shot": "mm3"},
+ {"js": "__dmh.phase + ' r' + __dmh.round + ' t' + Math.round(__dmh.time)"}]}

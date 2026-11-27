@@ -1,0 +1,12 @@
+import json,sys
+pre=("const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.hud.helpT=1e6;g.hud.draw=()=>{};g.phaseTimer=0;__sim(30);g.toSpawn=0;g.spawned=0;for(const E of g.enemies)E.remove=true;"
+"window.__c=(i,fx,fy,h,pitch)=>{window.__dmhHold=false;D.arena=i;g.world.showChunk(i);D.flip=1;const A=D.A();g.zones.forEach((Z,k)=>Z.unlocked=k===A.zone);const S=D.S();g.toSpawn=0;g.spawned=0;"
+"for(let k=0;k<70;k++){P.pos.set(S.spawn[0],100,S.spawn[1]);P.vel.set(0,0,0);__sim(3);for(const E of g.enemies)E.remove=true;}"
+"let x=A.c[0]+fx*A.hx,z=A.c[1]+fy*A.hy;h=h<=1?h*A.H:h;P.yaw=Math.atan2(-(A.c[0]-x),-(A.c[1]-z));P.pos.set(x,h,z);P.vel.set(0,0,0);P.pitch=pitch;g.hud.hurtWhite=0;__sim(1);P.pos.set(x,h,z);g.vm.hidden=true;window.__dmhHold=true;return 1};1")
+rooms=[int(a) for a in sys.argv[2:]]; mode=sys.argv[1]
+st=[{"js":pre}]; names=[]
+views={'o':[(0.7,-0.7,0.72,-0.34)],'c':[(0.2,-0.24,185,0.1)],'oc':[(0.7,-0.7,0.72,-0.34),(0.2,-0.24,185,0.1)]}[mode]
+for i in rooms:
+    for k,(fx,fy,h,p) in enumerate(views):
+        st.append({"js":f"__c({i},{fx},{fy},{h},{p})"}); st.append({"wait":200}); st.append({"shot":f"ov{i}_{k}"}); names.append(f"ov{i}_{k}")
+json.dump({"w":640,"h":360,"query":"&map=6","steps":st},open('rv.json','w')); open('rv.names','w').write(' '.join(names))

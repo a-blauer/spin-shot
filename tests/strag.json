@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player, V = P.pos.constructor; g.godMode = true; g.phase='Round'; g.round=3; g.toSpawn=3; g.spawned=3; g.killed = 0; const A = g.spawnEnemy(0, new V(3000, 110, 3000), false, -1, 1, 1, 0, false); const B = g.spawnEnemy(0, new V(-3000, 110, 2000), false, -1, 1, 1, 0, false); const C = g.spawnEnemy(0, P.pos.clone().add(new V(600, 20, 0)), false, -1, 1, 1, 0, false); for (const e of [A,B,C]) e.emerge = 0; const d0 = [A,B,C].map(e => Math.round(e.pos.distanceTo(P.pos))); __sim(330); window.__dmhHold = true; 'before ' + d0 + ' after ' + [A,B,C].map(e => Math.round(e.pos.distanceTo(P.pos)) + (e.emerge > 0 ? 'E' : '')) + ' stragglers ' + g.stragglers().length"},
+ {"wait":400,"shot":"strag"}
+]}

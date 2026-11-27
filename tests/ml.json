@@ -1,0 +1,8 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = __dmh, P = g.player, V = P.pos.constructor; g.godMode = true; g.phase='Round'; g.round=1; g.toSpawn=0; P.pos.set(-4000, 95, -1500); P.yaw = Math.PI; P.pitch = 0; __sim(2); const f = P.forward(); const L = []; for (let i = 0; i < 3; i++) { const E = g.spawnEnemy(0, P.pos.clone().addScaledVector(f, 170).add(new V((i-1)*70*f.z, 10, -(i-1)*70*f.x)), false, -1, 1, 1, 0, false); E.emerge = 0; E.baseSpeed = 0; E.attackCd = 99; L.push(E); } __sim(10); window.__L = L; const m0 = P.money; P.meleeBuffer = 0.2; __sim(4); 'hp ' + L.map(e => Math.round(e.health)) + ' cd ' + P.meleeCd.toFixed(2)"},
+ {"wait":400,"shot":"ml_a"},
+ {"js":"const P = __dmh.player; __sim(6); const a = __L.map(e => Math.round(e.health) + (e.dead ? 'D' : '')); P.meleeBuffer = 0.2; __sim(30); P.meleeBuffer = 0.2; __sim(8); 'after1 ' + a + ' combo ' + P.meleeCombo + ' heavy ' + P.meleeHeavy + ' hp ' + __L.map(e => Math.round(e.health) + (e.dead ? 'D' : ''))"},
+ {"wait":400,"shot":"ml_b"},
+ {"js":"const g = __dmh, P = g.player; __sim(30); P.giveWeapon(1005); __sim(8); 'melee ' + P.meleeDef"},{"wait":300,"shot":"ml_c"},
+ {"js":"const g = __dmh, P = g.player; g.spawnEnemy(0, P.pos.clone().addScaledVector(P.forward(), 180), false, -1, 1, 1, 0, false).emerge = 0; __sim(40); P.meleeBuffer = 0.2; __sim(9); 1"},{"wait":300,"shot":"ml_d"}
+]}

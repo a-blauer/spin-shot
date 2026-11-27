@@ -1,0 +1,10 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; P.money = 12000; P.luck = 4; g.round = 6; g.phase='Casino'; g.phaseTimer=999; g.casinoNights=1; const I = g.interactables.find(i=>i.type==='MoneyTable'); const v = new P.pos.constructor(1,0,0).applyQuaternion(I.group.quaternion); P.pos.set(I.pos.x + v.x*140, I.pos.y + 95, I.pos.z + v.z*140); P.openMenu(I); __sim(2); __sim(1,{choice:[1,0,0,0]}); __sim(2); JSON.stringify([P.menu.stage, P.menu.hand, P.money])"},
+ {"wait":300,"shot":"b_deal"},
+ {"js":"const P=window.__dmh.player; __sim(1,{choice:[0,1,0,0]}); __sim(2); JSON.stringify([P.menu.stage, P.menu.result, P.money])"},
+ {"wait":300,"shot":"b_result"},
+ {"js":"const g=window.__dmh, P=g.player; P.closeMenu(); for (let u=0;u<40;u+=2) P.addUpgrade(u); P.showInventory=true; __sim(2); JSON.stringify(P.suitCounts)"},
+ {"wait":300,"shot":"b_inv"},
+ {"js":"const g=window.__dmh; g.player.showInventory=false; g.victory=true; __sim(1); 'v'"},
+ {"wait":300,"shot":"b_win"}
+]}

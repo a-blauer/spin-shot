@@ -1,0 +1,10 @@
+{"w": 1400, "h": 800, "query": "&map=6", "steps": [
+{"js": "const g=__dmh,M=__meta.Meta;M.setUnlockAll(false);g.godMode=true;g.tip=()=>{};g.hud.toast=()=>{};g.banner=()=>{};__sim(10);for(const id of ['trainer','forge','lectern'])M.rescue({kind:'gnome',id});M.addCp('gunslinger',60);g.villageRT.enter();__sim(30);document.getElementById('hud').style.visibility='hidden';g.vm.hidden=true;'v'"}, {"wait": 1500},
+{"js": "const g=__dmh,V=g.villageRT,C=g.camera;window.__dmhHold=true;const [a,b]=V.w(250,-660),[e,f]=V.w(800,-660);C.position.set(a,200,b);C.lookAt(e,170,f);C.fov=70;C.updateProjectionMatrix();C.updateMatrixWorld();'c'"}, {"wait": 400}, {"shot": "town/lect"},
+{"js": "const g=__dmh,V=g.villageRT,C=g.camera;const [a,b]=V.w(1250,-1100),[e,f]=V.w(2060,-1260);C.position.set(a,260,b);C.lookAt(e,80,f);C.updateMatrixWorld();'c'"}, {"wait": 400}, {"shot": "town/yard"},
+{"js": "const g=__dmh,V=g.villageRT,C=g.camera;const [a,b]=V.w(2600,-900),[e,f]=V.w(2000,-1300);C.position.set(a,300,b);C.lookAt(e,60,f);C.updateMatrixWorld();'c'"}, {"wait": 400}, {"shot": "town/yard2"},
+{"js": "__meta.Meta.toggleMut(0);__meta.Meta.toggleMut(3);__dmh.onVillage('lectern');'o'"}, {"wait": 500}, {"shot": "town/ui_lect"},
+{"js": "document.querySelector('#vpanel .vp-x').click();__dmh.onVillage('trainer');'o'"}, {"wait": 500}, {"shot": "town/ui_train"},
+{"js": "document.querySelector('[data-learn=feet]').click();document.querySelector('[data-learn]:not([disabled])') && document.querySelector('[data-learn=fan]') ;'o'"}, {"wait": 400}, {"shot": "town/ui_train2"},
+{"js": "document.querySelector('#vpanel .vp-x').click();__dmh.onVillage('gunshop');'o'"}, {"wait": 600}, {"shot": "town/ui_forge"}
+]}

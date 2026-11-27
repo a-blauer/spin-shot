@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; g.round = 11; g.phase = 'Intermission'; g.phaseTimer = 0.01; __sim(2); let t = 0; const res=[]; for (let k=0;k<6;k++){ t = __sim(120); res.push([g.aliveCount(), (t/120).toFixed(2)+'ms']); } JSON.stringify(res)"},
+ {"js":"const g = window.__dmh; JSON.stringify(g.enemies.filter(e=>!e.dead).map(e=>[e.def.name, e.elite?'E':'', Math.round(e.pos.distanceTo(g.player.pos))]))"},
+ {"js":"const g = window.__dmh, P = g.player; P.giveWeapon(16); __sim(30); const E = g.enemies.find(e=>!e.dead && !e.emerging); if (E) { const d = E.pos.clone().sub(g.camera.position); P.yaw = Math.atan2(-d.x,-d.z); P.pitch = Math.atan2(d.y, Math.hypot(d.x,d.z)); } __sim(40, {fire:true}); 'ok'"},
+ {"wait":1500,"shot":"l_horde"}
+]}

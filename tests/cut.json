@@ -1,0 +1,1 @@
+{"w":640,"h":360,"steps":[{"js":"const g=__dmh,U=g.data.upgrades;let bad=0,n=0;const seen=new Set();for(let k=0;k<6000;k++){const u=__meta.rollBuff(k%5,{},['gunslinger','brawler','engineer','sniper','bomber'][k%5]);if(u>=0){n++;seen.add(u);if(U[u].cut)bad++;}}JSON.stringify([n,bad,seen.size,U.filter(u=>u.cut).length])"}]}

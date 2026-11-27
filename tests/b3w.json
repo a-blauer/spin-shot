@@ -1,0 +1,7 @@
+{"w":1100,"h":520,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.hud.helpT=0;g.hud.draw=()=>{};g.phaseTimer=0;__sim(30);g.toSpawn=0;g.spawned=0;for(const E of g.enemies)E.remove=true;__sim(3);D.arena=8;D.flip=1;const A=D.A();g.zones.forEach((Z,k)=>Z.unlocked=k===A.zone);const V=P.pos.constructor;window.px=A.c[0]+1500;window.pz=A.c[1]+900;P.pos.set(px,110,pz);P.yaw=0.5;P.pitch=-0.05;__sim(2);P.pos.set(px,110,pz);window.__es=[];[0,1,5,7,12].forEach((id,k)=>{const E=g.spawnEnemy(id,new V(px-700+k*120,120,pz-700-k*90),false,-1,1,1,0,false);E.emerge=0;__es.push(E);});for(let k=0;k<55;k++){__sim(1);P.pos.set(px,P.pos.y,pz);}g.vm.hidden=true;1"},
+{"shot":"w1"},
+{"js":"for(let k=0;k<40;k++){__sim(1);__dmh.player.pos.set(px,__dmh.player.pos.y,pz);}1"},{"shot":"w2"},
+{"js":"const P=__dmh.player;for(let k=0;k<70;k++){__sim(1);P.pos.set(px,P.pos.y,pz);}P.yaw=0.2;1"},{"shot":"w3"},
+{"js":"const g=__dmh,P=g.player;for(const E of __es){if(!E.dead)E.takeHit(1e6,E.pos,new (P.pos.constructor)(0,0,-1),false);}for(let k=0;k<9;k++){__sim(1);}1"},{"shot":"w4"}
+]}

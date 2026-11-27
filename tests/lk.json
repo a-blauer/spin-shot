@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"__locker(); 'ok'"},{"wait":1500,"shot":"lk1"},
+ {"js":"const M = (s,i) => { document.querySelector('.ltab[data-slot=' + s + ']').click(); document.querySelector('.litem[data-id=' + i + ']').click(); }; M('outfit','pinstripe'); M('hat','tophat'); M('face','monocle'); M('back','cape'); M('legs','black'); 'ok'"},{"wait":1500,"shot":"lk2"},
+ {"js":"const M2 = (s,i) => { document.querySelector('.ltab[data-slot=' + s + ']').click(); document.querySelector('.litem[data-id=' + i + ']').click(); }; M2('outfit','hazmat'); M2('hat','miner'); M2('face','gasmask'); M2('back','tank'); M2('tone','t6'); 'ok'"},{"wait":1500,"shot":"lk3"},
+ {"js":"const M3 = (s,i) => { document.querySelector('.ltab[data-slot=' + s + ']').click(); document.querySelector('.litem[data-id=' + i + ']').click(); }; M3('outfit','lumber'); M3('hat','beanie'); M3('face','beard'); M3('back','guitar'); M3('tone','t3'); M3('legs','chaps'); 'ok'"},{"wait":1500,"shot":"lk4"}
+]}

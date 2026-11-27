@@ -1,0 +1,5 @@
+{"steps":[
+ {"js":"const g = window.__dmh; g.godMode = true; let t = 0; window.__dmhInput = (In) => { t++; const P = g.player; let b=null,bd=1e9; for (const E of g.enemies){ if(E.dead||E.emerging) continue; const d=E.pos.distanceTo(P.pos); if(d<bd){bd=d;b=E;} } if (b) { const d=b.pos.clone().sub(g.camera.position); P.yaw=Math.atan2(-d.x,-d.z); P.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z)); } return { fire: !!b, firePressed: t%4===0 ? 1 : 0, right: Math.sin(t*0.05), jump: t%60===0 ? 1 : 0 }; }; 'ok'"},
+ {"wait":25000,"shot":"y_live"},
+ {"js":"const g = window.__dmh; JSON.stringify({t: g.time.toFixed(1), round: g.round, phase: g.phase, kills: g.player.kills, fps: g.hud.fps.toFixed(1)})"}
+]}

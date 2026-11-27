@@ -1,0 +1,1 @@
+{"w":960,"h":540,"query":"&map=0","steps":[{"js":"const g=__dmh,P=g.player;g.godMode=true;__sim(30);const b=g.box.pos;const d=b.clone().sub(P.pos);P.yaw=Math.atan2(-d.x,-d.z)+Math.PI;P.pitch=0;__sim(2);'away'"},{"wait":300},{"shot":"hudA"},{"js":"const g=__dmh,P=g.player;P.yaw-=Math.PI;__sim(2);'toward'"},{"wait":300},{"shot":"hudB"}]}

@@ -1,0 +1,9 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;__meta.Meta.tipMark&&0;g.tip=()=>{};g.hud.tipT=0;g.phaseTimer=0;__sim(40);g.hud.hurtWhite=0;__sim(1);window.__dmhHold=true;JSON.stringify([D.room,D.arena,D.flip,D.guns,D.tier,g.toSpawn,g.interactables.length])"},
+{"wait":400},{"shot":"d4a"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(60);const S=D.S();P.pos.set(D.A().c[0],100,S.exit[1]-1300);P.yaw=Math.PI;P.pitch=0.1;g.hud.hurtWhite=0;__sim(2);window.__dmhHold=true;JSON.stringify([g.phase,D.cleared,D.things.map(I=>I.type),D.gates.length])"},
+{"wait":400},{"shot":"d4b"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;const S=D.S();const G0=S.guns[0];P.pos.set(G0[0]+700,100,G0[1]);P.yaw=Math.PI/2;P.pitch=0;__sim(2);window.__dmhHold=true;1"},
+{"wait":400},{"shot":"d4c"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;const r=[];const S=D.S();const B=S.bench;P.pos.set(B[0],100,B[1]-600);P.vel.set(0,0,900);for(let i=0;i<60;i++){P.vel.z=900;__sim(1);}r.push('bench stop z',Math.round(P.pos.z),'bench z',B[1]);const A=D.A();P.pos.set(A.c[0]-A.hx+60,260,A.c[1]);P.yaw=Math.PI;P.vel.set(0,100,900);P.inFwd=1;P.grounded=false;P.timeSinceJump=1;r.push('wallrun',P.tryWallRun());JSON.stringify(r)"}
+]}

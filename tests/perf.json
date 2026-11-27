@@ -1,0 +1,3 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.tip=()=>{};g.godMode=true;g.phaseTimer=0;const t0=performance.now();__sim(120);const dt=(performance.now()-t0)/120;const r=g.renderer.info.render;JSON.stringify({msPerStep:+dt.toFixed(2),calls:r.calls,tris:r.triangles,zones:g.zones.length,nav:g.navW+'x'+g.navH,load:Math.round(performance.timing?performance.now():0)})"}
+]}

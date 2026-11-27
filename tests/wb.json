@@ -1,0 +1,8 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent,r=[];g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(200);for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(120);const U=g.data.upgrades,gi=[];U.forEach((u,i)=>{if(u.core&&u.core!=='me')gi.push(i)});for(let k=0;k<3;k++)for(const i of gi.slice(0,8))P.gainCore(i);const S=P.slot;let n=0;for(const i of gi.slice(0,8)){if(P.fitCore(S,i))n++;}r.push('fitted',n,'cap',P.partSlots(S));S.mods.push(S.mods[0]||1);r.push('cap after evolve',P.partSlots(S),P.fitCore(S,gi[4]));S.mods.pop();P.setWield(true);__sim(10);r.push('wield',P.wield);const B=D.things.find(I=>I.type==='HighRoller');P.pos.copy(B.pos);__sim(1);P.useInteractable?0:0;g.openCraft(P.wield);__sim(3);r.push('open',!!document.querySelector('#craft .tab.on'),document.querySelector('#craft .tab.on').textContent);const m0=[P.stat('MeleeDamage'),P.stat('MeleeSpeed')];for(const i of gi.slice(0,6))P.fitCore({blade:true},i);r.push('blade parts',P.bladeCores.length,'of',P.partSlots({blade:true}),'melee dmg',m0[0],'->',P.stat('MeleeDamage').toFixed(2),'speed',m0[1],'->',P.stat('MeleeSpeed').toFixed(2));__sim(2);window.__dmhHold=true;JSON.stringify(r)"},
+{"wait":900},{"shot":"wb_blade"},
+{"js":"window.__dmhHold=false;document.querySelectorAll('#craft .tab')[0].click();__sim(30);window.__dmhHold=true;1"},
+{"wait":900},{"shot":"wb_gun"},
+{"js":"window.__dmhHold=false;const g=__dmh,P=g.player;document.querySelector('#cclose').click();P.giveWeapon(53);__sim(10);g.openCraft(false);__sim(30);window.__dmhHold=true;1"},
+{"wait":900},{"shot":"wb_tall"}
+]}

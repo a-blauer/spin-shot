@@ -1,0 +1,2 @@
+{"steps":[{"js":"const g = __dmh, V = g.player.pos.constructor; const out = []; for (let x = -4700; x <= -3100; x += 200) { const row = []; for (let y = -4000; y <= -3300; y += 100) { const h = g.phys.raycastDown(new V(y, 300, -x), 3000, true) || g.phys.raycastDown(new V(x, 300, y), 3000, true); row.push(h ? Math.round(h.point.y) : 'X'); } out.push(row.join(' ')); } out.join(' | ')"},
+{"js":"const g = __dmh, V = g.player.pos.constructor; const P = g.player.pos; 'player ' + [P.x,P.y,P.z].map(Math.round)"}]}

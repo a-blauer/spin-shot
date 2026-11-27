@@ -1,0 +1,1 @@
+{"w": 300, "h": 200, "query": "&map=6", "steps": [{"js": "const g=__dmh,P=g.player;__sim(20);const h=g.phys.raycast(g.camera.position.clone(),P.pos.clone().set(0,-1,0),5000);'eye above floor '+(h?h.distance.toFixed(0):'none')"}]}

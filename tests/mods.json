@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; g.phase = 'Round'; g.round = 1; g.toSpawn = 0; g.spawned = 0; const V = P.pos.constructor; P.pos.set(-4000, 95, -1380); P.yaw = Math.PI; P.pitch = -0.02; for (let i = 0; i < 10; i++) { const E = g.spawnEnemy(i % 3 === 2 ? 1 : 0, new V(-4420 + (i%5)*210, 150, -950 + Math.floor(i/5)*420), false, -1, 1, 1, 1 << i, false); E.emerge = 0; E.baseSpeed = 0; E.attackCd = 99; E.special = 99; } __sim(30); g.enemies.forEach(e=>{ e.attackCd = 99; e.special = 99; e.baseSpeed = 0; }); __sim(25); JSON.stringify(g.enemies.map(e=>e.displayName()))"},
+ {"wait":1200,"shot":"mods_a"},{"js":"__sim(14); 1"},{"wait":800,"shot":"mods_b"}
+]}

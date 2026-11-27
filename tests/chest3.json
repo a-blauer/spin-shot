@@ -1,0 +1,1 @@
+{"steps":[{"js":"const g=__dmh,P=g.player;g.phase='Intermission';g.phaseTimer=1e9;const C=g.interactables.find(I=>I.type==='Chest');P.money=1e6;P.openChest(C);const o=P.menu.offers.slice(),m=P.money;P.menuConfirm();const same=JSON.stringify(o)===JSON.stringify(P.menu.offers)&&m===P.money;P.menuText();P.handleChoice(0);JSON.stringify([same,!!P.menu,P.upgradeOrder.length])"}]}

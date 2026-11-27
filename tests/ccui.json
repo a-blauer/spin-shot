@@ -1,0 +1,6 @@
+{"w":1280,"h":760,"query":"","steps":[
+{"js":"window.__dmhHold=true; const M=__meta.Meta; __locker(); document.querySelector('.ltab[data-page=hat]').click(); JSON.stringify([M.lookStr()])"},
+{"wait":900},{"shot":"ccui1"},
+{"js":"document.querySelector('.ltab[data-page=beard]').click(); document.querySelector('#lrand').click(); document.querySelector('.ltab[data-page=build]').click(); const M=__meta.Meta; const L=M.lookStr(); __dmh.player.setBody(M.look()); JSON.stringify([L, __dmh.player.maxHealth])"},
+{"wait":900},{"shot":"ccui2"}
+]}

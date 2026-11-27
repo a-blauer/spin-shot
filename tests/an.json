@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"const g = __dmh; g.godMode = true; g.phaseTimer = 0; __sim(500); const E = g.enemies.filter(e => !e.dead); JSON.stringify(E.slice(0,4).map(e => [e.ai, e.puppet.stride.toFixed(2), Math.round(Math.hypot(e.vel.x, e.vel.z)), e.puppet.reach.toFixed(2)]))"},
+ {"js":"__locker(); 'ok'"},{"wait":1200,"shot":"lk1"}
+]}

@@ -1,0 +1,1 @@
+{"steps":[{"js":"const g=__dmh,P=g.player;g.godMode=true;g.hud.helpT=9999;P.pos.set(-1500,114,-1200);P.yaw=0;__sim(10);P.giveWeapon(6);__sim(60);__sim(14,{fire:true});window.__dmhHold=true;g.vm.flyers.length"},{"wait":400,"shot":"cs_a"}]}

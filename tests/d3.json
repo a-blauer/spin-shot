@@ -1,0 +1,8 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.hud.helpT=-5;g.phaseTimer=0;__sim(20);const bi=g.data.bosses.findIndex(b=>b.art==='Nameless');D.bossPick=[bi,bi,bi,bi];D.enter(20,[7,3,0]);g.toSpawn=0;__sim(200);const E=g.boss;E.stop();P.pos.set(E.pos.x,100,E.pos.z-800);P.yaw=Math.PI;P.pitch=0.1;g.hud.hurtWhite=0;__sim(1);window.__dmhHold=true;JSON.stringify([E.boss.name,E.pos.toArray().map(Math.round),P.pos.toArray().map(Math.round)])"},
+{"wait":500},{"shot":"d3a"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;for(const E of g.enemies)E.remove=true;__sim(2);const bi=g.data.bosses.findIndex(b=>b.art==='Hydra');D.bossPick=[bi,bi,bi,bi];D.enter(15,[7,3,0]);g.toSpawn=0;__sim(200);const E=g.boss;E.stop();P.pos.set(E.pos.x,100,E.pos.z-800);P.yaw=Math.PI;P.pitch=0.1;g.hud.hurtWhite=0;__sim(1);window.__dmhHold=true;1"},
+{"wait":500},{"shot":"d3b"},
+{"js":"const g=__dmh,P=g.player,D=g.descent;window.__dmhHold=false;for(const E of g.enemies)E.remove=true;__sim(2);D.enter(3,[1,1,0]);g.toSpawn=40;__sim(420);const A=D.A();P.pos.set(A.c[0],100,A.c[1]-A.hy+300);P.yaw=Math.PI;P.pitch=0.05;g.hud.hurtWhite=0;__sim(1);window.__dmhHold=true;JSON.stringify(g.enemies.filter(E=>!E.dead).map(E=>E.def.name))"},
+{"wait":500},{"shot":"d3c"}
+]}

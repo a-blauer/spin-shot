@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = __dmh, P = g.player, V = P.pos.constructor; g.godMode = true; g.phase='Round'; g.round=1; g.toSpawn=0; P.pos.set(-4000, 95, -1500); P.yaw = Math.PI; P.pitch = 0; __sim(2); const E = g.spawnEnemy(7, P.pos.clone().addScaledVector(P.forward(), 260), false, -1, 1, 1, 0, false); E.emerge = 0; E.baseSpeed = 0; E.attackCd = 99; E.health = E.maxHealth = 99999; __sim(10); P.meleeBuffer = 0.2; __sim(2); 1"},
+ {"wait":250,"shot":"sw0"},{"js":"__sim(2); 1"},{"wait":250,"shot":"sw1"},{"js":"__sim(2); 1"},{"wait":250,"shot":"sw2"},{"js":"__sim(4); 1"},{"wait":250,"shot":"sw3"},
+ {"js":"__sim(14); __dmh.player.meleeBuffer = 0.2; __sim(5); 1"},{"wait":250,"shot":"sw4"},
+ {"js":"__sim(18); __dmh.player.meleeBuffer = 0.2; __sim(3); 1"},{"wait":250,"shot":"sw5"},{"js":"__sim(3); 1"},{"wait":250,"shot":"sw6"},{"js":"__sim(4); 1"},{"wait":250,"shot":"sw7"}
+]}

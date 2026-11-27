@@ -1,0 +1,4 @@
+{"w":640,"h":360,"query":"&map=6","steps":[
+{"js":"(async()=>{const g=__dmh,A=g.audio;A.unlock();const names=Object.keys(A.TRIM);const res=await Promise.all(names.map(n=>A.load(n)));const bad=names.filter((n,i)=>!res[i]);const st=names.filter((n,i)=>res[i]&&res[i].numberOfChannels===2).length;const loopBad=Object.keys(A.LOOPS).filter(n=>{const b=A.buffers.get(n);return !b||A.LOOPS[n][1]>b.duration});A.play('S_HitFlesh',1);A.play('S_Explosion',1);const t1=A.take('S_HitFlesh'),t2=A.take('S_HitFlesh'),t3=A.take('S_Rack');A.ambience('S_AmbCave',0.3);await new Promise(r=>setTimeout(r,600));return JSON.stringify({state:A.ctx.state,n:names.length,bad,stereo:st,loopBad,takes:[t1,t2,t3],loops:[...A.loops.keys()],bed:g.descent.bed(),dur:+A.buffers.get('S_AmbCave').duration.toFixed(3)})})()"},
+{"js":"const g=__dmh,D=g.descent;const o={};for(let i=0;i<42;i++){D.arena=i;const b=D.bed();o[b]=(o[b]||0)+1;}JSON.stringify(o)"}
+]}

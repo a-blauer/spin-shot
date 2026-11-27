@@ -1,0 +1,10 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; g.phase='Round'; g.round=4; g.toSpawn=0; const V=P.pos.constructor; P.pos.set(-4000,95,-1500); P.yaw=Math.PI; P.pitch=0; const out=[]; [0,3,7].forEach((t,i)=>{ const E=g.spawnEnemy(t,new V(-4300+i*300,150,-1100),false,-1,1,1,0,false); E.emerge=0; }); __sim(40); g.enemies.forEach(e=>{e.baseSpeed=0; e.attackCd=99; for(let k=0;k<4;k++){ const at=e.pos.clone(); at.y+= (k-1)*30; at.x+=(k%2?20:-20); e.takeHit(e.maxHealth*0.16, at, new V(0,0,1), false);} }); __sim(20); JSON.stringify(g.enemies.map(e=>[e.def.name, (e.puppet.wounds||[]).length, !!e.armLost]))"},
+ {"wait":400,"shot":"m_gore"},
+ {"js":"const g = window.__dmh, P = g.player; for (const E of g.enemies){E.dead=true;E.remove=true;} P.money=50000; const use=(type)=>{ P.closeMenu(); const I=g.interactables.find(i=>i.type===type); const v=new P.pos.constructor(1,0,0).applyQuaternion(I.group.quaternion); P.pos.set(I.pos.x+v.x*140,I.pos.y+95,I.pos.z+v.z*140); P.openMenu(I); __sim(2); }; window.use=use; use('Slots'); __sim(1,{interact:1}); __sim(20); __sim(1,{interact:1}); __sim(15); JSON.stringify([P.menu.stage, P.menu.skill.stopped, P.menu.reels])"},
+ {"wait":300,"shot":"m_slots"},
+ {"js":"const P=window.__dmh.player; __sim(1,{interact:1}); __sim(10); __sim(1,{interact:1}); __sim(5); JSON.stringify([P.menu.stage, P.menu.reels, P.menu.rarity, P.menu.offers.length])"},
+ {"js":"const g=window.__dmh, P=g.player; use('ArmsRoulette'); __sim(1,{interact:1}); __sim(30); JSON.stringify([P.menu.stage, P.menu.wheel, P.menu.spd.toFixed(1)])"},
+ {"wait":300,"shot":"m_wheel"},
+ {"js":"const P=window.__dmh.player; __sim(1,{interact:1}); __sim(200); JSON.stringify([P.menu.stage, P.menu.pending, P.menu.result])"}
+]}

@@ -1,0 +1,1 @@
+{"url": "?x", "steps": [{"wait": 5000, "shot": "v_title"}, {"js": "document.getElementById('progbtn').click(); 'p'"}, {"wait": 500, "shot": "v_progress"}]}

@@ -1,0 +1,1 @@
+{"steps":[{"js":"const g=__dmh,P=g.player;const out=[];for(let i=0;i<30;i++){P.giveWeapon(i);__sim(40);let n=0;g.vm.gun.traverse(o=>{if(o.isMesh)n++;});out.push(n);}out.join(' ')"}]}

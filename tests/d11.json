@@ -1,0 +1,4 @@
+{"w":1280,"h":760,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(30);for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(200);P.money=999999;const U=g.data.upgrades;const ix=n=>U.findIndex(u=>u.name===n);P.addUpgrade(ix('Gasoline Can'));P.addUpgrade(ix('Winter\\'s Halo'));P.addUpgrade(ix('Pocket Sand'));__sim(260);const C=D.things.filter(I=>I.type==='Chest');P.openChest(C[2]);P.menu.offers=[ix('Fire Walker'),ix('Time Dilator'),ix('Running Shoes')];__sim(3);window.__dmhHold=true;JSON.stringify([P.build,P.buildRank])"},
+{"wait":400},{"shot":"d11"}
+]}

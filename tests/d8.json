@@ -1,0 +1,5 @@
+{"w":1280,"h":720,"query":"&map=6","steps":[
+{"js":"const g=__dmh,P=g.player,D=g.descent;g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(30);const r=[g.toSpawn];for(const E of g.enemies)if(!E.dead)E.takeHit(1e9,E.pos,new (P.pos.constructor)(0,1,0),false);g.spawned=g.toSpawn;__sim(60);r.push(D.things.map(I=>I.type).join(','));P.money=99999;const S=P.slot;const m0=S.mods.length;P.benchUpgrade();r.push('mods',m0,'->',S.mods.length,'job',!!P.benchJob);const Sp=D.S();P.pos.set(Sp.box[0]-500,100,Sp.box[1]-900);P.yaw=Math.PI-0.5;P.pitch=0.05;g.hud.hurtWhite=0;__sim(2);window.__dmhHold=true;JSON.stringify(r)"},
+{"wait":400},{"shot":"d8"},
+{"js":"const g=__dmh,D=g.descent;window.__dmhHold=false;D.gates[0].q.use();__sim(20);JSON.stringify([D.room,g.toSpawn])"}
+]}

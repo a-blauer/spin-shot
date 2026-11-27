@@ -1,0 +1,5 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player; g.godMode = true; g.phaseTimer = 0; __sim(700); const E = g.enemies.filter(e => !e.dead && e.puppet.stride > 0.5)[0]; if (E) { P.yaw = Math.atan2(E.pos.x - P.pos.x, E.pos.z - P.pos.z); for (let k = 0; k < 16; k++) { P.yaw = k * Math.PI / 8; P.updateCamera(0.016); g.camera.updateMatrixWorld(true); const d = new P.pos.constructor(); g.camera.getWorldDirection(d); const t = E.pos.clone().sub(P.pos).normalize(); if (d.dot(t) > 0.93) break; } } window.__dmhHold = true; g.enemies.length"},
+ {"wait":500,"shot":"an_a"},{"js":"window.__dmhHold=false; __sim(6); window.__dmhHold = true; 1"},{"wait":400,"shot":"an_b"},
+ {"js":"__locker(); 'ok'"},{"wait":1200,"shot":"lk1"}
+]}

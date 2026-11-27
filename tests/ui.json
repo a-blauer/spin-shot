@@ -1,0 +1,105 @@
+{
+"steps": [
+{
+"js": "window.useAt = (type) => { const g = window.__dmh, P = g.player; P.closeMenu(); const I = g.interactables.find(i=>i.type===type); const f = {x: Math.cos(0), z: 0}; const q = I.group.quaternion; const v = new P.pos.constructor(1,0,0).applyQuaternion(q); P.pos.set(I.pos.x + v.x*140, I.pos.y + 95, I.pos.z + v.z*140); P.yaw = Math.atan2(v.x, v.z); P.pitch = -0.15; P.openMenu(I); __sim(2); return g.isCasinoOpen() + ' ' + !!P.menu; }; window.__dmhHold = true; const g = window.__dmh, P = g.player; g.godMode = true; for (const z of g.zones) z.unlocked = true; P.money = 12450; P.luck = 7; g.round = 5; g.phase='Round'; g.toSpawn = 6; P.giveWeapon(8); P.refillAll(); __sim(200); P.health = P.maxHealth*0.62; g.hud.toast('+$120  HEADSHOT', '#ffcd5a'); g.hud.toast('Clover +1 Luck', '#7dff8a'); g.hud.banner('DOUBLE POINTS', '#ffcd5a', 6); g.doublePoints = 20; __sim(10); 'ok'"
+},
+{
+"js": "const g=window.__dmh; g.hud.helpT=0; g.round=1; __sim(1); 'help'"
+},
+{
+"wait": 300,
+"shot": "u_help"
+},
+{
+"js": "const g=window.__dmh; g.round=5; g.hud.helpT=99; const I=g.interactables.find(i=>i.type==='WallBuy'); const P=g.player; const v=new P.pos.constructor(1,0,0).applyQuaternion(I.group.quaternion); P.pos.set(I.pos.x+v.x*120, I.pos.y+95, I.pos.z+v.z*120); P.yaw=Math.atan2(v.x,v.z); P.pitch=-0.1; __sim(3); 'wb ' + (P.focus&&P.focus.type)"
+},
+{
+"wait": 300,
+"shot": "u_prompt"
+},
+{
+"wait": 400,
+"shot": "u_hud"
+},
+{
+"js": "const g = window.__dmh, P = g.player; g.phase='Casino'; g.phaseTimer=999; g.doublePoints=0; g.hud.banners=[]; useAt('Slots')"
+},
+{
+"wait": 300,
+"shot": "u_slots0"
+},
+{
+"js": "window.__dmh.player.menuHelp = true; __sim(1); 'help'"
+},
+{
+"wait": 200,
+"shot": "u_slotshelp"
+},
+{
+"js": "window.__dmh.player.menuHelp = false; __sim(1); 'nohelp'"
+},
+{
+"js": "const g = window.__dmh, P = g.player; __sim(1,{interact:1}); __sim(240); 'spun ' + P.menu.stage"
+},
+{
+"wait": 300,
+"shot": "u_slots2"
+},
+{
+"js": "const g = window.__dmh, P = g.player; P.rollPawn(); useAt('UpgradeCounter'); 'pawn'"
+},
+{
+"wait": 300,
+"shot": "u_pawn"
+},
+{
+"js": "const g = window.__dmh, P = g.player; useAt('StatBooth'); __sim(2); 'tonic'"
+},
+{
+"wait": 300,
+"shot": "u_tonic"
+},
+{
+"js": "const g = window.__dmh, P = g.player; useAt('MoneyTable'); __sim(2); 'table'"
+},
+{
+"wait": 300,
+"shot": "u_table"
+},
+{
+"js": "const g = window.__dmh, P = g.player; useAt('HighRoller'); __sim(2); 'vault'"
+},
+{
+"wait": 300,
+"shot": "u_vault"
+},
+{
+"js": "const g = window.__dmh, P = g.player; useAt('ArmsRoulette'); __sim(1,{interact:1}); __sim(400); 'roul ' + P.menu.stage"
+},
+{
+"wait": 300,
+"shot": "u_roulette"
+},
+{
+"js": "const g = window.__dmh, P = g.player; P.closeMenu(); for (let u=0;u<14;u++) P.addUpgrade(u*3); P.showInventory = true; __sim(2); 'inv'"
+},
+{
+"wait": 300,
+"shot": "u_inv"
+},
+{
+"js": "const g = window.__dmh, P = g.player; P.showInventory = false; __setMode('paused'); 'p'"
+},
+{
+"wait": 300,
+"shot": "u_pause"
+},
+{
+"js": "const g = window.__dmh, P = g.player; __setMode('play'); g.godMode=false; P.revives=0; P.invuln=0; P.armor=0; P.receiveDamage(99999, null, false); __sim(200); 'dead ' + P.dead"
+},
+{
+"wait": 300,
+"shot": "u_dead"
+}
+]
+}

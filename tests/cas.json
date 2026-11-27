@@ -1,0 +1,6 @@
+{"steps":[
+ {"js":"const g = __dmh, P = g.player; g.godMode = true; g.hud.helpT = 9999; P.pos.set(-650, 114, -150); __sim(20); for (let k = 0; k < 16; k++) { P.yaw = k * Math.PI / 8; P.pitch = 0.08; P.updateCamera(0.016); g.camera.updateMatrixWorld(true); const d = new P.pos.constructor(); g.camera.getWorldDirection(d); if (d.x > 0.9) break; } P.addUpgrade(5); P.addUpgrade(100); __sim(30); window.__dmhHold = true; 1"},
+ {"wait":700,"shot":"cas_a"},
+ {"js":"window.__dmhHold = false; const g = __dmh, P = g.player; P.pos.set(600, 114, 300); __sim(400); for (let k = 0; k < 16; k++) { P.yaw = k * Math.PI / 8; P.pitch = 0.0; P.updateCamera(0.016); g.camera.updateMatrixWorld(true); const d = new P.pos.constructor(); g.camera.getWorldDirection(d); if (d.x < -0.6 && d.z < -0.3) break; } window.__dmhHold = true; 1"},
+ {"wait":700,"shot":"cas_b"}
+]}

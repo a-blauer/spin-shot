@@ -1,0 +1,1 @@
+{"w":960,"h":540,"query":"&map=3","steps":[{"js":"__sim(6);document.getElementById('hud').style.visibility='hidden';'a'"},{"wait":800},{"shot":"zf_vis3"}]}

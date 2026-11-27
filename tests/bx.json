@@ -1,0 +1,8 @@
+{"w":900,"h":520,"steps":[
+{"js":"window.__dmhHold = true; const g = __dmh, P = g.player; g.godMode = true; g.phase='Intermission'; g.phaseTimer=1e9; g.hud.helpT=0; const B=g.interactables.find(I=>I.type==='MysteryBox'||I.box); if(!B) 'nobox '+[...new Set(g.interactables.map(I=>I.type))].join(','); else { const f=new (P.pos.constructor)(Math.sin(B.group.rotation.y),0,Math.cos(B.group.rotation.y)); P.pos.set(B.pos.x+f.x*260,B.pos.y+100,B.pos.z+f.z*260); P.yaw=Math.atan2(f.x,f.z); P.pitch=-0.05; B.box.state='offer'; B.box.t=0; B.box.prize=1001; B.boxShow(1001); B.setOpened&&B.setOpened(true); __sim(20); B.type+' '+B.holder.children.length; }"},
+{"shot":"bx1"},
+{"js":"const g=__dmh; const B=g.interactables.find(I=>I.box); B.box.prize=1008; B.box.t=0; B.boxShow(1008); __sim(40); 1"},
+{"shot":"bx2"},
+{"js":"const g=__dmh; const B=g.interactables.find(I=>I.box); B.box.prize=1005; B.box.t=0; B.boxShow(1005); __sim(30); 1"},
+{"shot":"bx3"}
+]}

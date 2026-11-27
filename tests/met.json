@@ -1,0 +1,4 @@
+{"w":640,"h":360,"query":"&map=6","steps":[
+{"js":"const g=__dmh;__sim(5);const W=g.world,by={};for(const m of W.chunkMeshes){const c=m.userData.chunk;by[c]=(by[c]||0)+m.count;}const A=g.descent?null:null;const out=[];const AR=g.zones;for(let i=0;i<42;i++){const Z=g.zones[i];out.push(i+':'+by[i]);}JSON.stringify(out.join(' '))"},
+{"js":"const g=__dmh,D=g.descent;const out=[];for(let i=0;i<40;i++){D.arena=i;const A=D.A();const area=A.hx*A.hy*4/1e6;out.push(i+':'+Math.round(area)+'m2');}out.join(' ')"}
+]}

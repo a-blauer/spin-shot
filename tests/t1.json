@@ -1,0 +1,4 @@
+{"steps":[
+ {"js":"const L = window.__dmh.world.debugLog; const c = {}; for (const e of L) c[e.k] = (c[e.k]||0)+1; JSON.stringify(c)"},
+ {"js":"JSON.stringify(window.__dmh.world.debugLog.filter(e=>!['Lamp','Sign','SpawnAt','StreetLamp','Barrel','Crate','Cactus','Headstone','WallBuy','Station'].includes(e.k)).map(e=>[e.k, Math.round(e.x), Math.round(e.y), Math.round(e.z||0)].concat(e.a)))"}
+]}

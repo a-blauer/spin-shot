@@ -1,0 +1,12 @@
+{"steps":[
+ {"js":"window.__dmhHold = true; window.__dmh.godMode = true; const g = window.__dmh; g.round = 3; g.phase='Intermission'; g.phaseTimer = 0.01; __sim(2); const P = g.player; P.money = 50000; const B = g.casinoBounds; P.pos.set((B.minX+B.maxX)/2, 100, B.maxZ - 300); P.vel.set(0,0,0); P.yaw = 0; P.pitch = -0.05; __sim(30); JSON.stringify({phase: g.phase, B, pos: P.pos, zone: g.zone})"},
+ {"wait":1500,"shot":"i_casino_a"},
+ {"js":"const P = window.__dmh.player; P.yaw = Math.PI*0.5; __sim(20); 'turn'"},
+ {"wait":1200,"shot":"i_casino_b"},
+ {"js":"const P = window.__dmh.player; P.yaw = Math.PI; __sim(20); 'turn'"},
+ {"wait":1200,"shot":"i_casino_c"},
+ {"js":"const g = window.__dmh, P = g.player; const S = g.interactables.find(i => i.type==='Slots'); P.pos.set(S.pos.x + 150, S.pos.y + 100, S.pos.z); __sim(5); P.openMenu(S); P.menuConfirm(); __sim(60); JSON.stringify({menu: P.menu && P.menu.type, stage: P.menu && P.menu.stage, S: S.pos})"},
+ {"wait":1200,"shot":"j_slots_spin"},
+ {"js":"__sim(120); const P = window.__dmh.player; JSON.stringify({stage: P.menu && P.menu.stage, offers: P.menu && P.menu.offers})"},
+ {"wait":1200,"shot":"k_slots_result"}
+]}

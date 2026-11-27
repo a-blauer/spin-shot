@@ -1,0 +1,9 @@
+{"w":1280,"h":720,"query":"","steps":[
+{"js":"window.__dmhHold=true;const M=__meta.Meta;M.setUnlockAll(false);M.bump('kills',5000);M.setShapes({weight:1});M.ascend('Tin Star',0);M.save();const before=[M.stat('kills'),M.shape().weight,M.asc('Tin Star'),!!localStorage.getItem('dmh-meta-v1')];document.getElementById('progbtn')&&document.getElementById('progbtn').click();const p=document.getElementById('progress');const b=p.querySelector('#preset');JSON.stringify([before,p.style.display,b?b.textContent:'no button'])"},
+{"wait":300},
+{"js":"const p=document.getElementById('progress');p.querySelector('#preset').click();const t=p.querySelector('#preset').textContent;window.__noReload=1;JSON.stringify([t])"},
+{"wait":300},{"shot":"rst1"},
+{"js":"const p=document.getElementById('progress');p.querySelector('#preset').click();'clicked'"},
+{"wait":4000},
+{"js":"const M=__meta.Meta;JSON.stringify([M.stat('kills'),M.shape().weight,M.asc('Tin Star'),JSON.parse(localStorage.getItem('dmh-meta-v1')||'{}').stats])"}
+]}

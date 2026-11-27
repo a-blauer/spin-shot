@@ -1,0 +1,4 @@
+{"steps":[
+ {"wait":2000},
+ {"js":"const g = window.__dmh; let meshes=0, inst=0, sprites=0, text=0; g.scene.traverse(o=>{ if(o.isMesh){ meshes++; if(o.isInstancedMesh) inst++; } }); g.renderer.info.autoReset=true; g.render(); const i = g.renderer.info.render; JSON.stringify({meshes, inst, calls: i.calls, tris: i.triangles, vm: (()=>{let n=0; g.vm.scene.traverse(o=>{if(o.isMesh)n++}); return n;})(), ints: g.interactables.length})"}
+]}
