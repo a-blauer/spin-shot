@@ -13,7 +13,7 @@ for s in (-1, 1):
     P, _ = root_leg(s, [s * 13, 70, 0], (s * 15, 74, 0), (s * 18, 42, 6), (s * 16, 12, 2), [14, 12, 10], toes=3, toe_len=18)
     parts.append(P)
 BODY = Part('Body', [0, 70, 0])
-st = skin([(0, 70, 0), (0, 94, 2), (0, 116, 3), (0, 128, 3)], [(24, 20), (21, 18), (20, 17), (17, 15)], sub=2, name='stalk')
+st = skin([(0, 70, 0), (0, 94, 2), (0, 116, 3), (0, 128, 3)], [(24, 23), (22, 21.5), (21, 20.5), (18, 17.5)], sub=2, name='stalk')
 socks = [blob((s * 15, 72, 0), (14, 13, 14), name='hip') for s in (-1, 1)] + [blob((s * 19, 118, 3), (12, 12, 12), name='sho') for s in (-1, 1)]
 body, bp = fuse([(st, lambda m, n: FLESH(0.9) if m.y > 84 else ROOT)] + [(o, lambda m, n: ROOT) for o in socks], voxel=0.8, smooth=3, tris=1600, name='body')
 BODY.add(body, bp); pj = projector(body)

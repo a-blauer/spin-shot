@@ -156,7 +156,7 @@ CAPI = CAPM.inverted()
 def cap_paint(m, n):
     if n.y < -0.25:                                           # the underside: radial gills, gone dark and rotten near the rim
         a = math.atan2(m.z - 3, m.x)
-        g = GILL_B if math.sin(a * 40) > 0.25 else GILL_A
+        g = GILL_B if math.sin(a * 16) > 0.3 else GILL_A   # broad gills: 40 thin ones shimmered at range
         return mix(g, ROT, 0.5) if math.hypot((CAPI @ m).x, (CAPI @ m).z) > 74 else g
     q = CAPI @ m; t = max(0.0, min(1.0, (math.hypot(q.x, q.z) - 62) / 30))
     return mix(CAP(1), ROT, 0.55 * t)                         # decay creeping in from the rim

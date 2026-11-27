@@ -6,7 +6,7 @@ import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 
-CHAR, CHAR2, CHAR3, EMBER, EMBER2 = C(0x2a2220), C(0x3e3230), C(0x1a1414), C(0xff8a3a), C(0xffc060)
+CHAR, CHAR2, CHAR3, EMBER, EMBER2 = C(0x302624), C(0x5a463c), C(0x1a1414), C(0xff8a3a), C(0xffc060)   # the tops of the bark a shade lighter (ash), so it reads in a dark room
 def char(m, n):
     return CHAR2 if n.y > 0.5 else (CHAR3 if n.y < -0.4 else CHAR)
 reset(); parts = []
@@ -44,14 +44,16 @@ BODY.add(ribbon(pj, split, 22, lambda p: (0, 0, 1), lift=0.6, taper=False), lamb
 BODY.add(ribbon(pj, split, 12, lambda p: (0, 0, 1), lift=1.0, taper=False), lambda m, n: EMBER2)
 import random as _r
 rng = _r.Random(3)
-for k in range(14):                                                 # cracks of embers wandering over the bark
+for k in range(26):                                                 # cracks of embers wandering over the bark, a lit vein down each
     a = rng.uniform(0, 2 * math.pi); y = rng.uniform(110, 205); r = 70
     pts = []
-    for j in range(4):
-        aa = a + (j - 1.5) * 0.09 + rng.uniform(-0.05, 0.05); yy = y - j * 9
+    for j in range(6):
+        aa = a + (j - 2.5) * 0.08 + rng.uniform(-0.05, 0.05); yy = y - j * 9
         h = pj.ray_cast(Vector((math.cos(aa) * 120, yy, math.sin(aa) * 120)), -Vector((math.cos(aa), 0, math.sin(aa))), 200)
         if h[0] is not None: pts.append(tuple(h[0]))
-    if len(pts) >= 3 and not (abs(pts[0][0]) < 16 and pts[0][2] > 0): BODY.add(ribbon(pj, pts, 2.4, lambda p: (p.x, 0, p.z), lift=0.6), lambda m, n: EMBER)
+    if len(pts) >= 3 and not (abs(pts[0][0]) < 16 and pts[0][2] > 0):
+        BODY.add(ribbon(pj, pts, 3.8, lambda p: (p.x, 0, p.z), lift=0.6), lambda m, n: EMBER)
+        BODY.add(ribbon(pj, pts, 1.4, lambda p: (p.x, 0, p.z), lift=0.9), lambda m, n: EMBER2)
 for k, (x, y, z) in enumerate(split[1:-1]):                         # the charred bark curling back from the split
     for s in (-1, 1):
         b = Vector((x + s * 11, y, z - 2))

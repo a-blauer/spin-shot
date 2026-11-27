@@ -104,7 +104,7 @@ def rotten_cap(profile, M, bites, seg=96, rim_from=60, rim_to=96):
     def paint(m, n):
         q = MI @ m; r = math.hypot(q.x, q.z)
         if (M.to_3x3().inverted() @ n).y < -0.25:
-            a = math.atan2(q.z, q.x); g = GILL_B if math.sin(a * 40) > 0.25 else GILL_A
+            a = math.atan2(q.z, q.x); g = GILL_B if math.sin(a * 16) > 0.3 else GILL_A   # broad gills: 40 thin ones shimmered at range
             return mix(g, ROT, 0.5) if r > rim_to * 0.78 else g
         t = max(0.0, min(1.0, (r - rim_to * 0.66) / (rim_to * 0.32)))
         return mix(CAP(1), ROT, 0.55 * t)

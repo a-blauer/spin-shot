@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 
 GOLD, GOLD_D, GOLD_L, GOLD_DD = C(0xd8a830), C(0x9a7018), C(0xf6dc78), C(0x6a4a10)
-gp = lambda m, n: GOLD_L if n.y > 0.6 else (GOLD_D if n.y < -0.4 else GOLD)
+# gold with grime worked into it: bright where it catches the light, tarnished going under, near-black in the creases
+gp = lambda m, n: GOLD_L if n.y > 0.7 else (GOLD_DD if n.y < -0.55 else (GOLD_D if n.y < -0.1 else GOLD))
 reset(); parts = []
 for s in (-1, 1):
     P, _ = root_leg(s, [s * 18, 46, 0], (s * 19, 50, 0), (s * 22, 28, 6), (s * 21, 10, 3), [11, 9, 7.5], toes=3, toe_len=15, paint=gp, tip=GOLD_DD)
@@ -16,12 +17,12 @@ EYES = [{'at': [s * 14.4, 112, 55], 'r': 6, 's': s, 'out': [s * 0.25, 0.05, 0.96
 BODY = Part('Body', [0, 48, 0], eyes=EYES)
 rng = random.Random(4)
 pieces = [(blob((0, 96, 0), (56, 52, 53), e=0.78, rot=(0.1, 0.4, 0.05), name='nugget'), gp)]
-for k in range(11):                                                  # knobs all over
+for k in range(17):                                                  # knobs all over
     a = rng.uniform(0, 2 * math.pi); y = rng.uniform(62, 140); r = 48 * math.sqrt(max(0.15, 1 - ((y - 96) / 56) ** 2))
     if math.sin(a) > 0.25 and 66 < y < 136: continue                 # leave the face smooth
     pieces.append((blob((math.cos(a) * r, y, math.sin(a) * r), (16, 14, 16), e=0.5, rot=(a, a * 2, 0), name='knob'), gp))
 for s in (-1, 1):
-    pieces.append((blob((s * 15, 120, 50), (12, 3.6, 6), rot=(0.2, 0, -s * 0.38), name='brow'), lambda m, n: GOLD_D))
+    pieces.append((blob((s * 14, 119, 51), (13, 4.4, 7), rot=(0.25, 0, -s * 0.55), name='brow'), lambda m, n: GOLD_DD))   # a heavy scowl, pulled down to the nose
     pieces.append((blob((s * 19, 48, 0), (13, 12, 13), name='hip'), gp)); pieces.append((blob((s * 44, 98, 12), (11, 11, 11), name='sho'), gp))
 body, bp = fuse(pieces, voxel=1.2, smooth=1, tris=1000, name='nugget')       # coarse: faceted like a nugget
 BODY.add(body, bp); pj = projector(body); seat_eyes(EYES, pj)

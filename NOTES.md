@@ -386,3 +386,18 @@
 - Thumb at rest laid forward along the near side (pointing at the muzzle), not standing up.
 - Checked: charging handle, magazine, speedloader, shells into the breech, drum, rocket, harpoon, rod, hopper, capacitor,
   from first person and from outside (hside.py).
+
+## (62) Creature and boss touch-ups (Blender)
+- bpy 5.3 installed from PyPI (the wheel matches Python 3.13); tools/blender/*.py run with plain `python3`, then
+  `node tools/sculpt_blight.mjs Name ...` bakes public/blight.json (bosses: public/bl_B_Name.json).
+- Cap gills: 16 broad stripes instead of 40 thin ones (common.py rotten_cap, rotcap.py): the thin ones shimmered at
+  range. Rebuilt Rotcap, Creeper, Brood Mother.
+- Sporeling: limbs and spine about a fifth thicker (still lean; read as a stick figure at range).
+- Inkcap: the stalk given depth (was flat side-on).
+- Golden Truffle: grime in its creases (tarnished under, near-black in the deepest), 17 knobs (11), a heavier scowl.
+- The Furnace: 26 ember cracks (14), longer, each with a lit vein down the middle; the bark's tops a shade of ash so the
+  hulk reads in a dark room.
+- Reviewed from a clean studio (rev.py studio moved to 160000,3000,160000, clear of the re-laid village): revq.py /
+  revq1.py (quick 3/4 and side looks for many creatures), zf/lineup.py (one frame each in game).
+- tests: boss.json reports 'noboss' for every boss (its __boss helper predates bosses arriving at the end of their
+  room's horde, (56)); not a model problem. dg0 [55,[],[]].
