@@ -69,6 +69,7 @@ export class Player {
     this.forges = []; this.forgeAt = {}; this.forgeN = {}; this.forgeRof = 0; this.forgeRofT = 0; this.forgeDepth = 0;   // forged parts (forge.js)
     this.weapons = [0, 1, 2, 3].map((i) => ({ def: i ? -1 : 0, tier: 0, ammo: 0, reserve: 0, mods: [], cores: [], altCd: 0, hot: 0 }));
     this.coreInv = {};   // gun parts carried but not fitted: upgrade index -> how many
+    this.turretCores = []; this.turretK = 0; this.turretTier = 0;   // the engineer's turret takes no parts: it evolves from its own kills
     this.bladeCores = [];   // parts fitted to the blade: they stay with the melee slot whatever blade is in it
     this.cls = CLASSES[0];
     this.slotBase = 2; this.active = 0;
@@ -216,6 +217,7 @@ export class Player {
     });
     for (const [stat, val] of this.cls.stats) this.stats[STAT[stat]] += val;
     for (const [stat, val] of this.trainMods || []) this.stats[STAT[stat]] += val;   // what Old Hobnail has taught this class
+    this.stats[STAT.MaxHealth] += this.lvlHp || 0;   // the class's level: +5 max health a level past the first
     this.stats[STAT.MaxHealth] += this.killHP || 0;   // Trophy Rack: health earned by kills
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
@@ -366,7 +368,7 @@ export class Player {
     // Healing in a fight (kills, lifesteal, leech, procs) all draws on one budget that refills at 2.2% of max health a
     // second and holds 6%. It used to be 8 a second flat, which a horde of a hundred filled without you noticing.
     this.healBucket = Math.min(Math.max(8, this.maxHealth * 0.06), this.healBucket + this.maxHealth * 0.022 * dt);
-    this.shieldBucket = Math.min(16, (this.shieldBucket === undefined ? 16 : this.shieldBucket) + 6 * dt);
+    this.shieldBucket = Math.min(9, (this.shieldBucket === undefined ? 9 : this.shieldBucket) + 3 * dt);   // combatShield's budget
     const regen = Math.min(6, this.stat('HealthRegen')) + (this.nearTurret ? 4 * this.stat('TurretAura') : 0);   // regen in a fight tops out at 6 a second
     if (regen >= 0) this.health = Math.min(this.maxHealth, this.health + (regen + (this.sinceDamage > 5 ? 25 : 0)) * dt);
     // input edges
@@ -1191,6 +1193,16 @@ export class Player {
   }
   // top sources of damage this run, biggest first: [{ who, total, hits, max, pct }]
   damageReport() { const L = this.dmgLog || {}, all = Object.keys(L).reduce((n, k) => n + L[k].total, 0) || 1; return Object.keys(L).map((k) => ({ who: k, total: Math.round(L[k].total), hits: L[k].hits, max: Math.round(L[k].max), pct: Math.round(L[k].total / all * 100) })).sort((a, b) => b.total - a.total); }
+  // a class level gained mid-run: the health comes at once
+  levelHp() { if (!this.cls) return; const v = Meta.clsHp(this.cls.id), d = v - (this.lvlHp || 0); if (d <= 0) return; this.lvlHp = v; this.recompute(); if (!this.dead) this.health = Math.min(this.maxHealth, this.health + d); }
+  // Shield from fighting (kills, hits that give shield): you kill so often that it has to be held in. One gain at most
+  // every half second, from a small budget that refills 3 a second (holds 9), and it never fills the shield past a
+  // quarter of your max health. Shield from other things (regeneration, overhealing) is not touched by this.
+  combatShield(a) {
+    const G = this.game; if (!(a > 0) || G.time < (this.cshT || 0)) return 0;
+    a = Math.min(a, this.shieldBucket || 0); const top = Math.min(this.shieldCap(), this.maxHealth * 0.25); a = Math.min(a, top - this.overshield); if (a <= 0) return 0;
+    this.shieldBucket -= a; this.overshield += a; this.cshT = G.time + 0.5; return a;
+  }
   shieldCap() { return Math.max(60, this.maxHealth * 0.6); }   // overshield tops out at 60% of your health, however many things feed it
   heal(a) {
     if (this.dead || a <= 0) return;
@@ -2011,7 +2023,7 @@ export class Player {
       }
       case 'Heal': this.combatHeal(mag); if (G.time - (this.healFxT || -9) > 0.6) { this.healFxT = G.time; G.fx.heal(Me.clone().addScaledVector(this.forward(), 120).add(V3(0, 30, 0))); } break;
       case 'Money': this.addMoney(Math.round(mag * (trigger === 'OnKill' ? Math.min(1, payScale(G.round)) : 1)), true); break;
-      case 'Shield': { let a = mag; if (trigger === 'OnKill') { a = Math.min(a, this.shieldBucket || 0); this.shieldBucket = (this.shieldBucket || 0) - a; } this.overshield = Math.min(this.shieldCap(), this.overshield + a); if (a > 0 && G.time - (this.shFxT || -9) > 0.8) { this.shFxT = G.time; G.fx.rune(V3(Me.x, Me.y - 85, Me.z), 130, [0.5, 0.8, 1], 0.5); } break; }   // kill shields share a 6-a-second budget, like kill heals
+      case 'Shield': { const a = this.combatShield(mag); if (a > 0 && G.time - (this.shFxT || -9) > 0.8) { this.shFxT = G.time; G.fx.rune(V3(Me.x, Me.y - 85, Me.z), 130, [0.5, 0.8, 1], 0.5); } break; }   // shield from fighting goes through combatShield: a cooldown, a budget and a cap
       case 'Missile': {
         const from = Me.clone().add(V3(0, 90, 0));
         const aimE = alive ? target : this.findNearestEnemy(at, 2500, null);
@@ -2392,7 +2404,7 @@ export class Player {
   // ---------------------------------------------------------------- classes
   setClass(id) {
     this.cls = classById(id);
-    this.trainMods = Meta.trainedMods(this.cls.id); this.cv = Meta.variant(this.cls.id);   // the Training Yard: perks learned, and the ability as fitted
+    this.trainMods = Meta.trainedMods(this.cls.id); this.cv = Meta.variant(this.cls.id); this.lvlHp = Meta.clsHp(this.cls.id);   // the Training Yard: perks learned, and the ability as fitted
     if (this.cls.id === 'gunslinger') this.slotBase = 3;
     if (this.cls.id === 'bomber') this.grenades = [0, 0, 1, 4];
     this.abilityCd = 0;
@@ -2484,6 +2496,7 @@ export class Player {
   honeNeed() { return Math.round(12 / (1 + Math.max(0, this.stat('BladeHone')))); }
   evoNeed(S) { return S.mods.length >= 4 ? Infinity : Math.round(EVO_NEED[S.mods.length] / (1 + Math.max(0, this.stat('EvolveSpeed'))) / (S.def >= 0 && DATA.weapons[S.def] && crowned(DATA.weapons[S.def].name) ? 1.33 : 1)); }
   creditKill(E) {
+    if (this.turretHitting) { this.turretEvo(E.isBoss ? 10 : E.elite ? 3 : 1); return; }   // the shoulder turret's kill: its own
     const C = this.shotCtx || (E.sgLast && this.game.time - E.sgLast.t < 1.5 ? E.sgLast.C : null), n = E.isBoss ? 10 : E.elite ? 3 : 1;
     if (this.meleeHitting || (this.wield && !C)) {   // the blade hones itself the same way
       if ((this.meleeTier || 0) < HONE_MAX) { this.meleeK = (this.meleeK || 0) + n; const need = this.honeNeed(); if (this.meleeK >= need) { this.meleeK -= need; this.honeFree = true; this.honeMelee(); this.honeFree = false; } }
@@ -2494,6 +2507,17 @@ export class Player {
     { const sg = sigOf(DATA.weapons[S.def]); if (sg && sg.evoByTie) return; }   // a gun that grows another way (the Lariat: by what it ties)
     if (this.S.Catalyst && (E.burnT > 0) + (E.bleedT > 0) + (E.slowT > 0) + (E.shockT > this.game.time) >= 2) S.evoK = (S.evoK || 0) + n;   // Catalyst: it counts twice
     this.addEvo(S, n);
+  }
+  // the turret evolves as a gun does, from the kills it makes itself: four times, each +25% damage, +10% fire rate and
+  // +10% longer out
+  turretNeed() { return this.turretTier >= 4 ? Infinity : Math.round(EVO_NEED[this.turretTier] * 0.8); }
+  turretEvo(n) {
+    if (this.turretTier >= 4) return; this.turretK += n;
+    while (this.turretTier < 4 && this.turretK >= this.turretNeed()) {
+      this.turretK -= this.turretNeed(); this.turretTier++; this.play('S_Upgrade', 0.9); Meta.bump('turretEvo');
+      this.game.banner(`TURRET EVOLVED  -  ${ROMAN[this.turretTier]}`, lin(0.43, 0.78, 1), 2.6);
+      this.toast(`Turret ${ROMAN[this.turretTier]}: +25% damage, +10% fire rate, out 10% longer.${this.turretTier < 4 ? `  ${this.turretNeed()} turret kills to the next.` : '  Fully evolved.'}`, '#6ec8ff');
+    }
   }
   addEvo(S, n) {
     S.evoK = (S.evoK || 0) + n;
@@ -2541,6 +2565,9 @@ export class Player {
     for (const u of us) this.takePart(u); this.coreInv[out] = (this.coreInv[out] || 0) + 1;
     Meta.bump(how === 'press' ? 'pressed' : how === 'fuse' ? 'fused' : 'forged'); this.play('S_Upgrade', 0.9, how === 'forge' ? 0.7 : 0.9); return out;
   }
+  // Compress All: every pair of the same part in the bag (not on a gun) is pressed, as many pairs as there are
+  compressPairs() { const out = []; for (const k in this.coreInv) { const u = +k, n = this.coreInv[k] | 0; if (n < 2) continue; const [o, how] = this.compressOut([u, u]); if (o >= 0 && how === 'press') for (let i = 0; i < Math.floor(n / 2); i++) out.push(u); } return out; }
+  compressAll() { const made = []; for (const u of this.compressPairs()) { const r = this.compress(u, u); if (r >= 0) made.push(r); } return made; }
   // the Recycler: break parts down for scrap, and spend scrap on a part of your choosing
   scrapPart(u, n = 1) { let got = 0, k = 0; while (n-- > 0 && this.takePart(u)) { got += this.scrapOf(u); k++; } this.scrap = (this.scrap || 0) + got; for (let i = 0; i < k; i++) Meta.bump('scrapped'); return got; }
   makePart(u) {
@@ -2549,22 +2576,22 @@ export class Player {
     if (U.kind === 'me' && this.upgradeStacks[u] >= U.stacks) return false;
     this.scrap -= c; this.gainCore(u); Meta.bump('made'); return true;
   }
-  // the Fortune Teller: reroll a character buff once a room into another of its rarity; or two of a rarity for one better
-  dropBuffStack(u) { if (!(this.upgradeStacks[u] > 0)) return false; this.upgradeStacks[u]--; if (!this.upgradeStacks[u]) this.upgradeOrder = this.upgradeOrder.filter((x) => x !== u); const hp = this.health / Math.max(1, this.maxHealth); this.recompute(); this.health = Math.min(this.maxHealth, Math.max(1, Math.round(hp * this.maxHealth))); return true; }
-  rollPassive(tier, skip) { const L = []; for (let i = CORE0; i < DATA.upgrades.length; i++) { const U = DATA.upgrades[i]; if (U.core && U.kind === 'me' && !U.noDrop && !Meta.upgradeLocked(U.name) && coreTier(i) === tier && !(skip && skip.has(i)) && (this.upgradeStacks[i] || 0) < U.stacks) L.push(i); } return L.length ? L[Math.floor(Math.random() * L.length)] : -1; }
+  // the Fortune Teller: works on the gun parts in your bag (character buffs are gone). Reroll a part once a room into
+  // another of its rarity; or give two of a rarity for one of the next rarity up
+  fortuneOk(u) { const U = DATA.upgrades[u]; return !!U && U.core && U.kind === 'gun' && !U.noDrop && (this.coreInv[u] || 0) > 0; }
+  rollPassive(tier, skip) { const L = []; for (let i = CORE0; i < DATA.upgrades.length; i++) { const U = DATA.upgrades[i]; if (U.core && U.kind === 'gun' && !U.noDrop && !Meta.upgradeLocked(U.name) && coreTier(i) === tier && !(skip && skip.has(i))) L.push(i); } return L.length ? L[Math.floor(Math.random() * L.length)] : -1; }
   fortuneReroll(u) {
-    const U = DATA.upgrades[u]; this.fortuneUsed = this.fortuneUsed || {};
-    if (!machine('fortune') || !U || U.kind !== 'me' || !(this.upgradeStacks[u] > 0) || this.fortuneUsed[u]) return -1;
+    this.fortuneUsed = this.fortuneUsed || {};
+    if (!machine('fortune') || !this.fortuneOk(u) || this.fortuneUsed[u]) return -1;
     const v = this.rollPassive(coreTier(u), new Set([u])); if (v < 0) return -1;
-    Meta.bump('fortune'); this.dropBuffStack(u); this.addUpgrade(v); this.fortuneUsed[v] = true; if (!(this.upgradeStacks[u] > 0)) delete this.fortuneUsed[u]; else this.fortuneUsed[u] = true;
+    Meta.bump('fortune'); this.takePart(u); this.coreInv[v] = (this.coreInv[v] || 0) + 1; this.fortuneUsed[v] = true; if (!(this.coreInv[u] > 0)) delete this.fortuneUsed[u]; else this.fortuneUsed[u] = true;
     this.play('S_Upgrade', 0.8, 1.2); return v;
   }
   fortuneTrade(a, b) {
-    const A = DATA.upgrades[a], B = DATA.upgrades[b];
-    if (!machine('fortune') || !A || !B || A.kind !== 'me' || B.kind !== 'me' || coreTier(a) !== coreTier(b) || coreTier(a) >= 3) return -1;
-    if (a === b ? this.upgradeStacks[a] < 2 : !(this.upgradeStacks[a] > 0 && this.upgradeStacks[b] > 0)) return -1;
+    if (!machine('fortune') || !this.fortuneOk(a) || !this.fortuneOk(b) || coreTier(a) !== coreTier(b) || coreTier(a) >= 3) return -1;
+    if (a === b && this.coreInv[a] < 2) return -1;
     const v = this.rollPassive(coreTier(a) + 1, null); if (v < 0) return -1;
-    this.dropBuffStack(a); this.dropBuffStack(b); this.addUpgrade(v); Meta.bump('fortune');
+    this.takePart(a); this.takePart(b); this.coreInv[v] = (this.coreInv[v] || 0) + 1; Meta.bump('fortune');
     this.play('S_Upgrade', 0.9, 0.8); return v;
   }
 
@@ -2584,7 +2611,7 @@ export class Player {
   // A gun has four part slots and one more each time it evolves; the blade has four and one more each time it is honed.
   partSlots(S) { return S && S.turret ? 4 : S && S.blade ? 4 + (this.meleeTier || 0) : 4 + ((S && S.mods && S.mods.length) || 0) + (S && S.def >= 0 && this.game.descent && DATA.weapons[S.def] && crowned(DATA.weapons[S.def].name) ? 1 : 0); }   // a Crowned gun (Ascension III) takes one more
   fitCore(S, u) {
-    if (S.turret) { const U = DATA.upgrades[u]; if (!(this.coreInv[u] > 0) || U.kind !== 'gun') return false; const tc = this.turretCores || (this.turretCores = []); if (tc.length >= 4) { this.toast('The turret has four slots, and they are full', '#ffb057'); return false; } this.coreInv[u]--; if (!this.coreInv[u]) delete this.coreInv[u]; tc.push(u); return true; }
+    if (S.turret) { this.toast('The turret takes no parts: it evolves from the kills it makes itself.', '#ffb057'); return false; }
     if (S.blade) return this.fitBlade(u);
     if (S.def < 0 || !(this.coreInv[u] > 0)) return false;
     if (S.cores.length >= this.partSlots(S)) { this.toast(`Every slot on this gun is full. It gets another each time it evolves.`, '#ffb057'); return false; }

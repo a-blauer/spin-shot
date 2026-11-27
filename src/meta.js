@@ -37,22 +37,22 @@ export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Show
 export const RANKS = [
   { name: 'Drifter' },
   { name: 'Greenhorn' },
-  { name: 'Ranch Hand', parts: ['Accelerant', 'Open Wound', 'Heat Shield', 'Bloodbank', 'Ember Dash'], guns: ['Bullwhip'] },
+  { name: 'Ranch Hand', parts: ['Accelerant', 'Open Wound'], guns: ['Bullwhip'] },
   { name: 'Deputy', guns: ['Come-Back Kid'] },
   { name: 'Gunhand' },
-  { name: 'Trailblazer', parts: ['Brittle Rounds', 'Conductor', 'Cold Comfort', 'Grounding Rod', 'Frost Wake'], guns: ['Bear Trap'] },
+  { name: 'Trailblazer', parts: ['Brittle Rounds', 'Conductor'], guns: ['Bear Trap'] },
   { name: 'Bounty Hunter', guns: ['Lariat'] },
-  { name: 'Regulator', parts: ['Steady Barrel', 'Concussive', 'Holster Loader', 'Quick Swap', 'Brace'], guns: ['Tumbleweed'] },
+  { name: 'Regulator', parts: ['Steady Barrel', 'Concussive', 'Holster Loader'], guns: ['Tumbleweed'] },
   { name: 'Marshal' },
   { name: 'Pathfinder', guns: ['Barn Door'] },
-  { name: 'Outrider', parts: ['Salvage Rounds', 'Scrap Magnet', 'Quartermaster', 'Scavenger', 'Lingering'], guns: ['Old Faithful'] },
+  { name: 'Outrider', parts: ['Salvage Rounds', 'Lingering'], guns: ['Old Faithful'] },
   { name: 'Pistolero', guns: ['Whaler'] },
   { name: 'Vigilante' },
-  { name: 'Desperado', parts: ['Smoke Step', 'Decoy', 'Kinetic Plating', 'Static Landing', 'Wall Runner'], guns: ['Jack-in-the-Box'] },
+  { name: 'Desperado', guns: ['Jack-in-the-Box'] },
   { name: 'Nightrider', guns: ['William Tell'] },
   { name: 'Warden', guns: ['Calliope'] },
   { name: 'Reaper' },
-  { name: 'Gravewalker', parts: ['Bank Shot', 'Lodestone', 'Heat Sink', 'Catalyst', 'Lantern'], guns: ['Loaded Dice'] },
+  { name: 'Gravewalker', parts: ['Bank Shot', 'Lodestone', 'Heat Sink', 'Catalyst'], guns: ['Loaded Dice'] },
   { name: 'Dead Shot', guns: ['Sawbones'] },
   { name: 'Tunnel Rat', guns: ['Live Wire'] },
   { name: 'Lamplighter', guns: ['Gusher'] },
@@ -60,7 +60,7 @@ export const RANKS = [
   { name: 'Undertaker', guns: ['Wrecking Ball'] },
   { name: 'Hellhound', guns: ['Hall of Mirrors'] },
   { name: 'Bone Collector', guns: ['House Edge'] },
-  { name: 'Deep Walker', parts: ['Splitter', 'Backlash', 'Last Stand', 'Pack Mule'], guns: ['Tilt'] },
+  { name: 'Deep Walker', parts: ['Splitter'], guns: ['Tilt'] },
   { name: 'Abyss Walker', guns: ['Homing Pigeon'] },
   { name: 'Iron Prophet', guns: ['One-Armed Bandit'] },
   { name: 'Last Light', guns: ['Poltergeist'] },
@@ -90,6 +90,10 @@ export const STARTERS = ['Tin Star', 'Copperhead', 'Back-Alley', 'Sawbuck', 'Qua
 // ---- class mastery: rounds cleared while playing the class
 export const CLASS_LEVELS = [8, 25, 60];
 export const CLASS_LEVEL_NAMES = ['Adept', 'Veteran', 'Master'];
+// Class levels (meta progression): every round or Descent room cleared playing a class counts toward its level. Level L
+// to L+1 takes 4 + L of them; the top is 50. Each level past the first is +5 max health with that class.
+export const CLASS_MAX_LEVEL = 50, CLASS_HP_PER_LEVEL = 5;
+export const classLevelOf = (n) => { let L = 1; while (L < CLASS_MAX_LEVEL && n >= 4 + L) { n -= 4 + L; L++; } return { level: L, into: n, span: L >= CLASS_MAX_LEVEL ? 0 : 4 + L }; };
 export const CLASS_META = [
   { id: 'gunslinger', name: 'Gunslinger', rewards: [{ cos: ['hat:gambler'], renown: 300 }, { cos: ['outfit:duster'], renown: 800 }, { cos: ['waist:quickdraw'], renown: 3000 }] },
   { id: 'brawler', name: 'Brawler', rewards: [{ cos: ['hat:flatcap'], renown: 300 }, { cos: ['gloves:knuckles'], renown: 800 }, { cos: ['outfit:singlet'], renown: 3000 }] },
@@ -348,7 +352,7 @@ export const Meta = {
   beginRun() { run = { xp: 0, xp0: this.xp(), unlocked: [], gold: 0, goldWhy: {}, contract: this.contract(), contractPaid: null }; },
   runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo(), gold: run.gold || 0, frags: run.frags || 0, cp: run.cp || 0, contract: run.contractPaid || null }; },
   roundStarted(round, mapId) { this.best('bestRound', round); if (mapId) this.best('best_' + mapId, round); },
-  roundCleared(round, mapId, clsId, diff) { if (clsId) { this.bump('cls_' + clsId); if (mapId === 'descent') this.addCp(clsId, CP_RATES.room); } this.bump('rounds'); this.addXp(roundXp(round, diff)); this.addGold((mapId === 'descent' ? GOLD_RATES.room : GOLD_RATES.round) * (DIFF_GOLD[diff] || 1), 'rooms'); this.save(); },
+  roundCleared(round, mapId, clsId, diff) { if (clsId) { const L0 = this.clsLevel(clsId); this.bump('cls_' + clsId); const L1 = this.clsLevel(clsId); if (L1 > L0) events.push({ type: 'clslevel', cls: clsId, level: L1 }); if (mapId === 'descent') this.addCp(clsId, CP_RATES.room); } this.bump('rounds'); this.addXp(roundXp(round, diff)); this.addGold((mapId === 'descent' ? GOLD_RATES.room : GOLD_RATES.round) * (DIFF_GOLD[diff] || 1), 'rooms'); this.save(); },
   bossKilled(final, diff) { this.addCp(this.cls(), final ? CP_RATES.finalBoss : CP_RATES.boss); this.addFrags(final ? FRAG_RATES.finalBoss : FRAG_RATES.boss); this.bump('bosses'); this.addXp(bossXp(final, diff)); this.addGold((final ? GOLD_RATES.finalBoss : GOLD_RATES.boss) * (DIFF_GOLD[diff] || 1), 'bosses'); },
   won(mapId, diff) { this.bump('wins'); if (mapId) { this.bump('wins_' + mapId); this.best('clear_' + mapId, diff + 1); } this.save(); },
   // ---- maps
@@ -360,7 +364,9 @@ export const Meta = {
   setHeirloom(mapId) { if (mapId && !this.heirloomUnlocked(mapId)) return; S.heir = mapId || ''; dirty = true; this.save(); },
   // ---- classes
   clsRounds(id) { return S.stats['cls_' + id] || 0; },
-  clsLevel(id) { const n = this.clsRounds(id); let l = 0; while (l < CLASS_LEVELS.length && n >= CLASS_LEVELS[l]) l++; return l; },
+  clsLevel(id) { return classLevelOf(this.clsRounds(id)).level; },
+  clsLevelInfo(id) { return classLevelOf(this.clsRounds(id)); },
+  clsHp(id) { return (this.clsLevel(id) - 1) * CLASS_HP_PER_LEVEL; },
   // ---- lookups
   howToUnlock(kind, name) { for (const M of MILESTONES) { const R = M.reward; if ((kind === 'skin' ? R.skin === name : (R[kind] || []).includes(name)) && M.how) return M.how; } return ''; },
   challengeDone(id) { const A = ACHIEVEMENTS.find((a) => a.id === id); return !!A && val(A.stat) >= A.need; },

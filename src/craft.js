@@ -331,6 +331,9 @@ const CSS = `
 #craft .press button#cpgo { font:400 32px "Big Shoulders Display"; letter-spacing:4px; padding:10px 46px; border-radius:4px; color:#06201a; border:1px solid #0e3a30;
   background:linear-gradient(180deg, #c8fff0, #7fffe0 48%, #46c8a8 52%, #6ae8c8); box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 0 #0a2a22, 0 0 24px rgba(127,255,224,0.35); }
 #craft .press button#cpgo:disabled { background:linear-gradient(180deg, #3a3228, #2a241c); color:#6a5a48; border-color:#2a1e14; box-shadow:0 4px 0 #120a05; }
+#craft .press .lever.all { margin-top:10px; padding-top:10px; border-top:1px dashed rgba(127,255,224,0.25); }
+#craft .press button#cpall { font:400 22px "Big Shoulders Display"; letter-spacing:3px; padding:7px 22px; border-radius:4px; color:#7fffe0; border:1px solid #2a6a5a; background:linear-gradient(180deg, #123a32, #0a2620); box-shadow:0 3px 0 #06180f; cursor:pointer; }
+#craft .press button#cpall:disabled { color:#5a6a62; border-color:#2a3a32; background:#15201c; cursor:default; }
 #craft .press .lever i { font:600 15px "Barlow Condensed"; font-style:normal; color:var(--cream2); max-width:220px; line-height:1.2; }
 #craft .aspt { background:linear-gradient(180deg, #3a2014, #26140b); border:1px solid #57341e; border-left:4px solid var(--c); }
 #craft .rcp > div { background:linear-gradient(180deg, #24180f, #160e08); border:1px solid #4e321c; border-left:4px solid #7fffe0; }
@@ -420,7 +423,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   }
   function turretHtml() {
     const p = P(), S = turretStats(p), cur = p.turretType || 'sentry';
-    let h = '<div class="sig" style="--c:#6ec8ff"><b>SHOULDER TURRET</b>Comes out for a while when you press F and fires on what it sees. Gun parts fitted here work on it: damage, fire rate and crit as on a gun, a bigger magazine keeps it out longer, a faster reload brings it back sooner, and on-hit parts go off from its shots.</div>';
+    let h = '<div class="sig" style="--c:#6ec8ff"><b>SHOULDER TURRET</b>Comes out for a while when you press F and fires on what it sees. It takes no gun parts: it evolves from the kills it makes itself, four times, each +25% damage, +10% fire rate and 10% longer out. Choose its type here.</div>';
     h += `<div class="ar" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px">${TURRET_TYPES.map((T) => `<span class="tt${T.id === cur ? ' on' : ''}" data-tt="${T.id}" title="${esc(T.text)}" style="cursor:pointer;padding:4px 10px;border:2px solid ${T.id === cur ? '#6ec8ff' : 'rgba(255,255,255,.2)'};font:400 19px 'Big Shoulders Display';color:${T.id === cur ? '#6ec8ff' : '#d8cdb8'}">${esc(T.name.toUpperCase())}</span>`).join('')}</div><div style="font-size:16px;color:#d8cdb8;margin-bottom:6px">${esc(S.T.text)}</div>`;
     const row = (l, v) => `<div class="row"><span>${l}</span><b>${v}</b></div>`;
     h += row('Damage', `x${S.dmg.toFixed(2)}`) + row('Fire rate', `${(S.T.rate * S.rate).toFixed(1)}/s`) + row('Out for', `${S.time.toFixed(1)}s`) + row('Cooldown', `${(30 * S.cdK).toFixed(0)}s`) + row('Range', `${(S.range / 100).toFixed(0)} m`);
@@ -535,7 +538,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
       h += `<div style="--c:${hx}"${tip(`<b style="color:${hx}">${esc(nm)}</b>${esc(forgeHolds(plan))}<em>Everything those parts do, in one slot.</em>${esc(forgeText(plan))}${plan.L > 1 ? '<em>Resonance: more than one dish shares the WHAT aspect, so it is stronger.</em>' : ''}`)}><b>${esc(nm)}</b><span>${esc(forgeText(plan))}</span><span class="dim">+ keeps ${esc(plan.Us.map((x) => x.name).join(', '))}</span></div>`;
     } else if (out >= 0) h += `<div class="dish" style="--c:${U(out).hex};border-color:${U(out).hex}">${gly(out)}</div><div style="--c:${U(out).hex}"><b>${esc(U(out).name)}</b><span>${esc(U(out).desc)}</span></div>`;
     else h += `<p>${filled.length < 2 ? (filled.length ? 'One more part.' : '') : esc(why)}</p>`;
-    h += `</div><div class="lever"><button id="cpgo" ${out >= 0 || plan ? '' : 'disabled'}>${plan ? 'FORGE' : 'PRESS'}</button><i>${ready ? 'The parts on the dishes go in; one comes out.' : filled.length ? 'Fill the other dish to build pressure.' : 'Drag parts onto the dishes, or click one in the list.'}</i></div></div></div></div>`;
+    h += `</div><div class="lever"><button id="cpgo" ${out >= 0 || plan ? '' : 'disabled'}>${plan ? 'FORGE' : 'PRESS'}</button><i>${ready ? 'The parts on the dishes go in; one comes out.' : filled.length ? 'Fill the other dish to build pressure.' : 'Drag parts onto the dishes, or click one in the list.'}</i></div>${(() => { const n = p.compressPairs().length; return `<div class="lever all"><button id="cpall" ${n ? '' : 'disabled'}>COMPRESS ALL${n ? `  ·  ${n}` : ''}</button><i>${n ? `Presses every pair of the same part in your bag: ${n} pair${n > 1 ? 's' : ''}. Parts on your guns are left alone.` : 'No two of the same part in your bag to press.'}</i></div>`; })()}</div></div></div>`;
     // the right column: the ten aspects as small tiles (all the detail on hover), and the two old recipes
     h += '<div class="col"><h2>GUIDE</h2><div class="guide">';
     if (fus) {
@@ -556,6 +559,8 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     el.innerHTML = h;
     el.querySelector('#cclose').onclick = close;
     el.querySelectorAll('.dish.f[data-d]').forEach((d) => { d.onclick = () => { press[+d.dataset.d] = undefined; H.audio.play('S_Unfit', 0.6); hideTip(); render(false); }; });
+    const ca = el.querySelector('#cpall'); if (ca) ca.onclick = () => { if (ca.dataset.busy) return; ca.dataset.busy = 1; const pr = el.querySelector('#cpress'); if (pr) pr.classList.add('go'); H.audio.play('S_Slam', 0.5, 0.8);
+      setTimeout(() => { if (!open) return; for (let i = 0; i < 3; i++) press[i] = undefined; const made = p.compressAll(); if (!made.length) H.audio.play('S_Deny', 0.6); else { const c = {}; for (const u of made) c[u] = (c[u] || 0) + 1; P().toast(`Pressed ${made.length}: ${Object.keys(c).map((u) => `${U(+u).name}${c[u] > 1 ? ` x${c[u]}` : ''}`).join(', ')}`, '#7fffe0'); pop(U(made[0]).hex); } render(true); }, 420); };
     const go = el.querySelector('#cpgo'); if (go) go.onclick = () => { if (go.dataset.busy) return; go.dataset.busy = 1; const pr = el.querySelector('#cpress'); if (pr) pr.classList.add('go'); H.audio.play('S_Slam', 0.5, 0.8); setTimeout(() => { if (!open) return; const r = p.compress(...dishes); for (let i = 0; i < 3; i++) press[i] = undefined; if (r < 0) H.audio.play('S_Deny', 0.6); else { H.audio.play('S_Bench', 0.9, plan ? 0.65 : 0.8); H.game().hud.toast(`${plan ? 'Forged' : 'Pressed'}: ${U(r).name}. Fit it at the workbench.`, U(r).hex); } render(false); }, 460); };
     el.querySelectorAll('.chip:not(.eq)').forEach((cc) => { cc.onpointerdown = (e) => { hideTip(); startDrag(e, { kind: 'fit', u: +cc.dataset.u }); }; });
     el.querySelectorAll('.chip.eq').forEach((cc) => { cc.onclick = () => {
@@ -593,15 +598,16 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     h += `</div>${recHtml(p)}</div><div class="mid"><div class="tabs">`;
     for (const i of G) { const W = DATA.weapons[p.weapons[i].def], s = p.weapons[i]; h += `<div class="tab${!onBlade && !onTurret && i === p.active ? ' on' : ''}" data-i="${i}" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${s.cores.length} / ${p.partSlots(s)} slots</small></div>`; }
     { const W = bladeW(); h += `<div class="tab${onBlade && !onTurret ? ' on' : ''}" data-i="blade" style="--c:${RARITY_HEX[W.rarity] || '#fff'}">${esc(W.name.toUpperCase())}<small>${p.bladeCores.length} / ${p.partSlots({ blade: true })} slots</small></div>`; }
-    if (p.cls && p.cls.id === 'engineer') h += `<div class="tab${onTurret ? ' on' : ''}" data-i="turret" style="--c:#6ec8ff">TURRET<small>${(p.turretCores || []).length} / 4 slots</small></div>`;
-    h += `</div><div class="table" id="ctable"><canvas id="ccv"></canvas><div class="hint">${total ? 'Drop a part here' : ''}</div><div class="pop" id="cpop"></div></div><div class="slots">`;
+    if (p.cls && p.cls.id === 'engineer') h += `<div class="tab${onTurret ? ' on' : ''}" data-i="turret" style="--c:#6ec8ff">TURRET<small>${p.turretTier ? `evolved ${ROMAN[p.turretTier]}` : 'not evolved'}</small></div>`;
+    h += `</div><div class="table" id="ctable"><canvas id="ccv"></canvas><div class="hint">${total && !onTurret ? 'Drop a part here' : ''}</div><div class="pop" id="cpop"></div></div><div class="slots">`;
     // its slots: one tile each, filled or empty; the ones still to come are shown locked
-    const cap = p.partSlots(S), most = onTurret ? 4 : onBlade ? 4 + HONE_MAX : 8;
+    const cap = p.partSlots(S), most = onTurret ? 0 : onBlade ? 4 + HONE_MAX : 8;   // the turret has no slots
     for (let i = 0; i < most; i++) { const u = S.cores[i];
       if (u !== undefined && i < S.cores.length) h += `<div class="slot fill" data-u="${u}" style="--c:${U(u).hex}" title="${esc(partText(u))}">${gly(u)}<small>${esc(U(u).name)}</small></div>`;
       else h += i < cap ? '<div class="slot"><small>EMPTY</small></div>' : `<div class="slot lock" title="${onBlade ? 'Hone the blade to open this slot' : 'Evolve the gun to open this slot'}"><small>${onBlade ? 'HONE' : 'EVOLVE'} ${ROMAN[i - 3] || ''}</small></div>`; }
     if (onTurret) {
-      h += `</div><div class="evo"><div class="et"><b>SHOULDER TURRET</b><span>Four slots. Choose its type on the right.</span></div></div></div>`;
+      const t = p.turretTier || 0, need = p.turretNeed(), k = p.turretK || 0, maxed = t >= 4;
+      h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY EVOLVED' : `TURRET EVOLVED ${t ? ROMAN[t] : '0'} OF IV`}</b><span>${maxed ? 'The turret has evolved four times.' : `${Math.max(0, need - k)} more kills by the turret and it evolves: +25% damage, +10% fire rate, out 10% longer. Choose its type on the right.`}</span></div></div></div>`;
     } else if (onBlade) {
       const t = p.meleeTier || 0, need = p.honeNeed(), k = p.meleeK || 0, maxed = t >= HONE_MAX;
       h += `</div><div class="evo"><div class="eb"><i style="width:${maxed ? 100 : Math.min(100, (k / need) * 100)}%"></i></div><div class="et"><b>${maxed ? 'FULLY HONED' : `HONED ${t ? ROMAN[t] : '0'} OF IV`}</b><span>${maxed ? 'The blade is as sharp as it gets.' : `${Math.max(0, need - k)} more kills with the blade and it is honed: harder, faster, further, and one more part slot.`}</span></div></div></div>`;
@@ -611,9 +617,10 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     }
     h += `<div class="col"><h2>${esc(onTurret ? 'TURRET' : onBlade ? bladeW().name.toUpperCase() : DATA.weapons[S.def].name.toUpperCase())}</h2><div id="cstats" style="display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto">${statsHtml(flash)}</div></div></div>`;
     // passives
-    const pas = []; for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k; if (CORE_DEFS[k].kind === 'me' && p.upgradeStacks[u] > 0) pas.push(u); }
+    // the Fortune Teller's list: the gun parts in your bag it can work on (none shown without the machine)
+    const pas = []; if (machine('fortune')) for (let k = 0; k < CORE_DEFS.length; k++) { const u = CORE0 + k; if (p.fortuneOk(u)) pas.push(u); }
     const ftOn = machine('fortune'), used = p.fortuneUsed || {};
-    h += `<div class="cf"><h3>ON YOU</h3>${pas.length ? pas.map((u) => `<div class="pas${ftSel.includes(u) ? ' sel' : ''}" data-pu="${u}" style="--c:${U(u).hex}" title="${esc(U(u).desc)}${ftOn ? '  (click to pick it for a trade)' : ''}">${gly(u)}<b>${esc(U(u).name)}</b><em>x${p.upgradeStacks[u]}</em><span>${esc(U(u).desc)}</span>${ftOn ? `<button data-rr="${u}" ${used[u] ? 'disabled' : ''} title="Turn it into another ${U(u).rarity.toLowerCase()} buff. Once a room for each.">REROLL</button>` : ''}</div>`).join('') : '<span style="color:#9a8f7c;font-size:17px">Passives (health, speed, armor and the like) work the moment you pick them up. None yet.</span>'}${fortuneHtml(p, pas)}</div></div>`;
+    h += !ftOn ? '</div>' : `<div class="cf"><h3>FORTUNE TELLER  -  IN YOUR BAG</h3>${pas.length ? pas.map((u) => `<div class="pas${ftSel.includes(u) ? ' sel' : ''}" data-pu="${u}" style="--c:${U(u).hex}" title="${esc(U(u).desc)}${ftOn ? '  (click to pick it for a trade)' : ''}">${gly(u)}<b>${esc(U(u).name)}</b><em>x${p.coreInv[u]}</em><span>${esc(U(u).desc)}</span>${ftOn ? `<button data-rr="${u}" ${used[u] ? 'disabled' : ''} title="Turn it into another ${U(u).rarity.toLowerCase()} part. Once a room for each.">REROLL</button>` : ''}</div>`).join('') : '<span style="color:#9a8f7c;font-size:17px">No gun parts in your bag for it to reroll or trade.</span>'}${fortuneHtml(p, pas)}</div></div>`;
     if (mkOpen) h += catHtml(p);
     el.innerHTML = h;
     const pv = H.preview(); R = pv && pv.R; cv = pv ? pv.canvas : null;
@@ -638,7 +645,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
       const go = el.querySelector('#mkgo'); if (go) go.onclick = () => { const u = mkSel; if (p.makePart(u)) { mkOut = `Made ${U(u).name}.`; recOut = mkOut; H.audio.play('S_Upgrade', 0.8); bump = 0.5; } else { mkOut = 'Not enough scrap.'; H.audio.play('S_Deny', 0.6); } render(false); };
     }
     // the Fortune Teller: pick two for a trade, or reroll one
-    el.querySelectorAll('.pas[data-pu]').forEach((c) => { c.onclick = (e) => { if (!machine('fortune') || e.target.tagName === 'BUTTON') return; const u = +c.dataset.pu, k = ftSel.indexOf(u); if (k >= 0 && !(ftSel.length === 2 && ftSel[0] === ftSel[1] && k === 0 && p.upgradeStacks[u] >= 2 && false)) ftSel.splice(k, 1); else { ftSel.push(u); if (ftSel.length > 2) ftSel.shift(); } H.audio.play('S_UIMove', 0.5); render(false); }; });
+    el.querySelectorAll('.pas[data-pu]').forEach((c) => { c.onclick = (e) => { if (!machine('fortune') || e.target.tagName === 'BUTTON') return; const u = +c.dataset.pu, k = ftSel.indexOf(u); if (k >= 0 && !(ftSel.length === 2 && ftSel[0] === ftSel[1] && k === 0 && p.coreInv[u] >= 2 && false)) ftSel.splice(k, 1); else { ftSel.push(u); if (ftSel.length > 2) ftSel.shift(); } H.audio.play('S_UIMove', 0.5); render(false); }; });
     el.querySelectorAll('.pas button[data-rr]').forEach((b) => { b.onclick = () => { const u = +b.dataset.rr, v = p.fortuneReroll(u); if (v < 0) H.audio.play('S_Deny', 0.6); else { ftSel = []; pop(U(v).hex); } render(true); }; });
     { const b = el.querySelector('#fttrade'); if (b) b.onclick = () => { const v = p.fortuneTrade(ftSel[0], ftSel[1]); ftSel = []; if (v < 0) H.audio.play('S_Deny', 0.6); else pop(U(v).hex); render(true); }; }
     el.querySelectorAll('.chip').forEach((c) => {
@@ -674,7 +681,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     const sc = p.scrap || 0, L = makeList(p), S = p.slot, sg = !onBlade && S.def >= 0 ? sigOf(DATA.weapons[S.def]) : null;
     if (!L.some((x) => x.u === mkSel)) mkSel = (L.find((x) => x.cost <= sc && !x.full) || L[0] || { u: -1 }).u;
     let h = `<div id="cmk"><div class="mk"><div class="mkh"><h1>THE RECYCLER  &#8212;  MAKE A PART</h1><span class="sc">${sc} SCRAP</span><div class="flt">`;
-    for (const [k, n] of [['all', 'ALL'], ['gun', 'GUN PARTS'], ['me', 'WORN ON YOU']]) h += `<span data-f="${k}" class="${mkF === k ? 'on' : ''}">${n}</span>`;
+    for (const [k, n] of [['all', 'ALL']]) h += `<span data-f="${k}" class="${mkF === k ? 'on' : ''}">${n}</span>`;
     h += `</div><button class="x" id="mkx">BACK  [E]</button></div><div class="col"><div class="grid">`;
     for (let t = 0; t < 4; t++) {
       const row = L.filter((x) => x.t === t); if (!row.length) continue;
@@ -709,9 +716,9 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   let ftSel = [];
   function fortuneHtml(p, pas) {
     if (press.mode || !machine('fortune') || !pas.length) return '';
-    ftSel = ftSel.filter((u) => p.upgradeStacks[u] > 0);
-    const ok = ftSel.length === 2 && coreTier(ftSel[0]) === coreTier(ftSel[1]) && coreTier(ftSel[0]) < 3 && (ftSel[0] !== ftSel[1] || p.upgradeStacks[ftSel[0]] >= 2);
-    return `<div class="ft">FORTUNE TELLER<button id="fttrade" ${ok ? '' : 'disabled'} title="Pick two buffs of one rarity (click them), and get one of the rarity above.">TRADE 2 UP</button></div>`;
+    ftSel = ftSel.filter((u) => p.coreInv[u] > 0);
+    const ok = ftSel.length === 2 && coreTier(ftSel[0]) === coreTier(ftSel[1]) && coreTier(ftSel[0]) < 3 && (ftSel[0] !== ftSel[1] || p.coreInv[ftSel[0]] >= 2);
+    return `<div class="ft">FORTUNE TELLER<button id="fttrade" ${ok ? '' : 'disabled'} title="Pick two parts of one rarity (click them), and get one of the rarity above.">TRADE 2 UP</button></div>`;
   }
   // ---- what this gun has earned on other runs
   function ascHtml(S) {
@@ -778,7 +785,9 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   addEventListener('keydown', (e) => { if (!open) return; e.stopImmediatePropagation(); if (e.code === 'KeyE' || e.code === 'Escape' || e.code === 'Tab' || e.code === 'KeyF') { e.preventDefault(); if (mkOpen) { mkOpen = false; render(false); } else close(); } }, true);
   addEventListener('keyup', (e) => { if (open) e.stopImmediatePropagation(); }, true);
 
-  function show(blade, mode) { if (open || !H.game() || !H.game().descent) return; open = true; onBlade = !!blade && mode !== 'press'; onTurret = false; hop = []; recOut = ''; press = []; mkOpen = false; mkOut = ''; mkScroll = 0; press.mode = mode === 'press'; ftSel = []; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
+  function show(blade, mode) { if (open || !H.game() || !H.game().descent) return; open = true;
+    { const p0 = P(); if (p0 && p0.turretCores && p0.turretCores.length) { for (const u of p0.turretCores) p0.coreInv[u] = (p0.coreInv[u] || 0) + 1; p0.turretCores = []; } }   // the turret takes no parts now: any it had go back in the bag
+    onBlade = !!blade && mode !== 'press'; onTurret = false; hop = []; recOut = ''; press = []; mkOpen = false; mkOut = ''; mkScroll = 0; press.mode = mode === 'press'; ftSel = []; lastSheet = null; modelKey = ''; hover = -1; drag = null; P().coreNew = 0; H.entered(); el.style.display = 'block'; render(false); H.audio.play('S_Bench', 0.8); }
   function close() { if (!open) return; open = false; hideTip(); if (ghost) { ghost.remove(); ghost = null; } el.style.display = 'none'; H.left(); }
   return { show, close, tick, isOpen: () => open, refresh: () => { if (open) render(false); } };
 }

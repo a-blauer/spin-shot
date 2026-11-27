@@ -138,13 +138,12 @@ export const turretType = (id) => TURRET_TYPES.find((t) => t.id === id) || TURRE
 export const TURRET_TIME = 10;
 // what the fitted parts add up to
 export function turretStats(P) {
-  const m = {}, procs = [];
-  for (const u of P.turretCores || []) { const U = DATA.upgrades[u]; for (const [k, v] of U.mods || []) m[k] = (m[k] || 0) + v; if (U.trigger === 'OnHit' && U.fx) procs.push(u); }
+  const m = {}, procs = [], ev = P.turretTier || 0;   // no parts: what it has is its type, its evolution and the class's own stats
   const T = turretType(P.turretType), s = (k) => m[k] || 0;
   return {
     T, procs,
-    dmg: Math.max(0.1, 1 + s('Damage') + P.stat('TurretDamage')), rate: Math.max(0.2, 1 + s('FireRate') + P.stat('TurretRate')) * (P.cv === 'over' ? 1.6 : 1), crit: s('CritChance'),
-    time: TURRET_TIME * (1 + s('MagSize')) * (P.cv === 'over' ? 0.6 : P.cv === 'watch' ? 1.8 : 1), cdK: (1 / (1 + s('ReloadSpeed'))) * (P.cv === 'watch' ? 1.35 : 1), pellets: (T.pellets || 1) + Math.round(s('Multishot')) * (T.pellets > 1 ? 2 : 1),
+    tier: ev, dmg: Math.max(0.1, 1 + s('Damage') + P.stat('TurretDamage')) * (1 + 0.25 * ev), rate: Math.max(0.2, 1 + s('FireRate') + P.stat('TurretRate')) * (P.cv === 'over' ? 1.6 : 1) * (1 + 0.1 * ev), crit: s('CritChance'),
+    time: TURRET_TIME * (1 + s('MagSize')) * (P.cv === 'over' ? 0.6 : P.cv === 'watch' ? 1.8 : 1) * (1 + 0.1 * ev), cdK: (1 / (1 + s('ReloadSpeed'))) * (P.cv === 'watch' ? 1.35 : 1), pellets: (T.pellets || 1) + Math.round(s('Multishot')) * (T.pellets > 1 ? 2 : 1),
     chains: (T.chains || 0) + Math.round(s('Pierce') + s('Ricochet')), range: T.range * (1 + P.stat('TurretRange')), steal: s('Lifesteal'), burn: P.stat('TurretBurn'),
   };
 }
@@ -242,7 +241,7 @@ export class ShoulderTurret {
     const from = this.muzzle(), col = hexRGB(T.col);
     if (!T.flame || Math.random() < 0.3) gunSound(G.audio, T.snd, T.flame ? 0.18 : 0.28, false);
     const hit = (O, d, at, dir, coef) => {
-      P.dealDamage(O, d, at, dir, O.headAt(at), coef, false, S.crit, S.burn > 0 ? d * 0.3 * S.burn : 0, 0, 0);
+      P.turretHitting = true; try { P.dealDamage(O, d, at, dir, O.headAt(at), coef, false, S.crit, S.burn > 0 ? d * 0.3 * S.burn : 0, 0, 0); } finally { P.turretHitting = false; }   // its kills evolve it
       if (S.steal > 0) P.combatHeal(d * S.steal);
       for (const u of S.procs) { const U = DATA.upgrades[u]; if (Math.random() < U.chance * coef * (1 + P.stat('ProcChance'))) P.executeProc(U, 1, O, at, d, 'OnHit'); }
     };

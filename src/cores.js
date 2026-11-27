@@ -88,6 +88,10 @@ export const CORE_DEFS = [
   M('Spring Step', 'Rare', '#d0ff8a', 'JMP', [['ExtraJumps', 1]], '+1 air jump', null, 2),
   M('Second Wind', 'Epic', '#ffffff', '1UP', [['Revives', 1]], 'Get back up once when you would die', null, 2),
 ];
+// the character buffs no longer drop and cannot be made: class levels (meta.js) took their place. They stay defined, so
+// saves and old references still resolve.
+for (const d of CORE_DEFS) if (d.kind === 'me') d.noDrop = true;
+
 
 // ---- the Compressor. Two of the same gun part pressed into one, half as strong again: its numbers, its chance, its text.
 // A count (pierce, bounce, projectiles) rounds up. Pressed parts never drop and cannot be pressed again.

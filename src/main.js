@@ -17,7 +17,7 @@ import { Audio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
 import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
-import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg } from './cores.js';
+import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg, rollCore } from './cores.js';
 import { TRAINING } from './trainer.js';
 import { Meta, GNOMES, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES, shopGuns } from './meta.js';
 
@@ -31,6 +31,7 @@ if (TEST) import('./signatures.js').then((m) => { window.__sig = m; });
 if (TEST) import('./forge.js').then((m) => { window.__forge = m; });
 if (TEST) window.__trn = TRAINING;
 if (TEST) window.__DATA = DATA;
+if (TEST) window.__rollCore = rollCore;
 if (TEST) window.__openLobby = () => openLobby();
 if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
@@ -335,11 +336,12 @@ function renderProgress() {
     });
     h += '</div>';
   } else if (progTab === 'classes') {
-    h += `<p class="pnote">Every class earns its own class points on runs played as it. ${Meta.gnomeHome('trainer') ? 'Spend them on lessons with Old Hobnail at the Training Yard.' : 'Old Hobnail, who teaches at the Training Yard, is lost at the bottom of the Descent; he keeps count for you until he is home.'}</p><div class="pgrid">`;
+    h += `<p class="pnote">Every class levels up as you play it (each level is +5 max health with that class, up to level 50), and earns its own class points. ${Meta.gnomeHome('trainer') ? 'Spend them on lessons with Old Hobnail at the Training Yard.' : 'Old Hobnail, who teaches at the Training Yard, is lost at the bottom of the Descent; he keeps count for you until he is home.'}</p><div class="pgrid">`;
     for (const C of CLASS_META) {
       const CL = CLASSES.find((x) => x.id === C.id), T = TRAINING[C.id] || [], got = T.filter((I) => Meta.trained(C.id, I.id)).length;
-      h += `<div class="pc ${got >= T.length ? 'claimed' : ''}"><div class="pt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${Meta.cp(C.id).toLocaleString()} points</span></div>`;
-      h += `${bar(got, T.length)}<div class="pn">${got} of ${T.length} lessons learned  -  ${Meta.clsRounds(C.id).toLocaleString()} rounds played</div>`;
+      h += `<div class="pc ${got >= T.length ? 'claimed' : ''}"><div class="pt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>Level ${Meta.clsLevel(C.id)}</span></div>`;
+      { const I = Meta.clsLevelInfo(C.id); h += `${bar(I.span ? I.into : 1, I.span || 1)}<div class="pn">Level ${I.level} of 50  -  +${Meta.clsHp(C.id)} max health  -  ${I.span ? `${I.span - I.into} to the next` : 'top level'}</div>`; }
+      h += `${bar(got, T.length)}<div class="pn">${got} of ${T.length} lessons learned  -  ${Meta.cp(C.id).toLocaleString()} points to spend</div>`;
       h += '</div>';
     }
     h += '</div>';
@@ -731,8 +733,8 @@ function renderLobby() {
     h += `<section><h3>THE RUN</h3><div class="lbg"><div class="lbgl">${client ? 'HOST’S CHOICE' : 'SET'}</div><div class="lbgc"><div class="chips">${chip('', true, false, esc2(MAPS[rm].name), rd !== null && rd !== undefined ? DIFFS[rd].name : '')}${rc ? chip('', true, false, esc2(rc), 'contract') : ''}</div></div></div></section>`;
     const C = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0], lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id);
     h += '<section><h3>YOUR LOADOUT</h3>';
-    h += group('CLASS', CLASSES.map((K) => { return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, `${Meta.cp(K.id).toLocaleString()} pts`); }).join(''),
-      `${C.blurb} <span class="dim2">${(() => { const T = TRAINING[C.id] || [], L = T.filter((I) => I.kind !== 'gear' && Meta.trained(C.id, I.id)), v = T.find((I) => I.id === Meta.variant(C.id)); return L.length ? `Learned: ${L.map((I) => I.name).join(', ')}.${v ? ` ${C.ability} fitted with ${v.name}.` : ''}` : 'Nothing learned at the Training Yard yet.'; })()}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`);
+    h += group('CLASS', CLASSES.map((K) => { return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, `Lv ${Meta.clsLevel(K.id)}`); }).join(''),
+      `${C.blurb} <span class="dim2">${(() => { const I = Meta.clsLevelInfo(C.id); return `Level ${I.level} of 50: +${Meta.clsHp(C.id)} max health. ${I.span ? `${I.span - I.into} more rooms or rounds to level ${I.level + 1}.` : 'Top level.'} `; })()}${(() => { const T = TRAINING[C.id] || [], L = T.filter((I) => I.kind !== 'gear' && Meta.trained(C.id, I.id)), v = T.find((I) => I.id === Meta.variant(C.id)); return L.length ? `Learned: ${L.map((I) => I.name).join(', ')}.${v ? ` ${C.ability} fitted with ${v.name}.` : ''}` : 'Nothing learned at the Training Yard yet.'; })()}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`);
     const own = Meta.ownedGuns(), pick = Meta.loadout(), cap = Meta.loadoutSize();
     h += group(`STARTING GUNS  ${pick.length} / ${cap}`, own.map((nm) => { const W = game ? game.data.weapons.find((w) => w.name === nm) : null, k = pick.indexOf(nm); return chip(`data-w="${esc2(nm)}"`, k >= 0, false, `${k >= 0 ? `<i class="pk">${k + 1}</i>` : ''}${esc2(nm)}`, W ? `<em style="color:${RARITY_HEX[W.rarity] || '#ccc'}">${W.rarity}</em> ${W.cls || ''}` : ''); }).join(''),
       `${cap === 1 ? 'The sniper brings the Widowmaker: choose one gun to go with it.' : 'Choose two guns to go down with. Click another to swap out the older pick.'} <span class="dim2">${own.length} of ${shopGuns().length} owned. Bramble &amp; Bolt in the square sells the rest.</span>`);

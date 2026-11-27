@@ -141,13 +141,13 @@ export const SIG = {
   },
   Homesteader: {
     name: 'Hold the Line', short: 'Damage grows with max health and armor. Every blast that lands gives shield.',
-    text: 'Built for someone who can take a hit: +1% damage for every 2 max health above 150 and for every point of armor, up to +150%. Every blast that lands gives 6 shield and shoves them back.',
-    play: 'The tank gun. Vitality and Plating are its damage parts; stand in the doorway and do not move.', fav: ['Vitality', 'Plating', 'Barrier'],
+    text: 'Built for someone who can take a hit: +1% damage for every 2 max health above 150 and for every point of armor, up to +150%. Every blast that lands gives 6 shield (at most every half second, to a quarter of your health) and shoves them back.',
+    play: 'The tank gun. Your class level and your armor are its damage: stand in the doorway and do not move.', fav: ['Heavy Rounds', 'Leech Rounds'],
     tough: (p) => clamp(Math.max(0, p.maxHealth - 150) / 200 + Math.max(0, p.stat('Armor')) / 100, 0, 1.5),
     sheet(p) { return { dmg: 1 + this.tough(p) }; },
     shot(p, S, W, g, C) { C.mult *= 1 + this.tough(p); },
     post(p, E, C, g, h) {
-      if (!C.shielded) { C.shielded = true; p.overshield = Math.min(p.shieldCap(), p.overshield + 6); }
+      if (!C.shielded) { C.shielded = true; p.combatShield(6); }
       if (!h.killed && !E.isBoss && h.dir) E.applyKnock(V3(h.dir.x * 130, 30, h.dir.z * 130));
     },
     hud(p) { const t = this.tough(p); return t > 0 ? [`HOLD THE LINE  +${Math.round(t * 100)}%`, '#9fd0ff'] : null; },

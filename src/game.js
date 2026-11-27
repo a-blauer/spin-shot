@@ -744,6 +744,7 @@ export class Game {
     this.tickCasino(dt);
     if (this.phase !== 'GameOver') this.update(dt);
     for (const ev of Meta.popEvents()) {
+      if (ev.type === 'clslevel') { const C = this.player.cls; this.banner(`${(C && C.id === ev.cls ? C.name : ev.cls).toUpperCase()}  LEVEL ${ev.level}`, lin(0.55, 0.85, 1), 3); this.hud.toast(`${C && C.id === ev.cls ? C.name : ev.cls} reached level ${ev.level}: +5 max health with this class${ev.level >= 50 ? '. That is the top level.' : '.'}`, '#7fd3ff'); this.player.levelHp(); continue; }
       if (ev.type === 'cos') { this.hud.toast(`New cosmetic: ${ev.name}`, '#ffd24d'); } else if (ev.type === 'ms') { if (ev.banner) this.banner(ev.banner, lin(1, 0.8, 0.2), 4); if (ev.toast) this.hud.toast(ev.toast, '#ffd24d'); } else { this.hud.toast(`${ev.name} level ${ev.level}: ${ev.trait}`, '#7fd3ff'); if (this.player.slot.def >= 0 && this.player.W.name === ev.name) this.vm.setWeapon(this.player.slot.def, this.player.slot.tier, false); }
     }
     this.metaSave = (this.metaSave || 0) + dt; if (this.metaSave > 10) { this.metaSave = 0; Meta.save(); }

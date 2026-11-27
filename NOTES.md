@@ -278,3 +278,22 @@
   room, which banners THE BOSS COMES and sets bossT 2.6; spawnBoss places it at a free spot (findFreeLocationNear). The
   old boss arena (arena N_ROOMS) is no longer used. Raid room unchanged (bossT 2.2, no horde).
 - King Puffcap: mech 'split' removed (hp 12 -> 24, new desc). The Lamplighter's decoys and Ash and Ember's twin kept.
+
+## (57) Class levels replace character buffs; kill-shield limiter; turret evolves; Compress All
+- Character buffs (cores kind 'me') are noDrop (cores.js, after CORE_DEFS): never drop, not in the Recycler catalogue
+  (its filter tabs are just ALL), removed from the rank unlock lists. Definitions kept for old references.
+- Class levels: meta.js classLevelOf(rounds): level L->L+1 takes 4+L rounds/rooms cleared as the class (stat cls_<id>,
+  existing progress counts); max 50 (1,421 in all). Meta.clsLevel / clsLevelInfo / clsHp (+5 a level past the first).
+  Player.lvlHp added to MaxHealth in recompute (set in setClass); roundCleared pushes {type:'clslevel'} -> game.js
+  banner + toast + player.levelHp() (the health at once). Lobby chips "Lv N"; class blurb and progress cards show it.
+- Player.combatShield(a): every proc 'Shield' (any trigger) and Homesteader's per-blast shield. One gain per 0.5 s,
+  budget 3/s holding 9, never past 25% of max health (shieldCap 60% still bounds everything else). Topaz Brooch / Quick
+  Wrists text updated.
+- Engineer turret: no parts (fitCore refuses; any old turretCores return to the bag when the bench opens). Evolves from
+  its own kills (P.turretHitting set around the shoulder turret's dealDamage -> creditKill -> turretEvo): need
+  EVO_NEED*0.8 (24/72/144/240), 4 tiers, each +25% damage, +10% rate, +10% time (turretStats). Workbench turret tab
+  shows the evolution bar; tab chip "evolved N".
+- Compressor: COMPRESS ALL (Player.compressPairs / compressAll) presses every pair of the same pressable part in the bag
+  (coreInv only), leaving odd ones. Shots: out/town/cp_all*.png, wb_turret.png.
+- Fortune Teller now works on gun parts in the bag (fortuneOk, reroll once a room, trade 2 up); its panel only shows
+  with the machine.
