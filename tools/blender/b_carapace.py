@@ -75,6 +75,8 @@ for x in (-10, -5, 5, 10):
 for k in range(6):                                                     # bark plates on the skull
     a = k * 0.6 - 1.5; c = Vector((math.cos(a) * 22, 104 + math.sin(k) * 3, 176 + math.sin(a) * 10))
     HEAD.add(decal(ph, c, (math.cos(a), 1, 0.3), 5, seg=6, rings=1, lift=0.6), lambda m, n: ROOT_D)
+for o in HEAD.pieces: deform(o[0], lambda v: v + Vector((0, 12 * max(0, min(1, (v.z - 104) / 60)), 0)))   # held up off the floor
+for e in EYES: e['at'][1] += 12
 parts.append(HEAD)
 
 export('B_Carapace', parts, out_path('B_Carapace'), height=170, beast=True)

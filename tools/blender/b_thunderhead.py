@@ -12,7 +12,7 @@ rng = random.Random(7)
 TAIL = Part('Tail', [0, 70, 0])
 for i in range(11):
     a = i * 2.4; r = 16 + (i % 4) * 18; x, z = math.cos(a) * r, math.sin(a) * r * 0.8; L = 60 + (i % 3) * 14
-    TAIL.add(skin([(x, 82, z), (x + 2, 82 - L * 0.5, z), (x - 1, 82 - L, z + 1)], [2.2, 1.6, 0.4], sub=1, name='thread'), lambda m, n: GLOW(0.8), 40)
+    TAIL.add(skin([(x, 98, z), (x + 2, 82 - L * 0.5, z), (x - 1, 82 - L, z + 1)], [2.2, 1.6, 0.4], sub=1, name='thread'), lambda m, n: GLOW(0.8), 40)
     for k in range(3):
         y = 76 - L * (0.25 + k * 0.3); TAIL.add(blob((x + 1, y, z), (2.6, 3.4, 2.6), seg=8, name='drop'), lambda m, n: GLOW(1), 20)
 parts.append(TAIL)
@@ -30,6 +30,7 @@ def cloud_paint(m, n):
     if m.y < 100: return DARK2
     return CAP(1) if n.y > 0.2 else mix(CAP(1), DARK2, 0.35)
 BODY.add(bo, cloud_paint); pj = projector(bo)
+BODY.add(blob((0, 118, 62), (34, 30, 26), seg=10, name='facesock'), lambda m, n: CAP(1), 300)
 # cracks of light between the lumps
 for pts in (((-30, 118, 50), (-24, 140, 52), (-12, 160, 46), (-16, 178, 40)), ((34, 112, 48), (40, 134, 50), (30, 154, 44)), ((-80, 130, 30), (-88, 150, 10), (-82, 170, -20)),
             ((88, 128, 20), (96, 144, -4), (88, 166, -24)), ((10, 150, -70), (-10, 168, -64), (-30, 184, -50))):

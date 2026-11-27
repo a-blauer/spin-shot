@@ -31,6 +31,7 @@ decimate(body, 4200)
 def body_paint(m, n):
     return bp(m, n)
 BODY.add(body, body_paint); pj = projector(body)
+BODY.add(blob((0, 160, 40), (19, 16, 18), name='necksock'), lambda m, n: FLESH(1), 300)
 # root plating down the torso's front and sides
 for x in (-20, -8, 8, 20):
     BODY.add(ribbon(pj, [(x, 152, 50), (x * 1.1, 130, 54), (x * 1.15, 108, 56), (x * 1.05, 86, 52), (x, 70, 48)], 4.2, lambda p: (p.x * 0.02, 0, 1), lift=0.9, taper=False), lambda m, n: ROOT)

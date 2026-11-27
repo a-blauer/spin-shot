@@ -52,7 +52,7 @@ BODY.add(ribbon(pj, [(70, 150, 30), (78, 136, 36), (80, 122, 40), (74, 108, 42)]
 parts.append(BODY)
 
 HEAD = Part('Head', [0, 86, 12])
-pieces = [(skin([(0, 96, 10), (0, 80, 16), (0, 64, 24)], [16, 18, 21], sub=2, name='stalk'), lambda m, n: FLESH(1))]
+pieces = [(skin([(0, 106, 6), (0, 96, 10), (0, 80, 16), (0, 64, 24)], [15, 16, 18, 21], sub=2, name='stalk'), lambda m, n: FLESH(1))]
 bell = lathe([(16, 14), (22, 6), (25, 0), (23, -6), (16, -8), (0, -6)], seg=12, name='maw')
 bell.matrix_world = Matrix.Translation((0, 52, 30)) @ Matrix.Rotation(math.pi / 2, 4, 'X'); bake_world(bell)
 pieces.append((bell, lambda m, n: FLESH(0.8)))
