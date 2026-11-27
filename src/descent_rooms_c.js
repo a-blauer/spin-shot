@@ -21,7 +21,7 @@ export const ROOMS_C = [
       for (const sx of [-1, 1]) { Cyl(V(sx * 1900, 0, H - 200), 70, hy * 2 - 1600, brass, false, false, AY); Cyl(V(sx * 950, 0, H - 200), 50, 1900, brass, false, false, AX);
         [-3400, -1700, 0, 1700, 3400].forEach((y, i) => { P.vat(sx * 1900, y, 380, 520, liq[(i + (sx > 0 ? 0 : 2)) % 4]); Cyl(V(sx * 1900, y, 660 + (H - 860) / 2), 30, H - 860, brass, false, false); for (let b = 0; b < 4; b++) Glow(V(sx * 1900 + (b % 2 ? 60 : -50), y + (b > 1 ? 50 : -60), 140 + b * 110), V(22, 22, 22), 0xffffff, 2); }); }
       // benches of glassware
-      const glass = (x, y, z, i) => { const c = liq[i % 4]; if (i % 3 === 0) { Ball(V(x, y, z + 22), V(40, 40, 40), c); Cyl(V(x, y, z + 52), 10, 30, 0xc8d8d8, false, false); } else if (i % 3 === 1) { ConeShape(V(x, y, z + 26), V(40, 40, 52), c); Cyl(V(x, y, z + 58), 8, 14, 0xc8d8d8, false, false); } else { Cyl(V(x, y, z + 30), 18, 60, c, false, false); } };
+      const glass = (x, y, z, i) => { const c = liq[i % 4]; if (i % 3 === 0) { Ball(V(x, y, z + 20), V(40, 40, 40), c); Cyl(V(x, y, z + 50), 10, 30, 0xc8d8d8, false, false); } else if (i % 3 === 1) { ConeShape(V(x, y, z + 26), V(40, 40, 52), c); Cyl(V(x, y, z + 58), 8, 14, 0xc8d8d8, false, false); } else { Cyl(V(x, y, z + 30), 18, 60, c, false, false); } };
       for (const s of [-1, 1]) for (const y of [-2550, -850, 850, 2550]) { P.table(s * 900, y, false, 520, wood); for (let q = 0; q < 5; q++) glass(s * 900 + ((q * 37) % 40) - 20, y - 200 + q * 100, 78, q + (y > 0 ? 1 : 0)); Cyl(V(s * 900, y, 96), 60, 8, iron, false, false); Glow(V(s * 900, y, 104), V(20, 20, 16), 0x5a9aff, 3); }
       // the dispensary counters across each end, herb racks, carboys
       for (const s of [-1, 1]) {
@@ -122,7 +122,7 @@ export const ROOMS_C = [
       // two thrones back to back, a canopy over them on four posts
       P.throne(0, 150, 1, purple, gold, 120); P.throne(0, -150, -1, purple, gold, 120);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { solid(sx * 420, sy * 420, 120, 50, 50, 560, gold, false); Ball(V(sx * 420, sy * 420, 120 + 590), V(70, 70, 70), gold); }
-      Box(V(0, 0, 120 + 575), V(960, 960, 30), purple, false, false); Box(V(0, 0, 120 + 540), V(900, 900, 50), gold, false, false); for (const e of [-1, 1]) Box(V(0, e * 470, 120 + 470), V(900, 8, 120), purple, false, false);
+      Box(V(0, 0, 120 + 575), V(960, 960, 30), purple, false, false); Box(V(0, 0, 120 + 540), V(900, 900, 50), gold, false, false); for (const e of [-1, 1]) Box(V(0, e * 454, 120 + 470), V(900, 8, 120), purple, false, false);
       L(0, 0, 560, T.lamp, 2600, 3); tall(0, 0, 760);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 600, y = sy * 420; solid(x, y, 120, 50, 50, 160, 0x2a2e30, false); Cyl(V(x, y, 284), 110, 10, 0x2a2e30, false, false); Glow(V(x, y, 310), V(60, 60, 50), 0xff9a4a, 3); }
       // the colonnade, with a banner between each pair and a guard's plate at every second column
@@ -168,7 +168,7 @@ export const ROOMS_C = [
       // long tables, laid
       for (const sx of [-1, 1]) for (const y of [-3000, -1400, 1400, 3000]) { P.mess(sx * 1300, y, false, 1100, oak); for (let q = -4; q <= 4; q++) { if (q % 2) Cyl(V(sx * 1300 + (q % 3) * 14, y + q * 110, 82), 36, 8, 0xc8c0a8, false, false); else { Cyl(V(sx * 1300, y + q * 110, 92), 22, 28, 0x8a6a3a, false, false); } } candle(sx * 1300, y, 78, 24); }
       // posts with shields, rafters with more
-      for (const sx of [-1, 1]) for (const y of [-3800, -2200, -600, 600, 2200, 3800]) { P.column(sx * 2200, y, 180, oak, dark, 'square'); Cyl(V(sx * 2200 - sx * 100, y, 430), 150, 14, [0x7a1c22, 0x1c3a6a, 0x2a5a3a][Math.abs(y / 800 | 0) % 3], false, false, AX); Cyl(V(sx * 2200 - sx * 108, y, 430), 40, 14, 0x8a8e96, false, false, AX); }
+      for (const sx of [-1, 1]) for (const y of [-3800, -2200, -600, 600, 2200, 3800]) { P.column(sx * 2200, y, 180, oak, dark, 'square'); Cyl(V(sx * 2200 - sx * 96, y, 430), 150, 14, [0x7a1c22, 0x1c3a6a, 0x2a5a3a][Math.abs(y / 800 | 0) % 3], false, false, AX); Cyl(V(sx * 2200 - sx * 106, y, 430), 40, 14, 0x8a8e96, false, false, AX); }
       for (const y of [-3800, -2200, -600, 600, 2200, 3800]) { Box(V(0, y, H - 260), V(4500, 70, 70), dark, false, false); for (const e of [-1, 1]) BoxRot(V(e * 1150, y, H - 130), V(2400, 60, 60), dark, R(0, 0, e * -6), false); }
       // the high table, on a step, with the lord's chair; hogsheads at the other end
       plat(-1700, 4300, 1700, 500, 40, oak, dark); P.table(-1700, 4300, true, 1300, oak, 40); P.throne(-1700, 4470, -1, hide, 0x8a6a3a, 40);

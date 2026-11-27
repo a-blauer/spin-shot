@@ -28,7 +28,7 @@ export const ROOMS_D = [
       for (let i = 0; i < 40; i++) { const a = i * 2.399, r = 1000 + (i * 211) % 3300, x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) > hx - 300 || Math.abs(y) > hy - 700 || (Math.abs(x) < 1400 && Math.abs(y) > hy - 1500)) continue;
         if (i % 2) { const lean = 12 + (i % 4) * 7; BoxRot(V(x, y, H / 2), V(5, 5, H / Math.cos(lean * Math.PI / 180)), silk, R(lean * Math.cos(a), 0, lean * Math.sin(a)), false); Ball(V(x + Math.sin(a) * 0, y, 6), V(120, 120, 16), grey); }
         else { for (let q = 0; q < 4; q++) BoxRot(V(x + q * 22 - 30, y + (q % 2) * 26, 8), V(rr(70, 130), 12, 12), 0xd8d0b8, R(0, i * 31 + q * 50, 0), false); if (i % 4 === 0) Ball(V(x + 40, y - 30, 26), V(50, 46, 52), 0xd8d0b8); Ball(V(x, y, 0), V(260, 220, 36), grey); } }
-      for (const sx of [-1, 1]) for (let y = -hy + 600; y < hy - 300; y += 520) { if (Math.abs(Math.abs(y) - 500) < 300) continue; for (let q = 0; q < 5; q++) BoxRot(V(sx * (hx - 160), y, 80 + q * 150), V(5, 5, 460), silk, R(0, 0, sx * (38 + q * 6)), false); for (let q = 0; q < 3; q++) Box(V(sx * (hx - 6), y, 240 + q * 190), V(8, 420 - q * 90, 6), silk, false, false); Ball(V(sx * (hx - 30), y + 60, 520), V(60, 60, 130), silk); }
+      for (const sx of [-1, 1]) for (let y = -hy + 600; y < hy - 300; y += 520) { if (Math.abs(Math.abs(y) - 500) < 300) continue; for (let q = 0; q < 5; q++) BoxRot(V(sx * (hx - 160), y, 80 + q * 150), V(5, 5, 540), silk, R(-sx * (38 + q * 6), 0, 0), false); for (let q = 0; q < 3; q++) Box(V(sx * (hx - 4), y, 240 + q * 190), V(8, 420 - q * 90, 6), silk, false, false); Ball(V(sx * (hx - 30), y + 60, 520), V(60, 60, 130), silk); }
       // cocoons: hung, and heaped
       const cocoon = (x, y, z, s = 1) => { Ball(V(x, y, z), V(110 * s, 110 * s, 240 * s), silk); Ball(V(x, y, z + 20 * s), V(116 * s, 116 * s, 60 * s), grey); };
       for (const [x, y, z] of [[1200, 1300, 520], [-1200, -1300, 560], [2500, 300, 600], [-2500, -300, 520], [300, 2500, 640], [-300, -2500, 560], [3300, -900, 600], [-3300, 900, 620], [1900, 3500, 560], [-1900, -3500, 600]]) { Cyl(V(x, y, z + 120 + (H - z - 120) / 2), 8, H - z - 120, silk, false, false); cocoon(x, y, z); tall(x, y, 240); }
@@ -67,7 +67,7 @@ export const ROOMS_D = [
       solid(0, 0, 40, 700, 560, 60, iron, false); Box(V(0, 0, 40 + 470), V(720, 600, 110), yel, false, false); deco(0, 0, 40 + 520, 740, 620, 20, iron);
       for (const e of [-1, 1]) { Cyl(V(e * 200, 0, 40 + 320), 90, 240, 0x8a8e96, false, false); Cyl(V(e * 200, 0, 40 + 460), 120, 30, iron, false, false); }
       sh(SH.crushedCar(body[0], 3), 0, 60, 100, 90); sh(SH.car(body[3], 1), -80, -480, 40, 90);
-      for (let k = 0; k < 6; k++) Box(V(-360 + k * 144, -336, 40 + 30), V(70, 6, 50), k % 2 ? 0x1a1a1a : yel, false, false);   // hazard stripes
+      for (let k = 0; k < 6; k++) Box(V(-360 + k * 144, -283, 40 + 30), V(70, 6, 50), k % 2 ? 0x1a1a1a : yel, false, false);   // hazard stripes
       hit(0, 0, 40, 720, 560, 100, true); Glow(V(-200, 0, 40 + 475 + 11), V(30, 30, 22), 0xff3a2a, 2);   // the warning lamp, on the crusher's post L(0, 0, 900, [1, 0.6, 0.3], 2400, 2.4); tall(0, 0, 720);
       // the crane: a lattice mast, a jib out over the yard, its cable down to a magnet with a wreck stuck to it
       { const mx = -3300, my = -3300; solid(mx, my, 0, 420, 420, 60, conc); for (const a of [-1, 1]) for (const b of [-1, 1]) Box(V(mx + a * 130, my + b * 130, 60 + 650), V(30, 30, 1300), yel, false, false);
@@ -88,7 +88,7 @@ export const ROOMS_D = [
         for (let r = 0; r < 4; r++) deco(x + 15 + r * 30, s * (hy - 14 - (r % 2) * 6), 0, 18, 8, h, r % 2 ? dark(col) : col); }
       for (const s of [-1, 1]) for (const e of [-1, 1]) deco(e * 1530, s * (hy - 26), 520, 1940, 12, 16, iron);
       // sodium floodlights on poles: orange pools over the yard
-      for (const [x, y] of [[-3000, 0], [3000, 0], [0, -3300], [0, 3300], [-1200, -1700], [1200, 1700]]) { solid(x, y, 0, 40, 40, 900, iron, false); Box(V(x, y, 920), V(160, 40, 30), iron, false, false); for (const e of [-1, 1]) { Box(V(x + e * 60, y, 895), V(50, 50, 30), 0x2a2a2a, false, false); Glow(V(x + e * 60, y, 878), V(40, 40, 6), 0xffb060, 1); } L(x, y, 860, [1, 0.62, 0.3], 2200, 2.6); hit(x, y, 0, 60, 60, 900, false); }
+      for (const [x, y] of [[-3000, 0], [3000, 0], [0, -3300], [0, 3300], [-1200, -1700], [1200, 1700]]) { solid(x, y, 0, 40, 40, 900, iron, false); Box(V(x, y, 915), V(160, 40, 30), iron, false, false); for (const e of [-1, 1]) { Box(V(x + e * 60, y, 895), V(50, 50, 30), 0x2a2a2a, false, false); Glow(V(x + e * 60, y, 878), V(40, 40, 6), 0xffb060, 1); } L(x, y, 860, [1, 0.62, 0.3], 2200, 2.6); hit(x, y, 0, 60, 60, 900, false); }
     }),
 
   // ------------------------------------------------------------------------------------------------ THE STABLES

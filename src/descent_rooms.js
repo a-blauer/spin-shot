@@ -135,7 +135,7 @@ export function craftRoom(kind, K) {
       // the crossing: a dais of two steps, a stone tomb with its lid pushed aside, a candle stand at each corner
       plat(0, 0, 900, 700, 80, T.trim, T.floor2);
       solid(0, 0, 80, 130, 300, 100, stone, false); deco(0, 0, 80, 150, 320, 16, T.trim); deco(0, 0, 166, 150, 320, 16, T.trim);
-      BoxRot(V(52, 14, 196), V(140, 310, 22), 0x4a5a60, R(0, 12, -12), false); Glow(V(-12, 0, 181), V(84, 250, 6), T.glow, 0); L(0, 0, 380, T.lamp, 1500, 2.4);
+      Box(V(40, 18, 193), V(140, 310, 22), 0x4a5a60, false, false, -14); Glow(V(-12, 0, 181), V(84, 250, 6), T.glow, 0); L(0, 0, 380, T.lamp, 1500, 2.4);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const x = sx * 380, y = sy * 280; hit(x, y, 80, 44, 44, 130, false); Cyl(V(x, y, 140), 16, 120, 0x2a2e30, false, false); Cyl(V(x, y, 203), 56, 8, 0x2a2e30, false, false); for (let q = 0; q < 3; q++) candle(x + Math.cos(q * 2.1) * 17, y + Math.sin(q * 2.1) * 17, 207, 20 + q * 9); }
       // the aisles: stone tombs in pairs (each a man long), and a low charnel wall between the bays
       for (const sx of [-1, 1]) for (const y of [-3500, -2100, 2100, 3500]) {
@@ -182,7 +182,7 @@ export function craftRoom(kind, K) {
         tall(x, y, 760);
       }
       // the casting floor
-      const ingots = (x, y, along) => { solid(x, y, 0, along ? 230 : 150, along ? 150 : 230, 16, 0x5a4630, false); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) deco(x + (along ? c * 70 : 0), y + (along ? 0 : c * 70), 16 + r * 24, along ? 60 : 130 - r * 10, along ? 130 - r * 10 : 60, 22, r === 2 && c === 0 ? 0xb8923a : steel); hit(x, y, 16, along ? 220 : 140, along ? 140 : 220, 72, true); };
+      const ingots = (x, y, along) => { solid(x, y, 0, along ? 230 : 150, along ? 150 : 230, 16, 0x5a4630, false); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) deco(x + (along ? c * 70 : 0), y + (along ? 0 : c * 70), 16 + r * 22, along ? 60 : 130 - r * 10, along ? 130 - r * 10 : 60, 22, r === 2 && c === 0 ? 0xb8923a : steel); hit(x, y, 16, along ? 220 : 140, along ? 140 : 220, 72, true); };
       const coal = (x, y) => { solid(x, y, 0, 300, 220, 100, 0x2a2420); deco(x, y, 100, 312, 232, 10, iron); Ball(V(x, y, 100), V(270, 190, 90), 0x101014); Glow(V(x + 40, y - 20, 132), V(14, 14, 8), hot, 2); };
       const trough = (x, y, along) => { solid(x, y, 0, along ? 420 : 130, along ? 130 : 420, 80, iron); Glow(V(x, y, 78), along ? V(380, 90, 6) : V(90, 380, 6), 0x3aa8ff, 0); };
       const anvil = (x, y) => { solid(x, y, 0, 70, 70, 50, 0x3a2c20, false); deco(x, y, 50, 46, 110, 14, dark); deco(x, y, 64, 62, 150, 26, dark); };

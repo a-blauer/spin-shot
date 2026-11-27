@@ -4,7 +4,6 @@ import { traitsPlayerTick } from './traits.js';
 import { rollBuff } from './classes.js';
 import { GRENADE_ROLL } from './grenades.js';
 import * as THREE from 'three';
-import { LookFilter } from './post.js';
 import { Meta } from './meta.js';
 import { diff, difficulty, mutators, DATA, zombieCount, maxAlive, effRound, lin, frandRange, randInt, rollRarity, rollUpgradeOfRarity } from './data.js';
 import { Physics } from './physics.js';
@@ -890,7 +889,6 @@ export class Game {
     this.pickups.draw(B.sprite, B.add);
     this.drawCable(B.add);
     this.fx.end();
-    const post = (this.look || (this.look = new LookFilter())).begin(R, this.settings.look | 0, this.settings.pix || 360);   // the look filter, if one is chosen
     R.autoClear = false;
     R.setClearColor(UNI.fogColor.value, 1);
     R.clear();
@@ -904,7 +902,6 @@ export class Game {
     const q = cam.getWorldQuaternion(new THREE.Quaternion()).invert();
     vmSun.value.copy(UNI.sunDir.value).applyQuaternion(q);
     if (!vm.hidden) { R.clearDepth(); R.render(vm.scene, vm.camera); }
-    if (post) this.look.end(R);
   }
   drawCable(add) {
     const P = this.player;

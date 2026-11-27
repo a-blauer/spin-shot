@@ -193,7 +193,7 @@ export const ROOMS_A = [
       for (const s of [-1, 1]) { main(s * 3500, s * 1500, 1700, false, rust); main(-s * 3500, s * 1900, 1100, false, green); main(s * 600, s * 2500, 1500, true, green); main(0, s * 400, 900, true, rust); }
       // valve stands and console desks
       for (const s of [-1, 1]) {
-        for (const e of [-1, 1]) { const x = s * 3500 + e * 240, y = s * 500; solid(x, y, 0, 30, 30, 110, steel, false); Cyl(V(x, y, 124), 90, 12, red, false, false); Cyl(V(x, y, 124), 24, 20, dark, false, false); }
+        for (const e of [-1, 1]) { const x = s * 3500 + e * 240, y = s * 500; solid(x, y, 0, 30, 30, 110, steel, false); Cyl(V(x, y, 116), 90, 12, red, false, false); Cyl(V(x, y, 116), 24, 20, dark, false, false); }
         const cy = s * 3000; solid(-s * 1600, cy, 0, 420, 120, 96, dark); Box(V(-s * 1600, cy - s * 30, 126), V(400, 60, 60), steel, false, false); for (let q = -2; q <= 2; q++) Glow(V(-s * 1600 + q * 70, cy - s * 62, 130), V(40, 4, 30), [T.glow, 0xffcd5a, red][Math.abs(q) % 3], 0);
         barrel(s * 2700, -s * 2800); barrel(s * 2810, -s * 2760); crate(s * 4300, s * 2900, 0, 110);
       }

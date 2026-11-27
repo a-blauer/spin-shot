@@ -146,7 +146,7 @@ export function props(K, Q) {
   };
   P.fountain = (x, y, d, col, water, lampc) => {
     Cyl(V(x, y, 32), d, 64, col, true, true); Cyl(V(x, y, 66), d + 30, 10, T.trim, false, false); Glow(V(x, y, 60), V(d - 60, d - 60, 6), water, 1);
-    Cyl(V(x, y, 150), 60, 180, col, false, false); Cyl(V(x, y, 244), d * 0.42, 16, col, false, false); Glow(V(x, y, 256), V(d * 0.34, d * 0.34, 6), water, 1); Ball(V(x, y, 290), V(50, 50, 60), T.trim);
+    Cyl(V(x, y, 150), 60, 180, col, false, false); Cyl(V(x, y, 244), d * 0.42, 16, col, false, false); Glow(V(x, y, 256), V(d * 0.34, d * 0.34, 6), water, 1); Ball(V(x, y, 272), V(50, 50, 60), T.trim);
     hit(x, y, 64, 70, 70, 200, false); if (lampc) L(x, y, 320, lampc, 1500, 2.4); tall(x, y, d / 2 + 60);
   };
   // shallow water you can wade: a sheet of it with a low kerb
