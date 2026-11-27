@@ -269,3 +269,12 @@
   reaching the last room. Lobby section THE PRIZE (descent only, host/solo; guests use their own saved pick).
 - Win screen (hud drawDescentWon): a glowing green panel first, "RESCUED - HOME TO THIMBLEWICK" / "NEW MACHINE FOUND",
   name, what it opens or does, and for an upgrade what it replaces. Shots: out/town/win_*.png, lobby_prize*.png.
+
+## (56) Bosses at the end of their room; no splitting; Recycler on Hard; Recycler +35%
+- HARD_PRIZES now machine:recycler, gnome:lectern, machine:crucible (the Forge is back on Normal).
+- Player.makeCost (Recycler scrap by tier) 4/8/16/32 -> 5/11/22/43.
+- Descent: rooms 5/10/15 are ordinary rooms (order is 19 rooms; arenaFor(room) = order[room-1], 20 = raid arena
+  N_ROOMS+1; flipFor alternates). The boss room gets its normal horde; game.endRound calls Descent.hordeDone() for a boss
+  room, which banners THE BOSS COMES and sets bossT 2.6; spawnBoss places it at a free spot (findFreeLocationNear). The
+  old boss arena (arena N_ROOMS) is no longer used. Raid room unchanged (bossT 2.2, no horde).
+- King Puffcap: mech 'split' removed (hp 12 -> 24, new desc). The Lamplighter's decoys and Ash and Ember's twin kept.

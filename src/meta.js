@@ -76,7 +76,7 @@ export const GNOMES = [
 ];
 export const MACHINE_NEEDS = { fusion: 'compressor', crucible: 'fusion' };
 // held only by the last boss of a Hard (or Nightmare) Descent
-export const HARD_PRIZES = new Set(['gnome:forge', 'gnome:lectern', 'machine:crucible']);   // an upgrade turns up only once the machine it upgrades is home
+export const HARD_PRIZES = new Set(['machine:recycler', 'gnome:lectern', 'machine:crucible']);   // an upgrade turns up only once the machine it upgrades is home
 const OLD_MACHINE_RANK = { compressor: 2, showcase: 5, recycler: 9, fortune: 13, fusion: 17, crucible: 20 };   // where ranks used to open them (saves from then keep them)
 export const rankXp = (r) => (r <= 1 ? 0 : Math.round(250 * Math.pow(r - 1, 1.7) / 50) * 50);   // total XP needed to hold rank r
 export const rankOf = (xp) => { let r = 1; while (r < RANKS.length && xp >= rankXp(r + 1)) r++; return r; };

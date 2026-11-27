@@ -31,9 +31,9 @@ function chestTier(room) {
 export class Descent {
   constructor(game) {
     this.g = game; this.room = 0; this.arena = 0; this.flip = 1; this.cleared = false; this.guns = [1, 2]; this.tier = 0; this.gates = []; this.things = []; this.late = []; this.seq = 0; this.bossT = -1; this.seen = -1; this.zones = []; this.zkey = ''; this.rdy = new Set(); this.rdyN = [0, 1];
-    // sixteen rooms out of all there are, none of them twice in a run
+    // nineteen rooms out of all there are, none of them twice in a run (the twentieth is the raid's)
     const o = [...Array(N_ROOMS).keys()]; for (let i = o.length - 1; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; }
-    this.order = o.length >= 16 ? o.slice(0, 16) : o.concat(o).slice(0, 16);
+    this.order = o.length >= 19 ? o.slice(0, 19) : o.concat(o).slice(0, 19);
     this.bossPick = this.pickBosses();
     this.result = null;
     // what the last boss holds this run (each player's own: the next of their gnomes, or one of their machines)
@@ -42,8 +42,9 @@ export class Descent {
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
   isBossRoom(r = this.room) { return r > 0 && r % 5 === 0; }
-  arenaFor(room) { return room % 5 === 0 ? (room >= ROOMS ? N_ROOMS + 1 : N_ROOMS) : this.order[room - 1 - Math.floor(room / 5)]; }   // the last room is the Hollow King's, and no other's
-  flipFor(room) { return room % 5 === 0 ? (room > 10 ? -1 : 1) : (room % 2 ? 1 : -1); }
+  // every fifth room is an ordinary room whose boss comes when its horde is done; the last is the raid's, and no other's
+  arenaFor(room) { return room >= ROOMS ? N_ROOMS + 1 : this.order[room - 1]; }
+  flipFor(room) { return room % 2 ? 1 : -1; }
   A() { return ARENAS[this.arena]; }
   S() { return spots(this.A(), this.flip); }
   // one boss from each of the four tiers; which one is the luck of the run
@@ -94,10 +95,10 @@ export class Descent {
     for (const E of g.enemies) if (!E.dead) E.remove = true;
     g.hazards.clear(); g.boss = null; g.bossSpawned = false; g.bossRound = false; this.zones = [];
     g.round = room; g.phase = 'Round';
-    const boss = this.isBossRoom(), n = g.net.role === 'host' ? g.net.ghosts.size : 0;
-    g.toSpawn = boss ? 0 : Math.round((24 + room * 4.5) * (1 + 0.6 * n));   // a boss's room holds the boss and nothing else, unless it calls something up itself   // a room is a few minutes' work, the first ones included
-    g.spawned = 0; g.killed = 0; g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0; g.spawnTimer = boss ? 5 : 1.6; g.roundT = 0; g.midChest = true;
-    this.bossT = boss ? 2.2 : -1;
+    const boss = this.isBossRoom(), raidR = room >= ROOMS, n = g.net.role === 'host' ? g.net.ghosts.size : 0;
+    g.toSpawn = raidR ? 0 : Math.round((24 + room * 4.5) * (1 + 0.6 * n));   // a boss's room has its horde first; the raid holds the raid and nothing else   // a boss's room holds the boss and nothing else, unless it calls something up itself   // a room is a few minutes' work, the first ones included
+    g.spawned = 0; g.killed = 0; g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0; g.spawnTimer = raidR ? 5 : 1.6; g.roundT = 0; g.midChest = true;
+    this.bossT = raidR ? 2.2 : -1;
     this.roster = this.rollRoster(room);
     // two guns for the walls, the better ones the deeper you are; and what the chest at the end will be
     const RAR = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'], want = (room < 6 ? [0, 1] : room < 11 ? [1, 2] : room < 16 ? [2, 3] : [3, 4]).map((k) => RAR[k]);
@@ -134,9 +135,15 @@ export class Descent {
     if (started) { Meta.roundStarted(room, g.map.id); P.onRoundStarted(room); }
     g.navRebuild(P.pos);
   }
+  // a boss room's horde is done: after a breath, its boss comes (game.endRound calls this until it has)
+  hordeDone() {
+    const g = this.g; if (g.bossSpawned || this.bossT >= 0 || this.room >= ROOMS) return;
+    this.bossT = 2.6; g.banner('THE BOSS COMES', lin(1, 0.25, 0.15), 2.4); g.audio.play('S_Phase', 0.7);
+  }
   spawnBoss() {
     const g = this.g, A = this.A(), bi = this.bossPick[this.room / 5 - 1], B = DATA.bosses[bi];
-    const at = V3(A.c[0], 260, A.c[1] + this.flip * A.hy * 0.3);
+    // somewhere open, away from the way in, in the room it was fought in
+    const c0 = V3(A.c[0], 0, A.c[1] + this.flip * A.hy * 0.3), f = g.findFreeLocationNear(c0, 0, Math.min(A.hx, A.hy) * 0.5) || c0, at = V3(f.x, (f.y || 0) + 260, f.z);
     g.bossSpawned = true;
     // a boss is a fight, not a speed bump: deeper ones carry more, and each extra player adds most of another one
     const hpK = BOSS_HP[(B.tier || 1) - 1] || BOSS_HP[0], more = g.net.role === 'host' ? g.net.ghosts.size : 0;

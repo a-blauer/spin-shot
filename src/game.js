@@ -504,7 +504,7 @@ export class Game {
     this.player.onRoundStarted(this.round);
   }
   endRound() {
-    if (this.descent) { if (!this.descent.isBossRoom()) this.descent.clear(); return; }
+    if (this.descent) { if (!this.descent.isBossRoom()) this.descent.clear(); else this.descent.hordeDone(); return; }
     this.phase = 'Intermission'; this.phaseTimer = 8;   // long enough to reload and look round, not long enough to get bored
     this.player.onRoundEnded(this.round);
 

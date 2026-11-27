@@ -2515,7 +2515,7 @@ export class Player {
   takePart(u) { if (!(this.coreInv[u] > 0)) return false; this.coreInv[u]--; return true; }
   // ---- the machines (see deeds.js). Parts in the pack are worth scrap by rarity; a pressed part is worth its two halves.
   scrapOf(u) { const U = DATA.upgrades[u]; if (U.forged) return 6 + U.forged.parts.reduce((s, c) => s + this.scrapOf(c), 0); return U.fuse ? 12 : (U.pressed ? 2 : 1) * [1, 2, 4, 8][coreTier(u)]; }
-  makeCost(u) { return [4, 8, 16, 32][coreTier(u)]; }
+  makeCost(u) { return [5, 11, 22, 43][coreTier(u)]; }   // what the Recycler asks in scrap, by tier (raised 35% from 4/8/16/32)
   // the Compressor: two of the same part become one pressed part; with Fusion, two different elements become one
   // what the Compressor makes of these dishes (2 or 3 parts, in order): [part index, how] or [-1, why]
   compressOut(us) {

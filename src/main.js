@@ -720,7 +720,7 @@ function renderLobby() {
         h += '<section><h3>THE PRIZE</h3>';
         if (!opts.length) h += group('Nothing lost', chip('', true, false, 'A hoard of gold', '600 gold'), 'Every gnome and every machine is home. The last boss sits on a hoard of gold.');
         else h += group('Last boss holds', opts.map((P) => chip(`data-prize="${K(P)}"`, cur.kind === P.kind && cur.id === P.id, P.hard && curDf < 1, esc2(nm(P)), P.kind === 'gnome' ? (P.hard ? 'gnome · Hard+' : 'gnome') : P.hard ? 'machine · Hard+' : 'machine')).join(''),
-          esc2(cur.kind === 'hoard' ? 'Nothing it can hold on this difficulty: a hoard of gold.' : what(cur)) + (pk && !Meta.prizeOk(pk, curDf) ? `<br><span class="gold">${esc2(nm(pk))} is only held on Hard or Nightmare. On ${DIFFS[curDf].name} it holds ${esc2(cur.kind === 'hoard' ? 'gold' : nm(cur))} instead.</span>` : '') + '<br><span class="dim2">Beat the last boss of the Descent to bring it home. The Smith, the Wizard and the Crucible are held only on Hard or harder.</span>');
+          esc2(cur.kind === 'hoard' ? 'Nothing it can hold on this difficulty: a hoard of gold.' : what(cur)) + (pk && !Meta.prizeOk(pk, curDf) ? `<br><span class="gold">${esc2(nm(pk))} is only held on Hard or Nightmare. On ${DIFFS[curDf].name} it holds ${esc2(cur.kind === 'hoard' ? 'gold' : nm(cur))} instead.</span>` : '') + '<br><span class="dim2">Beat the last boss of the Descent to bring it home. The Recycler, the Wizard and the Crucible are held only on Hard or harder.</span>');
         h += '</section>'; }
       h += '<section><h3>THE DESCENT</h3>' + group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineHow(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Home' : 'Not found', `data-why="${esc2(r + '. ' + D.text)}" data-grp="d"`); }).join(''),
         info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent. The last boss of every Descent holds one, or a lost gnome of Thimblewick: beat it to bring them home.')) + '</section>'; }
@@ -981,7 +981,7 @@ function enterVillage() {
   game.villageRT.enter(); title.style.display = 'none'; lobby.style.display = 'none'; locker.style.display = 'none';
   start(); game.vm.hidden = true;
   if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: clothes at Bramble & Bolt, your wardrobe on the dressing porch at home, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
-  else if (!Meta.tipSeen('town1')) { Meta.tipMark('town1'); hud.tip('Thimblewick has lost three of its own to the Blight: its smith, its trainer and its wizard. The last boss of every Descent holds one of them in a cage, or one of the machines: choose which at the Way Down (the Smith, the Wizard and the Crucible only on Hard or harder). Beat it and it comes home.'); }
+  else if (!Meta.tipSeen('town1')) { Meta.tipMark('town1'); hud.tip('Thimblewick has lost three of its own to the Blight: its smith, its trainer and its wizard. The last boss of every Descent holds one of them in a cage, or one of the machines: choose which at the Way Down (the Recycler, the Wizard and the Crucible only on Hard or harder). Beat it and it comes home.'); }
 }
 async function goVillage() {
   const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));
