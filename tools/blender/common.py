@@ -219,3 +219,12 @@ def fan(root, pts, t=1.2, name='fan', scallop=0.0):
             f = bm.faces.new((r, vs[i], vs[i + 1]) if side > 0 else (r, vs[i + 1], vs[i]))
     bm.normal_update()
     return _obj(name, bm)
+
+
+def carve(ob, cutter):
+    """Cut cutter out of ob (a boolean difference); the cutter is removed."""
+    import bpy
+    from bkit import _apply
+    m = ob.modifiers.new('carve', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.object = cutter; m.solver = 'EXACT'
+    _apply(ob); bpy.data.objects.remove(cutter, do_unlink=True)
+    return ob

@@ -275,7 +275,7 @@ def preview(path, out, yaws=(0.5,), el=0.06, strain=0, size=700, zoom=1.0):
     sc.render.resolution_x = sc.render.resolution_y = size; sc.render.film_transparent = False
     sc.world = bpy.data.worlds.new('w'); sc.world.use_nodes = True; sc.world.node_tree.nodes['Background'].inputs[0].default_value = (0.58, 0.6, 0.61, 1)
     sc.view_settings.view_transform = 'Standard'
-    cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam; cam.data.lens = 60
+    cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam; cam.data.lens = 60; cam.data.clip_end = 1e5; cam.data.clip_start = 1
     D = r / math.tan(cam.data.angle / 2)
     from PIL import Image
     ims = []
