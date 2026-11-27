@@ -1242,6 +1242,7 @@ export class Hud {
     const g = this.g, R = Meta.runSummary(), I = R.info, bw = 520 * S, x0 = W / 2 - bw / 2;
     const up = I.rank > R.rank0;
     this.text(`RENOWN  +${R.xp.toLocaleString()}      GOLD  +${(R.gold || 0).toLocaleString()}`, W / 2, y, 30 * S, GOLD, 'center', F_BIG, 400, 0.1, a);
+    { const ex = [R.cp ? `${Meta.cls().toUpperCase()} POINTS  +${R.cp}` : '', R.frags ? `WEAPON FRAGMENTS  +${R.frags}` : ''].filter(Boolean).join('      '); if (ex) this.text(ex, W / 2, y - 34 * S, 19 * S, '#ffb070', 'center', F_TXT, 700, 0.1, a); }
     if (R.contract) this.text(`CONTRACT PAID: ${R.contract.title.toUpperCase()}  (+${R.contract.gold.toLocaleString()} gold, +${R.contract.renown.toLocaleString()} renown)`, W / 2, y - 34 * S, 19 * S, '#9fe0ff', 'center', F_TXT, 700, 0.1, a);
     this.text(`RANK ${I.rank}  -  ${I.name.toUpperCase()}`, x0, y + 34 * S, 19 * S, up ? '#7dff8a' : BONE, 'left', F_BIG, 400, 0.1, a);
     this.text(I.max ? 'TOP RANK' : `${I.into.toLocaleString()} / ${I.span.toLocaleString()}`, x0 + bw, y + 34 * S, 17 * S, 'rgba(242,232,213,0.75)', 'right', F_TXT, 700, 0.1, a);
@@ -1293,7 +1294,7 @@ export class Hud {
     // deeds earned on the way
     const nd = MACHINES.filter((d) => machine(d.id)).length; ty += 50 * S;
     this.text(`MACHINES  ${nd} / ${MACHINES.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
-    const nx = MACHINES.find((d) => !machine(d.id)); if (nx) this.text(`Next: ${nx.name}  -  rank ${Meta.machineRank(nx.id)}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
+    const pz = D.prize; if (pz && D.rescued) this.text(`Brought home: ${Meta.prizeName(pz)}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
     this.hints('[Enter] Back to the village', W / 2, ty + 78 * S, 24 * S);
   }
   drawPaused(W, H, S) {

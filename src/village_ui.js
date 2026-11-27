@@ -10,10 +10,14 @@ import { MUTATORS, DIFFS, RARITY_HEX } from './data.js';
 import { MAPS } from './maps.js';
 import { SYM } from './casino_symbols.js';
 import { WHEEL } from './casino_world.js';
+import { TRAINING, KIND_NAMES } from './trainer.js';
+import { CLASSES } from './classes.js';
+import { cosItem } from './cosmetics.js';
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (n) => Math.round(n).toLocaleString();
 const coin = (s = '') => `<i class="coin ${s}"></i>`;
+const frag = (s = '') => `<i class="frag ${s}"></i>`;   // a weapon fragment: a jagged shard of blued steel
 const SHOP_TABS = [
   { id: 'hats', name: 'Hats', slots: ['hat', 'hattip'] },
   { id: 'clothes', name: 'Clothes', slots: ['outfit', 'legs'] },
@@ -55,16 +59,17 @@ export function makeVillageUI(H) {
     H.entered(); if (['slots', 'roulette', 'blackjack', 'dice'].includes(k)) H.seat(k, a | 0); el.style.display = 'block'; render(); sound('S_UISelect', 0.7);
   }
   function close() { if (!open) return; open = false; el.style.display = 'none'; if (stage) stage.detach(); H.left(); }
-  const head = (title, line) => `<div class="vp-head"><div class="tt"><h2>${title}</h2><p>${line}</p></div><div class="vp-purse">${coin()}<b>${fmt(Meta.gold())}</b></div><button class="vp-x">Done<kbd>E</kbd></button></div>`;
+  const head = (title, line, fr) => `<div class="vp-head"><div class="tt"><h2>${title}</h2><p>${line}</p></div><div class="vp-purse">${fr ? frag() : coin()}<b>${fmt(fr ? Meta.frags() : Meta.gold())}</b></div><button class="vp-x">Done<kbd>E</kbd></button></div>`;
   function render() {
     let h = '';
     if (kind === 'shop' || kind === 'gunshop') h = renderShop();
-    else if (kind === 'board') h = renderBoard();
+    else if (kind === 'lectern') h = renderLectern();
+    else if (kind === 'trainer') h = renderTrainer();
     else h = renderCasino();
     const bar = ['slots', 'roulette', 'blackjack', 'dice'].includes(kind); el.classList.toggle('bar', bar);
     el.innerHTML = bar ? `<div class="vp-bar k-${kind}">${h}</div>` : `<div class="vp-card k-${kind}">${h}</div>`;
     el.querySelector('.vp-x').onclick = (e) => { e.stopPropagation(); close(); };
-    if (kind === 'shop' || kind === 'gunshop') { wireShop(); if (H.cosThumbs) H.cosThumbs(el); } else if (kind === 'board') wireBoard(); else wireCasino();
+    if (kind === 'shop' || kind === 'gunshop') { wireShop(); if (H.cosThumbs) H.cosThumbs(el); } else if (kind === 'lectern') wireLectern(); else if (kind === 'trainer') wireTrainer(); else wireCasino();
   }
 
   // ------------------------------------------------------------------ the shop
@@ -77,13 +82,13 @@ export function makeVillageUI(H) {
   function renderShop() {
     const items = shopItems(tab); if (!pick || pick.tab !== tab) { const first = items.find((x) => x.state === 'buy') || items[0]; pick = first ? { tab, key: first.gun ? first.name : first.slot + ':' + first.I.id } : null; }
     const gs = kind === 'gunshop', TABS = SHOP_TABS.filter((T) => (T.id === 'guns') === gs);
-    let h = gs ? head('Flintwhistle’s Guns', 'Old Flintwhistle’s gunsmithy: the guns you start your runs with') : head('Bramble &amp; Bolt', 'Mossbottom’s counter: hats, clothes and trinkets');
+    let h = gs ? head('The Forge', 'Flintwhistle works weapon fragments into guns. Every gun forged is yours to start a run with.', true) : head('Bramble &amp; Bolt', 'Mossbottom’s counter: hats, clothes and trinkets');
     h += '<div class="vp-body"><div class="shop-left"><div class="shop-stage" id="sstage"></div><div class="shop-info" id="sinfo"></div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column">';
     h += `<div class="vp-tabs">${TABS.map((T) => { const L = shopItems(T.id), n = L.filter((x) => x.state === 'owned').length; return `<div class="vp-tab ${T.id === tab ? 'on' : ''}" data-tab="${T.id}">${T.name}<i>${n}/${L.length}</i></div>`; }).join('')}</div><div class="vp-scroll"><div class="grid">`;
     if (tab === 'guns') {
       for (const x of items) {
         const k = x.name, sel = pick && pick.key === k, st = Meta.starter() === k;
-        h += `<div class="it gun ${x.state === 'locked' ? 'lock' : ''} ${sel ? 'sel' : ''}" data-key="${esc(k)}" style="--rc:${RARITY_HEX[x.w.rarity] || '#888'}">${st ? '<span class="star">STARTING</span>' : ''}<img src="${H.thumb('gun', k)}" alt=""><div class="gi"><b>${esc(k)}</b><span>${esc(x.w.rarity)} ${esc(x.w.cls || '')}</span>${x.state === 'owned' ? '<div class="ok">OWNED</div>' : x.state === 'locked' ? `<div class="nd">${esc(Meta.howToUnlock('guns', k) || 'Unlocked by progress')}</div>` : `<div class="pr ${Meta.gold() < x.price ? 'poor' : ''}">${coin('s')}${fmt(x.price)}</div>`}</div></div>`;
+        h += `<div class="it gun ${x.state === 'locked' ? 'lock' : ''} ${sel ? 'sel' : ''}" data-key="${esc(k)}" style="--rc:${RARITY_HEX[x.w.rarity] || '#888'}">${st ? '<span class="star">STARTING</span>' : ''}<img src="${H.thumb('gun', k)}" alt=""><div class="gi"><b>${esc(k)}</b><span>${esc(x.w.rarity)} ${esc(x.w.cls || '')}</span>${x.state === 'owned' ? '<div class="ok">OWNED</div>' : x.state === 'locked' ? `<div class="nd">${esc(Meta.howToUnlock('guns', k) || 'Unlocked by progress')}</div>` : `<div class="pr ${Meta.frags() < x.price ? 'poor' : ''}">${frag('s')}${fmt(x.price)}</div>`}</div></div>`;
       }
     } else {
       const T = SHOP_TABS.find((q) => q.id === tab);
@@ -102,7 +107,7 @@ export function makeVillageUI(H) {
   function shopInfo() {
     const x = shopPick(), box = el.querySelector('#sinfo'), stg = el.querySelector('#sstage'); if (!box) return;
     if (!x) { box.innerHTML = ''; return; }
-    const poor = x.state === 'buy' && Meta.gold() < x.price;
+    const poor = x.state === 'buy' && (x.gun ? Meta.frags() : Meta.gold()) < x.price;
     let h = `<h3>${esc(x.name)}</h3><div class="tags">`;
     if (x.gun) {
       const W = x.w, st = Meta.starter() === x.name;
@@ -110,7 +115,7 @@ export function makeVillageUI(H) {
       h += `<div class="desc">${esc(W.desc || '')}</div><div class="stats"><div><span>DAMAGE</span><b>${Math.round(W.dmg * (W.pellets || 1))}</b></div><div><span>RATE</span><b>${(+W.rate || 0).toFixed(1)}/s</b></div><div><span>MAG</span><b>${W.mag}</b></div><div><span>RELOAD</span><b>${(+W.reload || 0).toFixed(1)}s</b></div></div>`;
       if (x.state === 'owned') h += `<div class="row"><button class="vp-btn ${st ? 'alt' : 'blue'}" id="sact" ${st ? 'disabled' : ''}>${st ? 'Your starting gun' : 'Start runs with it'}</button></div>`;
       else if (x.state === 'locked') h += `<div class="why">${esc(Meta.howToUnlock('guns', x.name) || 'Unlocked by progress, then sold here.')}</div>`;
-      else h += `<div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>Buy  ${coin()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.gold())} more gold. Runs pay it: a finished run pays most.</div>` : '<div class="desc">Bought once; choose it at the Way Down before any run.</div>'}`;
+      else h += `<div class="row"><button class="vp-btn" id="sbuy" ${poor ? 'disabled' : ''}>Forge  ${frag()} ${fmt(x.price)}</button></div>${poor ? `<div class="why">You need ${fmt(x.price - Meta.frags())} more weapon fragments. Elites drop them, and bosses drop a handful.</div>` : '<div class="desc">Forged once; choose it at the Way Down before any run.</div>'}`;
       if (stage) stage.detach();
       if (stg) stg.innerHTML = `<img src="${H.thumb('gun', x.name)}" alt="">`;
     } else {
@@ -127,7 +132,7 @@ export function makeVillageUI(H) {
     if (buy) buy.onclick = (e) => {
       e.stopPropagation();
       const ok = x.gun ? Meta.buyGun(x.name) : Meta.buyCos(x.slot, x.I.id);
-      if (ok) { sound('S_Buy', 0.9); if (!x.gun) Meta.setLook(x.slot, x.I.id); H.toast(`Bought: ${x.name}`, '#ffcd5a'); H.looked(); render(); } else sound('S_Deny', 0.6);
+      if (ok) { sound('S_Buy', 0.9); if (!x.gun) Meta.setLook(x.slot, x.I.id); H.toast(x.gun ? `Forged: ${x.name}. It can start your runs now.` : `Bought: ${x.name}`, '#ffcd5a'); H.looked(); render(); } else sound('S_Deny', 0.6);
     };
     const wear = box.querySelector('#swear'); if (wear) wear.onclick = (e) => { e.stopPropagation(); Meta.setLook(x.slot, x.I.id); sound('S_Fit', 0.7); H.looked(); render(); };
     const act = box.querySelector('#sact'); if (act) act.onclick = (e) => { e.stopPropagation(); Meta.setStarter(x.name); sound('S_Fit', 0.7); render(); };
@@ -163,25 +168,56 @@ export function makeVillageUI(H) {
     return S;
   }
 
-  // ------------------------------------------------------------------ the challenge board
-  function renderBoard() {
-    const L = Meta.board(), cur = Meta.contract();
-    let h = head('The Challenge Board', 'Mayor Thistlewood’s contracts: six a day, the same for everyone. New ones at midnight UTC.');
-    h += `<div class="vp-body"><div class="board"><p class="lead">Take one contract and its rules are set at the Way Down: the mode, the difficulty and the modifiers. Win that run and the bonus is paid on top of what the run pays. Each contract pays once.</p><div class="notes">`;
-    L.forEach((c, i) => {
-      const mods = MUTATORS.filter((M, k) => (c.muts >> k) & 1), taken = cur && cur.id === c.id, where = c.mode === 'descent' ? 'The Descent' : `Survival: ${MAPS[c.map] ? MAPS[c.map].name : ''}`;
-      h += `<div class="note ${taken ? 'taken' : ''} ${c.done ? 'done' : ''}" style="--r:${[-1.2, 0.8, -0.4, 1.1, -0.9, 0.5][i % 6]}deg">${c.done ? '<span class="stamp p">PAID</span>' : taken ? '<span class="stamp t">TAKEN</span>' : ''}<h3>${esc(c.title)}</h3><div class="fl">${esc(c.flavor)}</div>`;
-      h += `<div class="rules"><span>${esc(where)}</span><span class="d${c.diff}">${esc(DIFFS[c.diff].name)}</span>${mods.map((M) => `<span>${esc(M.name)}</span>`).join('')}</div>`;
-      h += `<div class="mods">${mods.map((M) => `<b>${esc(M.name)}:</b> ${esc(M.desc)}`).join('<br>')}</div>`;
-      h += `<div class="pay"><span class="gd">${coin()}${fmt(c.gold)}</span><span class="rn">+${fmt(c.renown)} renown</span></div>`;
-      h += c.done ? '' : taken ? `<button class="vp-btn alt" data-drop="1">Drop this contract</button>` : `<button class="vp-btn" data-take="${esc(c.id)}">Take contract</button>`;
-      h += '</div>';
+  // ------------------------------------------------------------------ the Lectern: Mother Inkcap's book of pages
+  // Each page read makes your runs harder in one way and pays more in another, until you close it again.
+  function renderLectern() {
+    const pg = Meta.pages(), read = MUTATORS.filter((M, i) => (pg >> i) & 1);
+    let h = head('The Lectern', 'Mother Inkcap reads from her book. Each page makes your runs harder one way, and pays more another.');
+    h += `<div class="vp-body"><div class="lect"><p class="lead">A page stays read for every run until you close it. Read as many as you dare: what they pay adds up. In a party, the host’s pages are read for everyone.</p><div class="pages">`;
+    MUTATORS.forEach((M, i) => {
+      const on = (pg >> i) & 1;
+      h += `<div class="page ${on ? 'on' : ''}" style="--r:${[-0.8, 0.6, -0.3, 0.9, -0.6, 0.4][i]}deg"><div class="num">${['I', 'II', 'III', 'IV', 'V', 'VI'][i]}</div><h3>${esc(M.name)}</h3>`;
+      h += `<div class="cost"><span>THE PRICE</span>${esc(M.desc)}</div><div class="pay"><span>THE PAYMENT</span>${esc(M.boon.charAt(0).toUpperCase() + M.boon.slice(1))}</div>`;
+      h += `<button class="vp-btn ${on ? 'alt' : ''}" data-page="${i}">${on ? 'Close the page' : 'Read this page'}</button></div>`;
     });
-    return h + '</div></div></div>';
+    h += '</div>';
+    h += `<div class="sum">${read.length ? `<b>${read.length} page${read.length > 1 ? 's' : ''} read.</b> Your runs pay ${read.map((M) => esc(M.boon)).join(', ')}.` : '<b>No pages read.</b> Your runs go as they come.'}</div>`;
+    return h + '</div></div>';
   }
-  function wireBoard() {
-    el.querySelectorAll('[data-take]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); Meta.takeContract(b.dataset.take); sound('S_Fit', 0.8); const c = Meta.contract(); H.toast(`Contract taken: ${c ? c.title : ''}. Its rules are set at the Way Down.`, '#9fe0ff'); render(); }; });
-    el.querySelectorAll('[data-drop]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); Meta.takeContract(''); sound('S_UISelect', 0.6); render(); }; });
+  function wireLectern() {
+    el.querySelectorAll('[data-page]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); Meta.toggleMut(+b.dataset.page); const on = (Meta.pages() >> +b.dataset.page) & 1; sound(on ? 'S_PowerUp' : 'S_UISelect', 0.6); render(); }; });
+  }
+
+  // ------------------------------------------------------------------ the Training Yard: Old Hobnail's lessons
+  let tcls = '';
+  function renderTrainer() {
+    if (!tcls) tcls = Meta.cls(); const C = CLASSES.find((q) => q.id === tcls) || CLASSES[0], T = TRAINING[C.id], cp = Meta.cp(C.id);
+    let h = head('The Training Yard', 'Old Hobnail teaches every class. Each class earns its own points on runs played as it, and spends them here.');
+    h += `<div class="vp-body"><div class="yard"><div class="ctabs">${CLASSES.map((K) => `<div class="ctab ${K.id === C.id ? 'on' : ''}" data-cls="${K.id}" style="--cc:${K.hex}"><b>${esc(K.name)}</b><i>${fmt(Meta.cp(K.id))} pts</i></div>`).join('')}</div>`;
+    h += `<div class="cphead" style="--cc:${C.hex}"><div><b>${fmt(cp)}</b><span>${esc(C.name)} points to spend</span></div><p>Earned playing ${esc(C.name)}: a point for every Descent room cleared, more for bosses, ten for reaching the bottom. Each tier opens once you have learned anything in the one before.</p></div>`;
+    h += '<div class="tiers">';
+    for (const tier of [1, 2, 3]) {
+      const open = Meta.tierOpen(C.id, tier);
+      h += `<div class="tier ${open ? '' : 'shut'}"><h4>TIER ${['I', 'II', 'III'][tier - 1]}${open ? '' : '<em>learn something in the tier before</em>'}</h4>`;
+      for (const I of T.filter((q) => q.tier === tier)) {
+        const st = Meta.trainState(C.id, I.id), nm = I.kind === 'gear' ? cosItem(...I.cos.split(':')).name : I.name;
+        const tx = I.kind === 'gear' ? 'Class gear, yours to wear.' : I.text, fit = I.kind === 'variant' && Meta.variant(C.id) === I.id;
+        h += `<div class="lesson k-${I.kind} ${st}" style="--cc:${C.hex}"><div class="lk">${KIND_NAMES[I.kind].toUpperCase()}${fit ? '<span class="fit">FITTED</span>' : ''}</div><h5>${esc(nm)}</h5><p>${esc(tx)}</p>`;
+        if (st === 'have') h += I.kind === 'variant' ? `<button class="vp-btn ${fit ? 'alt' : 'blue'}" data-fit="${fit ? '' : I.id}">${fit ? 'Take it off' : 'Fit it'}</button>` : '<div class="got">LEARNED</div>';
+        else if (st === 'shut') h += `<div class="pc">${fmt(I.cost)} pts</div>`;
+        else h += `<button class="vp-btn" data-learn="${I.id}" ${st === 'can' ? '' : 'disabled'}>Learn  ·  ${fmt(I.cost)} pts</button>`;
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+    const v = Meta.variant(C.id), V = v && T.find((q) => q.id === v);
+    h += `</div><div class="sum"><b>${esc(C.ability)}</b>: ${V ? `fitted with ${esc(V.name)}.` : 'as it came.'} Changes take effect on your next run.</div>`;
+    return h + '</div></div>';
+  }
+  function wireTrainer() {
+    el.querySelectorAll('[data-cls]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); tcls = b.dataset.cls; sound('S_UISelect', 0.6); render(); }; });
+    el.querySelectorAll('[data-learn]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); const I = TRAINING[tcls].find((q) => q.id === b.dataset.learn); if (Meta.train(tcls, I.id)) { sound('S_Upgrade', 0.8); H.toast(`Learned: ${I.kind === 'gear' ? cosItem(...I.cos.split(':')).name : I.name}`, '#ffcd5a'); if (H.looked) H.looked(); } else sound('S_Deny', 0.6); render(); }; });
+    el.querySelectorAll('[data-fit]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); Meta.setVariant(tcls, b.dataset.fit); sound('S_Fit', 0.7); render(); }; });
   }
 
   // ------------------------------------------------------------------ the casino

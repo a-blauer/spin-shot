@@ -7,7 +7,8 @@
 //   * per-gun XP that unlocks permanent traits for that gun.
 // A reward is EARNED when its goal is met and UNLOCKED when the player claims it on the Progress screen.
 // Everything is a pure function of the lifetime stats, so nothing can be lost by a change to the numbers.
-import { MUTATORS, mutXp, DATA, DIFFS } from './data.js';
+import { MUTATORS, mutXp, mutBoon, DATA, DIFFS } from './data.js';
+import { TRAINING, CP_RATES } from './trainer.js';
 import { COSMETICS, SLOTS, DEFAULT_LOOK, cosItem, lookString, SHAPES, DEFAULT_SHAPE, shapeOf } from './cosmetics.js';
 const KEY = 'dmh-meta-v1';
 
@@ -35,25 +36,25 @@ export const DIFF_XP = [1, 1.5, 2];
 export const MACHINE_NAMES = { compressor: 'The Compressor', showcase: 'The Showcase', recycler: 'The Recycler', fortune: 'The Fortune Teller', fusion: 'Compressor: Fusion', crucible: 'Compressor: Crucible' };
 export const RANKS = [
   { name: 'Drifter' },
-  { name: 'Greenhorn', machine: 'compressor' },
+  { name: 'Greenhorn' },
   { name: 'Ranch Hand', parts: ['Accelerant', 'Open Wound', 'Heat Shield', 'Bloodbank', 'Ember Dash'], guns: ['Bullwhip'] },
   { name: 'Deputy', guns: ['Come-Back Kid'] },
-  { name: 'Gunhand', machine: 'showcase' },
+  { name: 'Gunhand' },
   { name: 'Trailblazer', parts: ['Brittle Rounds', 'Conductor', 'Cold Comfort', 'Grounding Rod', 'Frost Wake'], guns: ['Bear Trap'] },
   { name: 'Bounty Hunter', guns: ['Lariat'] },
   { name: 'Regulator', parts: ['Steady Barrel', 'Concussive', 'Holster Loader', 'Quick Swap', 'Brace'], guns: ['Tumbleweed'] },
-  { name: 'Marshal', machine: 'recycler' },
+  { name: 'Marshal' },
   { name: 'Pathfinder', guns: ['Barn Door'] },
   { name: 'Outrider', parts: ['Salvage Rounds', 'Scrap Magnet', 'Quartermaster', 'Scavenger', 'Lingering'], guns: ['Old Faithful'] },
   { name: 'Pistolero', guns: ['Whaler'] },
-  { name: 'Vigilante', machine: 'fortune' },
+  { name: 'Vigilante' },
   { name: 'Desperado', parts: ['Smoke Step', 'Decoy', 'Kinetic Plating', 'Static Landing', 'Wall Runner'], guns: ['Jack-in-the-Box'] },
   { name: 'Nightrider', guns: ['William Tell'] },
   { name: 'Warden', guns: ['Calliope'] },
-  { name: 'Reaper', machine: 'fusion' },
+  { name: 'Reaper' },
   { name: 'Gravewalker', parts: ['Bank Shot', 'Lodestone', 'Heat Sink', 'Catalyst', 'Lantern'], guns: ['Loaded Dice'] },
   { name: 'Dead Shot', guns: ['Sawbones'] },
-  { name: 'Tunnel Rat', machine: 'crucible', guns: ['Live Wire'] },
+  { name: 'Tunnel Rat', guns: ['Live Wire'] },
   { name: 'Lamplighter', guns: ['Gusher'] },
   { name: 'Gravedigger', parts: ['Contagion', 'Shatter', 'Tether', 'Undertow'], guns: ['High Striker'] },
   { name: 'Undertaker', guns: ['Wrecking Ball'] },
@@ -66,6 +67,15 @@ export const RANKS = [
   { name: 'Underlord', guns: ['Hocus Pocus'] },
   { name: 'Legend', guns: ["Dead Man's Hand"] },
 ];
+// ---- the town: who has been brought up from the bottom of the Descent, and which machines. The last room's boss always
+// has something: a gnome held hostage in a cage, or one of the machines it is sitting on. Beat it and it comes home.
+export const GNOMES = [
+  { id: 'trainer', name: 'Old Hobnail', title: 'the Trainer', opens: 'The Training Yard', text: 'Teaches every class new tricks: class points earned on your runs buy perks, abilities and new kinds of class ability, and class gear.' },
+  { id: 'forge', name: 'Flintwhistle', title: 'the Smith', opens: 'The Forge', text: 'Elites start dropping weapon fragments; at the Forge they are worked into guns, and every gun forged is yours to start a run with.' },
+  { id: 'lectern', name: 'Mother Inkcap', title: 'the Wizard', opens: 'The Lectern', text: 'Reads from her book to make a run harder in a chosen way, and its spoils richer: more gold, more gun parts, more renown, more class points.' },
+];
+export const MACHINE_NEEDS = { fusion: 'compressor', crucible: 'fusion' };   // an upgrade turns up only once the machine it upgrades is home
+const OLD_MACHINE_RANK = { compressor: 2, showcase: 5, recycler: 9, fortune: 13, fusion: 17, crucible: 20 };   // where ranks used to open them (saves from then keep them)
 export const rankXp = (r) => (r <= 1 ? 0 : Math.round(250 * Math.pow(r - 1, 1.7) / 50) * 50);   // total XP needed to hold rank r
 export const rankOf = (xp) => { let r = 1; while (r < RANKS.length && xp >= rankXp(r + 1)) r++; return r; };
 // what a run pays
@@ -178,7 +188,7 @@ export function rewardText(A) {
 // a locked thing has to say what unlocks it; `label` is what the end-of-run card calls it when it carries no reward.
 const MILESTONES = [];
 RANKS.forEach((R, i) => { if (i > 0) MILESTONES.push({ key: 'r' + (i + 1), ok: () => val('rank') >= i + 1, banner: `RANK ${i + 1}  -  ${R.name.toUpperCase()}`, title: `Rank ${i + 1}  -  ${R.name}`, how: `Rank ${i + 1}  -  ${R.name}`, reward: R }); });
-for (const C of CLASS_META) C.rewards.forEach((R, k) => MILESTONES.push({ key: `c:${C.id}:${k}`, ok: () => (S.stats['cls_' + C.id] || 0) >= CLASS_LEVELS[k], banner: `${C.name.toUpperCase()} ${CLASS_LEVEL_NAMES[k].toUpperCase()}`, title: `${C.name} ${CLASS_LEVEL_NAMES[k]}`, how: `${C.name} ${CLASS_LEVEL_NAMES[k]}  -  clear ${CLASS_LEVELS[k]} rounds as the ${C.name}`, reward: R }));
+// (class gear is no longer earned by class levels: Old Hobnail teaches it at the Training Yard. Saves that earned it keep it.)
 for (const A of ACHIEVEMENTS) MILESTONES.push({ key: 'a:' + A.id, ok: () => val(A.stat) >= A.need, banner: `CHALLENGE: ${A.name.toUpperCase()}`, title: A.name, how: A.desc, reward: A });
 for (const m of WORLD) {
   MILESTONES.push({ key: 'h:' + m.id, ok: () => (S.stats['best_' + m.id] || 0) >= HEIRLOOM_ROUND, banner: '', title: `${m.name}: round ${HEIRLOOM_ROUND}`, how: `Reach round ${HEIRLOOM_ROUND} in ${m.name}`, reward: { renown: 500 } });
@@ -206,6 +216,9 @@ const DIFF_GOLD = [1, 1.5, 2];
 export const GOLD_RATES = { room: 12, round: 8, boss: 40, finalBoss: 150, win: 250 };
 // a gun to start runs with: bought once, chosen at the gate before any run
 export const GUN_PRICE = { Common: 300, Uncommon: 600, Rare: 1100, Epic: 1800, Legendary: 2800 };
+// the Forge: guns are worked from weapon fragments, which elites drop once Flintwhistle is home (bosses drop a handful)
+export const FORGE_COST = { Common: 0, Uncommon: 8, Rare: 14, Epic: 22, Legendary: 34 };
+export const FRAG_RATES = { elite: 1, boss: 3, finalBoss: 10 };
 export const shopGuns = () => DATA.weapons.filter((w) => !w.cash);
 const commonGun = (name) => DATA.weapons.some((w) => w.name === name && w.rarity === 'Common' && !w.cash);
 // cosmetics: the gnome's own face and colouring are free to change; what they wear is bought, earned, or in the starter kit
@@ -270,6 +283,9 @@ export const Meta = {
     for (const k of Object.keys(S.claimed)) if (!S.stats['claim:' + k]) { S.stats['claim:' + k] = 1; dirty = true; }
     this.check(true);
     recompute();
+    // the town: a save from before rescues keeps every machine its ranks had already opened
+    if (!S.town || typeof S.town !== 'object') { S.town = { gnomes: {}, machines: {} }; for (const id in OLD_MACHINE_RANK) if (S.claimed['r' + OLD_MACHINE_RANK[id]]) S.town.machines[id] = 1; dirty = true; }
+    S.town.gnomes = S.town.gnomes || {}; S.town.machines = S.town.machines || {};
     events.length = 0;
   },
   save() { if (!dirty) return; dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: progress lasts for this session only */ } },
@@ -328,10 +344,10 @@ export const Meta = {
   addXp(n) { n = Math.max(0, Math.round(n * mutXp())); if (!n) return; S.stats.xp = (S.stats.xp || 0) + n; run.xp += n; dirty = true; this.check(); },
   // ---- what a run reports
   beginRun() { run = { xp: 0, xp0: this.xp(), unlocked: [], gold: 0, goldWhy: {}, contract: this.contract(), contractPaid: null }; },
-  runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo(), gold: run.gold || 0, contract: run.contractPaid || null }; },
+  runSummary() { return { xp: run.xp, rank0: rankOf(run.xp0), unlocked: run.unlocked.slice(), info: this.rankInfo(), gold: run.gold || 0, frags: run.frags || 0, cp: run.cp || 0, contract: run.contractPaid || null }; },
   roundStarted(round, mapId) { this.best('bestRound', round); if (mapId) this.best('best_' + mapId, round); },
-  roundCleared(round, mapId, clsId, diff) { if (clsId) this.bump('cls_' + clsId); this.bump('rounds'); this.addXp(roundXp(round, diff)); this.addGold((mapId === 'descent' ? GOLD_RATES.room : GOLD_RATES.round) * (DIFF_GOLD[diff] || 1), 'rooms'); this.save(); },
-  bossKilled(final, diff) { this.bump('bosses'); this.addXp(bossXp(final, diff)); this.addGold((final ? GOLD_RATES.finalBoss : GOLD_RATES.boss) * (DIFF_GOLD[diff] || 1), 'bosses'); },
+  roundCleared(round, mapId, clsId, diff) { if (clsId) { this.bump('cls_' + clsId); if (mapId === 'descent') this.addCp(clsId, CP_RATES.room); } this.bump('rounds'); this.addXp(roundXp(round, diff)); this.addGold((mapId === 'descent' ? GOLD_RATES.room : GOLD_RATES.round) * (DIFF_GOLD[diff] || 1), 'rooms'); this.save(); },
+  bossKilled(final, diff) { this.addCp(this.cls(), final ? CP_RATES.finalBoss : CP_RATES.boss); this.addFrags(final ? FRAG_RATES.finalBoss : FRAG_RATES.boss); this.bump('bosses'); this.addXp(bossXp(final, diff)); this.addGold((final ? GOLD_RATES.finalBoss : GOLD_RATES.boss) * (DIFF_GOLD[diff] || 1), 'bosses'); },
   won(mapId, diff) { this.bump('wins'); if (mapId) { this.bump('wins_' + mapId); this.best('clear_' + mapId, diff + 1); } this.save(); },
   // ---- maps
   medal(mapId) { return Math.min(3, S.stats['clear_' + mapId] || 0); },
@@ -355,26 +371,31 @@ export const Meta = {
   buyCos(slot, id) { const I = cosItem(slot, id), p = this.cosPrice(slot, id); if (this.cosOwned(slot, id) || I.need || !p || !this.spend(p)) return false; S.owned.cos[slot + ':' + I.id] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
   // gold
   gold() { return S.gold | 0; },
-  addGold(n, why = '') { n = Math.max(0, Math.round(n)); if (!n) return 0; S.gold = (S.gold | 0) + n; run.gold = (run.gold || 0) + n; if (why) (run.goldWhy = run.goldWhy || {})[why] = (run.goldWhy[why] || 0) + n; this.bump('goldEarned', n); dirty = true; return n; },
+  addGold(n, why = '') { if (why && why !== 'hoard' && why !== 'contract') n *= mutBoon('gold'); n = Math.max(0, Math.round(n)); if (!n) return 0; S.gold = (S.gold | 0) + n; run.gold = (run.gold || 0) + n; if (why) (run.goldWhy = run.goldWhy || {})[why] = (run.goldWhy[why] || 0) + n; this.bump('goldEarned', n); dirty = true; return n; },
   spend(n) { n = Math.round(n); if (n < 0 || (S.gold | 0) < n) return false; S.gold -= n; dirty = true; this.save(); return true; },
   // the casino: a stake comes off when you bet and the winnings go on when it pays; both are saved at once
   stake(n) { return this.spend(n); },
   payout(n) { n = Math.max(0, Math.round(n)); if (n) { S.gold = (S.gold | 0) + n; dirty = true; this.save(); } },
   // guns to start a run with
-  gunPrice(name) { const W = DATA.weapons.find((w) => w.name === name); return W ? GUN_PRICE[W.rarity] || 1000 : 0; },
+  gunPrice(name) { const W = DATA.weapons.find((w) => w.name === name); return W ? FORGE_COST[W.rarity] || 20 : 0; },   // in weapon fragments
+  frags() { return S.frags | 0; },
+  addFrags(n) { if (!this.gnomeHome('forge')) return 0; run.fragAcc = (run.fragAcc || 0) + n * mutBoon('frags'); n = Math.floor(run.fragAcc + 1e-6); run.fragAcc -= n; if (n <= 0) return 0; S.frags = (S.frags | 0) + n; run.frags = (run.frags || 0) + n; dirty = true; return n; },
   ownsGun(name) { return unlockAll || commonGun(name) || !!(S.owned && S.owned.guns[name]); },   // every Common gun is yours from the start
   gunState(name) { return this.ownsGun(name) ? 'owned' : this.gunLocked(name) ? 'locked' : 'buy'; },   // (Commons are owned, so never locked)
-  buyGun(name) { if (this.gunState(name) !== 'buy' || !this.spend(this.gunPrice(name))) return false; S.owned.guns[name] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
+  // forging a gun: its fragments spent, it is yours, to start any run with
+  buyGun(name) { const p = this.gunPrice(name); if (this.gunState(name) !== 'buy' || !this.gnomeHome('forge') || (S.frags | 0) < p) return false; S.frags -= p; S.owned.guns[name] = 1; this.bump('bought'); dirty = true; this.save(); return true; },
   ownedGuns() { return shopGuns().map((w) => w.name).filter((n) => this.ownsGun(n) && (commonGun(n) || !this.gunLocked(n))); },
   // the challenge board
   board() { const key = dayKey(); if (!S.board || S.board.key !== key) S.board = { key, done: {} }; return boardFor(key).map((c) => Object.assign(c, { done: !!S.board.done[c.id] })); },
-  contract() { const id = S.contract; if (!id) return null; const c = this.board().find((q) => q.id === id); return c && !c.done ? c : null; },
+  contract() { return null; },   // the challenge board is gone: the Lectern took its place
+  // the Lectern: the pages Mother Inkcap reads for your runs (none, until she is home)
+  pages() { return this.gnomeHome('lectern') ? (S.muts | 0) : 0; },
   takeContract(id) { S.contract = id || ''; dirty = true; this.save(); },
   // what a contract asks of the run being started: the mode, map, difficulty and modifiers it fixes
   contractRules() { const c = this.contract(); return c ? { mode: c.mode, map: c.map, diff: c.diff, muts: c.muts } : null; },
   // a run was won: pay for it, and the contract's bonus if this was its run
   runWon(mode, mapIndex, diff, muts) {
-    if (run.wonPaid) return run.contractPaid; run.wonPaid = true;
+    if (run.wonPaid) return run.contractPaid; run.wonPaid = true; if (mode === 'descent') this.addCp(this.cls(), CP_RATES.win);
     this.addGold(GOLD_RATES.win * (DIFF_GOLD[diff] || 1), 'won');
     const c = run.contract; let paid = null;
     if (c && !S.board.done[c.id] && c.mode === mode && c.diff === diff && (c.muts & muts) === c.muts && (c.mode !== 'survival' || c.map === mapIndex)) {
@@ -431,8 +452,46 @@ export const Meta = {
   cosCount() { let n = 0, t = 0; for (const s of SLOTS) for (const I of COSMETICS[s]) { t++; if (this.cosUnlocked(s, I.id)) n++; } return [n, t]; },
   popEvents() { return events.splice(0, events.length); },
   // a machine is running once the rank that brings it has been reached and its reward claimed
-  machineOn(id) { if (unlockAll) return true; const i = RANKS.findIndex((R) => R.machine === id); if (i < 0) return false; const M = BY_KEY.get('r' + (i + 1)); return !!M && stateOf(M) === 'claimed'; },
-  machineRank(id) { return RANKS.findIndex((R) => R.machine === id) + 1; },
+  machineOn(id) { return unlockAll || !!(S.town && S.town.machines[id]); },
+  machineHow(id) { const need = MACHINE_NEEDS[id]; return need && !this.machineOn(need) ? `Bring up ${MACHINE_NAMES[need]} first; then it can be found at the bottom of the Descent` : 'Found at the bottom of the Descent, guarded by its last boss'; },
+  // ---- the Training Yard: class points, earned per class (Old Hobnail keeps count even before he is home), spent there
+  cpEarned(cls) { return (S.cp && S.cp[cls]) || 0; },
+  cp(cls) { const T = TRAINING[cls] || [], L = (S.trained && S.trained[cls]) || {}; return this.cpEarned(cls) - T.filter((I) => L[I.id] && !I.free).reduce((a, I) => a + I.cost, 0); },
+  addCp(cls, n) { if (!TRAINING[cls]) return 0; run.cpAcc = (run.cpAcc || 0) + n * mutBoon('cls'); n = Math.floor(run.cpAcc + 1e-6); run.cpAcc -= n; if (n <= 0) return 0; S.cp = S.cp || {}; S.cp[cls] = (S.cp[cls] || 0) + n; run.cp = (run.cp || 0) + n; dirty = true; return n; },
+  // a class's gear was earned the old way if its class-level reward was claimed
+  gearOld(cls, I) { return I.kind === 'gear' && !!S.stats['claim:c:' + cls + ':' + I.id.slice(4)]; },
+  trained(cls, id) { const I = (TRAINING[cls] || []).find((q) => q.id === id); return !!I && (unlockAll || !!(S.trained && S.trained[cls] && S.trained[cls][id]) || this.gearOld(cls, I)); },
+  tierOpen(cls, tier) { return tier <= 1 || (TRAINING[cls] || []).some((I) => I.tier === tier - 1 && this.trained(cls, I.id)); },
+  trainState(cls, id) { const I = (TRAINING[cls] || []).find((q) => q.id === id); if (!I) return 'none'; if (this.trained(cls, id)) return 'have'; if (!this.tierOpen(cls, I.tier)) return 'shut'; return this.cp(cls) >= I.cost ? 'can' : 'short'; },
+  train(cls, id) {
+    const I = (TRAINING[cls] || []).find((q) => q.id === id); if (!I || !this.gnomeHome('trainer') || this.trainState(cls, id) !== 'can') return false;
+    S.trained = S.trained || {}; S.trained[cls] = S.trained[cls] || {}; S.trained[cls][id] = 1;
+    if (I.kind === 'gear') { const [sl, cid] = I.cos.split(':'); S.stats['claim:c:' + cls + ':' + I.id.slice(4)] = 1; S.cos[sl + ':' + cid] = 1; }
+    if (I.kind === 'variant' && !this.variant(cls)) this.setVariant(cls, id);
+    this.bump('trained'); dirty = true; this.save(); return true;
+  },
+  // what learning has done to a class: the stats of its perks and ability lessons
+  trainedMods(cls) { const out = []; for (const I of TRAINING[cls] || []) if (I.mods && this.trained(cls, I.id)) out.push(...I.mods); return out; },
+  variant(cls) { const v = (S.variant || {})[cls] || ''; return v && this.trained(cls, v) ? v : ''; },
+  setVariant(cls, id) { if (id && !this.trained(cls, id)) return; S.variant = S.variant || {}; S.variant[cls] = id || ''; dirty = true; this.save(); },
+  gnomeHome(id) { return unlockAll || !!(S.town && S.town.gnomes[id]); },
+  // what the last boss of this run is holding: the next gnome still lost, or a machine not yet home (an upgrade only if its
+  // machine is), chosen at random between the two; with nothing left, a hoard of gold
+  rollPrize() {
+    const T = S.town || { gnomes: {}, machines: {} }, g = GNOMES.find((G) => !T.gnomes[G.id]);
+    const ms = Object.keys(MACHINE_NAMES).filter((id) => !T.machines[id] && (!MACHINE_NEEDS[id] || T.machines[MACHINE_NEEDS[id]]));
+    const opts = []; if (g) opts.push({ kind: 'gnome', id: g.id }); if (ms.length) opts.push({ kind: 'machine', id: ms[Math.floor(Math.random() * ms.length)] });
+    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : { kind: 'hoard', id: 'gold' };
+  },
+  prizeName(P) { if (!P) return ''; if (P.kind === 'gnome') { const G = GNOMES.find((q) => q.id === P.id); return G ? `${G.name}, ${G.title}` : ''; } if (P.kind === 'machine') return MACHINE_NAMES[P.id] || ''; return 'a hoard of gold'; },
+  // the boss is beaten: what it held comes home
+  rescue(P) {
+    if (!P) return false; S.town = S.town || { gnomes: {}, machines: {} };
+    if (P.kind === 'gnome') { if (S.town.gnomes[P.id]) return false; S.town.gnomes[P.id] = 1; this.bump('rescued'); }
+    else if (P.kind === 'machine') { if (S.town.machines[P.id]) return false; S.town.machines[P.id] = 1; this.bump('machines'); }
+    else this.addGold(600, 'hoard');
+    dirty = true; this.save(); return true;
+  },
   gunLocked(name) { return !unlockAll && lockedGuns.has(name); },
   upgradeLocked(name) { return !unlockAll && lockedUps.has(name); },
   bladeLocked(name) { return !unlockAll && lockedBlades.has(name); },

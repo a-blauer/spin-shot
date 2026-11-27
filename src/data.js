@@ -120,13 +120,16 @@ export const DIFFS = [
 ];
 // Challenge modifiers: handicaps a player switches on for extra renown. The ones in `f` bend the difficulty numbers;
 // the others are read where they bite (money in addMoney, health in recompute).
+// The Lectern's pages. Mother Inkcap reads one aloud and the run turns harder in that one way, and pays more in another.
+//   f: what it does to the run; bf: what it pays (a factor on gold, renown, gun parts found, class points, weapon fragments;
+//   bossPart: gun parts every boss leaves besides)
 export const MUTATORS = [
-  { id: 'hides', name: 'Thick Hides', desc: 'Enemies have half again as much health.', xp: 0.25, f: { hp: 1.5 } },
-  { id: 'blood', name: 'Bad Blood', desc: 'Everything hits you half again as hard.', xp: 0.25, f: { dmg: 1.5 } },
-  { id: 'yard', name: 'The Whole Graveyard', desc: 'Bigger hordes, and more of them up at once.', xp: 0.25, f: { count: 1.4, alive: 1.3 } },
-  { id: 'climb', name: 'Steep Climb', desc: 'Every round gets harder faster.', xp: 0.2, f: { slope: 1.3 } },
-  { id: 'purse', name: 'Short Purse', desc: 'You earn 40% less money.', xp: 0.2, money: 0.6 },
-  { id: 'jaw', name: 'Glass Jaw', desc: 'You have 40% less health.', xp: 0.2, health: 0.6 },
+  { id: 'hides', name: 'Thick Hides', desc: 'Enemies have half again as much health.', boon: '+40% gold', f: { hp: 1.5 }, bf: { gold: 1.4 } },
+  { id: 'blood', name: 'Bad Blood', desc: 'Everything hits you half again as hard.', boon: '+40% renown', f: { dmg: 1.5 }, bf: { renown: 1.4 } },
+  { id: 'yard', name: 'The Whole Graveyard', desc: 'Bigger hordes, and more of them up at once.', boon: '+40% gun parts and buffs found', f: { count: 1.4, alive: 1.3 }, bf: { parts: 1.4 } },
+  { id: 'climb', name: 'Steep Climb', desc: 'Every round gets harder faster.', boon: '+40% class points', f: { slope: 1.3 }, bf: { cls: 1.4 } },
+  { id: 'purse', name: 'Short Purse', desc: 'You earn 40% less money in the run.', boon: '+50% weapon fragments', money: 0.6, bf: { frags: 1.5 } },
+  { id: 'jaw', name: 'Glass Jaw', desc: 'You have 40% less health.', boon: 'every boss leaves another gun part', health: 0.6, bf: { bossPart: 1 } },
 ];
 let DF = DIFFS[2], dfi = 2, mutMask = 0, dailyBonus = 0;
 const rebuildDiff = () => { DF = Object.assign({}, DIFFS[dfi]); MUTATORS.forEach((M, i) => { if ((mutMask >> i) & 1 && M.f) for (const k in M.f) DF[k] *= M.f[k]; }); };
@@ -136,7 +139,9 @@ export const setMutators = (mask, daily = 0) => { mutMask = (mask | 0) & ((1 << 
 export const mutators = () => mutMask;
 export const mutMoney = () => mutProd('money');
 export const mutHealth = () => mutProd('health');
-export const mutXp = () => 1 + dailyBonus + MUTATORS.reduce((a, M, i) => a + ((mutMask >> i) & 1 ? M.xp : 0), 0);
+// what the pages read pay: factors multiply, bossPart adds
+export const mutBoon = (key) => MUTATORS.reduce((a, M, i) => ((mutMask >> i) & 1 && M.bf && M.bf[key] != null ? (key === 'bossPart' ? a + M.bf[key] : a * M.bf[key]) : a), key === 'bossPart' ? 0 : 1);
+export const mutXp = () => (1 + dailyBonus) * mutBoon('renown');
 export const difficulty = () => dfi;
 export const diff = () => DF;
 export const effRound = (r) => 1 + (Math.max(1, r) - 1) * DF.slope;

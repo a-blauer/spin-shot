@@ -83,7 +83,7 @@ export const COSMETICS = {
     { id: 'wraps', name: 'Hand Wraps', a: 0xd8d2c4, b: 0xb8b2a8, style: 'wrap', need: ['runs', 15] }, { id: 'boxing', name: 'Boxing Gloves', a: 0xc8211b, b: 0xf2e8d5, style: 'big', need: ['eliteKills', 60] },
     { id: 'hazg', name: 'Rubber', a: 0xe8c81e, b: 0x140d12, style: 'long', need: ['bosses', 8] }, { id: 'boneg', name: 'Bone', a: 0xe8dcc0, b: 0x3a2a30, need: ['mods', 15] },
     { id: 'goldg', name: 'Gilded', a: 0xE0AC2A, b: 0xfff4d8, need: ['dRoom', 15] },
-    { id: 'knuckles', name: 'Brass Knuckles', a: 0x6a4a32, b: 0xc9a43a, style: 'knuckle', need: ['claim:c:brawler:1', 1], needLabel: 'Brawler Veteran' },
+    { id: 'knuckles', name: 'Brass Knuckles', a: 0x6a4a32, b: 0xc9a43a, style: 'knuckle', need: ['claim:c:brawler:1', 1], needLabel: 'Training Yard: Brawler' },
   ],
   neck: [
     { id: 'none', name: 'None' }, { id: 'kerchief', name: 'Neckerchief', a: 0xc8211b, b: 0xf2e8d5 }, { id: 'bolo', name: 'Bolo Tie', a: 0x140d12, b: 0x1f8a8a },
@@ -105,7 +105,7 @@ export const COSMETICS = {
     { id: 'tool', name: 'Tool Belt', a: 0x8a6a42, b: 0x9aa0aa, need: ['dEvo', 3] }, { id: 'rope', name: 'Rope Coil', a: 0xc9a46a, b: 0x8a6a42, need: ['airKills', 200] },
     { id: 'chips', name: 'Coin Pouch', a: 0x1f5a3c, b: 0xc8211b, need: ['chests', 150] }, { id: 'champ', name: 'Champion Belt', a: 0x140d12, b: 0xffcd5a, need: ['bosses', 16] },
     { id: 'skulls', name: 'Skull Trophies', a: 0x3a2a22, b: 0xf2e8d5, need: ['kills', 9600] },
-    { id: 'quickdraw', name: 'Quickdraw Rig', a: 0x5a3a24, b: 0x3a3a42, need: ['claim:c:gunslinger:2', 1], needLabel: 'Gunslinger Master' },
+    { id: 'quickdraw', name: 'Quickdraw Rig', a: 0x5a3a24, b: 0x3a3a42, need: ['claim:c:gunslinger:2', 1], needLabel: 'Training Yard: Gunslinger' },
   ],
   tone: [
     { id: 't1', name: 'Sand', c: 0xe2b48a }, { id: 't2', name: 'Clay', c: 0xc98a5e }, { id: 't3', name: 'Umber', c: 0x8a5a3c }, { id: 't4', name: 'Dusk', c: 0x5e3d2c },
@@ -127,11 +127,11 @@ export const COSMETICS = {
     { id: 'bones', name: 'Bone Suit', a: 0x1c1a20, b: 0xf2e8d5, c: 0x9c1f24, style: 'bones', need: ['mods', 15] },
     { id: 'highroller', name: 'Cattle Baron', a: 0xf2e8d5, b: 0xc8211b, c: 0xffcd5a, style: 'suit', need: ['dRooms', 120] },
     { id: 'gilded', name: 'Gilded', a: 0x5a0f1c, b: 0xFFD860, c: 0xfff4d8, style: 'coat', need: ['dRoom', 15] },
-    { id: 'duster', name: 'Long Duster', a: 0x8a6a4a, b: 0x5a4430, c: 0x3a2a22, style: 'duster', need: ['claim:c:gunslinger:1', 1], needLabel: 'Gunslinger Veteran' },
-    { id: 'singlet', name: 'Strongman', a: 0xc8211b, b: 0xf2e8d5, c: 0x3a2a22, style: 'singlet', need: ['claim:c:brawler:2', 1], needLabel: 'Brawler Master' },
-    { id: 'apron', name: "Smith's Apron", a: 0x6a4a32, b: 0xc9a46a, c: 0x2a2430, style: 'apron', need: ['claim:c:engineer:1', 1], needLabel: 'Engineer Veteran' },
-    { id: 'ghillie', name: 'Ghillie Cloak', a: 0x4a5a2e, b: 0x7a7a3a, c: 0x3a2a22, style: 'ghillie', need: ['claim:c:sniper:1', 1], needLabel: 'Sniper Veteran' },
-    { id: 'quilted', name: 'Blast Jacket', a: 0x2f4a3a, b: 0xe0ac2a, c: 0x24202a, style: 'quilted', need: ['claim:c:bomber:1', 1], needLabel: 'Bomber Veteran' },
+    { id: 'duster', name: 'Long Duster', a: 0x8a6a4a, b: 0x5a4430, c: 0x3a2a22, style: 'duster', need: ['claim:c:gunslinger:1', 1], needLabel: 'Training Yard: Gunslinger' },
+    { id: 'singlet', name: 'Strongman', a: 0xc8211b, b: 0xf2e8d5, c: 0x3a2a22, style: 'singlet', need: ['claim:c:brawler:2', 1], needLabel: 'Training Yard: Brawler' },
+    { id: 'apron', name: "Smith's Apron", a: 0x6a4a32, b: 0xc9a46a, c: 0x2a2430, style: 'apron', need: ['claim:c:engineer:1', 1], needLabel: 'Training Yard: Engineer' },
+    { id: 'ghillie', name: 'Ghillie Cloak', a: 0x4a5a2e, b: 0x7a7a3a, c: 0x3a2a22, style: 'ghillie', need: ['claim:c:sniper:1', 1], needLabel: 'Training Yard: Sniper' },
+    { id: 'quilted', name: 'Blast Jacket', a: 0x2f4a3a, b: 0xe0ac2a, c: 0x24202a, style: 'quilted', need: ['claim:c:bomber:1', 1], needLabel: 'Training Yard: Bomber' },
   ],
   legs: [
     { id: 'denim', name: 'Denim', a: 0x34506a, b: 0x4E3324 }, { id: 'dust', name: 'Dusters', a: 0x8a7a5e, b: 0x3a2a22 },
@@ -150,11 +150,11 @@ export const COSMETICS = {
     { id: 'fez', name: 'Fez', a: 0xa01f24, b: 0xffcd5a, need: ['dRooms', 15] }, { id: 'cone', name: 'Traffic Cone', a: 0xf07a1e, b: 0xf2e8d5, need: ['airKills', 150] },
     { id: 'whitehat', name: 'White Hat', a: 0xece6d6, b: 0xffcd5a, need: ['headshots', 2400] }, { id: 'horns', name: 'Horned Helm', a: 0x8a8a90, b: 0xf2e8d5, need: ['eliteKills', 200] },
     { id: 'halo', name: 'Halo', a: 0xf2e8d5, b: 0xffe27a, need: ['dRoom', 10] }, { id: 'crown', name: 'Crown', a: 0xffcd5a, b: 0xc8211b, need: ['dWins', 1] },
-    { id: 'gambler', name: "Gambler's Hat", a: 0x24202a, b: 0xb8862e, need: ['claim:c:gunslinger:0', 1], needLabel: 'Gunslinger Adept' },
-    { id: 'flatcap', name: 'Flat Cap', a: 0x6a5a4a, b: 0x3a3028, need: ['claim:c:brawler:0', 1], needLabel: 'Brawler Adept' },
-    { id: 'welder', name: "Welder's Cap", a: 0x3a4a5a, b: 0x2a2a30, need: ['claim:c:engineer:0', 1], needLabel: 'Engineer Adept' },
-    { id: 'boonie', name: 'Boonie Hat', a: 0x5a6a3a, b: 0x3a4a2a, need: ['claim:c:sniper:0', 1], needLabel: 'Sniper Adept' },
-    { id: 'blasthood', name: 'Blast Hood', a: 0x2f4a3a, b: 0xe0ac2a, need: ['claim:c:bomber:0', 1], needLabel: 'Bomber Adept' },
+    { id: 'gambler', name: "Gambler's Hat", a: 0x24202a, b: 0xb8862e, need: ['claim:c:gunslinger:0', 1], needLabel: 'Training Yard: Gunslinger' },
+    { id: 'flatcap', name: 'Flat Cap', a: 0x6a5a4a, b: 0x3a3028, need: ['claim:c:brawler:0', 1], needLabel: 'Training Yard: Brawler' },
+    { id: 'welder', name: "Welder's Cap", a: 0x3a4a5a, b: 0x2a2a30, need: ['claim:c:engineer:0', 1], needLabel: 'Training Yard: Engineer' },
+    { id: 'boonie', name: 'Boonie Hat', a: 0x5a6a3a, b: 0x3a4a2a, need: ['claim:c:sniper:0', 1], needLabel: 'Training Yard: Sniper' },
+    { id: 'blasthood', name: 'Blast Hood', a: 0x2f4a3a, b: 0xe0ac2a, need: ['claim:c:bomber:0', 1], needLabel: 'Training Yard: Bomber' },
   ],
   // a hat keeps its own colours unless you choose others
   hatcol: [
@@ -181,7 +181,7 @@ export const COSMETICS = {
   face: [
     { id: 'none', name: 'None' }, { id: 'specs', name: 'Round Specs', a: 0x140d12, need: ['runs', 6] }, { id: 'shades', name: 'Shades', a: 0x140d12, need: ['kills', 2400] },
     { id: 'monocle', name: 'Monocle', a: 0xffcd5a, need: ['dRooms', 60] }, { id: 'cigar', name: 'Cigar', a: 0x6a4a32, b: 0xff7a2a, need: ['bosses', 4] }, { id: 'pipe', name: 'Pipe', a: 0x4E3324, b: 0xff7a2a },
-    { id: 'spyglass', name: 'Spyglass', a: 0xb8862e, b: 0x24202a, need: ['claim:c:sniper:2', 1], needLabel: 'Sniper Master' },
+    { id: 'spyglass', name: 'Spyglass', a: 0xb8862e, b: 0x24202a, need: ['claim:c:sniper:2', 1], needLabel: 'Training Yard: Sniper' },
   ],
   back: [
     { id: 'none', name: 'None' }, { id: 'pack', name: 'Bedroll', a: 0x6a4a32, b: 0xc8211b }, { id: 'shotgun', name: 'Slung Shotgun', a: 0x3a2a22, b: 0x46464e, need: ['kills', 900] },
@@ -189,8 +189,8 @@ export const COSMETICS = {
     { id: 'sack', name: 'Money Sack', a: 0xcdbf9a, b: 0x1f8a4c, need: ['dRooms', 50] }, { id: 'shovel', name: 'Shovel', a: 0x8a8a90, b: 0x6a4a32, need: ['bosses', 8] },
     { id: 'tank', name: 'Air Tank', a: 0xe8c81e, b: 0x3a3a40, need: ['airKills', 600] }, { id: 'tomb', name: 'Tombstone', a: 0x8a8a90, b: 0x5a5a62, need: ['kills', 24000] },
     { id: 'wings', name: 'Wings', a: 0xf2e8d5, b: 0xffe27a, need: ['dWins', 1] },
-    { id: 'toolpack', name: 'Gear Pack', a: 0x6a4a32, b: 0xb8862e, need: ['claim:c:engineer:2', 1], needLabel: 'Engineer Master' },
-    { id: 'keg', name: 'Powder Keg', a: 0x8a5a32, b: 0x3a3a40, need: ['claim:c:bomber:2', 1], needLabel: 'Bomber Master' },
+    { id: 'toolpack', name: 'Gear Pack', a: 0x6a4a32, b: 0xb8862e, need: ['claim:c:engineer:2', 1], needLabel: 'Training Yard: Engineer' },
+    { id: 'keg', name: 'Powder Keg', a: 0x8a5a32, b: 0x3a3a40, need: ['claim:c:bomber:2', 1], needLabel: 'Training Yard: Bomber' },
   ],
 };
 export const DEFAULT_LOOK = { tone: 't1', hair: 'none', haircol: 'snow', outfit: 'drifter', legs: 'denim', boots: 'work', gloves: 'bare', hat: 'gnome', face: 'none', neck: 'none', shoulder: 'none', waist: 'belt', back: 'none',

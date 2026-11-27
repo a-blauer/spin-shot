@@ -5,7 +5,7 @@
 import { buildHit, buildKill, buildHurt, buildTick, buildChanged, buildNote } from './builds.js';
 import { cash, cost10, difficulty, mutMoney, mutHealth } from './data.js';
 import * as THREE from 'three';
-import { Meta } from './meta.js';
+import { Meta, FRAG_RATES } from './meta.js';
 import { bodyStats } from './cosmetics.js';
 import {
   diff, DATA, STATS, TONICS, zombieHealth, payScale, effRound, SUITS, SUIT_BONUS, SUIT_HEX, SYMBOLS, VAULT_COST, RARITIES, RARITY_HEX, rarityIndex, luckMult, luckRerollChance, rollRarity, rollUpgradeOfRarity,
@@ -215,6 +215,7 @@ export class Player {
       for (const [stat, val] of DATA.upgrades[u].mods) this.stats[STAT[stat]] += val * n;
     });
     for (const [stat, val] of this.cls.stats) this.stats[STAT[stat]] += val;
+    for (const [stat, val] of this.trainMods || []) this.stats[STAT[stat]] += val;   // what Old Hobnail has taught this class
     this.stats[STAT.MaxHealth] += this.killHP || 0;   // Trophy Rack: health earned by kills
     // the gun in your hands brings its own modifiers; `eff` is what procs read (your buffs plus this gun's)
     const eff = new Map(); for (const u of this.upgradeOrder) eff.set(u, this.upgradeStacks[u]);
@@ -787,7 +788,7 @@ export class Player {
     const G = this.game;
     const eye = G.camera.position.clone();
     const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
-    const hit = G.phys.raycast(eye, dir, GrappleRange);
+    const hit = G.phys.raycast(eye, dir, GrappleRange * (this.cv === 'line' ? 1.6 : 1));
     if (!hit) { this.toast('Nothing to hook', '#b3b3b3'); this.play('S_Dry', 0.5); return; }
     if (hit.point.distanceTo(this.pos) < 300) return;
     this.grappling = true; this.grappleT = 0;
@@ -804,7 +805,7 @@ export class Player {
   endGrapple(jump) {
     if (!this.grappling) return;
     this.grappling = false;
-    this.grappleCd = this.grappleCooldown();
+    this.grappleCd = this.grappleCooldown(); if (this.cv === 'roll') this.rollT = 3;
     this.gravityScale = BaseGravity;
     if (jump) { this.launch(V3(this.vel.x * 0.9, Math.max(this.vel.y, 0) + 700, this.vel.z * 0.9), true, true); this.airJumps = this.maxAirJumps(); }
     else { this.vel.multiplyScalar(0.8); this.vel.y += 250; }
@@ -1299,6 +1300,8 @@ export class Player {
       if (this.swapGuardT > T) amount *= 0.5;
       if (this.kinetic > 0) { amount *= 1 - Math.min(0.8, 0.4 * this.kinetic); this.kinetic = 0; this.game.hud.floater(this.pos.clone().add(V3(0, 60, 0)), 'ABSORBED', [0.55, 0.75, 1], 0.9); } }
     if (this.dashGuardT > 0 && this.S.DashGuard) amount *= 1 - Math.min(0.6, this.S.DashGuard);
+    if (this.deadeyeT > 0 && this.cv === 'calm') amount *= 0.6;   // Dead Calm
+    if (this.rollT > 0) amount *= 0.5;   // Landing Roll
     // a crowd cannot land all its swings in the same instant: after a melee hit the next one needs a beat
     if (melee) { if (this.game.time - (this.lastMeleeHit || -9) < 0.55) return; this.lastMeleeHit = this.game.time; }
     // the same goes for blasts: several markers going off together count once, not once each
@@ -1474,7 +1477,7 @@ export class Player {
     const sig = sigOf(W), sg = sigState(S);
     const C = this.shotCtx = { sig, W, S, def: S.def, g: sg, echo, mult: 1, pierce: 0, chains: 0, last: wasLast, seen: new Set(), hits: 0, gen: 0 };
     if (sig && sig.shot && !echo) sig.shot(this, S, W, sg, C);
-    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0) + (this.forgeRofT > 0 ? this.forgeRof : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
+    const rate = W.rate * (1 + this.stat('RampFire') * Math.min(1, (this.sustain || 0) / 2)) * Math.max(0.2, 1 + this.stat('FireRate') + (this.deadeyeT > 0 && this.cv === 'fan' ? 0.6 : 0) + (this.ktT > 0 ? (this.ktN || 0) * this.S.KillTempo : 0) + (this.forgeRofT > 0 ? this.forgeRof : 0)) * (1 + 0.03 * S.tier) * (this.deadeyeT > 0 ? 1.5 : 1) * (gunFeel(W).spool ? 0.4 + 0.75 * (this.spool || 0) : 1) * (sig && sig.rate ? sig.rate(this, S, W, sg) : 1);   // a crank gun starts slow and ends faster than its listed rate
     const mag = this.magSize(S), full = S.ammo >= mag, last = S.ammo <= Math.max(1, mag / 3);
     if (!echo) { this.fireCd = 1 / rate; if (!free && this.deadeyeT <= 0 && Math.random() >= this.stat('AmmoSave')) S.ammo--; }
     const multi = W.pellets * Math.min(this.game.descent ? 6 : 2, this.stat('Multishot'));   // extra projectiles scale with the gun's own count, and deal half damage
@@ -1882,7 +1885,7 @@ export class Player {
     const G = this.game;
     sigDeath(this, E, headshot);
     this.kills++; if (headshot) this.headshots++;
-    Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) Meta.bump('eliteKills'); if (!this.grounded) Meta.bump('airKills'); if (this.wallRunning) Meta.bump('wallKills');
+    Meta.bump('kills'); if (headshot) Meta.bump('headshots'); if (E.elite) { Meta.bump('eliteKills'); if (Meta.addFrags(FRAG_RATES.elite)) G.hud.floater(E.pos.clone().setY(E.pos.y + 120), '+1 WEAPON FRAGMENT', [1, 0.62, 0.3], 1); } if (!this.grounded) Meta.bump('airKills'); if (this.wallRunning) Meta.bump('wallKills');
     Meta.addGunKill(this.W.name);
     const pay = E.money + (headshot ? Math.round(38 * Math.min(1, payScale(G.round))) : 0);   // the bonus shrinks with kill pay as the horde grows
     this.addMoney(pay, true);
@@ -2389,6 +2392,7 @@ export class Player {
   // ---------------------------------------------------------------- classes
   setClass(id) {
     this.cls = classById(id);
+    this.trainMods = Meta.trainedMods(this.cls.id); this.cv = Meta.variant(this.cls.id);   // the Training Yard: perks learned, and the ability as fitted
     if (this.cls.id === 'gunslinger') this.slotBase = 3;
     if (this.cls.id === 'bomber') this.grenades = [0, 0, 1, 4];
     this.abilityCd = 0;
@@ -2404,18 +2408,19 @@ export class Player {
     if (this.abilityCd > 0) { this.toast(`${this.cls.ability} recharging (${this.abilityCd.toFixed(1)}s)`, '#b3b3b3'); return; }
     const dir = new THREE.Vector3(); G.camera.getWorldDirection(dir);
     if (id === 'gunslinger') {
-      this.deadeyeT = 5 + this.stat('AbilityDuration'); this.deadeyeExt = 0; this.abilityCd = this.abilityMax();
+      this.deadeyeT = (this.cv === 'fan' ? 3 : this.cv === 'calm' ? 6 : 5) + this.stat('AbilityDuration'); this.deadeyeExt = 0; this.abilityCd = this.abilityMax();
       if (this.S.DeadeyeReload) { this.refillMags(); this.reloading = false; }
       this.play('S_PowerUp', 0.8, 1.3); this.fovKick += 6; G.banner('DEADEYE', lin(1, 0.8, 0.35), 1.2);
     } else if (id === 'brawler') {
       const f = safeN2(flat(dir.clone())); if (f.lengthSq() < 0.1) return;
-      this.rushT = 0.36; this.rushDir.copy(f); this.rushHits.clear(); this.abilityCd = this.abilityMax();
+      this.rushT = this.cv === 'long' ? 0.62 : this.cv === 'check' ? 0.22 : 0.36; this.rushDir.copy(f); this.rushHits.clear(); this.abilityCd = this.abilityMax() * (this.cv === 'long' ? 1.25 : this.cv === 'check' ? 0.67 : 1);
       if (this.sliding) this.endSlide(); if (this.wallRunning) this.endWallRun();
       this.play('S_Dash', 0.9, 0.7); this.fovKick += 10; this.addShake(0.3);
     } else if (id === 'bomber') {
       const from = this.eye().addScaledVector(dir, 40).add(V3(0, -12, 0));
-      G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1100).add(V3(0, 280, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: GRENADES[5].radius, gtype: 5, gravity: 1, bounces: 2, bounceDamp: 0.35, fuse: 1.5, life: 4, kind: 'Grenade', radius: 18, color: GRENADES[5].color, procCoef: 0, fromProc: true });
-      this.abilityCd = this.abilityMax(); this.play('S_Dash', 0.6, 0.9); if (G.vm.jolt) G.vm.jolt(1.6);
+      const gt = this.cv === 'cluster' ? 4 : 5;   // Cluster Charge: the satchel is a cluster bomb
+      G.projectiles.spawn({ pos: from, vel: dir.clone().multiplyScalar(1100).add(V3(0, 280, 0)).addScaledVector(this.vel, 0.6), damage: 0, splash: GRENADES[gt].radius * (this.cv === 'twin' ? 0.75 : 1), gtype: gt, gravity: 1, bounces: 2, bounceDamp: 0.35, fuse: 1.5, life: 4, kind: 'Grenade', radius: 18, color: GRENADES[gt].color, procCoef: 0, fromProc: true });
+      this.abilityCd = this.abilityMax() * (this.cv === 'twin' ? 0.6 : 1); this.play('S_Dash', 0.6, 0.9); if (G.vm.jolt) G.vm.jolt(1.6);
     } else if (id === 'engineer') {
       // the shoulder turret comes out for a while and finds its own targets; the cooldown runs from now
       if (!this.shoulder) this.shoulder = new ShoulderTurret(G);
@@ -2429,6 +2434,7 @@ export class Player {
     if (this.abilityCd > 0) this.abilityCd -= dt;
     if (this.deadeyeT > 0) { this.deadeyeT -= dt; if (this.deadeyeT <= 0) this.play('S_Deny', 0.4, 0.7); }
     if (this.rushGuardT > 0) this.rushGuardT -= dt;
+    if (this.rollT > 0) this.rollT -= dt;
     if (this.rushT > 0) {
       // Bull Rush: a straight charge. Everything it touches is hit once, hard, and thrown aside.
       this.rushT -= dt;
@@ -2445,7 +2451,7 @@ export class Player {
         this.addShake(0.25); G.hitstop = Math.max(G.hitstop || 0, 0.03);
       }
       this.inRush = false; this.meleeHitting = false;
-      if (this.rushT <= 0) { this.vel.x *= 0.35; this.vel.z *= 0.35; this.rushGuardT = 3; if (this.S.RushShield) { this.overshield = Math.min(this.shieldCap(), this.overshield + this.S.RushShield); this.haste = Math.max(this.haste, 0.3); this.hasteT = 3; } }
+      if (this.rushT <= 0) { this.vel.x *= 0.35; this.vel.z *= 0.35; this.rushGuardT = 3; if (this.cv === 'check' && !this.dead) this.health = Math.min(this.maxHealth, this.health + this.maxHealth * 0.12); if (this.S.RushShield) { this.overshield = Math.min(this.shieldCap(), this.overshield + this.S.RushShield); this.haste = Math.max(this.haste, 0.3); this.hasteT = 3; } }
     }
     // Engineer: standing by the turret
     this.nearTurret = false; for (const T of this.turrets) if (T.pos.distanceTo(this.pos) < 520) this.nearTurret = true;

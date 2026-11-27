@@ -13,13 +13,16 @@ import { Meta } from './meta.js';
 import { makeSign, signFontsReady } from './village_signs.js';
 import { CasinoRigs } from './casino_world.js';
 import { Net } from './net.js';
+import { GNOME_LOOK, gnomeOf } from './town.js';
 
 // the people of the village, dressed from the same wardrobe as you
 const look = (o) => { const L = Object.assign({}, DEFAULT_LOOK, o); for (const k of Object.keys(o)) if (COSMETICS[k] && !COSMETICS[k].some((I) => I.id === o[k])) L[k] = DEFAULT_LOOK[k]; return L; };
 const PEOPLE = {
-  gunshop: { name: 'Old Flintwhistle', look: look({ hat: 'cap', hatcol: 'navy', outfit: 'apron', beard: 'forked', haircol: 'snow', nose: 'bulb', tone: 't4', face: 'pipe' }) },
+  // the three brought home from the bottom of the Descent: here only once rescued
+  gunshop: { name: 'Old Flintwhistle', look: GNOME_LOOK.forge, need: 'forge' },
+  trainer: { name: 'Old Hobnail', look: GNOME_LOOK.trainer, need: 'trainer' },
+  lectern: { name: 'Mother Inkcap', look: GNOME_LOOK.lectern, need: 'lectern' },
   shop: { name: 'Mossbottom', look: look({ hat: 'acorn', outfit: 'apron', beard: 'round', haircol: 'grey', nose: 'potato', tone: 't3', hatcol: 'mustard', face: 'none' }) },
-  board: { name: 'Mayor Thistlewood', look: look({ hat: 'straight', hatcol: 'navy', hattip: 'star', outfit: 'duster', beard: 'long', haircol: 'snow', nose: 'long', tone: 't2', face: 'pipe' }) },
   gate: { name: 'Old Brannock', look: look({ hat: 'cap', outfit: 'rancher', beard: 'braid', haircol: 'ginger', nose: 'bulb', tone: 't5', back: 'pack' }) },
   roulette: { name: 'Pip', look: look({ hat: 'gambler', outfit: 'quilted', beard: 'short', haircol: 'black', nose: 'button', tone: 't9', hatcol: 'red' }) },
   blackjack: { name: 'Dame Fennel', look: look({ hat: 'curl', hatcol: 'plum', outfit: 'drifter', beard: 'none', stache: 'none', hair: 'long', haircol: 'auburn', nose: 'pointed', tone: 't1', blush: 'rosy' }) },
@@ -32,9 +35,10 @@ const FOLK = [
 ];
 // what each says when you walk up, before you open their window
 const HELLO = {
-  gunshop: ['Every one of these I made by hand. Gold up front.', 'Looking for something with a kick? Have a look.'],
+  gunshop: ['Bring me fragments and I’ll bring you a gun.', 'Glad to be out of that cage. Glad to be at an anvil again.'],
+  trainer: ['Every class has more in it than you know. Let’s find it.', 'Points from your runs buy lessons here. Come on, then.'],
+  lectern: ['Shall I read you a page? The road gets harder; the haul gets richer.', 'Every page has a price, and every price a payment.'],
   shop: ['Hats, boots, coats and buttons. Gold only, no credit.', 'Fresh from the tinker’s cart. Have a look.'],
-  board: ['The council posts its contracts here. Win one, get paid.', 'Brave beards wanted. Ask me about the board.'],
   gate: ['The Way Down. Mind your step.', 'Ready when you are. Gather your party first.'],
   roulette: ['Red or black? Place your bets.'], blackjack: ['Twenty-one, dear. Sit down.'], dice: ['Over or under? Roll the bones!'],
 };
@@ -56,7 +60,7 @@ export class Village {
     for (const E of g.enemies) E.remove = true; g.hazards.clear();
     g.world.showChunk(VILLAGE_IDX);
     g.env.noSky = false;
-    for (const p of this.people) p.root.visible = true; for (const I of this.uses) { I.enabled = true; I.group.visible = true; } for (const M of this.signs || []) M.visible = true; if (this.rigs) this.rigs.visible = true;
+    for (const p of this.people) p.root.visible = !p.need || Meta.gnomeHome(p.need); for (const I of this.uses) { I.enabled = true; I.group.visible = true; } for (const M of this.signs || []) M.visible = true; if (this.rigs) this.rigs.visible = true;
     this.spawn();
     g.vm.hidden = true;
     try { g.navRebuild(P.pos); } catch (e) { /* the village is off the rooms' walking grid: nothing walks here */ }
@@ -79,23 +83,26 @@ export class Village {
     const person = (key, [x, y, yaw], L, name) => {
       const root = buildCharacter(L), [wx, wy] = this.w(x, y); root.position.set(wx, 0, wy); root.rotation.y = yaw + Math.PI;
       if (root.userData.rig && root.userData.rig.gun) root.userData.rig.gun.visible = false;
-      g.scene.add(root); const p = { key, root, name, yaw0: yaw, yaw, at: [wx, wy], t: Math.random() * 10, said: 0 }; this.people.push(p); return p;
+      g.scene.add(root); const p = { key, root, name, yaw0: yaw, yaw, at: [wx, wy], t: Math.random() * 10, said: 0, need: '' }; this.people.push(p); return p;
     };
-    for (const k of ['shop', 'gunshop', 'board', 'gate']) person(k, VSPOTS[k].npc, PEOPLE[k].look, PEOPLE[k].name);
+    for (const k of ['shop', 'gunshop', 'trainer', 'lectern', 'gate']) { const p = person(k, (VSPOTS[k] || VSPOTS.gunshop).npc, PEOPLE[k].look, PEOPLE[k].name); p.need = PEOPLE[k].need || ''; }
     for (const k of ['roulette', 'blackjack', 'dice']) person(k, VSPOTS.casino[k].npc, PEOPLE[k].look, PEOPLE[k].name);
     VSPOTS.folk.forEach((f, i) => person('folk', f, FOLK[i % FOLK.length], ''));
     // a thing to use: a prompt within reach, and E opens its window
-    const use = (kind, [x, y], prompt, arg, r = 210) => {
+    const use = (kind, [x, y], prompt, arg, r = 210, can = null) => {
       const [wx, wy] = this.w(x, y), I = new Interactable(g, 'Quest', V(wx, wy, 0), 0, 0, -1, '', V(100, 100, 100));
       I.useRadius = r; I.village = kind;
-      I.q = { usable: () => this.on, prompt: () => prompt(), use: () => { if (g.onVillage) g.onVillage(kind, arg); } };
+      I.q = { usable: () => this.on, prompt: () => prompt(), use: () => { if (can && !can()) return; if (g.onVillage) g.onVillage(kind, arg); } };
       g.scene.add(I.group); g.interactables.push(I); this.uses.push(I); return I;
     };
     use('shop', VSPOTS.shop.at, () => `[E] Clothes  -  Mossbottom’s counter\nGold: ${Meta.gold().toLocaleString()}`, null, 260);
-    use('gunshop', VSPOTS.gunshop.at, () => `[E] Guns  -  Flintwhistle’s counter\nGold: ${Meta.gold().toLocaleString()}`, null, 260);
+    // the rescued: each station stands empty, and tells you so, until its gnome is home
+    const lost = (id) => `${gnomeOf(id).name} is lost at the bottom of the Descent.\nBeat its last boss to bring them home.`;
+    use('gunshop', VSPOTS.gunshop.at, () => (Meta.gnomeHome('forge') ? `[E] The Forge  -  Flintwhistle\nWeapon fragments: ${Meta.frags().toLocaleString()}` : `The Forge stands cold.\n${lost('forge')}`), null, 260, () => Meta.gnomeHome('forge'));
+    use('trainer', VSPOTS.trainer.at, () => (Meta.gnomeHome('trainer') ? '[E] The Training Yard  -  Old Hobnail\nNew perks, abilities and gear for every class' : `The Training Yard is empty.\n${lost('trainer')}`), null, 300, () => Meta.gnomeHome('trainer'));
+    use('lectern', VSPOTS.lectern.at, () => { if (!Meta.gnomeHome('lectern')) return `The Lectern’s book lies shut.\n${lost('lectern')}`; const n = Meta.pages(), c = n ? n.toString(2).split('1').length - 1 : 0; return `[E] The Lectern  -  Mother Inkcap\n${c ? `${c} page${c > 1 ? 's' : ''} read for your next run` : 'A harder run for a richer haul'}`; }, null, 260, () => Meta.gnomeHome('lectern'));
     use('wardrobe', VSPOTS.wardrobe.at, () => '[E] Wardrobe\nChange into anything you own', null);
     use('wardrobe', VSPOTS.wardrobe.mirror, () => '[E] Mirror\nChange into anything you own', null);
-    use('board', VSPOTS.board.at, () => { const c = Meta.contract(); return `[E] Challenge board\n${c ? `Taken: ${c.title}` : 'Contracts for bonus gold and renown'}`; }, null, 260);
     use('roulette', VSPOTS.casino.roulette.at, () => '[E] Roulette', null);
     use('blackjack', VSPOTS.casino.blackjack.at, () => '[E] Blackjack', null);
     use('dice', VSPOTS.casino.dice.at, () => '[E] High-Low dice', null);

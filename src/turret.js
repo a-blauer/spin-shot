@@ -143,8 +143,8 @@ export function turretStats(P) {
   const T = turretType(P.turretType), s = (k) => m[k] || 0;
   return {
     T, procs,
-    dmg: Math.max(0.1, 1 + s('Damage') + P.stat('TurretDamage')), rate: Math.max(0.2, 1 + s('FireRate') + P.stat('TurretRate')), crit: s('CritChance'),
-    time: TURRET_TIME * (1 + s('MagSize')), cdK: 1 / (1 + s('ReloadSpeed')), pellets: (T.pellets || 1) + Math.round(s('Multishot')) * (T.pellets > 1 ? 2 : 1),
+    dmg: Math.max(0.1, 1 + s('Damage') + P.stat('TurretDamage')), rate: Math.max(0.2, 1 + s('FireRate') + P.stat('TurretRate')) * (P.cv === 'over' ? 1.6 : 1), crit: s('CritChance'),
+    time: TURRET_TIME * (1 + s('MagSize')) * (P.cv === 'over' ? 0.6 : P.cv === 'watch' ? 1.8 : 1), cdK: (1 / (1 + s('ReloadSpeed'))) * (P.cv === 'watch' ? 1.35 : 1), pellets: (T.pellets || 1) + Math.round(s('Multishot')) * (T.pellets > 1 ? 2 : 1),
     chains: (T.chains || 0) + Math.round(s('Pierce') + s('Ricochet')), range: T.range * (1 + P.stat('TurretRange')), steal: s('Lifesteal'), burn: P.stat('TurretBurn'),
   };
 }

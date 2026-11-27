@@ -3,7 +3,7 @@
 // are told the room, what it paid and what the doors offer, and build the same things on their own side.
 import * as THREE from 'three';
 import { buildPortal, tickPortal, W as PW, SPRING as PSPRING, PORTAL_Y } from './portal.js';
-import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, mutators, DIFFS } from './data.js';
+import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, mutators, mutBoon, DIFFS } from './data.js';
 import { machine, ASC } from './deeds.js';
 import { sigOf } from './signatures.js';
 import { V, R } from './mapkit.js';
@@ -12,6 +12,7 @@ import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
 import { Raid } from './raid.js';
+import { buildPrize } from './town.js';
 import { Sector, SECTORS } from './sector.js';
 import { STRAINS } from './blight.js';
 // boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
@@ -35,6 +36,8 @@ export class Descent {
     this.order = o.length >= 16 ? o.slice(0, 16) : o.concat(o).slice(0, 16);
     this.bossPick = this.pickBosses();
     this.result = null;
+    // what the last boss holds this run (each player's own: the next of their gnomes, or one of their machines)
+    this.prize = Meta.rollPrize(); this.rescued = false; this.prizeO = null;
   }
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
@@ -50,6 +53,7 @@ export class Descent {
   tick(dt) {
     const g = this.g;
     this.tickFx(dt);
+    if (this.prizeO && this.raid) this.prizeO.tick(dt);
     if (this.raid) { this.raid.root.visible = g.phase !== 'Village'; if (g.phase !== 'Village') this.raid.tick(dt); }
     if (this.sector && g.phase !== 'Village') { this.sector.tick(dt); if (this.host) this.sector.hostTick(dt); }
     if (g.phase === 'Village') return;   // up in the village: nothing happens down here until the run starts
@@ -114,6 +118,9 @@ export class Descent {
     const raidRoom = this.arena === N_ROOMS + 1;
     if (this.raid && !raidRoom) { this.raid.dispose(); this.raid = null; }
     if (raidRoom && !this.raid) this.raid = new Raid(g, this);
+    if (!raidRoom) this.prizeO = null;
+    if (raidRoom && this.raid && this.prize && !this.prizeO) { const O = (this.prizeO = buildPrize(this.prize)), [px, py, pyaw] = this.raid.prizeAt || [0, -900, 0]; O.root.position.copy(this.raid.w(px, py, 0)); O.root.rotation.y = pyaw || 0; this.raid.root.add(O.root); }
+    if (raidRoom && this.prize && !this.rescued) { const P0 = this.prize, nm = Meta.prizeName(P0); g.hud.toast(P0.kind === 'gnome' ? `It holds ${nm} in a cage. Bring them home.` : P0.kind === 'machine' ? `It sits on ${nm}. Beat it and the machine is yours.` : 'It sits on a hoard of gold.', '#9affc0'); }
     if (this.sector) { this.sector.dispose(); this.sector = null; }
     if (!raidRoom) this.sector = new Sector(g, this);
     g.hud.hurtWhite = 0.3; g.audio.play('S_Enter', 1);
@@ -238,8 +245,8 @@ export class Descent {
     const drop = (cap, off = 0) => this.g.pickups.spawn('Buff', at.clone().add(V3(Math.cos(off) * (off ? 90 : 0), 0, Math.sin(off) * (off ? 90 : 0)).add(V3(0, 0, 60))), pick(cap));
     // a boss leaves one good one and often a second, an elite leaves one about a third of the time, and the rank and file
     // leave them rarely: a room is worth one or two (the odds thin as the rooms fill up). Half what it was.
-    if (E.isBoss) { drop(3, 0.5); if (Math.random() < 0.5) drop(3, 2.6); return; }
-    const odds = 0.5 * (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
+    if (E.isBoss) { drop(3, 0.5); if (Math.random() < 0.5) drop(3, 2.6); for (let k = 0; k < mutBoon('bossPart'); k++) drop(3, 4.4 + k); return; }
+    const odds = mutBoon('parts') * 0.5 * (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
     if (Math.random() >= odds) return;
     drop(E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2);
   }
@@ -260,6 +267,12 @@ export class Descent {
     const W = L.find((q) => q.share >= 0.1 && !Meta.ascHas(q.name, df));
     if (W) { Meta.ascend(W.name, df); res.asc = W.name; res.level = Meta.asc(W.name); }
     else if (L.length) res.already = true;
+    // what the boss held comes home
+    if (this.prize && !this.rescued) {
+      this.rescued = Meta.rescue(this.prize); res.prize = this.prize; if (this.prizeO) this.prizeO.free();
+      const nm = Meta.prizeName(this.prize), P0 = this.prize;
+      this.g.hud.toast(P0.kind === 'gnome' ? `${nm} is free, and on the way up to Thimblewick.` : P0.kind === 'machine' ? `${nm} is yours: it waits for you in every Descent from now on.` : `The boss's hoard: 600 gold.`, '#9affc0');
+    }
     this.progress(); Meta.runWon('descent', this.g.mapId, df, mutators()); Meta.save();
   }
 

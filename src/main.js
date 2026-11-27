@@ -18,6 +18,7 @@ import { Hud } from './hud.js';
 import { Game } from './game.js';
 import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
 import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg } from './cores.js';
+import { TRAINING } from './trainer.js';
 import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES, shopGuns } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
@@ -28,6 +29,7 @@ const URLMAP = params.has('map') ? +params.get('map') : -1;   // ?map=1 builds t
 Meta.load(); Meta.setUnlockAll(TEST);
 if (TEST) import('./signatures.js').then((m) => { window.__sig = m; });
 if (TEST) import('./forge.js').then((m) => { window.__forge = m; });
+if (TEST) window.__trn = TRAINING;
 if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
 const glCanvas = document.getElementById('gl');
@@ -331,12 +333,11 @@ function renderProgress() {
     });
     h += '</div>';
   } else if (progTab === 'classes') {
-    h += '<p class="pnote">Rounds cleared while playing a class count toward its mastery. Each level unlocks more of that class.</p><div class="pgrid">';
+    h += `<p class="pnote">Every class earns its own class points on runs played as it. ${Meta.gnomeHome('trainer') ? 'Spend them on lessons with Old Hobnail at the Training Yard.' : 'Old Hobnail, who teaches at the Training Yard, is lost at the bottom of the Descent; he keeps count for you until he is home.'}</p><div class="pgrid">`;
     for (const C of CLASS_META) {
-      const n = Meta.clsRounds(C.id), lvl = Meta.clsLevel(C.id), CL = CLASSES.find((x) => x.id === C.id), prev = lvl > 0 ? CLASS_LEVELS[lvl - 1] : 0, max = lvl >= CLASS_LEVELS.length;
-      h += `<div class="pc ${max ? 'claimed' : ''}"><div class="pt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${lvl ? CLASS_LEVEL_NAMES[lvl - 1] : 'Novice'}</span></div>`;
-      h += `${bar(max ? 1 : n - prev, max ? 1 : CLASS_LEVELS[lvl] - prev)}<div class="pn">${n} round${n === 1 ? '' : 's'} cleared${max ? '' : `  -  ${CLASS_LEVELS[lvl]} for ${CLASS_LEVEL_NAMES[lvl]}`}</div>`;
-      C.rewards.forEach((R, k) => { h += rw(`c:${C.id}:${k}`, `${CLASS_LEVEL_NAMES[k]} (${CLASS_LEVELS[k]}):`); });
+      const CL = CLASSES.find((x) => x.id === C.id), T = TRAINING[C.id] || [], got = T.filter((I) => Meta.trained(C.id, I.id)).length;
+      h += `<div class="pc ${got >= T.length ? 'claimed' : ''}"><div class="pt"><b style="color:${CL ? CL.hex : '#f2e8d5'}">${esc(C.name)}</b><span>${Meta.cp(C.id).toLocaleString()} points</span></div>`;
+      h += `${bar(got, T.length)}<div class="pn">${got} of ${T.length} lessons learned  -  ${Meta.clsRounds(C.id).toLocaleString()} rounds played</div>`;
       h += '</div>';
     }
     h += '</div>';
@@ -703,13 +704,15 @@ function renderLobby() {
     if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
       `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by your contract' : '');
     h += group('DIFFICULTY', DIFFS.map((D, i) => chip(`data-df="${i}"`, curDf === i, daily, D.name, '')).join(''), esc2(DIFFS[curDf].desc), daily ? 'set by your contract' : '');
-    h += '</section><section><h3>CONTRACT</h3>';
-    if (Kc) { const mods = MUTATORS.filter((M, i) => (Kc.muts >> i) & 1); h += group(esc2(Kc.title), mods.map((M) => chip('', true, true, M.name, '')).join('') + chip('data-drop="1"', false, false, 'Drop it', 'play a plain run'), `${esc2(Kc.flavor)} <span class="dim2">${mods.map((M) => `${M.name}: ${M.desc}`).join(' ')} Win it for <b class="gold">${Kc.gold.toLocaleString()} gold</b> and <b class="gold">${Kc.renown.toLocaleString()} renown</b> on top of the run's pay.</span>`); }
-    else h += group('None taken', chip('', true, false, 'A plain run', 'no modifiers'), 'The challenge board in the square posts six contracts a day: runs with set rules that pay bonus gold and renown when won.');
+    h += '</section><section><h3>THE LECTERN</h3>';
+    { const pg = Meta.pages(), read = MUTATORS.filter((M, i) => (pg >> i) & 1);
+      if (!Meta.gnomeHome('lectern')) h += group('Nobody reading', chip('', true, false, 'A plain run', 'no pages'), 'The Lectern stands empty. Mother Inkcap, who reads from it, is lost somewhere at the bottom of the Descent.');
+      else if (!read.length) h += group('No pages read', chip('', true, false, 'A plain run', 'no pages'), 'At the Lectern in the square, Mother Inkcap can read pages for your run: each makes it harder one way and pays more another.');
+      else h += group(`${read.length} page${read.length > 1 ? 's' : ''} read`, read.map((M) => chip('', true, true, M.name, M.boon)).join(''), `<span class="dim2">${read.map((M) => `${M.name}: ${M.desc} Pays ${M.boon}.`).join(' ')}</span>`); }
     h += '</section>';
     if (isD) { const nd = MACHINES.filter((D) => machine(D.id)).length;
-      h += '<section><h3>THE DESCENT</h3>' + group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineRank(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Running' : `Rank ${r}`, `data-why="${esc2(`Rank ${r}. ` + D.text)}" data-grp="d"`); }).join(''),
-        info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent once your rank opens them.')) + '</section>'; }
+      h += '<section><h3>THE DESCENT</h3>' + group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineHow(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Home' : 'Not found', `data-why="${esc2(r + '. ' + D.text)}" data-grp="d"`); }).join(''),
+        info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent. The last boss of every Descent holds one, or a lost gnome of Thimblewick: beat it to bring them home.')) + '</section>'; }
     h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span>${Kc ? `<span class="gold">contract: ${esc2(Kc.title)}</span>` : ''}</div><button id="lbnext" class="lbstart">NEXT: LOADOUT</button></div>`;
   } else {
     // the run as it stands (the host's, for a guest)
@@ -717,8 +720,8 @@ function renderLobby() {
     h += `<section><h3>THE RUN</h3><div class="lbg"><div class="lbgl">${client ? 'HOST’S CHOICE' : 'SET'}</div><div class="lbgc"><div class="chips">${chip('', true, false, esc2(MAPS[rm].name), rd !== null && rd !== undefined ? DIFFS[rd].name : '')}${rc ? chip('', true, false, esc2(rc), 'contract') : ''}</div></div></div></section>`;
     const C = CLASSES.find((c) => c.id === Meta.cls()) || CLASSES[0], lv = Meta.clsLevel(C.id), n = Meta.clsRounds(C.id);
     h += '<section><h3>YOUR LOADOUT</h3>';
-    h += group('CLASS', CLASSES.map((K) => { const l = Meta.clsLevel(K.id); return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, l ? CLASS_LEVEL_NAMES[l - 1] : 'Novice'); }).join(''),
-      `${C.blurb} <span class="dim2">${lv < CLASS_LEVELS.length ? `${n} / ${CLASS_LEVELS[lv]} rounds to ${CLASS_LEVEL_NAMES[lv]}.` : 'Mastered.'}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`);
+    h += group('CLASS', CLASSES.map((K) => { return chip(`data-cls="${K.id}"`, Meta.cls() === K.id, false, `<em style="color:${K.hex}">${K.name}</em>`, `${Meta.cp(K.id).toLocaleString()} pts`); }).join(''),
+      `${C.blurb} <span class="dim2">${(() => { const T = TRAINING[C.id] || [], L = T.filter((I) => I.kind !== 'gear' && Meta.trained(C.id, I.id)), v = T.find((I) => I.id === Meta.variant(C.id)); return L.length ? `Learned: ${L.map((I) => I.name).join(', ')}.${v ? ` ${C.ability} fitted with ${v.name}.` : ''}` : 'Nothing learned at the Training Yard yet.'; })()}</span><ul class="lbkit">${C.kit.map((k) => `<li>${k}</li>`).join('')}</ul>`);
     const own = Meta.ownedGuns(), pick = Meta.loadout(), cap = Meta.loadoutSize();
     h += group(`STARTING GUNS  ${pick.length} / ${cap}`, own.map((nm) => { const W = game ? game.data.weapons.find((w) => w.name === nm) : null, k = pick.indexOf(nm); return chip(`data-w="${esc2(nm)}"`, k >= 0, false, `${k >= 0 ? `<i class="pk">${k + 1}</i>` : ''}${esc2(nm)}`, W ? `<em style="color:${RARITY_HEX[W.rarity] || '#ccc'}">${W.rarity}</em> ${W.cls || ''}` : ''); }).join(''),
       `${cap === 1 ? 'The sniper brings the Widowmaker: choose one gun to go with it.' : 'Choose two guns to go down with. Click another to swap out the older pick.'} <span class="dim2">${own.length} of ${shopGuns().length} owned. Bramble &amp; Bolt in the square sells the rest.</span>`);
@@ -760,7 +763,7 @@ async function beginRun() {
   const hm = Net.role === 'client' ? Net.hostMap() : K ? (K.mode === 'descent' ? DSC : K.map) : Meta.map(), want = MAPS[hm] ? hm : DSC;
   vui.close(); vmode = ''; if (game.village) game.village.leave();
   if (want !== game.mapId && game.round === 0) { beginning = true; lobby.style.display = 'none'; await rebuildGame(want); beginning = false; }
-  if (Net.role !== 'client') { setDifficulty(K ? K.diff : Meta.difficulty()); setMutators(K ? K.muts : 0, 0); }
+  if (Net.role !== 'client') { setDifficulty(K ? K.diff : Meta.difficulty()); setMutators(K ? K.muts : Meta.pages(), 0); }
   // the Descent: through the Way Down and straight into the first room (a guest follows the host down)
   if (game.descent && (game.phase === 'Village' || game.phase === 'PreGame') && Net.role !== 'client') { game.phase = 'PreGame'; game.phaseTimer = 0.01; }
   if (game.round === 0) { game.player.setBody(Meta.look()); game.player.setClass(Meta.cls()); }
@@ -965,7 +968,8 @@ function enterVillage() {
   game.player.setBody(Meta.look()); game.player.setClass(Meta.cls());
   game.villageRT.enter(); title.style.display = 'none'; lobby.style.display = 'none'; locker.style.display = 'none';
   start(); game.vm.hidden = true;
-  if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: clothes at Bramble & Bolt, guns at Flintwhistle’s, your wardrobe on the dressing porch at home, the challenge board, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
+  if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: clothes at Bramble & Bolt, your wardrobe on the dressing porch at home, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
+  else if (!Meta.tipSeen('town1')) { Meta.tipMark('town1'); hud.tip('Thimblewick has lost three of its own to the Blight: its smith, its trainer and its wizard. The last boss of every Descent holds one of them in a cage, or one of the machines. Beat it and they come home: the Forge, the Training Yard and the Lectern open as they do.'); }
 }
 async function goVillage() {
   const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));

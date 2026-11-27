@@ -474,7 +474,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
     if (filled.length >= 2) {
       [out, how] = p.compressOut(dishes);
       if (how === 'forge') plan = forgePlan(filled);
-      else if (out < 0) why = how && how !== 'none' && how !== 'crucible' ? how : filled.length === 2 ? (fusionOf(U(filled[0]).name, U(filled[1]).name) ? `Fusing two elements needs Compressor: Fusion (rank ${Meta.machineRank('fusion')}).` : (filled[0] === filled[1] && (U(filled[0]).pressed || U(filled[0]).fuse)) ? 'A pressed or fused part cannot be pressed again.' : 'Only two of the same part press together. Any two parts forge with Compressor: Fusion (rank ' + Meta.machineRank('fusion') + ').') : '';
+      else if (out < 0) why = how && how !== 'none' && how !== 'crucible' ? how : filled.length === 2 ? (fusionOf(U(filled[0]).name, U(filled[1]).name) ? 'Fusing two elements needs Compressor: Fusion, found at the bottom of the Descent.' : (filled[0] === filled[1] && (U(filled[0]).pressed || U(filled[0]).fuse)) ? 'A pressed or fused part cannot be pressed again.' : 'Only two of the same part press together. Any two parts forge with Compressor: Fusion, found at the bottom of the Descent.') : '';
     }
     tips = [];
     const tip = (html) => { tips.push(html); return ` data-t="${tips.length - 1}"`; };
@@ -550,8 +550,8 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
       let ft = '<b>FUSE</b>Two different elements make their own named part:'; for (const d of CORE_DEFS) if (d.fuse) { const [a, b] = d.fuse.split('+'); ft += `<div class="tr"><u style="color:${d.hex}">${esc(d.name)}</u>${E[a]} + ${E[b]}: ${esc(d.desc)}</div>`; }
       h += `<div${tip(ft)}><b>Two elements</b><span>Fused: a named elemental part</span></div>`;
       h += `<div${tip(`<b>FORGE</b>Any other ${cru ? 'two or three parts' : 'two parts'}: one part that keeps all of them at full strength, plus a new effect read from the dishes in order.<em>A forged part cannot be forged again.</em>`)}><b>Anything else</b><span>Forged: keeps all of them, plus a new effect</span></div>`;
-      if (!cru) h += `<div class="lock"${tip(`<b>COMPRESSOR: CRUCIBLE</b>Rank ${Meta.machineRank('crucible')}. A third dish, TWIST: something extra the new effect does.`)}><b>Third dish</b><span>Rank ${Meta.machineRank('crucible')}</span></div>`;
-    } else h += `<div class="lock"${tip(`<b>COMPRESSOR: FUSION</b>Rank ${Meta.machineRank('fusion')}. Any two gun parts forge into one that keeps both and wakes a new effect.`)}><b>Forging</b><span>Rank ${Meta.machineRank('fusion')}</span></div>`;
+      if (!cru) h += `<div class="lock"${tip(`<b>COMPRESSOR: CRUCIBLE</b>${Meta.machineHow('crucible')}. A third dish, TWIST: something extra the new effect does.`)}><b>Third dish</b><span>Not yet found</span></div>`;
+    } else h += `<div class="lock"${tip(`<b>COMPRESSOR: FUSION</b>${Meta.machineHow('fusion')}. Any two gun parts forge into one that keeps both and wakes a new effect.`)}><b>Forging</b><span>Not yet found</span></div>`;
     h += '</div></div></div></div></div>';
     el.innerHTML = h;
     el.querySelector('#cclose').onclick = close;
@@ -652,7 +652,7 @@ export function makeCraft(H) {   // H: { game(), audio, preview(), entered(), le
   let hop = [], recOut = '', press = [];
   function recHtml(p) {
     if (press.mode) return '';
-    if (!machine('recycler')) return `<div class="rec locked" id="crec"><h3>THE RECYCLER</h3><p>Rank ${Meta.machineRank('recycler')}: break parts you do not want into scrap, and spend scrap on the ones you do.</p></div>`;
+    if (!machine('recycler')) return `<div class="rec locked" id="crec"><h3>THE RECYCLER</h3><p>${Meta.machineHow('recycler')}. It breaks parts you do not want into scrap, and spend scrap on the ones you do.</p></div>`;
     let h = `<div class="rec" id="crec"><h3>THE RECYCLER <span class="ctr">${p.scrap || 0}<small>SCRAP</small></span></h3>`;
     h += `<div class="drop">Drag a part here to break it down<br><small>Common 1 · Uncommon 2 · Rare 4 · Epic 8 scrap</small></div>`;
     h += `<button class="brassbtn" id="rcat">MAKE A PART  &#9656;</button><div class="out">${recOut}</div></div>`;

@@ -17,11 +17,11 @@ const STREAM_Y = -1850, CASINO = [2150, 350], GATE = [0, 2600];
 const GIANTS = [[0, 4900, 6400, 680, 1], [-2850, 2750, 5200, 520, 2], [2750, 2650, 5600, 540, 3], [-2900, -1050, 4800, 470, 4], [3050, -2250, 5000, 430, 5], [-1950, -2800, 4400, 420, 6], [1500, -3200, 4600, 430, 7]];
 // the paths: [points, width]
 const PATHS = [[[[0, -3400], [0, STREAM_Y - 500], [0, -760]], 380], [[[0, 760], [0, GATE[1] - 300]], 380], [[[-720, 450], [-1000, 450]], 320], [[[-520, -520], [-960, -800]], 300], [[[-520, 520], [-1000, 1300]], 280],
-  [[[720, 320], [CASINO[0] - 1220, CASINO[1]]], 360], [[[380, -640], [1080, -980]], 240], [[[440, 600], [1150, 1500]], 240]];
+  [[[720, 320], [CASINO[0] - 1220, CASINO[1]]], 360], [[[380, -640], [1080, -980], [1640, -1160]], 240], [[[440, 600], [1150, 1500]], 240]];
 // the cottages round about: [x, y, height, stem radius, cap colour, yaw]
 const HOUSES = [[-1000, -1550, 360, 220, 0x3a6a9a, 60], [-2450, -150, 400, 260, 0x8a4aa0, 20], [-900, -2750, 340, 230, 0xc8392e, 40], [850, -2250, 380, 250, 0x5a8a3a, 120]];
 // what a giant's roots must not run into: [x, y, r]
-const STRUCTS = [[0, 0, 800], [-1640, 450, 720], [-1560, -800, 560], [-1440, -1200, 220], [-1820, 1480, 520], [-1210, 1500, 520], [-2600, 1350, 460], [800, -660, 280], [CASINO[0], CASINO[1], 1300], [GATE[0], GATE[1], 760], [0, 3300, 1300], [-1450, 2650, 650], [1450, 2650, 650], [1150, 1700, 560], [1200, -1050, 460]].concat(HOUSES.map(([x, y, , r]) => [x, y, r * 2.3]));
+const STRUCTS = [[0, 0, 800], [-1640, 450, 720], [-1560, -800, 560], [-1440, -1200, 220], [-1820, 1480, 520], [-1210, 1500, 520], [-2600, 1350, 460], [800, -660, 280], [2060, -1260, 560], [CASINO[0], CASINO[1], 1300], [GATE[0], GATE[1], 760], [0, 3300, 1300], [-1450, 2650, 650], [1450, 2650, 650], [1150, 1700, 560], [1200, -1050, 460]].concat(HOUSES.map(([x, y, , r]) => [x, y, r * 2.3]));
 const distSeg = (px, py, [ax, ay], [bx, by]) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0; return Math.hypot(px - ax - dx * t, py - ay - dy * t); };
 // which of a giant's roots to leave out: any that would run into a building, or lie low across a path
 function rootMask(x, y, h, r, sd) {
@@ -39,7 +39,8 @@ export const VSPOTS = {
   shop: { at: [-880, 450], npc: [-1230, 450, -Math.PI / 2], yaw: 0 },
   gunshop: { at: [-860, -800], npc: [-1140, -800, -Math.PI / 2], yaw: 0 },
   wardrobe: { at: [-1180, 1240], mirror: [-1180, 1760], yaw: 0 },
-  board: { at: [740, -660], npc: [800, -260, Math.PI / 2], yaw: 180 },
+  lectern: { at: [700, -660], npc: [930, -660, Math.PI / 2], yaw: 180 },
+  trainer: { at: [1660, -1160], npc: [1840, -1060, Math.PI / 2 + 0.5], yaw: 0 },
   gate: { at: [GATE[0], GATE[1] - 100], npc: [520, GATE[1] - 400, 0.3] },
   casino: {
     c: CASINO,
@@ -50,7 +51,7 @@ export const VSPOTS = {
     slots: [[CASINO[0] + 620, CASINO[1] + 160], [CASINO[0] + 620, CASINO[1] + 380], [CASINO[0] + 620, CASINO[1] + 600]],
     T: 0.7, SL: 0.66, slotOut: 62,   // the tables and machines are built at gnome height: scaled by T and SL; a machine stands slotOut beyond where you play it
   },
-  folk: [[-420, -560, 0.6], [880, -1150, -2.2], [1480, -1120, 0.9], [-1500, 2050, 1.2], [700, 1150, -1], [-300, 1950, 2.6]],
+  folk: [[-420, -560, 0.6], [880, -1150, -2.2], [1620, -1560, 0.6], [-1500, 2050, 1.2], [700, 1150, -1], [-300, 1950, 2.6]],
   fire: [1200, -1050],
   signs: [],   // painted signs: { kind, o, at: [x, y, z], face: [x, y], h, glow } (filled in as the village is built; hung by village.js)
   smoke: [],   // chimney tops, for the smoke
@@ -190,7 +191,7 @@ export function buildVillage(M, cx, cy) {
       // a target on a post, powder kegs, a crate of shot
       { const tx = ct[0] + 160, ty = ct[1] + 520; Cyl(V(tx, ty, 90), 12, 180, dark2, true, false); for (const [d, c] of [[110, 0xf2e4c6], [80, 0xc8392e], [50, 0xf2e4c6], [22, 0xc8392e]]) Cyl(V(tx + 8 - d * 0.01, ty, 200), d, 4 + (110 - d) * 0.02, c, false, false, R(0, 90, 90)); }
       for (const [dx, dy] of [[650, 420], [715, 360], [640, 505]]) { const [k, b] = barrel(0x5a3a22, 0x1a1410); Shape(k, b, V(x + dx, y + dy, 0), R(0, dx, 0)); Solid(V(x + dx, y + dy, 55), V(84, 84, 110), true); Box(V(x + dx, y + dy, 112), V(30, 30, 4), 0xc8392e, false, false); }
-      VSPOTS.signs.push({ kind: 'wood', o: { text: 'Flintwhistle’s Guns', sub: 'rifles · scatterguns · oddities', w: 1100, h: 280, seed: 12 }, at: [x + 316, y, 400], face: [1, 0], h: 104 });
+      VSPOTS.signs.push({ kind: 'wood', o: { text: 'The Forge', sub: 'guns worked from weapon fragments', w: 1100, h: 280, seed: 12 }, at: [x + 316, y, 400], face: [1, 0], h: 104 });
       Box(V(x + 296, y, 517), V(56, 380, 16), 0x3a2a1e, false, false); for (const s of [-1, 1]) { Box(V(x + 312, y + s * 160, 480), V(3, 3, 60), VC.iron, false, false); Box(V(x + 300, y + s * 186, 470), V(14, 14, 110), 0x3a2a1e, false, false); } }
 
     // ---- home: your thatched cottage in the roots of the north-west giant, and on its east side the dressing porch: a
@@ -226,9 +227,57 @@ export function buildVillage(M, cx, cy) {
       for (const [fx, fy, yaw, len] of [[-2600, 1130, 0, 600], [-2600, 1570, 0, 600], [-2910, 1350, 90, 440]]) { S(fence(len), fx, fy, 0, yaw); Solid(V(fx, fy, 45), yaw ? V(12, len, 90) : V(len, 12, 90), false); }
       avoid.push([-2600, 1350, 440]); }
 
-    // ---- the challenge board, south-east of the square, under its own little roof
-    { const [x, y] = [800, -660]; S(noticeBoard(320), x, y, 0, 180); Solid(V(x, y, 170), V(40, 360, 340), true); avoid.push([x, y, 400]); bodies.push([x, y, 260, 500]);
-      VSPOTS.signs.push({ kind: 'wood', o: { text: 'Challenge Board', sub: 'contracts posted daily', w: 1000, h: 250, seed: 5 }, at: [x - 44, y, 400], face: [-1, 0], h: 84 }); lit(x - 40, y + 175, 300); }
+    // ---- the Lectern, south-east of the square: Mother Inkcap's reading stand under a little star-hung canopy. A carved
+    // pedestal, its desk tilted to her, a great book open on it with its pages alight, candles, an inkwell and scrolls
+    { const [x, y] = [800, -660], WD = 0x4a2e1e, WL = 0x7a5034, AI = M.world.AddInstance.bind(M.world);
+      Cyl(V(x, y, 10), 120, 20, 0x6a645a, true, false); Cyl(V(x, y, 22), 100, 6, 0x5a544a, false, false);            // a round stone step
+      Cyl(V(x, y, 30), 70, 18, WD, false, false); Cyl(V(x, y, 100), 26, 130, WL, true, false);                        // foot and column
+      for (const z of [52, 110, 152]) Cyl(V(x, y, z), 38, 10, WD, false, false);
+      Box(V(x, y, 172), V(70, 120, 12), WD, false, false);                                                             // the desk, and its ledge
+      AI(0, V(x - 4, y, 188), V(80, 128, 8), R(-22, 0, 0), WL, false, false, false);
+      AI(0, V(x - 40, y, 176), V(8, 128, 14), R(-22, 0, 0), WD, false, false, false);
+      // the book: two pages open, bowed, with a glow coming off them, and a ribbon hanging down the front
+      for (const s of [-1, 1]) { AI(0, V(x - 4, y + s * 30, 196), V(58, 56, 6), R(-22, 0, 0), 0xe8dcbc, false, false, false); AI(2, V(x - 4, y + s * 30, 199), V(54, 50, 4), R(-22, 0, 0), 0xf6ecd0, false, false, false); }
+      AI(0, V(x - 2, y, 193), V(62, 6, 8), R(-22, 0, 0), 0x5a2a4a, false, false, false); Box(V(x - 38, y + 8, 150), V(2, 6, 60), 0x8a2a5a, false, false);
+      Glow(V(x - 4, y, 214), V(46, 90, 14), 0x9a8aff, 2); Glow(V(x - 4, y, 240), V(22, 40, 26), 0xd8c8ff, 2);
+      // candles, an inkwell and quill, a pile of scrolls at the foot
+      for (const [u, v, h] of [[16, -70, 40], [10, 70, 30]]) { Cyl(V(x + u, y + v, 180 + h / 2), 9, h, 0xf2e8d0, false, false); Glow(V(x + u, y + v, 186 + h), V(6, 6, 12), 0xffc860, 2); }
+      Cyl(V(x + 22, y - 48, 186), 14, 14, 0x1a1a2a, false, false); AI(0, V(x + 26, y - 44, 212), V(3, 3, 44), R(0, 0, 18), 0xf2ece0, false, false, false);
+      for (const [u, v, k] of [[66, -60, 0], [72, 54, 1]]) for (let b = 0; b < 3 - k; b++) Box(V(x + u, y + v, 36 + b * 14), V(52 - b * 6, 38 - b * 4, 12), [0x6a2a3a, 0x2a3a6a, 0x3a5a2a][(b + k) % 3], false, false, b * 17 + k * 30);   // a stack of old books
+      // the canopy: four thin posts, a dark cloth roof, stars and a crescent moon hung from its rim on threads
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) Cyl(V(x + sx * 130, y + sy * 150, 170), 10, 340, WD, true, false);
+      Box(V(x, y, 346), V(300, 340, 10), 0x2a2248, false, false); for (const sy of [-1, 1]) Box(V(x, y + sy * 170, 336), V(300, 4, 30), 0x3a3068, false, false);
+      Ball(V(x, y, 372), V(150, 170, 40), 0x2a2248);
+      for (const [u, v, d, c] of [[-100, -120, 50, 0xffd860], [100, -60, 70, 0xfff0b0], [-60, 110, 60, 0xffd860], [110, 130, 40, 0xfff0b0]]) { Box(V(x + u, y + v, 340 - d / 2), V(1, 1, d), 0xc8c0a0, false, false); Glow(V(x + u, y + v, 330 - d), V(12, 12, 12), c, 2); }
+      Glow(V(x - 120, y, 290), V(8, 26, 26), 0xfff0b0, 2); Box(V(x - 120, y, 318), V(1, 1, 30), 0xc8c0a0, false, false);
+      Solid(V(x, y, 170), V(150, 170, 340), true); avoid.push([x, y, 360]); bodies.push([x, y, 240, 420]);
+      VSPOTS.signs.push({ kind: 'wood', o: { text: 'The Lectern', sub: 'a harder road, a richer haul', w: 1000, h: 250, seed: 5 }, at: [x - 154, y, 300], face: [-1, 0], h: 60 });
+      Lamp(V(x - 30, y, 260), { r: 0.75, g: 0.7, b: 1 }, 2.2, 800, false); }
+
+    // ---- the Training Yard, east past the campfire: a sanded ring fenced round, straw dummies on posts, a target, the
+    // practice weapons in a rack, and a banner for each class on its pole
+    { const [x, y] = [2060, -1260], R0 = 440;
+      Cyl(V(x, y, 3), R0 * 2, 4, 0xc8b484, false, false); Cyl(V(x, y, 5), R0 * 2 - 70, 2, 0xd8c494, false, false);
+      for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2, m = a + Math.PI / 18; if (Math.abs(Math.atan2(Math.sin(m - Math.PI * 0.926), Math.cos(m - Math.PI * 0.926))) < 0.3) continue; S(fence(Math.round(2 * R0 * Math.sin(Math.PI / 18) + 14)), x + Math.cos(a + Math.PI / 18) * R0, y + Math.sin(a + Math.PI / 18) * R0, 0, (a * 180) / Math.PI + 10 + 90); }
+      for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + Math.PI / 18; if (Math.abs(Math.atan2(Math.sin(a - Math.PI * 0.926), Math.cos(a - Math.PI * 0.926))) < 0.3) continue; Solid(V(x + Math.cos(a) * R0, y + Math.sin(a) * R0, 45), V(20, Math.round(2 * R0 * Math.sin(Math.PI / 18) + 14), 90), false, (a * 180) / Math.PI); }
+      // dummies: a post, a stuffed sack body, a cross-arm, a sack head with a painted face
+      for (const [u, v, t] of [[60, -180, 10], [-140, 40, -20], [160, 140, 30]]) {
+        const px = x + u, py = y + v; Cyl(V(px, py, 80), 14, 160, 0x5a3a22, true, false); Ball(V(px, py, 140), V(56, 50, 66), 0xc8a85a); Ball(V(px, py, 140), V(58, 52, 8), 0x8a6a3a);
+        Box(V(px, py, 160), V(12, 140, 12), 0x5a3a22, false, false, t); for (const s of [-1, 1]) Ball(V(px + Math.sin((t * Math.PI) / 180) * s * 70, py + Math.cos((t * Math.PI) / 180) * s * 70, 160), V(18, 18, 18), 0xd8b868);
+        Ball(V(px, py, 210), V(36, 34, 38), 0xd8c08a); Glow(V(px - 30, py, 214), V(4, 22, 6), 0xc8392e, 0); Solid(V(px, py, 110), V(110, 110, 220), false); }
+      // a target on its stand at the far side
+      { const tx = x + 360, ty = y - 40; for (const s of [-1, 1]) Cyl(V(tx, ty + s * 70, 110), 12, 220, 0x5a3a22, true, false); Box(V(tx, ty, 120), V(20, 160, 12), 0x5a3a22, false, false);
+        for (const [d, c] of [[150, 0xf2e4c6], [110, 0xc8392e], [70, 0xf2e4c6], [30, 0xc8392e]]) Cyl(V(tx - 8 - (150 - d) * 0.02, ty, 190), d, 4, c, false, false, R(0, 90, 90)); Solid(V(tx, ty, 150), V(30, 170, 300), false); }
+      // the rack of practice weapons: wooden swords, staves and a pair of padded mallets
+      { const rx = x - 120, ry = y - 330; Box(V(rx, ry, 70), V(220, 30, 14), 0x5a3a22, false, false); Box(V(rx, ry, 150), V(220, 30, 14), 0x5a3a22, false, false); for (const s of [-1, 1]) Cyl(V(rx + s * 100, ry, 90), 14, 180, 0x4a2e1e, true, false);
+        for (let i = 0; i < 6; i++) { const wx = rx - 80 + i * 32; Box(V(wx, ry + 8, 120), V(8, 8, 200), i % 3 === 2 ? 0x8a6a42 : 0xb8945a, false, false); if (i % 3 === 0) Box(V(wx, ry + 8, 70), V(28, 10, 6), 0x5a3a22, false, false); if (i % 3 === 2) Ball(V(wx, ry + 8, 220), V(24, 24, 30), 0x8a3a2a); }
+        Solid(V(rx, ry, 100), V(230, 50, 200), false); }
+      // the class banners, each on its pole round the ring
+      { const cols = [0xffcd5a, 0xff6a4d, 0x6ec8ff, 0x8fe08f, 0xffa23a]; for (let i = 0; i < 5; i++) { const a = -0.3 + i * 0.62, bx = x + Math.cos(a) * (R0 + 70), by = y + Math.sin(a) * (R0 + 70);
+          Cyl(V(bx, by, 220), 12, 440, 0x3a2a1e, true, false); Ball(V(bx, by, 446), V(18, 18, 18), VC.brass); Box(V(bx, by, 410), V(8, 120, 8), 0x3a2a1e, false, false); Box(V(bx, by, 340), V(4, 110, 130), cols[i], false, false); Box(V(bx, by, 272), V(4, 110, 10), 0x2a1a12, false, false); } }
+      lit(x - R0 + 22, y - 200, 302); lit(x - R0 + 22, y + 200, 302); for (const s of [-1, 1]) { S(lanternPost(360, s + 3), x - R0 - 40, y + s * 200, 0, 0); Solid(V(x - R0 - 40, y + s * 200, 180), V(24, 24, 360), false); }
+      VSPOTS.signs.push({ kind: 'wood', o: { text: 'Training Yard', sub: 'Old Hobnail teaches every class', w: 1100, h: 260, seed: 21 }, at: [x - R0 - 40, y, 330], face: [-1, 0], h: 70 }); Box(V(x - R0 - 40, y, 372), V(14, 420, 14), 0x3a2a1e, false, false);
+      avoid.push([x, y, R0 + 140]); bodies.push([x, y, 300, 900]); }
 
     // ---- the Lucky Toadstool: a giant cap on twisted roots, a wooden floor, lamps under the gills, the tables
     { const [x, y] = CASINO, Rr = 1150; avoid.push([x, y, Rr + 260]); bodies.push([x, y, Rr + 140, 1300]);
