@@ -129,6 +129,11 @@ export class Enemy {
   has(name) { return ((this.affixes | this.innate) & (1 << AFFIX[name])) !== 0; }
   feet() { return new THREE.Vector3(this.pos.x, this.pos.y - this.feetOffset, this.pos.z); }
   headY() { const feet = this.pos.y - this.feetOffset, H = this.hitH || this.half * 2; return feet + H * (['Crawler', 'Leaper', 'Burrower'].includes(this.ai) ? 0.55 : this.ai === 'Flyer' ? 0.5 : this.puppet && this.puppet.headFrac ? this.puppet.headFrac : 0.74); }   // the head is the top quarter of what is drawn
+  // a headshot: on a sculpted body, a hit that landed on its Head part (rayEnemy records it); otherwise above headY
+  headAt(at) {
+    if (this.rayRole != null && Math.abs(at.y - this.rayY) < 3) { if (this.rayRole === 'Head') return true; if (this.puppet && this.puppet.parts.some((p) => p.role === 'Head')) return false; }
+    return at.y > this.headY();
+  }
   healthFrac() { return this.health / this.maxHealth; }
   accent() {
     for (let i = 0; i < DATA.affixes.length; i++) if (this.affixes & (1 << i)) return hexRGB(DATA.affixes[i].color);

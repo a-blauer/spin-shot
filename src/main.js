@@ -30,6 +30,7 @@ Meta.load(); Meta.setUnlockAll(TEST);
 if (TEST) import('./signatures.js').then((m) => { window.__sig = m; });
 if (TEST) import('./forge.js').then((m) => { window.__forge = m; });
 if (TEST) window.__trn = TRAINING;
+if (TEST) window.__DATA = DATA;
 if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
 const glCanvas = document.getElementById('gl');

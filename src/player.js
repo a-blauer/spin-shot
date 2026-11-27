@@ -1628,7 +1628,7 @@ export class Player {
       }
       const at = from.clone().addScaledVector(dir, bestT);
       final = at;
-      const head = at.y > best.headY();
+      const head = best.headAt(at);
       this.dealDamage(best, dmg, at, dir, head, procCoef, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
       if (W.splash > 0) this.explodeAt(at, W.splash * (1 + this.stat('ExplosionRadius')), dmg * 0.6, procCoef, false, false, color, best);
       if (hits >= 1 && (this.S.PierceRamp || this.S.PierceSlow)) {
@@ -1673,7 +1673,7 @@ export class Player {
     G.fx.arc(start, at, col);
     if (!E) { if (splash > 0) this.explodeAt(at, splash, damage * 0.6, 0.5, false, false, col, null); return; }
     const done = new Set([E]);
-    this.dealDamage(E, damage, at, dir, at.y > E.headY(), 1, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
+    this.dealDamage(E, damage, at, dir, E.headAt(at), 1, false, W.critBonus, W.burn, W.slow, W.moneyPerHit);
     if (splash > 0) this.explodeAt(at, splash, damage * 0.6, 0.5, false, false, col, E);
     let prev = E, dmg = damage;
     const links = W.chains + this.slot.tier + (C ? C.chains : 0) + (CH ? CH.add(this) : 0);
@@ -1833,7 +1833,7 @@ export class Player {
     return dealt;
   }
   handleProjectileHit(P, E, at) {
-    const head = !P.fromProc && at.y > E.headY(), prevC = this.shotCtx;
+    const head = !P.fromProc && E.headAt(at), prevC = this.shotCtx;
     this.shotCtx = P.sx || null;
     this.dealDamage(E, P.damage, at, P.vel.clone().normalize(), head, P.procCoef, P.fromProc, P.critBonus, P.burn, P.slow, P.moneyPerHit, P.fromProc ? [0.75, 0.55, 1] : WHITE);
     if (P.chains > 0) {

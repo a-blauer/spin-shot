@@ -103,7 +103,7 @@ export class Turret {
         for (const E of G.enemies) { if (E.dead || E.burrowed) continue; const t = G.rayEnemy(from, dir, bt, E, 6); if (t !== null && t < bt) { bt = t; hit = E; } }
         const at = from.clone().addScaledVector(dir, bt);
         G.fx.tracer(from, at, col, cont ? 8 : 3, 0.06);
-        if (hit) { P.dealDamage(hit, dmg, at, dir, at.y > hit.headY(), 0.25 / pellets, false, W.critBonus || 0, (W.burn || 0) + P.stat('TurretBurn'), W.slow || 0, 0); if (W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, hit); }
+        if (hit) { P.dealDamage(hit, dmg, at, dir, hit.headAt(at), 0.25 / pellets, false, W.critBonus || 0, (W.burn || 0) + P.stat('TurretBurn'), W.slow || 0, 0); if (W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, hit); }
         else if (wall && W.splash > 0) P.explodeAt(at, W.splash, dmg * 0.6, 0.1, true, false, col, null);
       } else if (W.mode === 'Chain') P.fireChain(from, dir, dmg, W);
       else P.fireProjectile(from, dir, dmg, 0.25 / pellets, W);
@@ -242,7 +242,7 @@ export class ShoulderTurret {
     const from = this.muzzle(), col = hexRGB(T.col);
     if (!T.flame || Math.random() < 0.3) gunSound(G.audio, T.snd, T.flame ? 0.18 : 0.28, false);
     const hit = (O, d, at, dir, coef) => {
-      P.dealDamage(O, d, at, dir, at.y > O.headY(), coef, false, S.crit, S.burn > 0 ? d * 0.3 * S.burn : 0, 0, 0);
+      P.dealDamage(O, d, at, dir, O.headAt(at), coef, false, S.crit, S.burn > 0 ? d * 0.3 * S.burn : 0, 0, 0);
       if (S.steal > 0) P.combatHeal(d * S.steal);
       for (const u of S.procs) { const U = DATA.upgrades[u]; if (Math.random() < U.chance * coef * (1 + P.stat('ProcChance'))) P.executeProc(U, 1, O, at, d, 'OnHit'); }
     };

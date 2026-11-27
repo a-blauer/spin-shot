@@ -245,3 +245,19 @@
   rescued; their stations show "lost" prompts and refuse use. Tips: 'town1'.
 - Tests: fl/prz.json (prize shots), vs/town.json and town2.json (buildings + windows), /tmp/v.json style variant check.
 - Raid designs: dmh-test/raid_designs.md draft 2 (Lantern-Eater cut for the Fruiting Spire after the agent review).
+
+## (54) Enemy hit shapes from the models
+- Measured (hb/run2.py: ray grids from 4 sides, drawn mesh vs counted hit): the old upright cylinder (hitR/hitH from the
+  2D art) missed 10-30% of shots on the visible body (up to 60-76%: Wendigo, Reaper, Keeper, Rotwing, Creeper) and
+  counted 25-50% of hits on empty air; headshots were height-only (wide/flying creatures 0-13% credited, some bodies
+  80% counted as head). Old Barkhide's rig: 35% missed, 48% body-as-head.
+- Now: game.rayEnemy on a 3D body = cylinder round the posed parts (Body3D.hitBound, broad) then Body3D.rayParts: each
+  part's triangles in a 6x3 grid of cells (sliceBoxes, boxed round whole triangles), slab test then exact triangle test
+  (rayTris) in hit cells. pad>0 (projectile radius, flame, aim highlight) stops at the boxes. Posed once a frame
+  (FRAME in bodies3dBegin + feet/yaw key). Old Barkhide: raycast of its rig meshes (rigPose/rigRole; pad: 5 rays).
+- Headshots: rayEnemy records E.rayRole / E.rayY; E.headAt(at) = hit on the Head part (falls back to headY for flat
+  cut-outs and bodies with no Head part). Callers in player.js and turret.js use headAt.
+- Result: every enemy and boss within 0-2% missed / 0-2% empty-air (with a fresh pose per test ray), headshots credited
+  ~100% on the head, ~0% on the body. Cost ~0.06 ms a shot with 40 enemies. Unchanged: raid heart (E.raidHeart keeps
+  its cylinder), flat cut-out mode, melee reach / explosions / contact (still hitR / radius).
+- Test hooks: window.__bodyPoints, __bodyRay, __DATA (TEST builds). Picture: out/hitboxes_before_after.png.

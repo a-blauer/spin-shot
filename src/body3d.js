@@ -257,7 +257,8 @@ function kindFor(creature) {
     const S = sculpt(D, D.role), K = { geo: S.geo, thick: S.thick, tris: S.tris, atlas: m.atlas, n: 0 }; makeMesh(K, 24); list.push(K); }
   KINDS.set(creature, list); return list;
 }
-export function bodies3dBegin() { for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); if (EYES) EYES.n = 0; if (TEETH) TEETH.n = 0; if (GEAR) for (const k in GEAR) GEAR[k].n = 0; for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) K.shellN = 0; }
+let FRAME = 0;   // counts drawn frames: a creature's hit shapes are posed once a frame
+export function bodies3dBegin() { FRAME++; for (const list of KINDS.values()) for (const K of list) if (K) K.n = 0; for (const R of CUSTOM) R.frame(); if (EYES) EYES.n = 0; if (TEETH) TEETH.n = 0; if (GEAR) for (const k in GEAR) GEAR[k].n = 0; for (const list of KINDS.values()) for (const K of list) if (K && K.shellM) K.shellN = 0; }
 export function bodies3dEnd() {
   if (GEAR) for (const k in GEAR) { const G = GEAR[k]; G.mesh.count = G.n; if (G.n) G.mesh.instanceMatrix.needsUpdate = true; }
   if (TEETH) { TEETH.mesh.count = TEETH.n; if (TEETH.n) TEETH.mesh.instanceMatrix.needsUpdate = true; }
@@ -269,6 +270,37 @@ export function bodies3dStats() { let calls = 0, tris = 0, kinds = 0; for (const
 
 // ------------------------------------------------------------------------------------------------ one creature
 const _root = new THREE.Matrix4(), _m = new THREE.Matrix4(), _a = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _p = new THREE.Vector3();
+const _ro = new THREE.Vector3(), _rd = new THREE.Vector3();
+// a part's surface in small boxes: its triangles sorted into a grid of cells (six along its longest side, three along the
+// next) by where their middles fall, each cell boxed round whole triangles. A shot tests the boxes, then the triangles in
+// any box it passes through: exact, and only a few dozen triangles a shot.
+function sliceBoxes(geo, NA = 6, NB = 3) {
+  const p = geo.getAttribute('position'), ix = geo.getIndex(), nT = ix ? ix.count / 3 : p.count / 3;
+  geo.computeBoundingBox(); const bb = geo.boundingBox, sz = bb.getSize(new THREE.Vector3());
+  const order = ['x', 'y', 'z'].sort((a, b) => sz[b] - sz[a]), A = order[0], Bx = order[1];
+  const sa = sz[A] / NA || 1, sb = sz[Bx] / NB || 1, cells = new Map(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), m = new THREE.Vector3();
+  for (let t = 0; t < nT; t++) {
+    const i0 = ix ? ix.getX(t * 3) : t * 3, i1 = ix ? ix.getX(t * 3 + 1) : t * 3 + 1, i2 = ix ? ix.getX(t * 3 + 2) : t * 3 + 2;
+    a.fromBufferAttribute(p, i0); b.fromBufferAttribute(p, i1); c.fromBufferAttribute(p, i2); m.copy(a).add(b).add(c).multiplyScalar(1 / 3);
+    const ia = Math.min(NA - 1, Math.max(0, Math.floor((m[A] - bb.min[A]) / sa))), ib = Math.min(NB - 1, Math.max(0, Math.floor((m[Bx] - bb.min[Bx]) / sb)));
+    const key = ia * NB + ib; let C = cells.get(key); if (!C) cells.set(key, (C = { box: new THREE.Box3(), tri: [] }));
+    C.box.expandByPoint(a); C.box.expandByPoint(b); C.box.expandByPoint(c); C.tri.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  }
+  return [...cells.values()].map(({ box: B, tri }) => ({ min: B.min, max: B.max, tri: new Float32Array(tri), c: [0, 1, 2, 3, 4, 5, 6, 7].map((k) => new THREE.Vector3(k & 1 ? B.max.x : B.min.x, k & 2 ? B.max.y : B.min.y, k & 4 ? B.max.z : B.min.z)) }));
+}
+// the nearest of a cell's triangles a ray meets within [0, tMax] (both faces), or -1
+function rayTris(T, o, d, tMax) {
+  let best = -1;
+  for (let k = 0; k < T.length; k += 9) {
+    const e1x = T[k + 3] - T[k], e1y = T[k + 4] - T[k + 1], e1z = T[k + 5] - T[k + 2], e2x = T[k + 6] - T[k], e2y = T[k + 7] - T[k + 1], e2z = T[k + 8] - T[k + 2];
+    const px = d.y * e2z - d.z * e2y, py = d.z * e2x - d.x * e2z, pz = d.x * e2y - d.y * e2x, det = e1x * px + e1y * py + e1z * pz;
+    if (Math.abs(det) < 1e-12) continue; const inv = 1 / det, tx = o.x - T[k], ty = o.y - T[k + 1], tz = o.z - T[k + 2];
+    const u = (tx * px + ty * py + tz * pz) * inv; if (u < 0 || u > 1) continue;
+    const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x, v = (d.x * qx + d.y * qy + d.z * qz) * inv; if (v < 0 || u + v > 1) continue;
+    const t = (e2x * qx + e2y * qy + e2z * qz) * inv; if (t >= 0 && t <= tMax && (best < 0 || t < best)) best = t;
+  }
+  return best;
+}
 const interpTo = (cur, tgt, dt, speed) => cur + (tgt - cur) * Math.min(1, dt * speed);
 
 const BEASTS = new Set('TimberWolf Lion CinderHound Rat Bullfrog Skitterling Webspinner Scarab Scorpion TwinHound BroodMother Ironhide Carapace Toad Hydra Snapvine Devourer'.split(' '));
@@ -286,6 +318,61 @@ export class Body3D extends Puppet {
     if (creature === 'Ironhide' && SCENE) { try { this.custom = new IronhideRig(SCENE); CUSTOM.add(this.custom); this.plates = 4; } catch (e) { this.custom = null; if (typeof window !== 'undefined') window.__ihErr = String(e && e.stack || e).slice(0, 300); } }
   }
   setStrain(i) { if (this.creature === 'B_Furnace') i = 4; this.strain = i; this.strainC = strainRGB(i); }   // the Furnace burns: it is Char whatever stretch it turns up in
+  // ---- hit shapes: the drawn body itself. Each part's surface is cut into small boxes (sliceBoxes), in the part's own frame, so a shot hits what it is seen to hit, limb by limb (and the head is the Head part).
+  // Posed once a frame; hitBound() is the upright cylinder round all of it, for a cheap first test.
+  hitReady() { return this.is3D && !!this.feet && (!!this.custom || !!this.kind); }
+  hitPose() {
+    const key = FRAME + this.feet.x * 7.1 + this.feet.y * 3.3 + this.feet.z * 1.7 + this.yaw3 + (this.deathT || 0);
+    if (this._hk === key && this._hs) return this._hs;
+    this._hk = key; this.rootMatrix(); if (this.sculpted) this.keepOnFloor();
+    const hs = this._hs || (this._hs = []); hs.length = 0; let r = 0, y0 = 1e9, y1 = -1e9;
+    for (let i = 0; i < this.parts.length; i++) {
+      const P = this.parts[i], K = this.kind[i]; if (!K || !P.visible || P.fly) continue;
+      if (!K.slices) K.slices = sliceBoxes(K.geo);
+      const M = (this._hm || (this._hm = []))[i] || (this._hm[i] = new THREE.Matrix4()), I = (this._hi || (this._hi = []))[i] || (this._hi[i] = new THREE.Matrix4());
+      this.partMatrix(P, M); M.premultiply(_root); I.copy(M).invert();
+      const sc = Math.cbrt(Math.abs(M.determinant())) || 1;
+      for (const b of K.slices) { for (const c of b.c) { _v.copy(c).applyMatrix4(M); r = Math.max(r, Math.hypot(_v.x - this.feet.x, _v.z - this.feet.z)); y0 = Math.min(y0, _v.y); y1 = Math.max(y1, _v.y); } }
+      hs.push({ role: P.role, M, I, sc, K });
+    }
+    this._hb = { r, y0, y1 }; return hs;
+  }
+  hitBound() { if (this.custom) { this.rigPose(); return this._hb; } this.hitPose(); return this._hb; }
+  // the hand-built rig (Old Barkhide) is hit on its own meshes: posed as drawn, then raycast (one creature, a few meshes)
+  rigPose() {
+    const key = FRAME + this.feet.x * 7.1 + this.feet.y * 3.3 + this.feet.z * 1.7 + this.yaw3 + (this.deathT || 0); if (this._hk === key && this._hb) return;
+    this._hk = key; this.rootMatrix(); this.custom.pose(this, _root, (this.heightCm / Math.max(1e-3, this.baseScale)) / 180); this.custom.root.updateMatrixWorld(true);
+    const bx = (this._rbx || (this._rbx = new THREE.Box3())).setFromObject(this.custom.root);
+    this._hb = { r: Math.max(Math.abs(bx.min.x - this.feet.x), Math.abs(bx.max.x - this.feet.x), Math.abs(bx.min.z - this.feet.z), Math.abs(bx.max.z - this.feet.z)) * 1.42, y0: bx.min.y, y1: bx.max.y };
+  }
+  rigRole(obj) { for (let o = obj; o; o = o.parent) if (o === this.custom.head) return 'Head'; return 'Body'; }
+  // the nearest part a ray meets: { t, role } (t along d, as d is given), or null. pad widens every box (world units)
+  rayParts(o, d, maxT, pad = 0) {
+    if (this.custom) {   // a broad shot (pad) tries its edges too: four more rays, pad out to the sides
+      this.rigPose(); _rd.set(-d.z, 0, d.x).normalize(); if (_rd.lengthSq() < 0.5) _rd.set(1, 0, 0); _ro.crossVectors(d, _rd).normalize();
+      let best = null; const offs = pad > 0 ? [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]] : [[0, 0]];
+      for (const [a, b] of offs) { _p.copy(o).addScaledVector(_rd, a * pad).addScaledVector(_ro, b * pad); _rc.set(_p, d); _rc.far = best ? best.t : maxT;
+        const h = _rc.intersectObject(this.custom.root, true).find((q) => q.object.visible); if (h && (!best || h.distance < best.t)) best = { t: h.distance, role: this.rigRole(h.object) }; }
+      return best; }
+    const hs = this.hitPose(); let best = null;
+    for (const h of hs) {
+      _ro.copy(o).applyMatrix4(h.I); _rd.copy(o).add(d).applyMatrix4(h.I).sub(_ro);   // the ray in the part's frame (same t)
+      const p = pad / h.sc;
+      for (const b of h.K.slices) {
+        let t0 = 0, t1 = best ? best.t : maxT, ok = true;
+        for (const ax of ['x', 'y', 'z']) {
+          const lo = b.min[ax] - p, hi = b.max[ax] + p, oo = _ro[ax], dd = _rd[ax];
+          if (Math.abs(dd) < 1e-9) { if (oo < lo || oo > hi) { ok = false; break; } continue; }
+          let a = (lo - oo) / dd, c = (hi - oo) / dd; if (a > c) { const q = a; a = c; c = q; }
+          if (a > t0) t0 = a; if (c < t1) t1 = c; if (t0 > t1) { ok = false; break; }
+        }
+        if (!ok || (best && t0 >= best.t)) continue;
+        if (pad > 0) { best = { t: t0, role: h.role }; continue; }   // a broad shot (a projectile's size, a flame): the box will do
+        const t = rayTris(b.tri, _ro, _rd, best ? best.t : maxT); if (t >= 0) best = { t, role: h.role };
+      }
+    }
+    return best;
+  }
   // a sculpted part knocked off: it flies on its own (spinning, falling, bouncing on the floor) and lies where it lands
   fling(P, at, vel) {
     if (!this.feet) return;   // hit before it was ever drawn: nothing placed yet to throw
@@ -456,4 +543,31 @@ export function bodies3dAudit(creature) {
     return { role: D.role, tris: K.tris, thick: +K.thick.toFixed(1), w: +D.size[0].toFixed(0), h: +D.size[1].toFixed(0), bad }; });
 }
 
+// for checking hit shapes against the bodies drawn: one creature's posed surface in world space, part by part (sampled)
+export function bodyPoints(B, per = 300) {
+  if (!B || !B.is3D || !B.kind || !B.feet || B.custom) return null; B.rootMatrix(); if (B.sculpted) B.keepOnFloor();
+  const out = [];
+  for (let i = 0; i < B.parts.length; i++) {
+    const P = B.parts[i], K = B.kind[i]; if (!K || !P.visible || P.fly) continue;
+    B.partMatrix(P, _m); _m.premultiply(_root); const p = K.geo.getAttribute('position'), step = Math.max(1, Math.floor(p.count / per));
+    for (let k = 0; k < p.count; k += step) { _v.fromBufferAttribute(p, k).applyMatrix4(_m); out.push([P.role, _v.x, _v.y, _v.z]); }
+  }
+  return out;
+}
+// for checking hit shapes: what a ray from o along d meets first on the drawn body, and which part (null: nothing)
+const _rc = new THREE.Raycaster(), _rcMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+export function bodyRay(B, o, d, far = 1e5) {
+  if (B && B.custom && B.feet) { B.rigPose(); _rc.set(o, d); _rc.far = far; const h = _rc.intersectObject(B.custom.root, true).find((q) => q.object.visible); return h ? { t: h.distance, role: B.rigRole(h.object), y: h.point.y } : null; }
+  if (!B || !B.is3D || !B.kind || !B.feet || B.custom) return null; B.rootMatrix(); if (B.sculpted) B.keepOnFloor();
+  if (!B._rcM) B._rcM = []; let best = null; _rc.set(o, d); _rc.far = far;
+  for (let i = 0; i < B.parts.length; i++) {
+    const P = B.parts[i], K = B.kind[i]; if (!K || !P.visible || P.fly) continue;
+    const M = B._rcM[i] || (B._rcM[i] = new THREE.Mesh(K.geo, _rcMat)); M.matrixAutoUpdate = false;
+    B.partMatrix(P, _m); _m.premultiply(_root); M.matrix.copy(_m); M.matrixWorld.copy(_m);
+    const h = _rc.intersectObject(M, false)[0]; if (h && (!best || h.distance < best.t)) best = { t: h.distance, role: P.role, y: h.point.y };
+  }
+  return best;
+}
 if (typeof window !== 'undefined') window.__Body3D = Body3D;
+if (typeof window !== 'undefined') window.__bodyRay = bodyRay;
+if (typeof window !== 'undefined') window.__bodyPoints = bodyPoints;

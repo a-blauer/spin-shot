@@ -309,9 +309,22 @@ export class Game {
   // ray vs the enemy's hit shape; returns entry distance or null. The shape is an upright cylinder fitted to the
   // creature's drawn body (feet to the top of its head, as wide as its torso), not the slim capsule it walks on:
   // enemies are flat cut-outs that always face you, so what you see is what you can hit.
+  // A sculpted 3D body is hit on its own parts (Body3D.rayParts): the cylinder round all of them is only the first, cheap
+  // test. E.rayRole / E.rayY record which part the last hit landed on, for headshots (E.headAt).
   rayEnemy(o, d, maxT, E, extra = 0) {
+    const B = E.puppet;
+    if (B && B.hitReady && B.hitReady() && !E.raidHeart) {
+      const hb = B.hitBound(), c0 = B.feet, t0 = this.rayCyl(o, d, maxT, c0.x, c0.z, hb.r + extra, hb.y0 - extra, hb.y1 + extra);
+      if (t0 === null) return null;
+      const h = B.rayParts(o, d, maxT, extra); if (!h) return null;
+      E.rayRole = h.role; E.rayY = o.y + d.y * h.t; return h.t;
+    }
+    E.rayRole = null;
     const r = (E.hitR || E.radius) + extra, y0 = E.pos.y - E.feetOffset - extra, y1 = E.pos.y - E.feetOffset + (E.hitH || E.half * 2) + extra;
-    const c = E.pos, ox = o.x - c.x, oz = o.z - c.z;
+    return this.rayCyl(o, d, maxT, E.pos.x, E.pos.z, r, y0, y1);
+  }
+  rayCyl(o, d, maxT, cx, cz, r, y0, y1) {
+    const ox = o.x - cx, oz = o.z - cz;
     let best = null;
     const a = d.x * d.x + d.z * d.z, b = 2 * (ox * d.x + oz * d.z), cc = ox * ox + oz * oz - r * r;
     if (cc < 0 && o.y >= y0 && o.y <= y1) return 0;   // already inside it
