@@ -62,7 +62,7 @@ for (const name of names) {
     parts.push({ eyes, teeth, role: pt.role, pivot: [pv[0], pv[1], pv[2] || 0], off: off.map((x) => +x.toFixed(2)), size: [+(mx[0] - mn[0]).toFixed(1), +(mx[1] - mn[1]).toFixed(1)], top: +mx[1].toFixed(1), v: N, i: M.idx.length, i32: N >= 65536, z: 3, b64: deflateRawSync(Buffer.concat(bufs), { level: 9 }).toString('base64') });
     console.log(`  ${name}.${pt.role}: ${M0.tris} -> ${M.tris} tris`);
   }
-  const rec = { height: K.height, beast: !!K.beast, scale: K.scale || 1, parts };
+  const rec = { height: K.height, beast: !!K.beast, scale: K.scale || 1, lean: K.lean ?? 1, parts };
   // bosses ship in a file each (fetched when a run starts); the common roster in one file loaded up front
   if (name.startsWith('B_')) { writeFileSync(new URL(`bl_${name}.json`, DIR), JSON.stringify({ v: 1, creatures: { [name]: rec } })); delete old.creatures[name]; }
   else old.creatures[name] = rec;

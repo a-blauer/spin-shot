@@ -201,6 +201,13 @@ function growEyes() {
     SCENE.remove(old); old.dispose(); SCENE.add(m); return m; });
   E.cap = cap;
 }
+// the lowest points of a part (a band at the bottom of it, thinned to a few) for keepOnFloor()
+function contactPoints(geo) {
+  const P = geo.attributes.position, n = P.count; let lo = Infinity; for (let i = 0; i < n; i++) lo = Math.min(lo, P.getY(i));
+  const L = []; for (let i = 0; i < n; i++) if (P.getY(i) < lo + 4) L.push(i);
+  const out = [], st = Math.max(1, Math.floor(L.length / 24)); for (let k = 0; k < L.length; k += st) { const i = L[k]; out.push(new THREE.Vector3(P.getX(i), P.getY(i), P.getZ(i))); }
+  return out;
+}
 // teeth: the same idea, a cone per tooth along the lips, shaded like the rest of the body
 function toothMats(list) {
   if (!list || !list.length) return null;
@@ -270,7 +277,7 @@ const CAPPED = new Set(['Rotcap', 'Inkcap', 'B_BroodMother', 'Sporeling', 'Puffb
 export class Body3D extends Puppet {
   constructor(creature, scale, tint, aura, auraSize) {
     super(creature, scale, tint, aura, auraSize);
-    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature) || !!(BLIGHT.get(creature) && BLIGHT.get(creature).beast); this.sculpted = BLIGHT.has(creature); this.capped = CAPPED.has(creature); this.strainC = strainRGB(0); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
+    this.is3D = true; this.creature = creature; this.facing = 1; this.beast = BEASTS.has(creature) || !!(BLIGHT.get(creature) && BLIGHT.get(creature).beast); this.sculpted = BLIGHT.has(creature); this.leanK = BLIGHT.has(creature) ? BLIGHT.get(creature).lean : 1; this.capped = CAPPED.has(creature); this.strainC = strainRGB(0); this.hasLegs = this.parts.some((q) => q.role === 'LegFront' || q.role === 'LegBack');
     this.kind = SCENE && PARTS ? kindFor(creature) : null;
     if (!this.kind || !this.kind.some(Boolean)) { this.is3D = false; this.kind = null; return; }   // no art to sculpt from: stay a cut-out
     const B = this.parts.find((p) => p.role === 'Body') || this.parts[0];
@@ -357,7 +364,8 @@ export class Body3D extends Puppet {
   }
   rootMatrix() {
     const f = this.feet, s = this.baseScale;
-    let pitch = (this.leanF || 0) * 9 + this.lunge * 8 - this.windup * 8 - this.hurtT * 11, roll = this.bodyRot * 0.45, drop = 0;
+    // the lean into a run, the lunge and the wind-up tip it about its feet (not for a creature rooted in or dragging along the floor: leanK 0)
+    let pitch = ((this.leanF || 0) * 9 + this.lunge * 8 - this.windup * 8 - this.hurtT * 11) * (this.leanK ?? 1), roll = this.bodyRot * 0.45, drop = 0;
 
     if (this.dying) { const A = Math.min(1, this.deathT / 0.34), e = 1 - (1 - A) * (1 - A); pitch += (this.fall || 1) * -86 * e; roll *= 1 - e; drop = this.deathT > 0.9 ? (this.deathT - 0.9) * 120 : -Math.sin(A * Math.PI) * 14; }
     _e.set(pitch * D2R, this.yaw3, roll * D2R, 'YXZ'); _q.setFromEuler(_e);
@@ -389,6 +397,7 @@ export class Body3D extends Puppet {
     const flash = this.flashT > 0 ? 1 : 0, t = this.tint;
     this.rootMatrix();
     if (this.custom) { this.custom.pose(this, _root, (this.heightCm / Math.max(1e-3, this.baseScale)) / 180); return; }
+    if (this.sculpted) this.keepOnFloor();
     for (let i = 0; i < this.parts.length; i++) {
       const P = this.parts[i], K = this.kind[i]; if (!K || (!P.visible && !P.fly)) continue;
       if (K.n >= K.cap) makeMesh(K, K.cap * 2);
@@ -398,12 +407,28 @@ export class Body3D extends Puppet {
       const a = K.tint.array, o = K.n * 4; a[o] = t[0]; a[o + 1] = t[1]; a[o + 2] = t[2]; a[o + 3] = flash;
       if (K.blight) { const sc = this.strainC, o3 = K.n * 3; K.iCap.array.set(sc[0], o3); K.iFlesh.array.set(sc[1], o3); K.iGlow.array.set(sc[2], o3); }
       K.n++;
-      if (K.eyes && !this.dying) { const E = eyes(), g = this.strainC[2];
+      if (K.eyes) { const E = eyes(), g0 = this.strainC[2], dim = this.dying ? Math.max(0.12, 1 - this.deathT * 2.5) : 1, g = [g0[0] * dim, g0[1] * dim, g0[2] * dim];   // eyes go out as it dies
         for (const M of K.eyes) { if (E.n >= E.cap) growEyes(); _eye.multiplyMatrices(_m, M); for (const m of E.parts) _eye.toArray(m.instanceMatrix.array, E.n * 16);
-          E.parts[0].instanceColor.array.set([Math.min(1, g[0] * 1.15 + flash), Math.min(1, g[1] * 1.15 + flash), Math.min(1, g[2] * 1.15 + flash)], E.n * 3); E.n++; } }
-      if (K.teeth && !this.dying) { const T = teeth(); for (const M of K.teeth) { if (T.n >= T.cap) growTeeth(); _eye.multiplyMatrices(_m, M); _eye.toArray(T.mesh.instanceMatrix.array, T.n * 16); T.n++; } }
+          E.parts[0].instanceColor.array.set([Math.min(1, g[0] * 1.15 + flash * dim), Math.min(1, g[1] * 1.15 + flash * dim), Math.min(1, g[2] * 1.15 + flash * dim)], E.n * 3); E.n++; } }
+      if (K.teeth) { const T = teeth(); for (const M of K.teeth) { if (T.n >= T.cap) growTeeth(); _eye.multiplyMatrices(_m, M); _eye.toArray(T.mesh.instanceMatrix.array, T.n * 16); T.n++; } }
     }
     if (alive && !this.dying && this.mods && this.mods.includes('Armored')) this.drawBark();
+  }
+  // Nothing goes through the floor: a limb swung back, the body leant into a run or a lunge can carry a foot (or a paw,
+  // a fist, a tendril) below the ground. Each part's lowest points are found once; every frame, if any of them would be
+  // under the floor, the whole creature is lifted that much, as a body really rises over a straightened leg.
+  keepOnFloor() {
+    const S = this.S || {};
+    if (this.dying || S.flying || (S.sink || 0) > 0.001 || S.grounded === false || !this.feet) return;
+    const fy = this.feet.y; let low = 0;
+    for (let i = 0; i < this.parts.length; i++) {
+      const P = this.parts[i], K = this.kind[i]; if (!K || !P.visible || P.fly || P.role === 'Body' || P.role === 'Head') continue;
+      if (!K.contact) K.contact = contactPoints(K.geo);
+      if (!K.contact.length) continue;
+      this.partMatrix(P, _m); _m.premultiply(_root);
+      for (const v of K.contact) { _v.copy(v).applyMatrix4(_m); if (_v.y - fy < low) low = _v.y - fy; }
+    }
+    if (low < 0) { _a.makeTranslation(0, Math.min(-low, (this.heightCm || 200) * 0.25), 0); _root.premultiply(_a); }
   }
   // Armored: bark plates and shelves on this creature's own surface (anchors worked out once per kind and part)
   drawBark() {

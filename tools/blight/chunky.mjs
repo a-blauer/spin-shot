@@ -132,8 +132,8 @@ const SC_EYES = [-1, 1].map((s) => E([s * 5, 177.5, 12.2], 2.8, s));
 export const Sporecaller = {
   height: 235,
   parts: [
-    { role: 'LegBack', pivot: [-12, 60, 0], lo: [-36, -4, -30], hi: [6, 70, 36], h: 1.4, f: (p) => { reset(); leg(p, [-12, 60, 0], [-13, 34, 3], [-12, 12, 1], 8, 7, -1); return getD(); } },
-    { role: 'LegFront', pivot: [12, 60, 0], lo: [-6, -4, -30], hi: [36, 70, 36], h: 1.4, f: (p) => { reset(); leg(p, [12, 60, 0], [13, 34, 3], [12, 12, 1], 8, 7, 1); return getD(); } },
+    { role: 'LegBack', pivot: [-12, 60, 0], lo: [-36, -4, -30], hi: [6, 108, 36], h: 1.4, f: (p) => { reset(); leg(p, [-12, 60, 0], [-13, 34, 3], [-12, 12, 1], 8, 7, -1); U(cap(p, [-12, 60, 0], [-10, 94, 0], 9, 11), MYC, 4); return getD(); } },
+    { role: 'LegFront', pivot: [12, 60, 0], lo: [-6, -4, -30], hi: [36, 108, 36], h: 1.4, f: (p) => { reset(); leg(p, [12, 60, 0], [13, 34, 3], [12, 12, 1], 8, 7, 1); U(cap(p, [12, 60, 0], [10, 94, 0], 9, 11), MYC, 4); return getD(); } },
     { role: 'Body', pivot: [0, 60, 0], lo: [-52, 16, -52], hi: [52, 182, 52], h: 1.6, f: callerBody, tris: 9000 },
     { role: 'ArmBack', pivot: [-16, 160, 2], lo: [-50, 70, -24], hi: [-2, 168, 44], h: 1.3, f: (p) => { reset(); sleeve(p, -1); return getD(); } },
     { role: 'ArmFront', pivot: [16, 160, 2], lo: [2, 20, -24], hi: [56, 168, 60], h: 1.3, f: callerArm, tris: 4000 },
@@ -357,7 +357,7 @@ export const BlightRat = {
       for (const [x, z, h] of [[-6, -6, 46], [5, -14, 56], [-2, -24, 40]]) { const top = [x * 1.6, 60 + h, z - 4];
         U(cap(p, [x, 62, z], top, 4.2, 3.2), MYC, 3); U(ell(p, top, [7.5, 4, 7.5]), CAP(1), 2); P(sph(p, [top[0], top[1] + 3, top[2]], 3.4), GLOW(1), 0.6); }
       return getD(); } },
-    { role: 'Tail', pivot: [0, 34, -42], lo: [-24, -4, -140], hi: [24, 48, -30], h: 1.1, tris: 1500, f: (p) => { reset(); chain(p, [[0, 36, -42], [3, 28, -70], [-4, 18, -98], [4, 10, -126]], 6, 2.4, PINKY, 3); return getD(); } },
+    { role: 'Tail', pivot: [0, 34, -42], lo: [-24, -4, -140], hi: [24, 48, -30], h: 1.1, tris: 1500, f: (p) => { reset(); chain(p, [[0, 40, -28], [0, 36, -44], [3, 28, -70], [-4, 18, -98], [4, 10, -126]], 7, 2.4, PINKY, 3); return getD(); } },   // rooted well inside the body, so it stays on as it swings
     { role: 'ArmBack', pivot: [-11, 34, 26], lo: [-30, -4, 6], hi: [4, 48, 50], h: 1.1, f: (p) => { reset(); beastLeg(p, [-12, 36, 26], [-14, 20, 30], [-13, 8, 28], 5.5, FUR_A); return getD(); } },
     { role: 'ArmFront', pivot: [11, 34, 26], lo: [-4, -4, 6], hi: [30, 48, 50], h: 1.1, f: (p) => { reset(); beastLeg(p, [12, 36, 26], [14, 20, 30], [13, 8, 28], 5.5, FUR_A); return getD(); } },
     { role: 'Head', pivot: [0, 46, 32], lo: [-32, 20, 16], hi: [32, 80, 96], h: 0.9, tris: 7000, eyes: RT_EYES, teeth: RT_TEETH, f: (p) => { reset();
@@ -521,6 +521,7 @@ export const GoldenTruffle = {
 const RW_TEETH = (() => { const T = [], c = [0, 106, 58]; for (let ring = 0; ring < 2; ring++) for (let i = 0; i < 9; i++) { const a = i * 0.698 + ring * 0.35, R = 19 - ring * 7; const at = [c[0] + Math.cos(a) * R, c[1] + Math.sin(a) * R, c[2] - ring * 4]; T.push({ a: at, b: [c[0] + Math.cos(a) * R * 0.45, c[1] + Math.sin(a) * R * 0.45, c[2] - ring * 4 + 2], r: 3 - ring }); } return T; })();
 const RW_EYES = [-1, 1].map((s) => E([s * 14, 128, 50], 4, s, [s * 0.3, 0.3, 1]));
 export const Rootworm = {
+  lean: 0,
   height: 120,
   parts: [
     { role: 'Body', pivot: [0, 0, 0], lo: [-58, -20, -66], hi: [58, 102, 62], h: 1.5, tris: 9000, f: (p) => { reset();
@@ -544,6 +545,7 @@ export const Rootworm = {
 // A clutch of fat round pods on a mat, the big one in the middle split by a glowing seam with teeth along it.
 const SP_TEETH = [-6, -2, 2, 6].map((x, i) => ({ a: [x, 58 + (i % 2) * 0.5, 15], b: [x, 52, 16.5], r: 1.8 }));
 export const SporePod = {
+  lean: 0,
   height: 64,
   parts: [
     { role: 'Body', pivot: [0, 0, 0], lo: [-58, -4, -58], hi: [58, 72, 58], h: 1.3, tris: 7000, f: (p) => { reset();
@@ -562,6 +564,7 @@ export const SporePod = {
 // A thick braid of mycelium rising out of a mat, swaying, ending in a hooked three-fingered claw; a few caps and lit
 // pores along it.
 export const GraspingMycel = {
+  lean: 0,
   height: 140,
   parts: [
     { role: 'Body', pivot: [0, 0, 0], lo: [-58, -16, -58], hi: [58, 86, 58], h: 1.3, tris: 6000, f: (p) => { reset();
@@ -603,6 +606,7 @@ function ringTeeth(c, R, n, r, len0 = 0.5, z0 = 0) { const T = []; for (let i = 
 const BM_EYES = [[-9, 182, 70, 5, -1], [9, 182, 70, 5, 1], [-19, 190, 62, 3.6, -1], [19, 190, 62, 3.6, 1]].map(([x, y, z, r, s]) => E([x, y, z], r, s, [s * 0.3, 0, 1]));
 const BM_MOUTH = Mouth([0, 164, 68], 15, 5, 5, 6);
 export const B_BroodMother = {
+  lean: 0,
   height: 205,
   parts: [
     { role: 'LegBack', pivot: [-22, 60, 26], lo: [-62, -4, -14], hi: [10, 86, 70], h: 1.6, f: (p) => { reset(); leg(p, [-22, 66, 26], [-26, 36, 30], [-26, 12, 28], 14, 12, -1); return getD(); } },
@@ -738,6 +742,7 @@ const WY_C = [0, 112, 84];
 const WY_TEETH = [...ringTeeth(WY_C, 28, 12, 4.4, 0.45, -2), ...ringTeeth(WY_C, 18, 10, 3.2, 0.4, -8)];
 const WY_EYES = [-1, 1].map((s) => E([s * 22, 146, 70], 6, s, [s * 0.35, 0.3, 1]));
 export const B_Wyrm = {
+  lean: 0,
   height: 140,
   parts: [
     { role: 'Body', pivot: [0, 0, 0], lo: [-68, -8, -76], hi: [68, 112, 70], h: 1.7, tris: 10000, f: (p) => { reset();
@@ -861,6 +866,7 @@ function hydraNeck(base, mid, head) {
 const HY_H = hydraNeck([0, 110, 10], [0, 170, 22], [0, 236, 30]), HY_A = hydraNeck([40, 104, 4], [80, 160, 10], [104, 206, 20]),
   HY_B = hydraNeck([-40, 104, 4], [-80, 160, 10], [-104, 206, 20]), HY_T = hydraNeck([0, 104, -36], [0, 170, -74], [0, 222, -96]);
 export const B_Hydra = {
+  lean: 0,
   height: 230,
   parts: [
     { role: 'Body', pivot: [0, 50, 0], lo: [-104, -4, -104], hi: [104, 144, 104], h: 1.7, tris: 12000, f: (p) => { reset();
@@ -869,9 +875,10 @@ export const B_Hydra = {
       for (let i = 0; i < 8; i++) { const a = i * 0.785; chain(p, [[Math.cos(a) * 60, 20, Math.sin(a) * 60], [Math.cos(a) * 88, 8, Math.sin(a) * 88], [Math.cos(a) * 100, 0, Math.sin(a) * 100]], 11, 5, ROOT, 5); }
       S(p[1], 1); return getD(); } },
     { role: 'Head', pivot: [0, 110, 10], lo: [-52, 88, -42], hi: [52, 286, 72], h: 1.2, tris: 7000, eyes: HY_H.eyes, teeth: HY_H.teeth, f: HY_H.f },
-    { role: 'ArmFront', pivot: [40, 100, 4], lo: [18, 78, -52], hi: [142, 256, 62], h: 1.2, tris: 7000, eyes: HY_A.eyes, teeth: HY_A.teeth, f: HY_A.f },
-    { role: 'ArmBack', pivot: [-40, 100, 4], lo: [-142, 78, -52], hi: [-18, 256, 62], h: 1.2, tris: 7000, eyes: HY_B.eyes, teeth: HY_B.teeth, f: HY_B.f },
-    { role: 'Tail', pivot: [0, 100, -36], lo: [-62, 78, -152], hi: [62, 272, -18], h: 1.2, tris: 7000, eyes: HY_T.eyes, teeth: HY_T.teeth, f: HY_T.f },
+    // all four necks animate as heads (they sway and strike like a head; an arm's chop would fold an upright neck over backwards)
+    { role: 'Head', pivot: [40, 100, 4], lo: [18, 78, -52], hi: [142, 256, 62], h: 1.2, tris: 7000, eyes: HY_A.eyes, teeth: HY_A.teeth, f: HY_A.f },
+    { role: 'Head', pivot: [-40, 100, 4], lo: [-142, 78, -52], hi: [-18, 256, 62], h: 1.2, tris: 7000, eyes: HY_B.eyes, teeth: HY_B.teeth, f: HY_B.f },
+    { role: 'Head', pivot: [0, 100, -36], lo: [-62, 78, -152], hi: [62, 272, -18], h: 1.2, tris: 7000, eyes: HY_T.eyes, teeth: HY_T.teeth, f: HY_T.f },
   ],
 };
 
@@ -882,8 +889,8 @@ const MQ_EYES = [-1, 1].map((s) => E([s * 5.5, 196, 15], 3.2, s, [s * 0.2, 0, 1]
 export const B_MirrorQueen = {
   height: 250,
   parts: [
-    { role: 'LegBack', pivot: [-12, 56, 0], lo: [-38, -4, -32], hi: [8, 68, 38], h: 1.3, f: (p) => { reset(); leg(p, [-12, 60, 0], [-13, 34, 3], [-12, 12, 1], 8, 7, -1); return getD(); } },
-    { role: 'LegFront', pivot: [12, 56, 0], lo: [-8, -4, -32], hi: [38, 68, 38], h: 1.3, f: (p) => { reset(); leg(p, [12, 60, 0], [13, 34, 3], [12, 12, 1], 8, 7, 1); return getD(); } },
+    { role: 'LegBack', pivot: [-12, 56, 0], lo: [-38, -4, -32], hi: [8, 112, 38], h: 1.3, f: (p) => { reset(); leg(p, [-12, 60, 0], [-13, 34, 3], [-12, 12, 1], 8, 7, -1); U(cap(p, [-12, 60, 0], [-10, 98, 0], 9, 11), FLESH(0.8), 4); return getD(); } },   // the thigh runs up into the gown
+    { role: 'LegFront', pivot: [12, 56, 0], lo: [-8, -4, -32], hi: [38, 112, 38], h: 1.3, f: (p) => { reset(); leg(p, [12, 60, 0], [13, 34, 3], [12, 12, 1], 8, 7, 1); U(cap(p, [12, 60, 0], [10, 98, 0], 9, 11), FLESH(0.8), 4); return getD(); } },
     { role: 'Body', pivot: [0, 56, 0], lo: [-62, 12, -62], hi: [62, 198, 62], h: 1.5, tris: 12000, f: (p) => { reset();
       const a = Math.atan2(p[2], p[0]), t = clamp((182 - p[1]) / 160, 0, 1), R = 12 + t * t * 44 + Math.sin(a * 12) * 2.2 * t;
       U(smax(3, len(p[0], 0, p[2]) - R, p[1] - 182, 20 - p[1]), MYC, 4);
@@ -924,7 +931,7 @@ export const B_Unblinking = {
       for (const s of [-1, 1]) U(torus(rotXp2([p[0], p[1], p[2]], [0, 132 + s * 36, 50], s * 0.5), [0, 0, 0], 40, 9), CAP(0.75), 6);   // heavy lids above and below
       P(p[1] - 96, FLESH(0.85), 8);
       return getD(); } },
-    { role: 'Head', pivot: [0, 130, 30], lo: [-62, 78, 18], hi: [62, 184, 98], h: 1.3, tris: 3000, eyes: UB_EYE, f: (p) => { reset();
+    { role: 'Head', pivot: [0, 132, 42], lo: [-62, 78, 18], hi: [62, 184, 98], h: 1.3, tris: 3000, eyes: UB_EYE, f: (p) => { reset();
       U(ell(p, [0, 132, 30], [36, 36, 14]), FLESH(0.8), 4);                              // what the eye is set in (behind the eye mesh)
       return getD(); } },
   ],
@@ -1121,14 +1128,14 @@ function trunkArm(p, s) {
 const LV_EYES = [-40, -20, 0, 20, 40].map((x, i) => E([x, 178 - Math.abs(x) * 0.3, 92 - Math.abs(x) * 0.5], i === 2 ? 9 : 7, x < 0 ? -1 : 1, [x / 60, 0.1, 1]));
 const LV_TEETH = [...ringTeeth([0, 110, 104], 30, 14, 4.4, 0.45, -2), ...ringTeeth([0, 110, 104], 18, 10, 3.2, 0.4, -10)];
 export const B_Leviathan = {
+  lean: 0,
   height: 200,
   parts: [
-    { role: 'Tail', pivot: [0, 70, 0], lo: [-94, -8, -94], hi: [94, 84, 94], h: 1.5, tris: 7000, f: (p) => { reset();
-      for (let i = 0; i < 8; i++) { const a = i * 0.785 + 0.4, x = Math.cos(a), z = Math.sin(a); chain(p, [[x * 50, 80, z * 50], [x * 74, 40, z * 74], [x * 84, 14, z * 84], [x * 90, 0, z * 90]], 14, 6, ROOT, 6); }
-      U(ell(p, [0, 6, 0], [92, 10, 92]), ROOT_D, 10); S(p[1], 1);
-      return getD(); } },
-    { role: 'Body', pivot: [0, 120, 0], lo: [-104, 56, -104], hi: [104, 240, 104], h: 1.8, tris: 14000, eyes: LV_EYES, f: (p) => { reset();
+    { role: 'Body', pivot: [0, 120, 0], lo: [-104, -8, -104], hi: [104, 240, 104], h: 1.8, tris: 16000, eyes: LV_EYES, f: (p) => { reset();
       U(ell(p, [0, 160, 0], [92, 74, 88]), CAP(1), 10);
+      // the roots it stands on, thick as legs, and the floor broken round them (part of the body: they never swing)
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + 0.4, x = Math.cos(a), z = Math.sin(a); chain(p, [[x * 50, 90, z * 50], [x * 74, 40, z * 74], [x * 84, 14, z * 84], [x * 90, 0, z * 90]], 14, 6, ROOT, 6); }
+      U(ell(p, [0, 6, 0], [92, 10, 92]), ROOT_D, 10); S(p[1], 1);
       U(cap(p, [0, 80, 0], [0, 140, 10], 64, 70), FLESH(0.9), 14);
       { const a = Math.atan2(p[2], p[0]), r = Math.sin(a * 9 + p[1] * 0.04) * Math.sin(p[1] * 0.08 + a * 3); P(Math.abs(r) - 0.12 + (p[1] < 186 ? 99 : 0), mixP(CAP(0.7), DARK, 0.25), 0.05); }   // brain ridges on top
       U(cap(p, [-60, 196, 70], [60, 196, 70], 9), CAP(0.8), 8);
@@ -1145,7 +1152,7 @@ export const B_Leviathan = {
 // ---------------------------------------------------------------- THE DEVOURER (devour)
 // A mouth that learned to walk: a great round body that is almost all maw, the maw ringed with rows of teeth and lit
 // deep inside, small mean eyes above it, carried low on six thick jointed root legs.
-const DV_EYES = [-1, 1].map((s) => E([s * 34, 158, 92], 7, s, [s * 0.4, 0.2, 1]));
+const DV_EYES = [-1, 1].map((s) => E([s * 26, 172, 92], 7.5, s, [s * 0.35, 0.65, 0.7]));
 const DV_TEETH = [...ringTeeth([0, 110, 126], 50, 18, 5, 0.4, -4), ...ringTeeth([0, 110, 126], 34, 14, 4, 0.4, -14)];
 export const B_Devourer = {
   height: 170,
@@ -1153,17 +1160,17 @@ export const B_Devourer = {
     ...[[1, 30, 'LegFront'], [1, -6, 'LegBack'], [1, -40, 'LegFront'], [-1, 30, 'LegBack'], [-1, -6, 'LegFront'], [-1, -40, 'LegBack']].map(([s, z, role]) => ({ role, pivot: [s * 56, 64, z], lo: s > 0 ? [26, -4, z - 64] : [-166, -4, z - 64], hi: s > 0 ? [166, 130, z + 64] : [-26, 130, z + 64], h: 1.5, tris: 3000,
       f: (p) => { reset(); const hip = [s * 60, 70, z], knee = [s * 118, 112, z + (z > 10 ? 22 : z < -10 ? -22 : 0)], foot = [s * 148, 4, z + (z > 10 ? 40 : z < -10 ? -40 : 0)];
         U(cap(p, hip, knee, 13, 11), ROOT, 6); U(sph(p, knee, 12), ROOT_D, 4); U(cap(p, knee, foot, 11, 7), ROOT, 5); U(ell(p, [foot[0], 4, foot[2]], [11, 5, 13]), ROOT_D, 4); S(p[1], 1); return getD(); } })),
-    { role: 'Body', pivot: [0, 70, 0], lo: [-104, 18, -114], hi: [104, 194, 114], h: 1.8, tris: 13000, eyes: DV_EYES, f: (p) => { reset();
+    { role: 'Body', pivot: [0, 70, 0], lo: [-104, 18, -114], hi: [104, 194, 114], h: 1.8, tris: 13000, f: (p) => { reset();
       U(ell(p, [0, 112, -6], [92, 78, 96]), CAP(1), 10);
       P(p[1] - 70, FLESH(0.85), 8);
-      for (const e of DV_EYES) socket(p, e);
       for (let i = 0; i < 7; i++) { const a = i * 2.4, x = Math.cos(a) * 50, z = -30 + Math.sin(a) * 40; U(cap(p, [x, 180, z], [x, 196, z], 5, 4), MYC, 2); U(smax(1.5, ell(p, [x, 198, z], [12, 7, 12]), 194 - p[1]), CAP(0.8), 2); }
-      S(p[2] - 80, 3); return getD(); } },
-    { role: 'Head', pivot: [0, 100, 50], lo: [-82, 28, 28], hi: [82, 172, 134], h: 1.3, tris: 10000, teeth: DV_TEETH, f: (p) => { reset();
-      U(cap(p, [0, 110, 60], [0, 110, 104], 70, 64), CAP(1), 10);
+      S(80 - p[2], 3); return getD(); } },   // the front is the maw (Head)
+    { role: 'Head', pivot: [0, 100, 50], lo: [-84, 26, 26], hi: [84, 192, 136], h: 1.3, tris: 10000, teeth: DV_TEETH, eyes: DV_EYES, f: (p) => { reset();
+      U(cap(p, [0, 110, 34], [0, 110, 104], 72, 64), CAP(1), 10);
+      for (const e of DV_EYES) socket(p, e);
       U(torus(rotXp(p, [0, 110, 116]), [0, 0, 0], 56, 11), FLESH(0.75), 6);
       S(cap(p, [0, 110, 140], [0, 110, 80], 46, 20), 6, MOUTH); P(sph(p, [0, 110, 74], 22), GLOW(1), 6);
-      S(p[2] - 54, 2); return getD(); } },
+      S(p[2] - 36, 2); return getD(); } },   // reaching back into the body, so tipping it forward never opens a seam
   ],
 };
 
@@ -1172,6 +1179,7 @@ export const B_Devourer = {
 // of light, and eyes, many of them, open all over the cloak, every one a sharp lit eye.
 const NM_EYES = (() => { const L = []; for (let i = 0; i < 14; i++) { const a = -0.9 + (i % 7) * 0.3 + (i > 6 ? 0.15 : 0), y = 70 + Math.floor(i / 7) * 60 + (i % 3) * 14, t = (232 - y) / 210, R = 34 + t * 64 + 4; L.push(E([Math.sin(a) * R, y, Math.cos(a) * R], 6 + (i % 3) * 2, Math.sin(a) < 0 ? -1 : 1, [Math.sin(a), 0, Math.cos(a)])); } return L; })();
 export const B_Nameless = {
+  lean: 0,
   height: 280,
   parts: [
     { role: 'Body', pivot: [0, 30, 0], lo: [-114, -4, -114], hi: [114, 240, 114], h: 1.8, tris: 16000, eyes: NM_EYES, f: (p) => { reset();

@@ -67,7 +67,7 @@ function decodeFile(url) {
         if (PARTS) PARTS.push({ creature: name, role: pt.role, tex: 'FX_Disc', pivot: [pt.pivot[0], pt.pivot[1], pt.pivot[2]], offset: pt.off, size: pt.size, layer, sculpted: true });
         return { role: pt.role, pivot: pt.pivot, off: pt.off, size: pt.size, geo: g, tris: pt.i / 3, eyes: pt.eyes, teeth: pt.teeth };
       });
-      BLIGHT.set(name, { height: K.height, beast: K.beast, parts });
+      BLIGHT.set(name, { height: K.height, beast: K.beast, lean: K.lean ?? 1, parts });
     }
   }).catch((e) => { console.warn(url, e); });
 }
