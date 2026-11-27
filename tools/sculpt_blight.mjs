@@ -10,6 +10,11 @@ import { CREATURES as OLD } from './blight/creatures.mjs';
 import * as CHUNKY from './blight/chunky.mjs';
 // the chunky redraws (blight/chunky.mjs) replace the first sculpts creature by creature; OLD=1 bakes the first ones
 const CREATURES = process.env.OLD ? OLD : { ...OLD, ...Object.fromEntries(Object.entries(CHUNKY).filter(([, v]) => v && v.parts)) };
+// creatures modelled in Blender (tools/blender/*.py write tools/blender/out/Name.json): their parts come as finished
+// flat-shaded meshes (game space), so they replace the code sculpt of the same name and skip meshing and decimation
+import { readdirSync } from 'node:fs';
+{ const BD = new URL('./blender/out/', import.meta.url);
+  if (!process.env.OLD && existsSync(BD)) for (const f of readdirSync(BD)) if (f.endsWith('.json')) CREATURES[f.slice(0, -5)] = JSON.parse(readFileSync(new URL(f, BD), 'utf8')); }
 import { decimate } from './blight/decimate.mjs';
 const BUDGET = { Head: +(process.env.HB || 6500), Body: 4500, ArmFront: 1500, ArmBack: 1500, LegFront: 1400, LegBack: 1400, Tail: 1200, WingFront: 900, WingBack: 900 };
 
@@ -19,6 +24,9 @@ const OUT = new URL('blight.json', DIR);
 // paint over the surface that many times first, so speckle and mottling merge into broad areas of one tone (the glow is
 // left as it is).
 const LP = +(process.env.LP || 1), SP = +(process.env.SP || 0);
+function fromBlender(m) {
+  return { pos: Float32Array.from(m.pos), nor: Int8Array.from(m.nor), rgb: Uint8Array.from(m.rgb), w: Uint8Array.from(m.w), ao: Uint8Array.from(m.ao), idx: Uint32Array.from(m.idx), tris: m.idx.length / 3 };
+}
 function smoothPaint(M, n) {
   const N = M.pos.length / 3, nb = Array.from({ length: N }, () => []);
   for (let i = 0; i < M.idx.length; i += 3) for (let a = 0; a < 3; a++) { const u = M.idx[i + a], v = M.idx[i + (a + 1) % 3]; nb[u].push(v); nb[v].push(u); }
@@ -35,7 +43,7 @@ for (const name of names) {
   const K = CREATURES[name]; if (!K) { console.log('no creature', name); continue; }
   const t0 = Date.now(), parts = [];
   for (const pt of K.parts) {
-    const M0 = mesh(pt.f, pt.lo, pt.hi, pt.h * (pt.role === 'Head' ? Math.sqrt(+(process.env.HS || 1)) : +(process.env.HS || 1)), pt.ao || 1); if (SP) smoothPaint(M0, SP); const M = decimate(M0, Math.round((pt.tris || BUDGET[pt.role] || 1500) * (K.budget || 1) * +(process.env.BS || 0.8) * LP), LP < 1 ? { border: 200 } : undefined);
+    const M0 = pt.mesh ? fromBlender(pt.mesh) : mesh(pt.f, pt.lo, pt.hi, pt.h * (pt.role === 'Head' ? Math.sqrt(+(process.env.HS || 1)) : +(process.env.HS || 1)), pt.ao || 1); if (SP) smoothPaint(M0, SP); const M = pt.mesh ? M0 : decimate(M0, Math.round((pt.tris || BUDGET[pt.role] || 1500) * (K.budget || 1) * +(process.env.BS || 0.8) * LP), LP < 1 ? { border: 200 } : undefined);
     if (M0.clipped) { const P0 = M0.pos, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9]; for (let q = 0; q < P0.length; q++) { lo[q % 3] = Math.min(lo[q % 3], P0[q]); hi[q % 3] = Math.max(hi[q % 3], P0[q]); } console.log(`  ! ${name}.${pt.role} touches its box (${M0.clipped} cells): mesh ${lo.map(Math.round)} .. ${hi.map(Math.round)}`); }
     const N = M.pos.length / 3; let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
     for (let q = 0; q < N; q++) for (let a = 0; a < 3; a++) { mn[a] = Math.min(mn[a], M.pos[q * 3 + a]); mx[a] = Math.max(mx[a], M.pos[q * 3 + a]); }
@@ -59,7 +67,7 @@ for (const name of names) {
     const eyes = pt.eyes ? pt.eyes.map((e) => ({ at: [+(e.at[0] - pv[0] - off[0]).toFixed(2), +(e.at[1] - pv[1] - off[1]).toFixed(2), +(e.at[2] - (pv[2] || 0)).toFixed(2)], r: e.r, out: e.out, s: e.s || 1 })) : undefined;
     const loc = (v) => [+(v[0] - pv[0] - off[0]).toFixed(2), +(v[1] - pv[1] - off[1]).toFixed(2), +(v[2] - (pv[2] || 0)).toFixed(2)];
     const teeth = pt.teeth ? pt.teeth.map((t) => ({ a: loc(t.a), b: loc(t.b), r: +t.r.toFixed(2) })) : undefined;
-    parts.push({ eyes, teeth, role: pt.role, pivot: [pv[0], pv[1], pv[2] || 0], off: off.map((x) => +x.toFixed(2)), size: [+(mx[0] - mn[0]).toFixed(1), +(mx[1] - mn[1]).toFixed(1)], top: +mx[1].toFixed(1), v: N, i: M.idx.length, i32: N >= 65536, z: 3, b64: deflateRawSync(Buffer.concat(bufs), { level: 9 }).toString('base64') });
+    parts.push({ flat: pt.flat ? 1 : undefined, eyes, teeth, role: pt.role, pivot: [pv[0], pv[1], pv[2] || 0], off: off.map((x) => +x.toFixed(2)), size: [+(mx[0] - mn[0]).toFixed(1), +(mx[1] - mn[1]).toFixed(1)], top: +mx[1].toFixed(1), v: N, i: M.idx.length, i32: N >= 65536, z: 3, b64: deflateRawSync(Buffer.concat(bufs), { level: 9 }).toString('base64') });
     console.log(`  ${name}.${pt.role}: ${M0.tris} -> ${M.tris} tris`);
   }
   const rec = { height: K.height, beast: !!K.beast, scale: K.scale || 1, lean: K.lean ?? 1, parts };

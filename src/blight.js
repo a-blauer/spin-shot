@@ -58,7 +58,7 @@ function decodeFile(url) {
         if (pt.z >= 3) { N3 = new Int8Array(pt.v * 3); for (let q = 0; q < pt.v; q++) { let x = nor[q * 2] / 127, y = nor[q * 2 + 1] / 127; const z = 1 - Math.abs(x) - Math.abs(y); if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * Math.sign(ox || 1); y = (1 - Math.abs(ox)) * Math.sign(y || 1); } const l = Math.hypot(x, y, z) || 1; N3[q * 3] = Math.round(x / l * 127); N3[q * 3 + 1] = Math.round(y / l * 127); N3[q * 3 + 2] = Math.round(z / l * 127); } }
         const g = new THREE.BufferGeometry(), P = new Float32Array(pt.v * 3); for (let i = 0; i < P.length; i++) P[i] = pos[i] / 16;
         g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-        const SN = NO_SMOOTH ? null : smoothPart(P, idx, col, w);   // blight_smooth.js: lumps, ragged paint and facets taken out
+        const SN = NO_SMOOTH || pt.flat ? null : smoothPart(P, idx, col, w);   // a Blender-made part (flat) keeps its facets   // blight_smooth.js: lumps, ragged paint and facets taken out
         g.setAttribute('normal', SN ? new THREE.BufferAttribute(SN, 3) : new THREE.BufferAttribute(N3, 3, true));
         g.setAttribute('color', new THREE.BufferAttribute(col, 3, true));
         g.setAttribute('aW', new THREE.BufferAttribute(w, 3, true));
