@@ -247,8 +247,8 @@ export const SIG = {
       const gen = C.gen || 0; if (gen >= 5) return;
       const G = p.game, W = C.W, C2 = Object.assign({}, C, { gen: gen + 1, base: C.base * 0.85, seen: new Set(), hits: 0 });
       const col = [0.6, 1, 0.85];
-      G.projectiles.spawn({ pos: E.pos.clone().add(V3(0, 70, 0)), vel: V3((Math.random() - 0.5) * 500, 520, (Math.random() - 0.5) * 500), damage: C2.base, splash: W.splash * (1 + p.stat('ExplosionRadius')), slow: W.slow, homing: 7, life: 4, kind: 'Orb', radius: 11, color: col, procCoef: 0.5, sx: C2 });
-      G.fx.flash(E.pos, col, 120, 0.25, true);
+      G.projectiles.spawn({ pos: E.pos.clone().add(V3(0, 70, 0)), vel: V3((Math.random() - 0.5) * 500, 520, (Math.random() - 0.5) * 500), damage: C2.base, splash: W.splash * (1 + p.stat('ExplosionRadius')), slow: W.slow, homing: 7, life: 4, kind: 'Orb', radius: 11, color: col, procCoef: 0.5, sx: C2, soft: true });
+      G.fx.flash(E.pos, col, 80, 0.2, false);
     },
   },
   'Frostbite Beam': {

@@ -27,6 +27,8 @@ import { machine, EVO_NEED, ROMAN, temperOf, attuneOf, attuneHit, crowned } from
 import { sigOf, sigState, sigProc, sigTick, sigDeath, sigAmp, sigAfter } from './signatures.js';
 import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
+// guns whose rounds glow softly: fast-firing orbs that would otherwise wash the screen out (their blasts are a mist, not a fireball)
+const SOFT_ROUNDS = new Set(["Will-o'-Wisp"]);
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wheel wedge or shop offer can be a gun index or a melee code
 const wdef = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
@@ -1708,7 +1710,8 @@ export class Player {
     let kind = 'Orb', radius = 13;
     if (W.mode === 'Rocket') { kind = 'Rocket'; radius = 12; } else if (W.mode === 'Grenade') { kind = 'Grenade'; radius = 12; } else if (W.mode === 'Saw') { kind = 'Saw'; radius = 18; } else if (W.cls === 'Wonder') kind = 'Card';
     if (W.pk) kind = W.pk;
-    const o = { pos: start.clone(), vel: dir.clone().multiplyScalar(W.projSpeed), damage, splash: W.splash > 0 ? W.splash * (1 + this.stat('ExplosionRadius')) * ((this.shotCtx && this.shotCtx.splashMul) || 1) : 0, sx: this.shotCtx || null,
+    const soft = SOFT_ROUNDS.has(W.name);
+    const o = { soft, pos: start.clone(), vel: dir.clone().multiplyScalar(W.projSpeed), damage, splash: W.splash > 0 ? W.splash * (1 + this.stat('ExplosionRadius')) * ((this.shotCtx && this.shotCtx.splashMul) || 1) : 0, sx: this.shotCtx || null,
       pierce: W.pierce + Math.round(this.stat('Pierce')) + (this.shotCtx ? this.shotCtx.pierce || 0 : 0), burn: W.burn, slow: W.slow, chains: W.chains, moneyPerHit: W.moneyPerHit, critBonus: W.critBonus, procCoef, life: 5, kind, radius, color: hexRGB(W.color) };
     if (kind === 'Grenade') Object.assign(o, { gravity: 1, bounces: 3, bounceDamp: 0.5, fuse: 1.4 }), o.vel.y += 260;
     else if (kind === 'Saw') { const sg = sigOf(W); Object.assign(o, { bounces: 5 + (sg && sg.sawBounces ? sg.sawBounces(this) : 0), bounceDamp: 1, life: 3 }); if (o.bounces > 5) o.life = 3 + 0.4 * (o.bounces - 5); }
@@ -1862,11 +1865,11 @@ export class Player {
     }
     this.shotCtx = prevC;
   }
-  explodeAt(at, radius, damage, procCoef, fromProc, selfKnock, color, ignore) {
+  explodeAt(at, radius, damage, procCoef, fromProc, selfKnock, color, ignore, soft = false) {
     this.game.quest.blast(at, radius);
     forgeEvent(this, 'blast', null, at);
     const G = this.game;
-    G.fx.explosion(at, radius, color);
+    G.fx.explosion(at, radius, color, soft);
     G.audio.playAt('S_Explosion', at, clamp(radius / 300, 0.5, 1.2), 1, 0.1);
     const d = at.distanceTo(this.pos);
     this.addShake(clamp(1 - d / (radius * 4 + 400), 0, 1) * clamp(radius / 250, 0.3, 1.2));

@@ -91,13 +91,13 @@ export class Projectiles {
         part(g, 0, V3(0, 0, D * 1.3), V3(D * 0.8, 1.6, D * 0.9), [0.5, 0.52, 0.6], 0.3); part(g, 1, V3(0, -D * 0.75, 0), V3(D * 0.5, D * 1.6, D * 0.5), [0.8, 0.18, 0.14], 0.5).rotation.x = Math.PI / 2; part(g, 2, V3(0, -D * 0.75, D * 0.85), V3(3, 3, 3), [1, 0.9, 0.5], 3);   // the stick of dynamite it carries
         break; }
       default:
-        P.body = part(g, 2, V3(0, 0, 0), V3(D, D, D), P.color, 1.3);
+        P.body = part(g, 2, V3(0, 0, 0), V3(D, D, D), P.color, P.soft ? 0.8 : 1.3);
         break;
     }
     g.position.copy(P.pos);
     this.scene.add(g);
     P.group = g;
-    P.glowSize = ['Boomerang', 'Harpoon', 'Arrow', 'Trap', 'Box', 'Ball', 'Die', 'Weed', 'Pigeon'].includes(P.kind) ? P.radius * 2.5 : Math.max(60, P.radius * 9);
+    P.glowSize = ['Boomerang', 'Harpoon', 'Arrow', 'Trap', 'Box', 'Ball', 'Die', 'Weed', 'Pigeon'].includes(P.kind) ? P.radius * 2.5 : Math.max(60, P.radius * 9) * (P.soft ? 0.55 : 1);
     this.list.push(P);
     if (P.hostile) this.game.net.sentProjectile(P); else if (!P.ghost && this.game.net.sentShot) this.game.net.sentShot(P);
     return P;
@@ -108,14 +108,14 @@ export class Projectiles {
     P.done = true;
     const G = this.game;
     { const s = !P.ghost && P.sx && P.sx.sig; if (s && s.pEnd) s.pEnd(G.player, P, at); if (s && s.pGone) s.pGone(G.player, P); if (P.quiet) { this.scene.remove(P.group); return; } }
-    if (P.ghost) { if (P.splash > 0) { G.fx.explosion(at, P.splash, P.color); G.audio.playAt('S_Explosion', at, 0.6); } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false); this.scene.remove(P.group); return; }
+    if (P.ghost) { if (P.splash > 0) { G.fx.explosion(at, P.splash, P.color, P.soft); G.audio.playAt('S_Explosion', at, 0.6); } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false); this.scene.remove(P.group); return; }
     if (P.splash > 0) {
       if (P.hostile) {
         G.fx.explosion(at, P.splash, P.color);
         G.audio.playAt('S_Splat', at, 0.8);
         if (G.player.pos.distanceTo(at) < P.splash + 40) G.player.receiveDamage(P.damage, P, false, P.slow, P.slow > 0 ? 2 : 0);
       } else if (P.gtype != null) G.player.grenadeBlast(P.gtype, at, P);
-      else { const pc = G.player.shotCtx; G.player.shotCtx = P.sx || null; G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit); G.player.shotCtx = pc; }   // whoever the round hit directly already took its damage: the blast is for everyone else
+      else { const pc = G.player.shotCtx; G.player.shotCtx = P.sx || null; G.player.explodeAt(at, P.splash, P.damage, P.procCoef, P.fromProc, true, P.color, P.hit, P.soft); G.player.shotCtx = pc; }   // whoever the round hit directly already took its damage: the blast is for everyone else
     } else G.fx.flash(at, P.color, Math.max(20, P.radius * 2.5), 0.15, false);
     this.scene.remove(P.group);
   }
@@ -204,7 +204,12 @@ export class Projectiles {
   }
   draw(add) {
     const glow = sprite('FX_Glow');
-    for (const P of this.list) add.pushBasis(glow, P.pos, Cam.right, Cam.up, P.glowSize, P.glowSize, P.color[0], P.color[1], P.color[2], 0.9, 0, 0, P.hostile ? 1.6 : 2.2);
+    for (const P of this.list) {
+      // your own rounds don't flare in your face as they leave the muzzle: their glow comes up over the first few metres
+      let a = 0.9; if (!P.hostile) a *= Math.min(1, Math.max(0, (P.pos.distanceTo(Cam.pos) - 60) / 420));
+      if (P.soft) a *= 0.75;
+      if (a > 0.01) add.pushBasis(glow, P.pos, Cam.right, Cam.up, P.glowSize, P.glowSize, P.color[0], P.color[1], P.color[2], a, 0, 0, P.hostile ? 1.6 : P.soft ? 1.2 : 2.2);
+    }
   }
   clear() { for (const P of this.list) this.scene.remove(P.group); this.list = []; }
 }

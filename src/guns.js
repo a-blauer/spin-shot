@@ -78,7 +78,7 @@ const FEEL_GUN = {
   'Fireworks Finale': { cycle: 0.6, hip: [-2, 2, -4, 0, -2, -6], pos: 2.8, rise: 1.1, shake: 0.5, beats: 4, cam: { up: 1.2, snap: 2.2, side: 0.8, fov: 4 }, flash: 1.8, flashTint: [1, 0.7, 0.85] },
   // --- energy
   'Tesla Coil': { side: 2.2, pos: 0.4, cam: { up: 0.1, snap: 0.3, side: 0.5, pat: 'rand' }, flash: 0.9 },
-  "Will-o'-Wisp": { pos: 0.6, rise: 0.5, k: 200, d: 15, cam: { up: 0.25, snap: 0.6, side: 0.1 }, flash: 1 },
+  "Will-o'-Wisp": { pos: 0.6, rise: 0.5, k: 200, d: 15, cam: { up: 0.25, snap: 0.6, side: 0.1 }, flash: 0.5 },
   'Frostbite Beam': { cant: [-60, 6, -11.5], pos: 0.12, rise: 0.08, side: 0.5, cam: { up: 0.01, snap: 0.02, side: 0.04, pat: 'S' }, flash: 0.6 },
   'Hellfire Hose': { pos: 0.2, rise: 0.1, side: 1.4, weight: 1.4, cam: { up: 0.03, snap: 0.04, side: 0.06, pat: 'rand' }, flash: 0 },
   // --- wonder weapons

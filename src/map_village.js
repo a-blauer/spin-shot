@@ -13,8 +13,8 @@
 // thicket, roots and the giants themselves. Stations and people are added at run time (village.js) from VSPOTS.
 import * as THREE from 'three';
 import { V, R } from './mapkit.js';
-import { shroomHouse, thatchCottage, tree, bush, flower, fence, lanternPost, rock, hill, cabbage, pumpkin, noticeBoard, mirror, wellFine, toadstoolCap, rootPillar, slotMachine, rouletteTable, cardTable, diceTable, hatStand, grassTuft, toadstoolCluster, fern, mossLog, stemR, giantTree, giantLimbs, giantRoots, rootArch, wardrobeFine, dressScreen, VC, dark, mix } from './village_shapes.js';
-import { cobbleSquare, planter, woodpile, choppingBlock, washLine, reeds, lilies, standingStone, waterwheel, anvil, trough, grindstone, dummy, archeryButt, cart, crate, sack, stump, welcomeArch, thicket, lecternStand, flowerClump, rowboat } from './village_props.js';
+import { shroomHouse, thatchCottage, tree, bush, flower, fence, lanternPost, rock, hill, cabbage, pumpkin, mirror, wellFine, toadstoolCap, rootPillar, slotMachine, rouletteTable, cardTable, diceTable, hatStand, grassTuft, toadstoolCluster, fern, mossLog, stemR, giantTree, giantLimbs, giantRoots, rootArch, wardrobeFine, dressScreen, VC, dark, mix } from './village_shapes.js';
+import { cobbleSquare, planter, woodpile, choppingBlock, washLine, reeds, lilies, standingStone, waterwheel, anvil, trough, grindstone, dummy, archeryButt, cart, crate, sack, stump, welcomeArch, thicket, lecternStand, flowerClump, rowboat, treeDeck, dressForm, clothRack } from './village_props.js';
 import { awning, barrel, hay, bench } from './descent_shapes.js';
 import { wob } from './propkit.js';
 
@@ -28,8 +28,8 @@ export const streamY = (x) => STREAM_Y + Math.sin(x * 0.0009) * 260 + Math.sin(x
 const GIANTS = [[0, 4900, 6400, 680, 1], [-2850, 2750, 5200, 520, 2], [2750, 2650, 5600, 540, 3], [-3700, -1150, 4800, 470, 4], [3050, -2250, 5000, 430, 5], [-2300, -3050, 4400, 420, 6], [1700, -3850, 4600, 430, 7]];
 // the cottages: [x, y, height, stem radius, cap colour, yaw]
 const COTS = [[-1100, -2900, 340, 230, 0xc8392e, 0], [-2800, -650, 360, 230, 0x3a6a9a, 0]];
-// where the treehouse ladder comes down (on the north-east giant's deck)
-const LADDER_A = Math.PI * 1.35;
+// where the treehouse ladder comes down (on the north-east giant's deck), and its foot
+const LADDER_A = Math.PI * 1.35, GIANTS_LADDER = [2750 + Math.cos(LADDER_A) * (540 * 2 + 12), 2650 + Math.sin(LADDER_A) * (540 * 2 + 12)];
 // the paths: [points, width]
 const PATHS = [
   [[[0, -3500], [0, STREAM_Y - 600]], 380], [[[0, STREAM_Y + 600], [0, -SQ - 25]], 380], [[[0, SQ + 25], [0, GATE[1] - 270]], 380],
@@ -41,7 +41,7 @@ const PATHS = [
 // what a giant's roots must not run into: [x, y, r]
 const STRUCTS = [[0, 0, 760], [SHOP[0], SHOP[1], 720], [FORGE[0], FORGE[1], 560], [-1900, -1700, 360], [HOME[0], HOME[1], 520], [HOME[0] + 610, HOME[1], 480], [HOME[0] - 800, HOME[1] - 150, 430],
   [CASINO[0], CASINO[1], 1300], [GATE[0], GATE[1], 760], [0, 3300, 1300], [-1050, 2600, 480], [1050, 2600, 480], [GROVE[0], GROVE[1], 600], [YARD[0], YARD[1], 580], [FIRE[0], FIRE[1], 340],
-  [0, WELCOME, 420], [-450, ARCH_S, 200], [450, ARCH_S, 200], [-470, ARCH_N, 200], [470, ARCH_N, 200]].concat(COTS.map(([x, y, , r]) => [x, y, r * 2.3]));
+  [0, WELCOME, 420], [GIANTS_LADDER[0], GIANTS_LADDER[1], 160], [-450, ARCH_S, 200], [450, ARCH_S, 200], [-470, ARCH_N, 200], [470, ARCH_N, 200]].concat(COTS.map(([x, y, , r]) => [x, y, r * 2.3]));
 const distSeg = (px, py, [ax, ay], [bx, by]) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0; return Math.hypot(px - ax - dx * t, py - ay - dy * t); };
 const pathDist = (x, y) => { let d = Infinity; for (const [pts, w] of PATHS) for (let j = 1; j < pts.length; j++) d = Math.min(d, distSeg(x, y, pts[j - 1], pts[j]) - w / 2); return d; };
 // which of a giant's roots to leave out: any that would run into a building, or lie low across a path
@@ -92,6 +92,18 @@ export function buildVillage(M, cx, cy) {
     Cyl(V(x, y, z + 26), 26, 8, VC.iron, false, false); Glow(V(x, y, z), V(24, 24, 34), col, 2); Cyl(V(x, y, z - 22), 20, 6, VC.iron, false, false);
     for (const [u, v] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) Box(V(x + u, y + v, z + 2), V(1.6, 1.6, 44), VC.iron, false, false);
     if (lampN++ % 2 === 0) Lamp(V(x, y, z - 10), { r: 1, g: 0.72, b: 0.42 }, 1.9, 800, false);
+  };
+  // a lantern standing on a counter or a sill: z is the top it stands on
+  const tableLamp = (x, y, z, col = 0xffd27a) => {
+    Cyl(V(x, y, z + 3), 15, 6, VC.iron, false, false); Glow(V(x, y, z + 21), V(17, 17, 24), col, 2); Cyl(V(x, y, z + 37), 17, 6, VC.iron, false, false); Cyl(V(x, y, z + 43), 7, 6, VC.iron, false, false);
+    for (const [u, v] of [[-9, -9], [9, -9], [-9, 9], [9, 9]]) Box(V(x + u, y + v, z + 20), V(1.6, 1.6, 32), VC.iron, false, false);
+    for (const s of [-1, 1]) Box(V(x, y + s * 7, z + 52), V(2, 2, 14), VC.iron, false, false); Box(V(x, y, z + 59), V(2, 16, 2), VC.iron, false, false);
+  };
+  // a small lantern on a short chain from a ceiling at `top`, its flame at z
+  const lampHang = (x, y, top, z, col = 0xffd27a) => {
+    Box(V(x, y, (top + z + 18) / 2), V(2, 2, top - z - 18), 0x2a2018, false, false); Cyl(V(x, y, z + 15), 15, 5, VC.iron, false, false); Cyl(V(x, y, z + 20), 6, 5, VC.iron, false, false);
+    Glow(V(x, y, z), V(15, 15, 22), col, 2); Cyl(V(x, y, z - 13), 12, 4, VC.iron, false, false);
+    for (const [u, v] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) Box(V(x + u, y + v, z + 1), V(1.5, 1.5, 28), VC.iron, false, false);
   };
   const post = (x, y, h = 300, side = 1, light = true) => { S(lanternPost(h, Math.abs(Math.round(x + y)) % 4), x, y, 0, side < 0 ? 0 : 180); Solid(V(x, y, h / 2), V(24, 24, h), false); if (light) lit(x + (side < 0 ? 62 : -62), y, h - 58); };
   const avoid = [];   // circles kept clear of planting: [x, y, r]
@@ -147,16 +159,14 @@ export function buildVillage(M, cx, cy) {
       }
     };
     for (let i = 0; i < 4; i++) { const a = lampA[i], b = lampA[(i + 1) % 4]; paper(Math.cos(a) * SQL, Math.sin(a) * SQL, SQH - 20, Math.cos(b) * SQL, Math.sin(b) * SQL, SQH - 20, 80); }
-    // the notice board at the corner where the mill lane leaves the south road, and a market cart of pumpkins on the
-    // square's north-west side, its handles down
-    S(noticeBoard(300), -450, -720, 0, 58); Solid(V(-450, -720, 150), V(30, 320, 300), false, 58); avoid.push([-450, -720, 220]);
+    // a market cart of pumpkins on the square's north side, its handles down, crates by it
     S(cart(1, 1), 430, 840, 0, 200); Solid(V(430, 840, 60), V(200, 120, 120), false, 200); avoid.push([430, 840, 200]);
     for (const [u, v] of [[540, 760], [585, 830]]) { S(crate(60, Math.round(u)), u, v, 0, rr(-15, 15)); Solid(V(u, v, 26), V(60, 60, 52), false); }
 
     // ---- the old giants, moss thick round their feet; their roots arch out across the ground
     for (const [x, y, h, r, sd] of GIANTS) {
       const mask = rootMask(x, y, h, r, sd);
-      S(giantTree(h, r, sd, [0x3e6a2c, 0x46722e, 0x3a6230][sd % 3], mask), x, y, 0, 0);
+      S(giantTree(h, r, sd, [0x3e6a2c, 0x46722e, 0x3a6230][sd % 3], mask, sd === 3 ? 908 : 0), x, y, 0, 0);   // (the third giant carries the treehouse)
       Solid(V(x, y, h / 2), V(r * 2, r * 2, h), true); Solid(V(x, y, 260), V(r * 2.7, r * 2.7, 520), true);
       // each root gets a body along it wherever it is low enough to walk into; where it arches high you can walk under it
       for (const Q of giantRoots(h, r, sd, mask)) { const C = new THREE.CatmullRomCurve3(Q.pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])), false, 'centripetal'), L = C.getLength();
@@ -213,12 +223,11 @@ export function buildVillage(M, cx, cy) {
       Box(V(ct[0], ct[1] + 220, 116), V(50, 70, 44), VC.brass, false, false); Box(V(ct[0], ct[1] + 220, 144), V(40, 60, 14), dark(VC.brass, 0.7), false, false);
       for (let i = 0; i < 3; i++) Cyl(V(ct[0], ct[1] - 200 + i * 10, 100 + i * 14), 60 - i * 8, 12, [0xc8392e, 0x3a6a8a, 0x5a8a3a][i], false, false);
       for (let i = 0; i < 4; i++) Box(V(ct[0], ct[1] + 20 + (i % 2) * 6, 98 + i * 9), V(60, 70, 8), [0xe8d8b0, 0x8a4a5a, 0x4a6a8a, 0xd8a03a][i], false, false);
-      Glow(V(ct[0], ct[1] - 290, 126), V(20, 20, 28), 0xffd27a, 2); Lamp(V(ct[0] + 60, ct[1], 260), { r: 1, g: 0.8, b: 0.5 }, 2, 700, false);
+      tableLamp(ct[0] - 10, ct[1] - 290, 94); Lamp(V(ct[0] + 60, ct[1], 260), { r: 1, g: 0.8, b: 0.5 }, 2, 700, false);
       S(hatStand(), ct[0] + 120, ct[1] + 470, 0, 0); Solid(V(ct[0] + 120, ct[1] + 470, 90), V(60, 60, 180), false);
-      { const dx = ct[0] + 120, dy = ct[1] - 470; Cyl(V(dx, dy, 60), 10, 120, VC.woodD, true, false); Cyl(V(dx, dy, 4), 60, 8, VC.woodD, false, false); Ball(V(dx, dy, 170), V(46, 34, 70), 0x8a4a5a); Ball(V(dx, dy, 228), V(18, 18, 14), VC.woodD); }
+      S(dressForm(0x8a4a5a), ct[0] + 120, ct[1] - 470, 0, 180); Solid(V(ct[0] + 120, ct[1] - 470, 110), V(70, 70, 220), false);
       // a rack of cloth on bolts against the house, south of the counter: a frame and five rolls in the shop's colours
-      { const bx = x + 380, by = y + 420; for (const s of [-1, 1]) Cyl(V(bx, by + s * 110, 70), 10, 140, VC.woodD, true, false); Box(V(bx, by, 140), V(14, 240, 10), VC.woodD, false, false);
-        for (let i = 0; i < 5; i++) M.Cyl(V(bx + 6, by - 100 + i * 50, 40 + (i % 2) * 54), 34, 200, [0xc8392e, 0x3a6a8a, 0xd8a03a, 0x5a8a3a, 0x8a4a5a][i], false, false, R(90, 90, 0)); Solid(V(bx, by, 70), V(70, 290, 140), false); }
+      S(clothRack(220, 1), x + 410, y + 440, 0, 0); Solid(V(x + 410, y + 440, 70), V(70, 236, 140), false); avoid.push([x + 410, y + 440, 150]);   // bolts of cloth on a draper's rack, ends to the street
       VSPOTS.signs.push({ kind: 'wood', o: { text: 'Bramble & Bolt', sub: 'clothes, hats & trinkets', w: 1000, h: 280, leaves: true, seed: 3 }, at: [x + 490, y, 430], face: [1, 0], h: 110 });
       for (const s of [-1, 1]) Box(V(x + 486, y + s * 150, 520), V(3, 3, 70), VC.iron, false, false);
       for (const [dx, dy] of [[150, 560], [215, 600]]) { const [k, b] = barrel(0x7a5232, 0x2a2420); Shape(k, b, V(x + dx, y + dy, 0), R(0, dx, 0)); Solid(V(x + dx, y + dy, 55), V(84, 84, 110), true); }
@@ -237,7 +246,7 @@ export function buildVillage(M, cx, cy) {
         for (let i = 0; i < 6; i++) { const gy = ct[1] - 210 + i * 84, l = 150 + (i % 3) * 20; Box(V(rx + 12, gy, 160 + l / 2), V(8, 8, l), VC.iron, false, false); Box(V(rx + 12, gy + 4, 140), V(10, 22, 50), [0x7a4a2a, 0x5a3a22, 0x8a5a34][i % 3], false, false); Box(V(rx + 14, gy, 210), V(6, 14, 24), VC.brass, false, false); } }
       // on the counter: a revolver on a cloth, a box of shells, a lantern
       Box(V(ct[0], ct[1] - 100, 95), V(70, 110, 2), 0x2a4a3a, false, false); Box(V(ct[0], ct[1] - 100, 100), V(14, 60, 8), VC.iron, false, false); Box(V(ct[0], ct[1] - 124, 104), V(10, 18, 16), 0x7a4a2a, false, false);
-      Box(V(ct[0], ct[1] + 160, 106), V(40, 60, 24), 0x8a2a22, false, false); Glow(V(ct[0], ct[1] + 260, 126), V(20, 20, 28), 0xffd27a, 2); Lamp(V(ct[0] + 60, ct[1], 260), { r: 1, g: 0.78, b: 0.5 }, 2, 700, false);
+      Box(V(ct[0], ct[1] + 160, 106), V(40, 60, 24), 0x8a2a22, false, false); tableLamp(ct[0] - 10, ct[1] + 260, 94); Lamp(V(ct[0] + 60, ct[1], 260), { r: 1, g: 0.78, b: 0.5 }, 2, 700, false);
       // the hearth in the yard: a stone hearth, coals, a hood and a stack, its bellows by it
       { const fx = x + 120, fy = y - 400; Box(V(fx, fy, 50), V(200, 160, 100), 0x6a645a, true, true); Box(V(fx, fy, 101), V(150, 110, 4), 0x2a1a10, false, false); Glow(V(fx, fy, 104), V(130, 90, 6), 0xff6a1a, 2); Glow(V(fx, fy, 116), V(80, 50, 20), 0xffb04a, 2);
         Box(V(fx, fy, 260), V(220, 180, 40), 0x4a4038, false, false); for (const sx of [-1, 1]) for (const sy of [-1, 1]) Box(V(fx + sx * 96, fy + sy * 76, 160), V(14, 14, 120), 0x4a4038, false, false); Box(V(fx, fy, 420), V(70, 70, 300), 0x5a5048, true, false); Lamp(V(fx, fy, 160), { r: 1, g: 0.5, b: 0.2 }, 2.4, 800, false); VSPOTS.smoke.push([fx, fy, 600]);
@@ -252,7 +261,7 @@ export function buildVillage(M, cx, cy) {
       // the waterwheel in the stream, its axle running back through the bellows housing to the smithy wall
       { const wx = x - 100, wy = streamY(wx) + 230; S(waterwheel(170, 70, wy + 300 > y - 240 ? y - 240 - wy : 300), wx, wy, 90, 0); Solid(V(wx, wy, 120), V(380, 110, 240), false); Box(V(wx, y - 300, 60), V(90, 80, 120), 0x4a4038, true, false); Box(V(wx, y - 300, 124), V(100, 90, 8), 0x3a2a1e, false, false); }
       // a target on a post, powder kegs, a crate of shot by the counter
-      { const tx = ct[0] + 160, ty = ct[1] + 520; Cyl(V(tx, ty, 90), 12, 180, dark2, true, false); for (const [d, c] of [[110, 0xf2e4c6], [80, 0xc8392e], [50, 0xf2e4c6], [22, 0xc8392e]]) Cyl(V(tx + 8 - d * 0.01, ty, 200), d, 4 + (110 - d) * 0.02, c, false, false, R(0, 90, 90)); }
+      { const tx = x + 120, ty = y + 320; Cyl(V(tx, ty, 90), 12, 180, dark2, true, false); for (const [d, c] of [[110, 0xf2e4c6], [80, 0xc8392e], [50, 0xf2e4c6], [22, 0xc8392e]]) Cyl(V(tx + 8 - d * 0.01, ty, 200), d, 4 + (110 - d) * 0.02, c, false, false, R(0, 90, 90)); }
       for (const [dx, dy] of [[640, 330], [705, 380], [630, 410]]) { const [k, b] = barrel(0x5a3a22, 0x1a1410); Shape(k, b, V(x + dx, y + dy, 0), R(0, dx, 0)); Solid(V(x + dx, y + dy, 55), V(84, 84, 110), true); Box(V(x + dx, y + dy, 112), V(30, 30, 4), 0xc8392e, false, false); }
       VSPOTS.signs.push({ kind: 'wood', o: { text: 'The Forge', sub: 'guns worked from weapon fragments', w: 1100, h: 280, seed: 12 }, at: [x + 316, y, 400], face: [1, 0], h: 104 });
       Box(V(x + 296, y, 517), V(56, 380, 16), 0x3a2a1e, false, false); for (const s of [-1, 1]) { Box(V(x + 312, y + s * 160, 480), V(3, 3, 60), VC.iron, false, false); Box(V(x + 300, y + s * 186, 470), V(14, 14, 110), 0x3a2a1e, false, false); } }
@@ -321,7 +330,7 @@ export function buildVillage(M, cx, cy) {
           for (const [u0, v0, u1, v1] of runes[rk]) { const L = Math.hypot(u1 - u0, v1 - v0), mu = (u0 + u1) / 2, mv = (v0 + v1) / 2, ang = (Math.atan2(v1 - v0, u1 - u0) * 180) / Math.PI;
             AI(0, V(rx + -fy * mu, ry + fx * mu, zc + mv), V(5, 3, L + 4), R(90 - ang, yw, 0), 0x2e8a7a, false, true, false); }
         }
-        for (let k = 0; k < 2; k++) { const b = a + (k ? 0.22 : -0.22), px = gx + Math.cos(b) * (SR + 70), py = gy + Math.sin(b) * (SR + 70), [kk, bb] = toadstoolCluster(0.9 + k * 0.4, 0x7ad8c4, 40 + i * 2 + k); Shape(kk, bb, V(px, py, 0), R(0, rr(0, 360), 0)); Glow(V(px, py, 28), V(38, 38, 18), 0x7ae8d0, 1); }
+        for (let k = 0; k < 2; k++) { const b = a + (k ? 0.22 : -0.22), px = gx + Math.cos(b) * (SR + 70), py = gy + Math.sin(b) * (SR + 70), [kk, bb] = toadstoolCluster(0.9 + k * 0.4, 0x7ad8c4, 40 + i * 2 + k); Shape(kk, bb, V(px, py, 0), R(0, rr(0, 360), 0)); }
       });
       // books stacked on the grass by the lectern, a crate of scrolls, a stump to sit on
       for (const [u, v, n] of [[-60, -150, 3], [30, 150, 2]]) for (let b = 0; b < n; b++) Box(V(x + u, y + v, 6 + b * 13), V(56 - b * 6, 40 - b * 4, 12), [0x6a2a3a, 0x2a3a6a, 0x3a5a2a][(b + n) % 3], false, false, b * 17 + n * 30);
@@ -416,14 +425,15 @@ export function buildVillage(M, cx, cy) {
       { const bx = x + 1045, by = y - 200; Box(V(bx, by, 170), V(18, 480, 300), 0x3a2216, false, false); Box(V(bx - 10, by, 230), V(2, 200, 110), 0xcfe4ec, false, false); Box(V(bx - 11, by, 230), V(2, 214, 124), gold, false, false);
         for (const z of [110, 170]) { Box(V(bx - 18, by, z), V(20, 470, 6), 0x5a3420, false, false); for (let k = 0; k < 9; k++) { if (Math.abs(k - 4) < 2 && z > 150) continue; const pyb = by - 210 + k * 52; Cyl(V(bx - 20, pyb, z + 18), 12, 30, [0x2a6a3a, 0x8a2a2a, 0xc8a24a, 0x3a4a8a, 0x6a3a8a][(k + z) % 5], false, false); Cyl(V(bx - 20, pyb, z + 38), 5, 12, 0x2a2a2e, false, false); } }
         for (let k = 0; k < 3; k++) { const sy = y - 440 + k * 125; Cyl(V(x + 870, sy, 66), 44, 8, wine, false, false); Cyl(V(x + 870, sy, 36), 10, 56, gold, false, false); Cyl(V(x + 870, sy, 6), 36, 6, gold, false, false); Cyl(V(x + 870, sy, 30), 30, 3, gold, false, false); Solid(V(x + 870, sy, 35), V(40, 40, 70), false); }
-        Glow(V(bx - 16, by - 230, 290), V(16, 16, 20), 0xffd27a, 2); Glow(V(bx - 16, by + 230, 290), V(16, 16, 20), 0xffd27a, 2); Lamp(V(bx - 120, by, 300), { r: 1, g: 0.75, b: 0.45 }, 1.8, 600, false); }
+        for (const s of [-1, 1]) { Box(V(bx - 21, by + s * 214, 262), V(26, 30, 4), 0x3a2216, false, false); Box(V(bx - 13, by + s * 214, 252), V(4, 6, 20), gold, false, false); tableLamp(bx - 22, by + s * 214, 264); }   // a lamp each end of the back bar, on a little gilt bracket
+        Lamp(V(bx - 120, by, 300), { r: 1, g: 0.75, b: 0.45 }, 1.8, 600, false); }
       // the cashier's cage: a counter, brass bars, a little roof, a lamp, its sign
       { const cx2 = x - 60, cy2 = y + 850; Box(V(cx2, cy2, 52), V(230, 80, 104), 0x5a3420, true, false); Box(V(cx2, cy2 - 2, 106), V(244, 92, 8), gold, false, false);
         Box(V(cx2, cy2 + 44, 160), V(230, 10, 320), 0x3a2216, false, false);
         for (let k = 0; k <= 12; k++) { if (k === 6) continue; Cyl(V(cx2 - 108 + k * 18, cy2 - 38, 184), 3, 150, gold, false, false); } Box(V(cx2, cy2 - 38, 112), V(30, 10, 8), 0x3a2216, false, false);
         Box(V(cx2, cy2, 266), V(250, 100, 12), 0x5a3420, false, false); Box(V(cx2, cy2 - 50, 266), V(254, 4, 16), gold, false, false);
         for (let k = 0; k < 4; k++) Cyl(V(cx2 - 60 + k * 28, cy2 + 10, 114 + (k % 2) * 6), 22, 8 + (k % 2) * 12, [0xb8282a, 0x3a6aa8, 0x2a2a2e, 0xd8b04a][k], false, false);
-        Glow(V(cx2, cy2, 236), V(18, 18, 20), 0xffd27a, 2); Lamp(V(cx2, cy2 - 60, 230), { r: 1, g: 0.8, b: 0.5 }, 1.8, 500, false);
+        lampHang(cx2, cy2, 260, 226); Lamp(V(cx2, cy2 - 60, 230), { r: 1, g: 0.8, b: 0.5 }, 1.8, 500, false);   // a little lantern on a chain from the cage's roof
         VSPOTS.signs.push({ kind: 'wood', o: { text: 'Cashier', w: 500, h: 150, seed: 21 }, at: [cx2, cy2 - 54, 300], face: [0, -1], h: 44 }); for (const e of [-1, 1]) Box(V(cx2 + e * 70, cy2 - 52, 286), V(3, 3, 14), VC.iron, false, false);
         Solid(V(cx2, cy2, 140), V(240, 100, 280), true); }
       // a round rug under each table, and brass stanchions with a velvet rope either side of the door
@@ -470,14 +480,17 @@ export function buildVillage(M, cx, cy) {
       const cx2 = -w * 0.25, cy2 = -d * 0.2; VSPOTS.smoke.push([x + cx2 * Math.cos(ya) - cy2 * Math.sin(ya), y + cx2 * Math.sin(ya) + cy2 * Math.cos(ya), h - 60 + h * 1.05 + 150]);
     }
 
-    // ---- the treehouse up the north-east giant: a ring deck on struts, a little cottage on it, a ladder down toward the
-    // pool, lanterns round the rail
-    { const [gx, gy, , gr] = GIANTS[2], z = 900, R0 = gr * 1.25, R1 = gr * 2.0;
-      for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; Box(V(gx + Math.cos(a) * (R0 + R1) / 2, gy + Math.sin(a) * (R0 + R1) / 2, z), V(R1 - R0, ((R0 + R1) * Math.PI) / 24 + 6, 16), i % 2 ? VC.woodL : VC.wood, false, false, (a * 180) / Math.PI); if (i % 2 === 0) { Cyl(V(gx + Math.cos(a) * R1, gy + Math.sin(a) * R1, z + 50), 8, 100, VC.woodD, false, false); } if (i % 4 === 0) strut(gx + Math.cos(a) * (R1 - 30), gy + Math.sin(a) * (R1 - 30), z - 220, 440); }
-      for (let i = 0; i < 24; i++) { const a = ((i + 0.5) / 24) * Math.PI * 2; Box(V(gx + Math.cos(a) * R1, gy + Math.sin(a) * R1, z + 92), V(8, ((R1) * Math.PI) / 12, 8), VC.woodD, false, false, (a * 180) / Math.PI + 90); }
-      { const a = Math.PI * 1.2, hx2 = gx + Math.cos(a) * (R0 + R1) / 2, hy2 = gy + Math.sin(a) * (R0 + R1) / 2; S(shroomHouse(260, 150, 0x6a8a3a, VC.cream2, 31), hx2, hy2, z + 8, 200); }
-      { const a = LADDER_A, lx = gx + Math.cos(a) * (R1 + 10), ly = gy + Math.sin(a) * (R1 + 10); for (const s of [-1, 1]) Cyl(V(lx - Math.sin(a) * s * 26, ly + Math.cos(a) * s * 26, z / 2), 5, z, 0xc8a878, false, false); for (let k = 1; k < 12; k++) Box(V(lx, ly, k * (z / 12)), V(8, 60, 5), VC.woodD, false, false, (a * 180) / Math.PI + 90); avoid.push([lx, ly, 120]); }
-      for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + 0.4; hang(gx + Math.cos(a) * (R1 - 20), gy + Math.sin(a) * (R1 - 20), z - 10, z - 120); } }
+    // ---- the treehouse up the north-east giant: a ring deck round the trunk on joists and knee braces that run into the
+    // bark, a railing open where the ladder comes up, a little cottage on it, lanterns hung from the rim
+    { const [gx, gy, , gr] = GIANTS[2], z = 908, R0 = Math.round(gr * 0.9), R1 = gr * 2.0, GAP = 0.06;
+      S(treeDeck(R0, R1, gr, LADDER_A, GAP), gx, gy, z, 0);
+      { const a = Math.PI * 1.2, hx2 = gx + Math.cos(a) * (R0 + R1) / 2, hy2 = gy + Math.sin(a) * (R0 + R1) / 2; S(shroomHouse(260, 150, 0x6a8a3a, VC.cream2, 31), hx2, hy2, z, 200); }
+      // the ladder: two rails from the ground to a handhold above the deck, rungs up to the deck's edge
+      { const a = LADDER_A, ca = Math.cos(a), sa = Math.sin(a), lx = gx + ca * (R1 + 12), ly = gy + sa * (R1 + 12), top = z + 70;
+        for (const s of [-1, 1]) Cyl(V(lx - sa * s * 26, ly + ca * s * 26, top / 2), 6, top, 0xa8885a, false, false);
+        for (let k = 1; k <= 12; k++) Box(V(lx, ly, k * (z / 12.5)), V(8, 58, 5), VC.woodD, false, false, (a * 180) / Math.PI + 90);
+        Solid(V(lx, ly, top / 2), V(30, 70, top), false, (a * 180) / Math.PI); avoid.push([lx, ly, 120]); }
+      for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + 0.4; hang(gx + Math.cos(a) * (R1 - 14), gy + Math.sin(a) * (R1 - 14), z - 30, z - 140); } }
 
     // ---- the campfire on the brook, east of the bridge: a ring of stones, a teepee of logs, embers, log seats round it,
     // a pot on a tripod, a woodpile and two stumps to sit on
@@ -531,7 +544,7 @@ export function buildVillage(M, cx, cy) {
     // house fronts, a few drifts of wildflowers in the open meadows, tufts along the road verges
     // round each giant: ferns and caps in the gaps between its roots, moss
     for (const [x, y, , r, sd] of GIANTS) { for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 + sd, d = r * (1.45 + (k % 3) * 0.3), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d;
-        if (k % 3 === 2) plant(px, py, 50, () => { const [kk, bb] = toadstoolCluster(1 + (k % 2) * 0.4, k % 4 === 2 ? 0x7ad8c4 : 0xc8392e, sd * 7 + k); Shape(kk, bb, V(px, py, 0), R(0, k * 40, 0)); if (k % 4 === 2) Glow(V(px, py, 26), V(36, 36, 18), 0x7ae8d0, 1); });
+        if (k % 3 === 2) plant(px, py, 50, () => { const [kk, bb] = toadstoolCluster(1 + (k % 2) * 0.4, k % 4 === 2 ? 0x7ad8c4 : 0xc8392e, sd * 7 + k); Shape(kk, bb, V(px, py, 0), R(0, k * 40, 0)); });
         else plant(px, py, 70, () => { const [kk, bb] = fern(k % 2 ? 110 : 85, sd + k); Shape(kk, bb, V(px, py, 0), R(0, k * 53, 0)); }); } }
     // the thicket round the edge of the hollow, and young trees standing out of it
     { const line = (x0, y0, x1, y1, n) => { for (let i = 0; i <= n; i++) { const t = i / n, x = x0 + (x1 - x0) * t + rr(-60, 60), y = y0 + (y1 - y0) * t + rr(-60, 60), r = rr(190, 280);
@@ -576,6 +589,4 @@ export function buildVillage(M, cx, cy) {
     // ---- the edge: nobody walks out of the hollow
     for (const s of [-1, 1]) { Blocker(V(s * (VSIZE + 400), 0, 1500), V(200, VSIZE * 2 + 1200, 3000)); Blocker(V(0, s * (VSIZE + 400), 1500), V(VSIZE * 2 + 1200, 200, 3000)); }
   });
-  // a post under the treehouse's deck
-  function strut(x, y, z, h) { M.Cyl(V(x, y, z), 12, h, VC.woodD, false, false); }
 }

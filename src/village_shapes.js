@@ -122,8 +122,9 @@ export function bush(r, leaf = VC.leaf2, dots = 0, seed = 1) {
   r = q(r);
   return ['vbush|' + [r, hx(leaf), hx(dots), seed % 6].join('|'), shape((G) => {
     const R = rng(seed * 17 + r);
-    for (let i = 0; i < 5; i++) { const a = R() * 6.28, d = i ? r * 0.5 : 0, s = r * (i ? 0.62 : 0.8); G.blob(Math.cos(a) * d, Math.sin(a) * d, s * 0.7, s, s, s * 0.8, i % 2 ? leaf : dark(leaf, 0.88), { nu: 12, nv: 8 }); }
-    if (dots) for (let i = 0; i < 14; i++) { const a = R() * 6.28, k = R() * 0.9, rr = r * 0.95 * Math.sin(k * 1.4) + r * 0.2, z = r * (0.55 + 0.6 * Math.cos(k * 1.4)); G.blob(Math.cos(a) * rr, Math.sin(a) * rr, z, r * 0.07, r * 0.07, r * 0.07, dots, { nu: 6, nv: 4 }); }
+    const lumps = []; for (let i = 0; i < 5; i++) { const a = R() * 6.28, d = i ? r * 0.5 : 0, s = r * (i ? 0.62 : 0.8); lumps.push([Math.cos(a) * d, Math.sin(a) * d, s * 0.7, s]); G.blob(Math.cos(a) * d, Math.sin(a) * d, s * 0.7, s, s, s * 0.8, i % 2 ? leaf : dark(leaf, 0.88), { nu: 12, nv: 8 }); }
+    // berries or blossom sit on the lumps' own skins (each on one lump's upper half, a little sunk in), never in the air
+    if (dots) for (let i = 0; i < 14; i++) { const L = lumps[Math.floor(R() * lumps.length)], a = R() * 6.28, ph = R() * 1.1, ca = Math.cos(ph); G.blob(L[0] + Math.cos(a) * ca * L[3] * 0.96, L[1] + Math.sin(a) * ca * L[3] * 0.96, L[2] + Math.sin(ph) * L[3] * 0.8 * 0.96, r * 0.07, r * 0.07, r * 0.07, dots, { nu: 6, nv: 4 }); }
   })];
 }
 
@@ -406,9 +407,10 @@ export function giantRoots(h, r, seed = 1, mask = 0, all = false) {
   }
   return out;
 }
-export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, mask = 0) {   // mask: roots left out (see giantRoots)
+// mask: roots left out (see giantRoots); deck: the height of a deck built round the trunk, kept clear of shelf fungus
+export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, mask = 0, deck = 0) {
   h = q(h, 50); r = q(r, 10);
-  return ['vgiant|' + [h, r, seed % 9, hx(leaf), mask].join('|'), shape((G) => {
+  return ['vgiant|' + [h, r, seed % 9, hx(leaf), mask, deck].join('|'), shape((G) => {
     const R = rng(seed * 131 + h), bark = 0x4a3626, barkD = 0x2e2018, moss = 0x5a8a34, mossL = 0x7aa848;
     const trunkC = (t, a) => { const f = Math.sin(a * 11 + t * 4) + 0.5 * Math.sin(a * 23 - t * 9); if (t < 0.55 && Math.cos(a - 1.2) > 0.25 + t * 0.6) return f > 0.6 ? mossL : moss; return f > 0.9 ? barkD : f < -1.1 ? 0x5a4432 : bark; };
     G.tube([[0, 0, -40], [r * 0.05, 0, h * 0.3], [-r * 0.08, r * 0.05, h * 0.62], [0, 0, h * 0.86]], (t) => r * (1.12 - 0.62 * t) * (t < 0.07 ? 1 + (0.07 - t) * 9 : 1), trunkC, { S: 22 });
@@ -430,7 +432,7 @@ export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, mask = 0) {   // mask
     for (const L of giantLimbs(h, r, seed)) { clump(L.tip[0], L.tip[1], L.tip[2] + r * 0.6, r * (1.7 + R() * 0.6), ci++); clump(L.tip[0] * 0.6, L.tip[1] * 0.6, L.tip[2] + r * 1.1, r * 1.6, ci++); }
     clump(0, 0, h * 0.92, r * 2.6, ci++); for (let i = 0; i < 5; i++) { const a = R() * 6.28; clump(Math.cos(a) * r * 2, Math.sin(a) * r * 2, h * (0.84 + R() * 0.1), r * (1.6 + R() * 0.6), ci++); }
     // shelf fungus up the trunk
-    for (let i = 0; i < 5; i++) { const a = R() * 6.28, z = h * (0.08 + R() * 0.25), rr = r * (1.06 - z / h * 0.6); G.blob(Math.cos(a) * rr, Math.sin(a) * rr, z, r * 0.22, r * 0.22, r * 0.05, i % 2 ? 0xd8b070 : 0xc89a5a, { e: 2.5, nu: 12, nv: 5 }); }
+    for (let i = 0; i < 5; i++) { const a = R() * 6.28, z = h * (0.08 + R() * 0.25), rr = r * (1.06 - z / h * 0.6); if (deck && Math.abs(z - deck) < 200) continue; G.blob(Math.cos(a) * rr, Math.sin(a) * rr, z, r * 0.22, r * 0.22, r * 0.05, i % 2 ? 0xd8b070 : 0xc89a5a, { e: 2.5, nu: 12, nv: 5 }); }
   })];
 }
 // ---- a root that has broken the surface and arches over the path: mossy on top, bark beneath; span along X

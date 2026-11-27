@@ -163,9 +163,10 @@ export class Fx {
   puff(pos, color, size, life, vel = null) {
     this.add({ pos: pos.clone(), vel: (vel ? vel.clone() : new THREE.Vector3()).add(new THREE.Vector3(0, 40, 0)), drag: 2, life, size0: size * 0.6, size1: size * 1.4, rot: rnd(0, 360), rotVel: rnd(-60, 60), c0: [color[0], color[1], color[2], 0.9], c1: [color[0], color[1], color[2], 0], fadeOut: 0.7, tex: 'FX_Puff' });
   }
-  explosion(pos, radius, color) {
+  explosion(pos, radius, color, soft = false) {
     const R = Math.max(60, radius);
     const ground = this.groundY(pos, R + 200);
+    if (soft) return this.mistBurst(pos, R, color, ground);
     this.add({ pos: pos.clone(), life: 0.14, size0: R * 0.7, size1: R * 1.3, rot: rnd(0, 360), c0: [1, 0.95, 0.8, 1], c1: [...lerpC(color, [1, 0.6, 0.15], 0.5)], fadeOut: 0.5, tex: 'FX_Star', glow: 1.2 });
     this.add({ pos: pos.clone(), life: 0.3, size0: R * 1.8, size1: R * 2.4, c0: [...lerpC(color, [1, 0.7, 0.3], 0.5)], c1: [color[0], color[1], color[2], 0], fadeOut: 0.4, tex: 'FX_Glow', kind: 'add', glow: 2.5 });
     const puffs = Math.min(9, Math.max(4, Math.round(R / 45)));
@@ -182,6 +183,23 @@ export class Fx {
       this.ring(new THREE.Vector3(pos.x, ground + 4, pos.z), R, lerpC(color, [1, 1, 1], 0.4), 0.26);
       this.decal('FX_Scorch', new THREE.Vector3(pos.x, ground, pos.z), UP, R * 0.9, [1, 1, 1, 1], 30);
     }
+  }
+  // a soft burst for the orbs that fire fast (the Wisp): a tinted flash, a glow that fades, a ring of mist, a few motes;
+  // no white star, no fireball, no scorch
+  mistBurst(pos, R, color, ground) {
+    const c = color, pale = lerpC(c, [1, 1, 1], 0.3);
+    this.add({ pos: pos.clone(), life: 0.12, size0: R * 0.45, size1: R * 0.8, rot: rnd(0, 360), c0: [pale[0], pale[1], pale[2], 0.6], c1: [c[0], c[1], c[2], 0], fadeOut: 0.6, tex: 'FX_Star', glow: 0.5 });
+    this.add({ pos: pos.clone(), life: 0.26, size0: R * 1.3, size1: R * 1.8, c0: [c[0], c[1], c[2], 0.45], c1: [c[0], c[1], c[2], 0], fadeOut: 0.5, tex: 'FX_Glow', kind: 'add', glow: 1.1 });
+    for (let i = 0; i < 4; i++) {
+      const d = vrand(); d.y = d.y * 0.5 + 0.3;
+      this.add({ pos: pos.clone().addScaledVector(d, R * 0.2), vel: d.clone().multiplyScalar(R * rnd(0.8, 1.4)).add(new THREE.Vector3(0, 50, 0)), drag: 3.5, gravity: -80, life: rnd(0.35, 0.6),
+        size0: R * rnd(0.22, 0.32), size1: R * rnd(0.45, 0.6), rot: rnd(0, 360), rotVel: rnd(-60, 60), c0: [pale[0], pale[1], pale[2], 0.55], c1: [c[0] * 0.4, c[1] * 0.4, c[2] * 0.4, 0], fadeOut: 0.5, tex: 'FX_Puff' });
+    }
+    for (let i = 0; i < 5; i++) {
+      const v = vrand().add(new THREE.Vector3(0, 0.6, 0)).normalize().multiplyScalar(rnd(500, 1000));
+      this.add({ mode: 'streak', pos: pos.clone(), vel: v, gravity: 900, drag: 2, life: rnd(0.25, 0.45), size0: 7, size1: 4, stretch: 3, c0: [pale[0], pale[1], pale[2], 1], c1: [c[0], c[1], c[2], 0], groundY: ground, tex: 'FX_Spark', glow: 0.6 });
+    }
+    if (ground > -1e8 && pos.y - ground < R) this.ring(new THREE.Vector3(pos.x, ground + 4, pos.z), R * 0.8, pale, 0.22);
   }
   tracer(a, b, color, width = 5, life = 0.06) {
     const d = new THREE.Vector3().subVectors(b, a);

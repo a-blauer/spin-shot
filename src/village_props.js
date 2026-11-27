@@ -371,3 +371,68 @@ export function rowboat(len = 300, col = 0x7a5a3a, seed = 1) {
     for (const s of [-1, 1]) { G.tube([[-len * 0.32, s * 12, D * 0.62], [len * 0.22, s * 16, D * 0.62]], 2, VC.woodL, { S: 5 }); G.blob(len * 0.27, s * 17, D * 0.62, 18, 2, 6, VC.woodL, { e: 6, nu: 6, nv: 3 }); }
   })];
 }
+
+// ---- the treehouse deck round a giant's trunk: boards laid round in a ring on joists that run into the trunk, a rim beam,
+// knee braces from the trunk out under the deck, a railing with posts, open where the ladder comes up (gap, radians,
+// centred on angle `ga`). z = 0 is the deck's top. R0 the inner edge (against the bark), R1 the outer edge.
+export function treeDeck(R0 = 560, R1 = 1080, trunkR = 540, ga = 0, gap = 0.22) {
+  R0 = q(R0); R1 = q(R1); trunkR = q(trunkR);
+  return ['vtdeck|' + [R0, R1, trunkR, Math.round(ga * 100), Math.round(gap * 100)].join('|'), shape((G) => {
+    const W = 0x9a6a40, WL = 0xb07a48, WD = 0x5a3a22, T = 12, nb = 48;
+    // the boards: true wedges, a hair apart, two tones
+    for (let i = 0; i < nb; i++) {
+      const a0 = (i / nb) * Math.PI * 2 + 0.004, a1 = ((i + 1) / nb) * Math.PI * 2 - 0.004, c = i % 3 === 0 ? W : i % 3 === 1 ? WL : dark(WL, 0.92);
+      G.surf((u, v) => { const a = a0 + (a1 - a0) * u, r = R0 + (R1 - R0) * v; return [Math.cos(a) * r, Math.sin(a) * r, 0]; }, 0, 1, 2, 0, 1, 4, c);
+      G.surf((u, v) => { const a = a0 + (a1 - a0) * u, r = R0 + (R1 - R0) * v; return [Math.cos(a) * r, Math.sin(a) * r, -T]; }, 0, 1, 2, 0, 1, 4, dark(c, 0.7));
+      G.surf((u, v) => { const a = a0 + (a1 - a0) * u; return [Math.cos(a) * R1, Math.sin(a) * R1, -T * v]; }, 0, 1, 2, 0, 1, 1, dark(c, 0.85));
+    }
+    // the rim beam under the outer edge, a ring of bark-on log
+    { const pts = []; for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push([Math.cos(a) * (R1 - 14), Math.sin(a) * (R1 - 14), -T - 12]); } G.tube(pts, 13, WD, { S: 8, caps: false }); }
+    // joists from inside the bark out to the rim, and knee braces from the trunk below up to the joists
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.13, ca = Math.cos(a), sa = Math.sin(a);
+      G.blob((ca * (trunkR * 0.86 + R1 - 20)) / 2, (sa * (trunkR * 0.86 + R1 - 20)) / 2, -T - 10, (R1 - 20 - trunkR * 0.86) / 2, 9, 10, WD, { e: 8, nu: 8, nv: 3, warp: (x, y, z) => { const c = Math.cos(a), s = Math.sin(a); return [x * c - y * s + 0 * s, x * s + y * c, z]; } });
+      if (i % 2 === 0) G.tube([[ca * trunkR * 0.92, sa * trunkR * 0.92, -330], [ca * (R0 + R1) * 0.48, sa * (R0 + R1) * 0.48, -T - 18]], 9, WD, { S: 7 }); }
+    // the railing: posts and a top rail, open at the ladder
+    const inGap = (a) => Math.abs(Math.atan2(Math.sin(a - ga), Math.cos(a - ga))) < gap;
+    const post = (a) => G.tube([[Math.cos(a) * (R1 - 10), Math.sin(a) * (R1 - 10), 0], [Math.cos(a) * (R1 - 10), Math.sin(a) * (R1 - 10), 98]], 4.5, WD, { S: 6 });
+    for (let i = 0; i < 36; i++) { const a = (i / 36) * Math.PI * 2; if (!inGap(a)) post(a); }
+    for (const e of [-1, 1]) post(ga + e * (gap + 0.004));   // the posts either side of the opening, where the rail ends
+    let run = [];
+    for (let i = 0; i <= 144; i++) { const a = ga + gap + 0.004 + (i / 144) * (Math.PI * 2 - 2 * gap - 0.008); run.push([Math.cos(a) * (R1 - 10), Math.sin(a) * (R1 - 10), 96]); }
+    if (run.length > 1) G.tube(run, 4, WL, { S: 6 });
+  })];
+}
+
+// ---- a dress form on a tripod stand: a padded torso in shop cloth, a turned neck knob, a tape measure round its shoulders
+export function dressForm(col = 0x8a4a5a) {
+  return ['vdform|' + hx(col), shape((G) => {
+    const WD = 0x5a3a22;
+    for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; G.tube([[Math.cos(a) * 32, Math.sin(a) * 32, 0], [Math.cos(a) * 8, Math.sin(a) * 8, 22], [0, 0, 30]], 3.4, WD, { S: 6 }); }
+    G.tube([[0, 0, 28], [0, 0, 122]], 3.6, WD, { S: 6 }); G.lathe([[7, 26], [8, 30], [5, 34]], VC.brass, 10);
+    // the torso: hips, waist, bust and shoulders as one turned form, a little flattened front to back
+    const prof = [[4, 116], [22, 120], [30, 132], [27, 146], [22, 160], [26, 176], [29, 192], [27, 204], [16, 212], [9, 216], [8, 222]];
+    const b = G.n; G.lathe(prof, (k) => (k < 1 ? WD : col), 20); G.map(b, ([x, y, z]) => [x * 0.78, y, z]);
+    G.lathe([[8, 222], [11, 226], [9, 232], [0, 234]], WD, 10);
+    for (const e of [-1, 1]) G.tube([[e * 6, -18, 205], [e * 10, -24, 196], [e * 9, -21, 170], [e * 8, -18, 156]], 1.6, 0xe8c84a, { S: 4 });
+    G.tube([[0, -18, 205], [-14, 0, 210], [0, 18, 205], [14, 0, 210], [0, -18, 205]].map(([x, y, z]) => [x * 0.9, y * 1.05, z]), 1.6, 0xe8c84a, { S: 4, caps: false });
+  })];
+}
+
+// ---- a draper's rack: three shelves of cloth bolts lying front to back, their round ends to the customer (+X), each
+// end showing the rolled layers; a plank back, end boards and a cap. len along Y.
+export function clothRack(len = 220, seed = 1) {
+  len = q(len, 20);
+  return ['vcrack|' + [len, seed % 3].join('|'), shape((G) => {
+    const WD = 0x6a4428, WL = 0x8a5a34, D = 56, R = rng(seed * 13 + len), cols = [0xc8392e, 0x3a6a8a, 0xd8a03a, 0x5a8a3a, 0x8a4a5a, 0xe8dcc0, 0x6a3a7a, 0x2e5a4a];
+    for (const e of [-1, 1]) block(G, -D / 2, e * len / 2 - (e > 0 ? 8 : 0), 0, D / 2, e * len / 2 + (e < 0 ? 8 : 0), 134, WD);
+    block(G, -D / 2, -len / 2, 0, -D / 2 + 5, len / 2, 130, dark(WL, 0.8));
+    for (const z of [8, 50, 92]) block(G, -D / 2, -len / 2 + 8, z - 5, D / 2, len / 2 - 8, z, WL, WL, WD);
+    block(G, -D / 2 - 4, -len / 2 - 6, 130, D / 2 + 4, len / 2 + 6, 136, WD);
+    for (const z0 of [8, 50, 92]) { const n = Math.floor((len - 20) / 29); for (let i = 0; i < n; i++) { const r = 13.5, y = -len / 2 + 12 + r + i * ((len - 24 - 2 * r) / Math.max(1, n - 1)), c = cols[Math.floor(R() * cols.length)], z = z0 + r;
+        if (z0 === 92 && i === n - 2) continue;   // one gap on the top shelf, where a bolt has been sold
+        G.tube([[-D / 2 + 6, y, z], [D / 2 + 2, y, z]], r, (t, a) => (Math.sin(a * 2 + i) > 0.85 ? dark(c, 0.86) : c), { S: 12, caps: false, M: 2 });
+        G.surf((u, v) => { const a = u * Math.PI * 2, k = v; return [D / 2 + 2, y + Math.cos(a) * r * k, z + Math.sin(a) * r * k]; }, 0, 1, 12, 0, 1, 1, c, true);
+        for (const k of [0.38, 0.7]) G.surf((u, v) => { const a = u * Math.PI * 2, rr = r * (k + v * 0.07); return [D / 2 + 2.3, y + Math.cos(a) * rr, z + Math.sin(a) * rr]; }, 0, 1, 12, 0, 1, 1, dark(c, 0.72), true);
+        G.surf((u, v) => { const a = u * Math.PI * 2, rr = 3 + v * 1.4; return [D / 2 + 2.4, y + Math.cos(a) * rr, z + Math.sin(a) * rr]; }, 0, 1, 8, 0, 1, 1, 0x3a2a1e, true); } }
+  })];
+}

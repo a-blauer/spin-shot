@@ -331,3 +331,26 @@
 - Results: village float 0, no invisible walls, walk-throughs only counter-top goods/thin rope (as before), all 13 stations
   reachable; instanced meshes 393 -> 345, instances 5470 -> 3909, draw calls at spawn -15%. dg0 [55,[],[]].
   Judged from stills.
+
+## (59) Thimblewick touch-ups from play; the Will-o'-Wisp glows softly
+- Treehouse (north-east giant): one shape now, treeDeck() in village_props.js. Board wedges round the trunk (no gaps
+  from below), a rim beam, 12 joists into the bark, knee braces from the trunk to every other joist (the free-standing
+  struts are gone), a railing open where the ladder comes up. The ladder stands outside the rim (R1 + 12) and stops at
+  a handhold above the deck instead of running through it; its foot keeps the giant's roots away. Deck inner edge is
+  0.9 r, inside the bark. giantTree() takes `deck` (height kept clear of shelf fungus; only that giant).
+- Grove and giants' feet: the Glow cylinders over the blue-green toadstools are gone (they read as white boxes).
+- Bramble & Bolt: a real dress form (dressForm: tripod, turned torso, tape measure) for the floating ball-on-a-stick; a
+  draper's rack (clothRack: three shelves of bolts, ends to the street, one gap on top) for the five giant logs.
+- Counter lamps (Bramble & Bolt, the forge) are lanterns standing on the counter (tableLamp) instead of bare glows;
+  the casino's back-bar lamps sit on gilt brackets, the cashier's cage has a lantern on a chain (lampHang).
+- Bushes: berries/blossom sit on the lumps' own skins (were placed on a sphere and some floated).
+- The forge's test target stands against the forge's north wall (was out by Bramble & Bolt).
+- The notice board (old challenge board) is gone from the square.
+- Gnomes still lost in the Descent no longer greet you from where they would stand (HELLO needs root.visible).
+- Will-o'-Wisp: its rounds are `soft` (player.js SOFT_ROUNDS; carried in co-op shots as field 18). Soft orbs: body
+  emissive 0.8 (1.3), glow 0.55 size, 0.75 alpha, 1.2 intensity (2.2). Blasts are fx.mistBurst (tinted flash, fading
+  glow, four mist puffs, five motes, a ring; no white star, fireball or scorch). Haunt's wisps are soft too, their
+  rising flash smaller and without the light. Muzzle flash 0.5 (1).
+- All your own rounds: the glow fades in over the first ~4 m from the camera, so nothing flares in your face leaving the
+  muzzle (hostile rounds unchanged).
+- Results: village float 0, ghost 0, all 13 stations reachable, dg0 [55,[],[]], wt ok. Judged from stills.

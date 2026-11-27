@@ -1,6 +1,6 @@
 // Thimblewick at run time: puts you in the village (no enemies, no guns out, the sky open), stands its people in their
-// places, and sets out the things you use: the shop counter, your wardrobe, the challenge board, the casino's tables and
-// machines, and the Way Down. Using one calls game.onVillage(kind, arg), which main.js answers with the right window.
+// places, and sets out the things you use: the shop counter, your wardrobe, the casino's tables and machines, and the
+// Way Down. Using one calls game.onVillage(kind, arg), which main.js answers with the right window.
 import * as THREE from 'three';
 import { V } from './mapkit.js';
 import { Interactable } from './interact.js';
@@ -130,7 +130,8 @@ export class Village {
       let dy = ((want - p.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; p.yaw += dy * Math.min(1, dt * 4);
       p.root.rotation.y = p.yaw + Math.PI;
       animateCharacter(p.root, p.t, 0, { preview: true, rest: true });
-      if (p.key !== 'folk' && d < 420 && t - p.said > 25 && HELLO[p.key]) { p.said = t; const L = HELLO[p.key]; g.hud.toast(`${p.name}: “${L[Math.floor(Math.random() * L.length)]}”`, '#f4e4c0'); }
+      // a gnome still lost in the Descent says nothing
+      if (p.key !== 'folk' && p.root.visible && d < 420 && t - p.said > 25 && HELLO[p.key]) { p.said = t; const L = HELLO[p.key]; g.hud.toast(`${p.name}: “${L[Math.floor(Math.random() * L.length)]}”`, '#f4e4c0'); }
     }
     // fireflies drifting over the grass and round the pond, and smoke from the chimneys
     this.ff = (this.ff || 0) + dt * 14;

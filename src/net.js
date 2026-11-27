@@ -317,7 +317,7 @@ export const Net = {
   sentShot(P) {
     if (!this.room || !this.started || this._in || P.ghost || P.hostile) return;
     const now = performance.now(); if (now - (this._pjT || 0) < 45) return; this._pjT = now;
-    this.emit('pj', [Math.round(P.pos.x), Math.round(P.pos.y), Math.round(P.pos.z), Math.round(P.vel.x), Math.round(P.vel.y), Math.round(P.vel.z), P.gravity, 0, P.splash, 0, P.kind, P.color.map((c) => Math.round(c * 100) / 100), P.radius, Math.min(P.life, P.fuse > 0 ? P.fuse : 99), 1, P.bounces | 0, P.bounceDamp, P.gtype == null ? -1 : P.gtype]);
+    this.emit('pj', [Math.round(P.pos.x), Math.round(P.pos.y), Math.round(P.pos.z), Math.round(P.vel.x), Math.round(P.vel.y), Math.round(P.vel.z), P.gravity, 0, P.splash, 0, P.kind, P.color.map((c) => Math.round(c * 100) / 100), P.radius, Math.min(P.life, P.fuse > 0 ? P.fuse : 99), 1, P.bounces | 0, P.bounceDamp, P.gtype == null ? -1 : P.gtype, P.soft ? 1 : 0]);
   },
   sentHazard(kind, at, a, color) {
     if (this.role !== 'host' || this._in) return;
@@ -331,7 +331,7 @@ export const Net = {
     this._in = true;
     g.projectiles.spawn({ hostile: !mine, pos: new THREE.Vector3(num(d[0]), num(d[1]), num(d[2])), vel: new THREE.Vector3(num(d[3], -9000, 9000), num(d[4], -9000, 9000), num(d[5], -9000, 9000)),
       gravity: num(d[6], 0, 5), damage: mine ? 0 : num(d[7], 0, 500), splash: num(d[8], 0, 800), slow: num(d[9], 0, 1), kind, color: col, radius: num(d[12], 4, 60), life: num(d[13], 0.1, 10),
-      ghost: mine, bounces: mine ? num(d[15], 0, 6) | 0 : 0, bounceDamp: mine ? num(d[16], 0, 1) : 0.5, gcol: mine ? num(d[17], -1, 20) | 0 : -1 });
+      ghost: mine, bounces: mine ? num(d[15], 0, 6) | 0 : 0, bounceDamp: mine ? num(d[16], 0, 1) : 0.5, gcol: mine ? num(d[17], -1, 20) | 0 : -1, soft: mine && d[18] === 1 });
     this._in = false;
   },
   onHazard(d) {
