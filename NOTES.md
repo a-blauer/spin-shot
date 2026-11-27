@@ -376,3 +376,13 @@
   trigger finger on the right; off hand palm up under the handguard, fingers over the far side, thumb on the near side;
   palms on what they hold (magazine, handle, drum, rocket, harpoon, capacitor).
 - Checks: gun float/gap scans unchanged (only the known twin-pistol pair and a sunk grip screw), dg0 [55,[],[]], wt ok.
+
+## (61) The off hand takes hold the right way round
+- User: the left hand was operating backwards in the reload poses (an open palm held up beside the part).
+- viewmodel.js: the off hand's palm, fingers and thumb are their own group (vm.supHand) on the wrist; the cuff and sleeve
+  stay on vm.support. Away from its rest grip (reloads; not while riding a pump or a crank) the hand rolls palm-in to
+  the gun's flank, -90 deg about the gun's long axis, scaled by distance from the rest grip (/6): back of the hand to the
+  camera, thumb over the top, fingers under. At rest it is cupped palm-up under the handguard as before.
+- Thumb at rest laid forward along the near side (pointing at the muzzle), not standing up.
+- Checked: charging handle, magazine, speedloader, shells into the breech, drum, rocket, harpoon, rod, hopper, capacitor,
+  from first person and from outside (hside.py).

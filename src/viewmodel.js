@@ -221,7 +221,7 @@ export class ViewModel {
   clear() {
     for (const p of this.parts) { p.removeFromParent(); if (p.userData.merged) p.geometry.dispose(); }
     this.parts = [];
-    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.DoorRoot = this.support = this.muzzle = this.eject = this.hand = null; this.WhipCoil = null; this.whipPts = null;
+    this.MagRoot = this.PumpRoot = this.SpinPart = this.CylPart = this.DoorRoot = this.support = this.supHand = this.muzzle = this.eject = this.hand = null; this.WhipCoil = null; this.whipPts = null;
     this.A = {};   // named moving parts: slide, hammer, bolt, lever, barrels, cover, charge, crank, emit, mag, pump, cyl...
     this.Cards = null; this.cardT = 9;
     for (const f of this.flyers || []) f.m.removeFromParent(); this.flyers = [];
@@ -553,15 +553,18 @@ export class ViewModel {
     this.Cap(g, V(-18.6, 4.3, -17.6), V(-17.4, 3.9, -16.2), 5.5 * wK, SleeveStripe);
     this.support = this.scene_(SupportRest);
     const sp = this.support;
-    const palm = this.Part(sp, 2, V(0, -0.6, -2.6), V(9.4, 7.4, 4.6), Glove);
+    // the hand itself (palm, fingers, thumb) is its own group on the wrist, so it can turn to take hold of things while
+    // the forearm keeps coming up from below
+    const hp = this.supHand = new THREE.Group(); sp.add(hp);
+    const palm = this.Part(hp, 2, V(0, -0.6, -2.6), V(9.4, 7.4, 4.6), Glove);
     void palm;
-    for (let i = 0; i < 4; i++) this.Cap(sp, V(-3.4 + i * 2.3, 2.5, -2.2), V(-3.4 + i * 2.3, 3.5, 2.2), 1.25, i === 1 ? GloveLight : Glove);
-    this.Cap(sp, V(-1.6, -3.3, -1.8), V(1.4, -3.9, 2.2), 1.4, GloveLight);
+    for (let i = 0; i < 4; i++) this.Cap(hp, V(-3.4 + i * 2.3, 2.5, -2.2), V(-3.4 + i * 2.3, 3.5, 2.2), 1.25, i === 1 ? GloveLight : Glove);
+    this.Cap(hp, V(-2.4, -3.3, -1.6), V(2.8, -3.7, 0.2), 1.4, GloveLight);   // thumb laid forward along the near side, pointing at the muzzle
     if (gunFeel(W).action === 'crank') {
       // A crank is held, not cupped: swap the open palm for a fist closed round the handle (which runs sideways), knuckles
       // forward, thumb over the top. The forearm still comes up from below and behind.
-      for (const c of sp.children.slice()) { sp.remove(c); const k = this.parts.indexOf(c); if (k >= 0) this.parts.splice(k, 1); }
-      const add = (m) => { sp.add(m); this.parts.push(m); return m; };
+      for (const c of hp.children.slice()) { hp.remove(c); const k = this.parts.indexOf(c); if (k >= 0) this.parts.splice(k, 1); }
+      const add = (m) => { hp.add(m); this.parts.push(m); return m; };
       for (let k = 0; k < 4; k++) { const f = add(new THREE.Mesh(new THREE.TorusGeometry(2.05, 1.12 - k * 0.04, 7, 14), vmMat(k % 2 ? GloveLight : Glove, 0))); f.rotation.y = Math.PI / 2; f.position.set(-2.55 + k * 1.7, 0, 0); }
       const back = add(new THREE.Mesh(BOXG, vmMat(Glove, 0))); back.scale.set(7.2, 3.4, 3.6); back.position.set(0, -1.2, 2.6);
       const th = add(new THREE.Mesh(new THREE.CapsuleGeometry(1.15, 3.6, 3, 8), vmMat(GloveLight, 0))); th.rotation.z = Math.PI / 2; th.position.set(0.6, 2.9, 0.6);
@@ -1246,9 +1249,13 @@ export class ViewModel {
       if (on && !In.reloading) supPos.add(on.position).sub(on.userData.rest);
       else if (on && In.reloading && f.charge === 'pump') supPos.add(on.position).sub(on.userData.rest);
       this.support.position.copy(supPos);
-      if (!gunSpin && !on) {   // off the gun the hand relaxes: fingers tip forward instead of standing straight up
-        const away = Math.min(1, supPos.distanceTo(this.supportRest) / 7);
-        if (away > 0.01) this.support.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d2r(-40 * away)));
+      if (this.supHand) this.supHand.quaternion.identity();
+      if (!gunSpin && (!on || In.reloading) && !(f.action === 'crank' && !In.reloading)) {   // (a fist on a crank goes round with the handle, unturned)
+        // Off the grip the hand turns to take hold: cupped palm-up under the handguard at rest, it rolls palm-in to the
+        // gun's flank as it leaves (thumb over the top, fingers under), so what you see is the back of the hand round a
+        // magazine, a handle, a rocket, never an open palm held up beside the gun.
+        const away = Math.min(1, supPos.distanceTo(this.supportRest) / 6);
+        if (away > 0.01 && this.supHand) this.supHand.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), d2r(-90 * away));
       }
     }
     if (this.hand) { this.hand.position.copy(handOff); if (!gunSpin) this.hand.rotation.set(d2r(handRot), 0, 0); }
