@@ -297,3 +297,37 @@
   (coreInv only), leaving odd ones. Shots: out/town/cp_all*.png, wb_turret.png.
 - Fortune Teller now works on gun parts in the bag (fortuneOk, reroll once a room, trade 2 up); its panel only shows
   with the machine.
+
+## (58) Thimblewick re-laid: a cross of streets, a place for everything
+- Why: the user found the village cluttered (Lectern, campfire, yard and casino door all on the square's east side, two
+  shops and two cottages jammed on the west, ~1,300 randomly scattered plants, rope lanterns hanging everywhere) and low
+  on detail in places (flat octagon cobbles, disc stream and pond, bare meadows).
+- Plan (map_village.js header): the square at the centre, four streets on its axes - north to the Way Down, east to the
+  Lucky Toadstool's door (CASINO [2250, 0]), west to Bramble & Bolt's counter (SHOP [-1650, 0]), south over the bridge.
+  Lanes off the north/south roads: home + porch + garden NW (HOME [-1950, 1650]), Inkcap's grove NE (GROVE [1550, 1700]:
+  seven standing stones round a pool, lectern on its west shore at LECT, runes on the three facing it), the forge on the
+  stream bank SW (FORGE [-1800, -1250]: hearth yard, anvil, trough, grindstone, coal, waterwheel in the stream on an axle
+  to a bellows housing), the campfire on the brook E (FIRE [900, -1000]), the training yard across the water SE (YARD
+  [1500, -2750]), two cottages (COTS: SW by the spawn, W past Bramble & Bolt), a fishing jetty + rowboat below the casino,
+  the welcome arch over the south road (WELCOME, signs both ways). Giants moved to the rim (GIANTS); root arches at
+  ARCH_S -1250 / ARCH_N 1750. streamY(x) is exported (same curve as before).
+- New props: src/village_props.js (cobbleSquare, planter, woodpile, choppingBlock, washLine, reeds, lilies, standingStone,
+  waterwheel, anvil, trough, grindstone, dummy, archeryButt, cart, crate, sack, stump, welcomeArch, thicket,
+  lecternStand, flowerClump, rowboat). oring() = an open band of revolution (G.lathe always closes its ends with discs).
+- Planting is by hand, not random scatter: ferns/caps between giants' roots, thicket + young trees along the edge,
+  flower clumps in beds by doors and in seven meadow drifts, tufts in clumps on the road verges, grass round building
+  feet, four mossy logs. plant()/clear() keep things off paths (pathDist), the stream (onStream), roots and buildings.
+- Lights: four 560 lamp posts on the square's diagonals with string lights post to post only (mast and the well runs
+  gone), a few road posts, door lanterns on cottages, limb lanterns only where a limb is over the high street. The
+  lectern's Lamp sits on the book (its glare is the book's glow); no Lamps on the runes (Lamp always adds a GlowCross).
+- Ground: fewer, purposeful patches (sunny meadows, moss under giants, worn earth at counters); paths at z 2.6+ (were 7).
+- Stream: one ribbon ('vstream2', darker down the middle) + bank lips ('vbank-1/1'); stones on bends (all solid), reeds
+  in clumps, lilies in three reaches. Old disc stream gone.
+- Folk: two chatting at the well, one by the fire, one at the jetty, one at the pumpkin cart, one by the stones.
+- Tests: dmh-test/vs2/ survey.py TAG [views.json] (orthographic cut-away plan -> out/TAG/top_code.png in code frame,
+  obliques, eye-level views; game.render is swapped for the ortho camera, P.fov drives the main camera's fov), plan.py
+  (footprint spacing sketch), sheet.py + window.__shapeSheet (props alone), reach.py/reach.js (grid flood from the spawn:
+  every station reachable), perf.py (draw calls). vs/run.py knows the bundle's S3 helper and soft plants.
+- Results: village float 0, no invisible walls, walk-throughs only counter-top goods/thin rope (as before), all 13 stations
+  reachable; instanced meshes 393 -> 345, instances 5470 -> 3909, draw calls at spawn -15%. dg0 [55,[],[]].
+  Judged from stills.

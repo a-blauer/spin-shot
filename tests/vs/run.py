@@ -4,7 +4,7 @@ src0=open('/tmp/fldist/game.js').read().split('\n')
 bv=next(i for i,l in enumerate(src0) if 'function buildVillage(' in l)
 LO=next(i for i in range(bv,0,-1) if src0[i].lstrip().startswith('// src/'))+1
 HI=next(i for i in range(bv,len(src0)) if src0[i].lstrip().startswith('// src/'))+1
-HELP=[i+1 for i in range(LO,HI) if any(k in src0[i] for k in ('const S3 = (pair','const lit = (','const hang = (','const paper = (','const shroomExtras = ('))]
+HELP=[i+1 for i in range(LO,HI) if any(k in src0[i] for k in ('const S3 = (pair','const S = (pair','const lit = (','const hang = (','const paper = (','const shroomExtras = (','const post = (','const plant = (','const bed = (','const patch = ('))]
 json.dump({"w":480,"h":270,"query":"&map=6&scan=1&stack=1","steps":[{"js":f"const g=__dmh;window.__LO={LO};window.__HI={HI};window.__HELP={HELP};__sim(10);g.villageRT.enter();__sim(20);'a'"},{"wait":300},{"js":js}]},open('vs/s.json','w'))
 o=subprocess.run(['python3','shot_fl.py','vs/s.json'],capture_output=True,text=True,timeout=900).stdout
 t=[l for l in o.split('\n') if l.startswith('js> {')]
@@ -20,11 +20,11 @@ def where(st):
             if src[k].lstrip().startswith('// src/'): mod=src[k].strip()[3:]; break
         if mod and not mod.endswith('/world.js') and 'mapkit' not in mod:
             t=src[ln-1]
-            if any(h in t for h in ('const S = (pair','const lit = (','const hang = (')): continue
+            if any(h in t for h in ('const S = (pair','const S3 = (pair','const lit = (','const hang = (','const post = (','const plant = (','const bed = (','const patch = (')): continue
             return f'{mod}:{ln} '+t.strip()[:140]
     return '?'
 print('items',d['n'],'cols',d['ncol'])
-SOFT=('flower(','fern(','grassTuft(','toadstoolCluster(','Ramp(','pumpkin(','cabbage(')
+SOFT=('flower(','flowerClump(','reeds(','lilies(','fern(','grassTuft(','toadstoolCluster(','Ramp(','pumpkin(','cabbage(')
 for key,idx in (('walk',6),('ghost',5)):
     c=collections.defaultdict(list)
     for r in d[key]:

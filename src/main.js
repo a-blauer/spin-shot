@@ -9,7 +9,8 @@ import { Net } from './net.js';
 import { makeVillageUI } from './village_ui.js';
 import { makeCraft } from './craft.js';
 import * as THREE from 'three';
-import { loadAtlas, loadCreaturePack, Atlas, G as UNI } from './render.js';
+import { loadAtlas, loadCreaturePack, Atlas, G as UNI, toonMaterial } from './render.js';
+import { shapeId, World } from './world.js';
 import { MAPS } from './maps.js';
 import { setParts } from './puppet.js';
 import { loadBlight, loadBlightBoss } from './blight.js';
@@ -580,6 +581,24 @@ window.__worldSheet = (list, cols = 2, cw = 640, ch = 400) => {
   lockR.setSize(LW, LH, false);
   return out.toDataURL('image/jpeg', 0.86);
 };
+// test hook: sculpted props on their own, as the world draws them. list: [{ shape: [key, build], yaw, pitch, label, zoom }]
+// (props from village_props.js / village_shapes.js are on window.__vprops / window.__vshapes in test builds)
+window.__shapeSheet = (list, cols = 4, cw = 360, ch = 300) => {
+  const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
+  const g = out.getContext('2d'); g.fillStyle = '#6a7a5a'; g.fillRect(0, 0, out.width, out.height);
+  ensureLock(); lockR.setSize(cw, ch, false);
+  list.forEach((Q, i) => {
+    const sc = new THREE.Scene(), id = shapeId(Q.shape[0], Q.shape[1]), geo = World.PRIM_GEOS[id], m = new THREE.Mesh(geo, toonMaterial({ vcol: true, double: true }));
+    sc.add(m); geo.computeBoundingBox(); const b = geo.boundingBox, c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length() * 0.5 * (Q.zoom || 1);
+    const yaw = Q.yaw === undefined ? 0.7 : Q.yaw, pitch = Q.pitch === undefined ? 0.35 : Q.pitch, d = r / Math.tan((28 * Math.PI) / 360) * 1.05;
+    const cam = new THREE.PerspectiveCamera(28, cw / ch, 1, 20000); cam.position.set(c.x + Math.cos(yaw) * Math.cos(pitch) * d, c.y + Math.sin(pitch) * d, c.z + Math.sin(yaw) * Math.cos(pitch) * d); cam.lookAt(c);
+    lockR.setClearColor(0x6a7a5a, 1); lockR.render(sc, cam); g.drawImage(lockCanvas, (i % cols) * cw, Math.floor(i / cols) * ch, cw, ch);
+    g.fillStyle = '#fff2c0'; g.font = '14px sans-serif'; g.fillText(Q.label || Q.shape[0], (i % cols) * cw + 5, Math.floor(i / cols) * ch + 16);
+  });
+  lockR.setSize(LW, LH, false);
+  return out.toDataURL('image/jpeg', 0.9);
+};
+if (TEST) { import('./village_props.js').then((m) => { window.__vprops = m; }); import('./village_shapes.js').then((m) => { window.__vshapes = m; }); }
 // test hook: a sheet of guns as the workbench shows them, with parts fitted. list: [{ def, cores, yaw, pitch, label }]
 window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);
