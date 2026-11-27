@@ -2,7 +2,9 @@
 // lanterns, the well, the windmill, the casino's toadstool and its tables, the noticeboard, rocks and hills.
 // Same rules as descent_shapes.js: UE frame (X the front, Y right, Z up, cm), each returns [key, build] for
 // world.Shape(), keys carry every number the shape depends on. Things stand on z = 0.
+import * as THREE from 'three';
 import { shape, sstep, wob } from './propkit.js';
+const curveOf = (pts) => new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])), false, 'centripetal');   // the same curve G.tube lays a tube along
 
 const q = (v, s = 10) => Math.round(v / s) * s;
 const hx = (c) => (c >>> 0).toString(16);
@@ -416,8 +418,10 @@ export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, mask = 0) {   // mask
     // the limbs, with moss hanging off them in strands
     for (const L of giantLimbs(h, r, seed)) {
       const ca = Math.cos(L.a), sa = Math.sin(L.a), mid = [ca * L.L * 0.5, sa * L.L * 0.5, L.z0 + h * 0.06];
-      G.tube([[ca * r * 0.3, sa * r * 0.3, L.z0 - r * 0.3], mid, L.tip], (t) => r * 0.36 * (1 - t * 0.7), (t, b) => (Math.cos(b) > 0.45 ? moss : bark), { S: 10 });
-      for (let k = 0; k < 6; k++) { const t = 0.3 + k * 0.11, px = ca * L.L * t, py = sa * L.L * t, pz = L.z0 + (L.tip[2] - L.z0) * t + h * 0.03 - r * 0.12, len = 140 + R() * 320; G.tube([[px, py, pz], [px + (R() - 0.5) * 20, py + (R() - 0.5) * 20, pz - len * 0.5], [px, py, pz - len]], (tt) => 9 * (1 - tt * 0.8), 0x8aa860, { S: 4, caps: false }); }
+      const LP = [[ca * r * 0.3, sa * r * 0.3, L.z0 - r * 0.3], mid, L.tip], LC = curveOf(LP);
+      G.tube(LP, (t) => r * 0.36 * (1 - t * 0.7), (t, b) => (Math.cos(b) > 0.45 ? moss : bark), { S: 10 });
+      // each moss strand starts inside the limb, on its own centre line
+      for (let k = 0; k < 6; k++) { const t = 0.3 + k * 0.11, P = LC.getPointAt(t), px = P.x, py = P.y, pz = P.z - r * 0.36 * (1 - t * 0.7) * 0.4, len = 140 + R() * 320; G.tube([[px, py, pz], [px + (R() - 0.5) * 20, py + (R() - 0.5) * 20, pz - len * 0.5], [px, py, pz - len]], (tt) => 9 * (1 - tt * 0.8), 0x8aa860, { S: 4, caps: false }); }
     }
     // the canopy: dark clumps over the limbs and the crown
     const cols = [leaf, mix(leaf, 0x2e5020, 0.5), mix(leaf, 0x5a8a3a, 0.4)];
@@ -434,8 +438,10 @@ export function rootArch(span = 900, hgt = 420, r = 70, seed = 1) {
   span = q(span); hgt = q(hgt); r = q(r, 5);
   return ['varch|' + [span, hgt, r, seed % 4].join('|'), shape((G) => {
     const R = rng(seed * 29 + span), w = (R() - 0.5) * span * 0.15;
-    G.tube([[-span / 2 - r, w, -40], [-span * 0.42, w * 0.5, hgt * 0.75], [0, 0, hgt], [span * 0.42, -w * 0.5, hgt * 0.75], [span / 2 + r, -w, -40]], (t) => r * (1.25 - 0.45 * Math.sin(t * Math.PI)), (t, a) => (Math.cos(a) > 0.15 ? (Math.sin(t * 40) > 0.6 ? 0x7aa848 : 0x5a8a34) : 0x3a2a1e), { S: 12 });
-    for (let k = 0; k < 7; k++) { const t = 0.25 + k * 0.08, x = (t - 0.5) * span * 0.95, z = hgt * Math.sin(t * Math.PI) * 0.97 - r * 0.6, len = 60 + R() * 140; G.tube([[x, 0, z], [x, 0, z - len]], (tt) => 6 * (1 - tt * 0.7), 0x8aa860, { S: 4, caps: false }); }
+    const AP = [[-span / 2 - r, w, -40], [-span * 0.42, w * 0.5, hgt * 0.75], [0, 0, hgt], [span * 0.42, -w * 0.5, hgt * 0.75], [span / 2 + r, -w, -40]], AC = curveOf(AP), ar = (t) => r * (1.25 - 0.45 * Math.sin(t * Math.PI));
+    G.tube(AP, ar, (t, a) => (Math.cos(a) > 0.15 ? (Math.sin(t * 40) > 0.6 ? 0x7aa848 : 0x5a8a34) : 0x3a2a1e), { S: 12 });
+    // moss hanging from its underside: each strand starts inside the root, on the curve the root is laid along
+    for (let k = 0; k < 7; k++) { const t = 0.3 + k * 0.067, P = AC.getPointAt(t), z = P.z - ar(t) * 0.55, len = 60 + R() * 140; G.tube([[P.x, P.y, z], [P.x, P.y, z - len]], (tt) => 6 * (1 - tt * 0.7), 0x8aa860, { S: 4, caps: false }); }
   })];
 }
 // ---- the dressing porch's furniture: a painted wardrobe with a carved crown, and a three-leaf folding screen

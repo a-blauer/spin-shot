@@ -37,7 +37,7 @@ function rootMask(x, y, h, r, sd) {
 export const VSPOTS = {
   spawn: [0, -2700, Math.PI],
   shop: { at: [-880, 450], npc: [-1230, 450, -Math.PI / 2], yaw: 0 },
-  gunshop: { at: [-860, -800], npc: [-1220, -800, -Math.PI / 2], yaw: 0 },
+  gunshop: { at: [-860, -800], npc: [-1140, -800, -Math.PI / 2], yaw: 0 },
   wardrobe: { at: [-1180, 1240], mirror: [-1180, 1760], yaw: 0 },
   board: { at: [740, -660], npc: [800, -260, Math.PI / 2], yaw: 180 },
   gate: { at: [GATE[0], GATE[1] - 100], npc: [520, GATE[1] - 400, 0.3] },
@@ -100,7 +100,9 @@ export function buildVillage(M, cx, cy) {
     for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; Oct(V(Math.cos(a) * 735, Math.sin(a) * 735, 6), V(110, 70, 12), mix(0x8a8478, VC.moss, (i % 3) * 0.25), false, false, R(0, (a * 180) / Math.PI + 90, 0)); }
     bodies.push([0, 0, 220, 360]);
     S(wellFine(), 0, 0, 0, 0); Solid(V(0, 0, 60), V(236, 236, 120), true); for (const sy of [-1, 1]) Solid(V(0, sy * 88, 200), V(20, 20, 180), false);
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4, x = Math.cos(a) * 660, y = Math.sin(a) * 660; S(lanternPost(320, i), x, y, 0, (a * 180) / Math.PI + 180); Solid(V(x, y, 160), V(24, 24, 320), false); lit(x - Math.cos(a) * 62, y - Math.sin(a) * 62, 262); }
+    // four tall lamp posts at the square's corners, the string lights high between them and up to a mast on the well's roof
+    const SQH = 720; for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4, x = Math.cos(a) * 660, y = Math.sin(a) * 660; S(lanternPost(SQH, i), x, y, 0, (a * 180) / Math.PI + 180); Solid(V(x, y, SQH / 2), V(24, 24, SQH), false); lit(x - Math.cos(a) * 62, y - Math.sin(a) * 62, SQH - 58, undefined, 1300); }
+    Cyl(V(0, 0, 300 + 240), 14, 480, VC.woodD, false, false); Cyl(V(0, 0, 306), 26, 12, VC.iron, false, false); Cyl(V(0, 0, 760), 40, 8, VC.brass, false, false); Ball(V(0, 0, 790), V(22, 22, 22), VC.brass);
     // paper lanterns strung across the square from post to post, and to the well
     const paper = (x0, y0, z0, x1, y1, z1, sag = 60) => {
       const n = Math.max(4, Math.round(Math.hypot(x1 - x0, y1 - y0) / 110)), cols = [0xff9a5a, 0xffd27a, 0xff6a5a, 0xffe6a0]; let p = null;
@@ -111,11 +113,7 @@ export function buildVillage(M, cx, cy) {
         p = [x, y, z];
       }
     };
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4, b = a + Math.PI / 2; paper(Math.cos(a) * 660, Math.sin(a) * 660, 300, Math.cos(b) * 660, Math.sin(b) * 660, 300, 90); paper(Math.cos(a) * 660, Math.sin(a) * 660, 300, Math.cos(a) * 60, Math.sin(a) * 60, 360, 70); }
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2, x = Math.cos(a) * 340, y = Math.sin(a) * 340, yaw = (a * 180) / Math.PI + 90; Box(V(x, y, 44), V(220, 56, 10), VC.woodL, true, false, yaw); for (const s of [-1, 1]) Box(V(x + Math.cos(a + Math.PI / 2) * s * 90, y + Math.sin(a + Math.PI / 2) * s * 90, 20), V(14, 50, 40), VC.woodD, false, false, yaw); Box(V(x + Math.cos(a) * 26, y + Math.sin(a) * 26, 76), V(220, 8, 50), VC.woodL, true, false, yaw); Solid(V(x, y, 30), V(220, 56, 60), false, yaw); for (const s of [-1, 1]) Box(V(x + Math.cos(a) * 26 + Math.cos(a + Math.PI / 2) * s * 100, y + Math.sin(a) * 26 + Math.sin(a + Math.PI / 2) * s * 100, 50), V(10, 10, 52), VC.woodD, false, false, yaw); }
-    // a signpost at the south edge of the square
-    { const x = 380, y = -860; Cyl(V(x, y, 150), 18, 300, VC.wood, true, false); Ball(V(x, y, 305), V(26, 26, 26), VC.red);
-      for (const [z, yaw, t] of [[262, 90, 'The Way Down'], [222, 180, 'Shops'], [182, 0, 'Casino'], [142, 145, 'Home']]) { const a = (yaw * Math.PI) / 180; Box(V(x + Math.cos(a) * 70, y + Math.sin(a) * 70, z), V(150, 6, 32), VC.woodD, false, false, yaw); const n = (a - Math.PI / 2); VSPOTS.signs.push({ kind: 'wood', o: { text: t, w: 560, h: 130, seed: z }, at: [x + Math.cos(a) * 70 + Math.cos(n) * 4, y + Math.sin(a) * 70 + Math.sin(n) * 4, z], face: [Math.cos(n), Math.sin(n)], h: 34 }); } }
+    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4, b = a + Math.PI / 2; paper(Math.cos(a) * 660, Math.sin(a) * 660, SQH - 20, Math.cos(b) * 660, Math.sin(b) * 660, SQH - 20, 90); paper(Math.cos(a) * 660, Math.sin(a) * 660, SQH - 20, Math.cos(a) * 16, Math.sin(a) * 16, 756, 60); }
 
     // ---- the old giants, with lanterns on long ropes from their limbs and moss thick round their feet
     for (const [x, y, h, r, sd] of GIANTS) {
@@ -180,7 +178,7 @@ export function buildVillage(M, cx, cy) {
       { const [k, b] = awning(740, 300, 70, 0x3a4a5a, 0xd8c8a0, 8); Shape(k, b, V(ct[0] - 110, ct[1], 330), R(0, -90, 0)); }
       for (const s of [-1, 1]) Cyl(V(ct[0] + 40, ct[1] + s * 360, 160), 16, 320, dark2, true, false);
       // the rack behind the counter: a board on two posts, six long guns on pegs
-      { const rx = ct[0] - 120; Box(V(rx, ct[1], 190), V(14, 520, 190), dark2, false, false); for (const s of [-1, 1]) Box(V(rx, ct[1] + s * 270, 150), V(20, 20, 300), dark2, true, false);
+      { const rx = ct[0] - 205; Box(V(rx, ct[1], 190), V(14, 520, 190), dark2, false, false); for (const s of [-1, 1]) Box(V(rx, ct[1] + s * 270, 150), V(20, 20, 300), dark2, true, false);
         for (let i = 0; i < 6; i++) { const gy = ct[1] - 210 + i * 84, l = 150 + (i % 3) * 20; Box(V(rx + 12, gy, 160 + l / 2), V(8, 8, l), VC.iron, false, false); Box(V(rx + 12, gy + 4, 140), V(10, 22, 50), [0x7a4a2a, 0x5a3a22, 0x8a5a34][i % 3], false, false); Box(V(rx + 14, gy, 210), V(6, 14, 24), VC.brass, false, false); } }
       // on the counter: a revolver on a cloth, a box of shells, a lantern
       Box(V(ct[0], ct[1] - 100, 95), V(70, 110, 2), 0x2a4a3a, false, false); Box(V(ct[0], ct[1] - 100, 100), V(14, 60, 8), VC.iron, false, false); Box(V(ct[0], ct[1] - 124, 104), V(10, 18, 16), 0x7a4a2a, false, false);
@@ -251,7 +249,64 @@ export function buildVillage(M, cx, cy) {
       C.slots.forEach(([sx, sy], i) => { S(slotMachine([0xb8282a, 0x2a6aa8, 0x3a8a4a][i]), sx + C.slotOut, sy, 18, 180, C.SL); Solid(V(sx + C.slotOut, sy, 90), V(56, 60, 160), true); });
       for (const T of [C.roulette, C.blackjack, C.dice]) for (const s of [-1, 1]) { const sx = T.at[0] + s * 110, sy = T.at[1]; Cyl(V(sx, sy, 44), 40, 7, 0x9a2a22, false, false); Cyl(V(sx, sy, 30), 9, 28, VC.brass, false, false); Cyl(V(sx, sy, 20), 32, 4, VC.brass, false, false); Solid(V(sx, sy, 26), V(34, 34, 52), false); }
       Box(V(x + 960, y - 200, 55), V(100, 500, 110), VC.woodD, true, true); Box(V(x + 960, y - 200, 114), V(120, 520, 10), VC.brass, false, false);
-      for (let i = 0; i < 7; i++) Cyl(V(x + 990, y - 400 + i * 60, 140), 16, 40, [0x2a6a3a, 0x8a2a2a, 0xc8a24a, 0x3a4a8a][i % 4], false, false); }
+      for (let i = 0; i < 7; i++) Cyl(V(x + 990, y - 400 + i * 60, 140), 16, 40, [0x2a6a3a, 0x8a2a2a, 0xc8a24a, 0x3a4a8a][i % 4], false, false);
+      // ---- the dressing of the place
+      const gold = 0xd8b04a, wine = 0x6a1418, deep = 0x3a0c10, pillarA = [0, 1, 2, 4, 5, 6].map((i) => (i / 7) * Math.PI * 2 + 0.45);
+      // the floor: a gold border to the carpet, plank seams beyond it, and a medallion in the middle
+      Cyl(V(x, y, 21.2), 1330, 1, gold, false, false);
+      for (let i = 0; i < 36; i++) { const a = (i / 36) * Math.PI * 2, r0 = 690, r1 = Rr - 90; Box(V(x + Math.cos(a) * (r0 + r1) / 2, y + Math.sin(a) * (r0 + r1) / 2, 20.4), V(r1 - r0, 3, 1), 0x4a2a18, false, false, (a * 180) / Math.PI); }
+      Cyl(V(x, y, 21.8), 620, 1, gold, false, false); Cyl(V(x, y, 22.0), 580, 1, deep, false, false); Cyl(V(x, y, 22.2), 520, 1, gold, false, false); Cyl(V(x, y, 22.4), 500, 1, wine, false, false);
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; Box(V(x + Math.cos(a) * 270, y + Math.sin(a) * 270, 22.6), V(30, 30, 1), gold, false, false, (a * 180) / Math.PI + 45); }
+      // the prize wheel on its dais: a round step, a post, the wheel facing the door with a ring of bulbs, and its pointer
+      { Cyl(V(x, y, 33), 460, 24, 0x5a3420, true, false); Cyl(V(x, y, 46), 470, 4, gold, false, false); Cyl(V(x, y, 47), 420, 1, wine, false, false);
+        Cyl(V(x, y, 150), 30, 210, gold, false, false); Cyl(V(x, y, 52), 90, 14, gold, false, false);
+        const WZ = 340, WR = 160, AXW = R(90, 0, 0);
+        Cyl(V(x, y, WZ), WR * 2 + 16, 18, 0x3a2414, false, false, AXW); Cyl(V(x - 10, y, WZ), WR * 2, 2, gold, false, false, AXW); Cyl(V(x - 11, y, WZ), WR * 2 - 24, 2, 0xb8282a, false, false, AXW);
+        Cyl(V(x - 12, y, WZ), WR * 2 - 90, 2, 0xf2e4c6, false, false, AXW); Cyl(V(x - 13, y, WZ), WR * 2 - 120, 2, 0x2a6a3a, false, false, AXW); Cyl(V(x - 14, y, WZ), 70, 4, gold, false, false, AXW); Cyl(V(x + 10, y, WZ), WR * 2, 2, gold, false, false, AXW);
+        for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, py = y + Math.cos(a) * (WR - 12), pz = WZ + Math.sin(a) * (WR - 12); Glow(V(x - 13, py, pz), V(8, 14, 14), i % 2 ? 0xfff0a0 : 0xff6a4a, 2); Glow(V(x + 13, py, pz), V(8, 14, 14), i % 2 ? 0xfff0a0 : 0xff6a4a, 2); }
+        for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.26, py = y + Math.cos(a) * (WR - 52), pz = WZ + Math.sin(a) * (WR - 52); Ball(V(x - 15, py, pz), V(6, 12, 12), [0xd8b04a, 0x3a6aa8, 0xf2e4c6][i % 3]); }
+        Box(V(x - 4, y, WZ + WR + 20), V(30, 20, 44), gold, false, false); Box(V(x - 4, y, WZ + WR + 2), V(12, 10, 14), 0xb8282a, false, false);
+        Solid(V(x, y, 270), V(50, WR * 2 + 20, 540), true); Lamp(V(x - 160, y, 360), { r: 1, g: 0.8, b: 0.5 }, 2, 700, false); }
+      // a brass ring chandelier round the wheel, hung from the cap on four chains: candles on it, crystal drops under it
+      { const CZ = 560, CR = 310;
+        for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; Box(V(x + Math.cos(a) * CR, y + Math.sin(a) * CR, CZ), V(10, (2 * Math.PI * CR) / 28 + 4, 10), gold, false, false, (a * 180) / Math.PI); }
+        for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + 0.4; Box(V(x + Math.cos(a) * CR, y + Math.sin(a) * CR, (CZ + 640) / 2), V(3, 3, 640 - CZ), VC.iron, false, false); }
+        for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, px = x + Math.cos(a) * CR, py = y + Math.sin(a) * CR; Cyl(V(px, py, CZ + 16), 12, 22, 0xf2e4c6, false, false); Glow(V(px, py, CZ + 34), V(10, 10, 16), 0xffd27a, 2); Ball(V(px, py, CZ - 22), V(7, 7, 14), 0xcfe8f0); Box(V(px, py, CZ - 9), V(1.5, 1.5, 6), gold, false, false); }
+        Lamp(V(x, y, CZ), { r: 1, g: 0.75, b: 0.45 }, 2.2, 1100, false); }
+      // banners hung from the cap's rim between the pillars: wine red, a gold diamond, a gold fringe
+      for (let i = 0; i < pillarA.length; i++) { const a = pillarA[i] + Math.PI / 7; if (Math.cos(a) < -0.75) continue; const r0 = Rr - 80, px = x + Math.cos(a) * r0, py = y + Math.sin(a) * r0, yw = (a * 180) / Math.PI;
+        Box(V(px, py, 586), V(6, 6, 24), VC.iron, false, false); Box(V(px, py, 572), V(10, 130, 8), gold, false, false);
+        Box(V(px, py, 460), V(4, 116, 220), wine, false, false, yw); Box(V(px - Math.cos(a) * 3, py - Math.sin(a) * 3, 470), V(2, 40, 40), gold, false, false, yw); Box(V(px - Math.cos(a) * 3.5, py - Math.sin(a) * 3.5, 470), V(2, 24, 24), deep, false, false, yw);
+        Box(V(px - Math.cos(a) * 3, py - Math.sin(a) * 3, 356), V(2, 116, 10), gold, false, false, yw); for (const e of [-1, 1]) Box(V(px - Math.cos(a) * 3 - Math.sin(a) * e * 56, py - Math.sin(a) * 3 + Math.cos(a) * e * 56, 460), V(2, 6, 220), gold, false, false, yw); }
+      // a brass rail round the edge, between the pillars, open at the door and behind the bar
+      for (let i = 0; i < 60; i++) { const a = (i / 60) * Math.PI * 2, b = ((i + 1) / 60) * Math.PI * 2, m = (a + b) / 2, deg = (((m * 180) / Math.PI) + 360) % 360;
+        if (Math.cos(m) < -0.86 || (deg > 330 || deg < 10) || pillarA.some((p) => Math.abs(Math.atan2(Math.sin(m - p), Math.cos(m - p))) < 0.1)) continue;
+        const r0 = Rr - 40, px = x + Math.cos(a) * r0, py = y + Math.sin(a) * r0;
+        Cyl(V(px, py, 64), 8, 88, gold, false, false); Ball(V(px, py, 112), V(10, 10, 10), gold);
+        Box(V(x + Math.cos(m) * r0, y + Math.sin(m) * r0, 98), V(6, (2 * Math.PI * r0) / 60 + 2, 6), gold, false, false, (m * 180) / Math.PI); Box(V(x + Math.cos(m) * r0, y + Math.sin(m) * r0, 56), V(4, (2 * Math.PI * r0) / 60 + 2, 4), gold, false, false, (m * 180) / Math.PI);
+        Solid(V(x + Math.cos(m) * r0, y + Math.sin(m) * r0, 60), V(16, (2 * Math.PI * r0) / 60 + 6, 120), false, (m * 180) / Math.PI); }
+      // behind the bar a back shelf with bottles and a mirror; stools before it
+      { const bx = x + 1045, by = y - 200; Box(V(bx, by, 170), V(18, 480, 300), 0x3a2216, false, false); Box(V(bx - 10, by, 230), V(2, 200, 110), 0xcfe4ec, false, false); Box(V(bx - 11, by, 230), V(2, 214, 124), gold, false, false);
+        for (const z of [110, 170]) { Box(V(bx - 18, by, z), V(20, 470, 6), 0x5a3420, false, false); for (let k = 0; k < 9; k++) { if (Math.abs(k - 4) < 2 && z > 150) continue; const pyb = by - 210 + k * 52; Cyl(V(bx - 20, pyb, z + 18), 12, 30, [0x2a6a3a, 0x8a2a2a, 0xc8a24a, 0x3a4a8a, 0x6a3a8a][(k + z) % 5], false, false); Cyl(V(bx - 20, pyb, z + 38), 5, 12, 0x2a2a2e, false, false); } }
+        for (let k = 0; k < 3; k++) { const sy = y - 440 + k * 125; Cyl(V(x + 870, sy, 66), 44, 8, wine, false, false); Cyl(V(x + 870, sy, 36), 10, 56, gold, false, false); Cyl(V(x + 870, sy, 6), 36, 6, gold, false, false); Cyl(V(x + 870, sy, 30), 30, 3, gold, false, false); Solid(V(x + 870, sy, 35), V(40, 40, 70), false); }
+        Glow(V(bx - 16, by - 230, 290), V(16, 16, 20), 0xffd27a, 2); Glow(V(bx - 16, by + 230, 290), V(16, 16, 20), 0xffd27a, 2); Lamp(V(bx - 120, by, 300), { r: 1, g: 0.75, b: 0.45 }, 1.8, 600, false); }
+      // the cashier's cage: a counter, brass bars, a little roof, a lamp, its sign
+      { const cx2 = x - 60, cy2 = y + 850; Box(V(cx2, cy2, 52), V(230, 80, 104), 0x5a3420, true, false); Box(V(cx2, cy2 - 2, 106), V(244, 92, 8), gold, false, false);
+        Box(V(cx2, cy2 + 44, 160), V(230, 10, 320), 0x3a2216, false, false);
+        for (let k = 0; k <= 12; k++) { if (k === 6) continue; Cyl(V(cx2 - 108 + k * 18, cy2 - 38, 184), 3, 150, gold, false, false); } Box(V(cx2, cy2 - 38, 112), V(30, 10, 8), 0x3a2216, false, false);
+        Box(V(cx2, cy2, 266), V(250, 100, 12), 0x5a3420, false, false); Box(V(cx2, cy2 - 50, 266), V(254, 4, 16), gold, false, false);
+        for (let k = 0; k < 4; k++) Cyl(V(cx2 - 60 + k * 28, cy2 + 10, 114 + (k % 2) * 6), 22, 8 + (k % 2) * 12, [0xb8282a, 0x3a6aa8, 0x2a2a2e, 0xd8b04a][k], false, false);
+        Glow(V(cx2, cy2, 236), V(18, 18, 20), 0xffd27a, 2); Lamp(V(cx2, cy2 - 60, 230), { r: 1, g: 0.8, b: 0.5 }, 1.8, 500, false);
+        VSPOTS.signs.push({ kind: 'wood', o: { text: 'Cashier', w: 500, h: 150, seed: 21 }, at: [cx2, cy2 - 54, 300], face: [0, -1], h: 44 }); for (const e of [-1, 1]) Box(V(cx2 + e * 70, cy2 - 52, 286), V(3, 3, 14), VC.iron, false, false);
+        Solid(V(cx2, cy2, 140), V(240, 100, 280), true); }
+      // a round rug under each table, and brass stanchions with a velvet rope either side of the door
+      for (const T of [C.roulette, C.blackjack, C.dice]) { const [tx, ty] = T.table; Cyl(V(tx, ty, 21.0), 470, 1, gold, false, false); Cyl(V(tx, ty, 21.1), 440, 1, 0x1e4a32, false, false); Cyl(V(tx, ty, 21.2), 380, 1, gold, false, false); Cyl(V(tx, ty, 21.3), 370, 1, 0x1e4a32, false, false); }
+      { const sx2 = x - Rr + 120; for (const e of [-1, 1]) { const ys = [y + e * 150, y + e * 330]; for (const py of ys) { Cyl(V(sx2, py, 60), 10, 100, gold, false, false); Cyl(V(sx2, py, 12), 40, 8, gold, false, false); Ball(V(sx2, py, 114), V(14, 14, 14), gold); Solid(V(sx2, py, 55), V(26, 26, 110), false); }
+        for (let k = 0; k <= 8; k++) { const t = k / 8, py = ys[0] + (ys[1] - ys[0]) * t, z = 96 - Math.sin(t * Math.PI) * 26; Box(V(sx2, py, z), V(8, (ys[1] - ys[0]) / 8 + 3, 8), 0x8a1a22, false, false); } } }
+      // big potted toadstools in the open corners, and a sconce on each pillar
+      for (const [dx, dy] of [[20, -780], [-760, 330], [-760, -330]]) { const px = x + dx, py = y + dy; Cyl(V(px, py, 40), 90, 80, 0x7a3a22, true, false); Cyl(V(px, py, 81), 96, 6, gold, false, false); const [k, b] = toadstoolCluster(1.6, 0xb8282a, Math.round(px)); Shape(k, b, V(px, py, 80), R(0, dx, 0)); }
+      for (const a of pillarA) { const r0 = Rr - 230 - 62, px = x + Math.cos(a) * r0, py = y + Math.sin(a) * r0; Box(V(px + Math.cos(a) * 10, py + Math.sin(a) * 10, 300), V(20, 20, 30), gold, false, false); Glow(V(px, py, 324), V(18, 18, 22), 0xffd27a, 2); }
+    }
 
     // ---- the Way Down: the arch set into a knoll of mossy boulders at the foot of the oldest giant
     { const [x, y] = GATE; avoid.push([x, y, 900]); bodies.push([x, y, 520, 1000]);
@@ -261,7 +316,6 @@ export function buildVillage(M, cx, cy) {
       for (const sg of [-1, 1]) { S(bush(150, VC.leaf, 0, 40 + sg), x + sg * 380, y - 40, 0, 0); S(bush(120, VC.leaf2, 0xf08aa8, 50 + sg), x + sg * 470, y - 170, 0, 0); Solid(V(x + sg * 380, y - 40, 70), V(220, 220, 140), false); Solid(V(x + sg * 470, y - 170, 60), V(180, 180, 120), false); }
       Solid(V(x, y + 190, 430), V(680, 200, 860), true);
       Blocker(V(0, y + 260, 1500), V(VSIZE * 2 + 1200, 160, 3000));
-      VSPOTS.signs.push({ kind: 'stone', o: { text: 'The Way Down', sub: 'twenty rooms, straight down' }, at: [x, y - 112, 870], face: [0, -1], h: 190 });
       for (let k = 0; k < 9; k++) Box(V(x, y - 80 - k * 40, 2 + k * 0.01), V(700 - k * 20, 40, 2), mix(VC.stone, VC.stoneD, (k % 2) * 0.4), false, false);
       for (const s of [-1, 1]) { S(lanternPost(360, s + 2), x + s * 560, y - 320, 0, s < 0 ? 0 : 180); Solid(V(x + s * 560, y - 320, 180), V(24, 24, 360), false); lit(x + s * 560 + (s < 0 ? 62 : -62), y - 320, 302, { r: 1, g: 0.8, b: 0.4 }, 1100); }
       for (let i = 0; i < 10; i++) { const [k, b] = flower(rr(40, 70), [0xf08aa8, 0xf6d04a, 0xffffff, 0xa070d0][i % 4], 0xf6c43a, i); Shape(k, b, V(x + (i < 5 ? -1 : 1) * rr(260, 500), y - 330 + rr(-30, 30), 0), R(0, rr(0, 360), 0)); } }
@@ -304,8 +358,18 @@ export function buildVillage(M, cx, cy) {
       Glow(V(x, y, 14), V(60, 60, 20), 0xff6a1a, 2); Glow(V(x, y, 26), V(30, 30, 30), 0xffc04a, 2); Solid(V(x, y, 40), V(170, 170, 80), false);
       Lamp(V(x, y, 90), { r: 1, g: 0.55, b: 0.25 }, 2.6, 1400, false);
       for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.5, bx = x + Math.cos(a) * 250, by = y + Math.sin(a) * 250, yaw = (a * 180) / Math.PI + 90; M.Cyl(V(bx, by, 24), 46, 190, VC.wood, false, false, R(90, yaw, 0)); Solid(V(bx, by, 24), V(186, 44, 48), true, yaw); for (const e of [-1, 1]) Cyl(V(bx + Math.cos(a + Math.PI / 2) * e * 95, by + Math.sin(a + Math.PI / 2) * e * 95, 24), 40, 3, 0xd8b07a, false, false); }
-      for (let k = 0; k < 3; k++) { const a = (k / 3) * 360 + 30; M.Cyl(V(x + Math.cos((a * Math.PI) / 180) * 40, y + Math.sin((a * Math.PI) / 180) * 40, 70), 5, 150, VC.iron, false, false, R(-15, a + 180, 0)); }
-      Ball(V(x, y, 100), V(46, 46, 40), 0x2a2a2e); Box(V(x, y, 140), V(2, 2, 40), VC.iron, false, false); }
+      // the tripod: three iron legs from the ground meeting at a lashed apex over the fire, a chain down to the pot's bail
+      { const AZ = 210, legs = [0, 1, 2].map((k) => { const a = (k / 3) * Math.PI * 2 + 0.5; return [x + Math.cos(a) * 96, y + Math.sin(a) * 96]; });
+        const rod = (ax, ay, az, bx, by, bz, t, col) => { const L = Math.hypot(bx - ax, by - ay, bz - az), yaw = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI, pitch = (Math.atan2(bz - az, Math.hypot(bx - ax, by - ay)) * 180) / Math.PI; M.BoxRot(V((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2), V(L + t, t, t), col, R(pitch, yaw, 0), false); };
+        for (const [lx, ly] of legs) { rod(lx, ly, 0, x + (lx - x) * 0.02, y + (ly - y) * 0.02, AZ + 6, 7, VC.iron); Oct(V(lx, ly, 3), V(16, 16, 6), VC.iron, false, false); }
+        Cyl(V(x, y, AZ), 16, 22, 0x8a6a3a, false, false); Cyl(V(x, y, AZ + 12), 10, 6, VC.iron, false, false);
+        for (let k = 0; k < 7; k++) { const z = AZ - 12 - k * 9; Box(V(x, y, z), V(k % 2 ? 2 : 6, k % 2 ? 6 : 2, 9), VC.iron, false, false); }
+        Box(V(x, y, 140), V(2, 2, 12), VC.iron, false, false);
+        rod(x - 24, y, 112, x, y, 140, 2.5, VC.iron); rod(x, y, 140, x + 24, y, 112, 2.5, VC.iron);
+        Ball(V(x, y, 96), V(50, 50, 40), 0x2a2a2e); Cyl(V(x, y, 116), 44, 4, 0x3a3a40, false, false); Cyl(V(x, y, 117), 38, 2, 0x6a4a2a, false, false);
+        for (const s2 of [-1, 1]) Box(V(x + s2 * 24, y, 110), V(4, 6, 8), VC.iron, false, false);
+        Solid(V(x, y, 105), V(70, 70, 210), false); }
+    }
     // lantern stakes along the road
     for (const sd of [-1, 1]) for (const y of [-900, -1500, -2300, -2900, 900, 1350, 1750, 2150]) { const x = sd * 240 + rr(-10, 10); Cyl(V(x, y, 30), 6, 60, VC.woodD, false, false); Solid(V(x, y, 42), V(18, 18, 84), false); Glow(V(x, y, 68), V(15, 15, 19), 0xffcf7a, 2); Box(V(x, y, 80), V(18, 18, 4), VC.iron, false, false); for (const [u, v] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) Box(V(x + u, y + v, 69), V(2, 2, 20), VC.iron, false, false); if (sd > 0) Lamp(V(x, y, 90), { r: 1, g: 0.72, b: 0.42 }, 1.5, 700, false); }
     // ---- scatter: mossy logs, ferns, toadstools, bushes, a few smaller trees, kept off the paths and the buildings
