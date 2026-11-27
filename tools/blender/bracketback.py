@@ -9,8 +9,7 @@ BARK_A, BARK_B, MOSS = C(0x5a4030), C(0x3e2c20), C(0x4e6a34)
 BAND_A, BAND_B = CAP(1), mix(CAP(0.75), C(0xf0e2c0), 0.3)
 reset(); parts = []
 def bark(m, n):
-    a = math.atan2(m.z, m.x)
-    return BARK_B if abs(math.sin(a * 9 + m.y * 0.02)) < 0.22 else BARK_A
+    return C(0x6a4c38) if n.y > 0.6 else (BARK_B if n.y < -0.5 else BARK_A)
 
 def shelf(P, c, out, R, n=3, seed=0):
     """A stack of bracket shelves growing out of a surface at c, toward out (horizontal)."""
@@ -50,6 +49,7 @@ def body_paint(m, n):
     if n.y > 0.55 and m.y > 196: return MOSS
     return bp(m, n)
 BODY.add(body, body_paint); pj = projector(body)
+grooves(BODY, pj, (0, 6), 104, 200, 16, BARK_B, 3.4, seed=4)
 BODY.add(blob((0, 182, 36), (17, 16, 15), name='neck'), bark, 300)
 # deep cracks in the bark, two lit from inside
 for i, (x, z, out) in enumerate(((-30, 40, (-0.6, 0, 1)), (34, 36, (0.6, 0, 1)), (8, -48, (0, 0, -1)))):

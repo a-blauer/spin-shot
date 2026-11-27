@@ -47,7 +47,7 @@ def veil_paint(m, n):
     a = math.atan2(m.z, m.x); fold = abs(math.cos(a * NF / 2))
     if m.y < 34: return mix(HEM, ROT, 0.35)
     if m.y < 42: return HEM
-    return VEIL if fold > 0.3 else VEIL_D
+    return VEIL if n.y > -0.05 else VEIL_D
 BODY.add(veil, veil_paint)
 for s in (-1, 1): BODY.add(blob((s * 12, 64, 0), (11, 11, 11), name='hipsock'), lambda m, n: DARK, 120)          # hip sockets inside the veil
 BODY.add(blob((0, 166, 2), (12, 10, 12), name='necksock'), lambda m, n: DARK, 120)
@@ -94,17 +94,29 @@ HEAD = Part('Head', [0, 168, 3], eyes=EYES)
 fo, fp = fuse([(skin([(0, 160, 3), (0, 176, 4), (0, 190, 4)], [11, 12, 12], sub=2, name='neck'), lambda m, n: DARK)] +
               [(blob((s * 5.5, 181, 11.5), (5, 1.8, 3), rot=(0, 0, s * 0.45), name='brow'), lambda m, n: DARK) for s in (-1, 1)], voxel=0.5, smooth=2, tris=900, name='face')
 HEAD.add(fo, fp)
-mor = lathe([(0, 252), (4, 248), (10, 236), (16, 220), (21, 204), (25, 192), (27, 186), (24, 184), (12, 186), (0, 188)], seg=12, name='morel')
+mor = lathe([(0, 250), (6, 248), (13, 240), (19, 226), (23, 210), (25, 196), (26, 188), (23, 185), (12, 186), (0, 188)], seg=16, name='morel')
 def _twist(v):
     a = math.atan2(v.z, v.x); r = math.hypot(v.x, v.z); k = 1 + 0.06 * math.sin(a * 6 + v.y * 0.15)
     return Vector((v.x * k, v.y, v.z * k + 3))
 deform(mor, _twist)
-def morel_paint(m, n):
-    if n.y < -0.4: return DARK
-    a = math.atan2(m.z - 3, m.x); u = a * 6 / math.pi + (m.y / 11) % 2 * 0.5; v = m.y / 11
-    pit = (abs((u % 1) - 0.5) < 0.32) and (abs((v % 1) - 0.5) < 0.32)
-    return mix(CAP(0.6), DARK, 0.45) if pit else CAP(1)
-HEAD.add(mor, morel_paint, 1600)
+PIT = mix(CAP(0.55), DARK, 0.55)
+def morel_paint(m, n): return DARK if n.y < -0.4 else PIT
+HEAD.add(mor, morel_paint, 1600); pm = projector(mor)
+for k in range(9):                                                   # the ridges: a pale honeycomb lattice over the pits
+    a = k * 2 * math.pi / 9; pts = []
+    for y in (190, 202, 214, 226, 238, 246):
+        aa = a + math.sin(y * 0.3 + k) * 0.12; o = Vector((math.cos(aa), 0.15, math.sin(aa)))
+        h = pm.ray_cast(Vector((0, y, 3)) + o * 80, -o, 120)
+        if h[0] is not None: pts.append(tuple(h[0]))
+    if len(pts) >= 3: HEAD.add(ribbon(pm, pts, 3.4, lambda p: (p.x, 0.2, p.z - 3), lift=0.6, taper=False), lambda m, n: CAP(1))
+for y in (198, 212, 226, 238):
+    for k in range(9):
+        a0 = k * 2 * math.pi / 9 + (0.35 if (y // 14) % 2 else 0); pts = []
+        for j in range(3):
+            aa = a0 + j * 0.3; o = Vector((math.cos(aa), 0.1, math.sin(aa)))
+            h = pm.ray_cast(Vector((0, y + j * 1.5, 3)) + o * 80, -o, 120)
+            if h[0] is not None: pts.append(tuple(h[0]))
+        if len(pts) == 3: HEAD.add(ribbon(pm, pts, 3, lambda p: (p.x, 0.2, p.z - 3), lift=0.6, taper=False), lambda m, n: CAP(1))
 parts.append(HEAD)
 
 export('Sporecaller', parts, out_path('Sporecaller'), height=235)

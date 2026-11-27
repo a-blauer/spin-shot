@@ -10,26 +10,32 @@ reset(); parts = []; rng = random.Random(9)
 EYES = [{'at': [x, 178 - abs(x) * 0.3, 92 - abs(x) * 0.5], 'r': 9 if x == 0 else 7, 's': -1 if x < 0 else 1, 'out': [x / 60, 0.1, 1]} for x in (-40, -20, 0, 20, 40)]
 BODY = Part('Body', [0, 120, 0], eyes=EYES)
 dome = lathe([(0, 238), (36, 234), (68, 218), (90, 192), (104, 160), (110, 124), (114, 84), (122, 40), (134, 10), (138, 0), (0, 0)], seg=18, name='dome')
-pieces = [(dome, lambda m, n: CAP(1))]
-for k in range(30):                                                   # the folds: thick winding ridges over the top
-    a0 = rng.uniform(0, 2 * math.pi); el0 = rng.uniform(0.35, 1.45); pts = []
+GROOVE, FOLD = mix(CAP(1), C(0x2a1a22), 0.55), mix(CAP(1), C(0xe8c8c0), 0.35)
+pieces = [(dome, lambda m, n: GROOVE)]
+for k in range(64):                                                   # the folds: thick winding ridges over the top
+    a0 = rng.uniform(0, 2 * math.pi); el0 = rng.uniform(-0.45, 1.45); pts = []
     for j in range(6):
         a = a0 + j * rng.uniform(0.12, 0.3) * (1 if k % 2 else -1); el = el0 + math.sin(j * 1.3 + k) * 0.18
-        r = 112 * math.cos(el * 0.75); y = 110 + 124 * math.sin(el * 0.75 + 0.1)
+        r = 112 * math.cos(max(0, el) * 0.75) + (6 if el < 0 else 0); y = 110 + 124 * math.sin(el * 0.75 + 0.1)
         pts.append((math.cos(a) * r, min(y, 238), math.sin(a) * r))
     if any(p[2] > 40 and 140 < p[1] < 210 and abs(p[0]) < 70 for p in pts): continue     # keep the brow and eyes clear
-    pieces.append((skin(pts, [10] * len(pts), sub=1, name='fold'), lambda m, n: mix(CAP(1), C(0xf0e2c0), 0.2)))
+    pieces.append((skin(pts, [12] * len(pts), sub=1, name='fold'), lambda m, n: FOLD))
 pieces.append((skin([(-62, 186, 64), (-30, 196, 84), (0, 198, 92), (30, 196, 84), (62, 186, 64)], [10, 12, 12, 12, 10], sub=1, name='brow'), lambda m, n: mix(CAP(1), ROOT_D, 0.4)))
 pieces.append((blob((0, 110, 60), (60, 50, 50), name='mawsock'), lambda m, n: FLESH(0.85)))
-bo, bp = fuse(pieces, voxel=2.0, smooth=1, tris=0, name='dome')
+bo, bp = fuse(pieces, voxel=1.8, smooth=1, tris=0, name='dome')
 deform(bo, lambda v: Vector((v.x, max(v.y, 0), v.z)))
-decimate(bo, 5200)
+decimate(bo, 6500)
 def dome_paint(m, n):
     if m.y < 30: return ROOT_D
-    return bp(m, n) if n.y > -0.3 else mix(CAP(1), ROOT_D, 0.5)
+    return bp(m, n)
 BODY.add(bo, dome_paint); pj = projector(bo); seat_eyes(EYES, pj, 0.3)
 for i, (a, y, r) in enumerate(((2.0, 200, 14), (3.4, 150, 16), (4.4, 210, 12), (5.6, 130, 14), (1.0, 120, 12))):
     rr = 100 * math.cos((y - 120) / 140); rot_patch(BODY.add, pj, (math.cos(a) * rr, y, math.sin(a) * rr), (math.cos(a), (y - 120) / 100, math.sin(a)), r, 3 + i * 3)
+for k in range(10):                                                   # slabs of floor tipped up where it broke through
+    a = k * 2 * math.pi / 10 + 0.15; r = 132 + (k % 3) * 10
+    ch = blob((math.cos(a) * r, 4, math.sin(a) * r), (22, 7, 14), rot=(0.5 * math.sin(a), -a, 0.4 * math.cos(a)), e=0.4, name='slab')
+    bake_world(ch); deform(ch, lambda v: Vector((v.x, max(v.y, 0), v.z)))
+    BODY.add(ch, lambda m, n: C(0x3c3a3e) if n.y > 0.3 else C(0x2a282c), 40)
 sore(BODY.add, pj, (-80, 120, 40), (-0.8, 0, 0.5), 9, 30)
 sore(BODY.add, pj, (70, 170, -40), (0.7, 0.5, -0.4), 7, 33)
 for i in range(11):                                                   # root tentacles curling out over the floor

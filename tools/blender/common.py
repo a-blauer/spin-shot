@@ -184,8 +184,9 @@ def root_arm(s, role_pivot, sho, elb, wri, rad, fingers=3, f_len=16, f_r=None, c
     if thumb:
         b = W + cu * -0.2 - side * R[2] * 0.9 * (1 if fingers > 1 else 0.6)
         specs.append(([tuple(b - side * 3), tuple(b - side * 5 + (fa + cu).normalized() * f_len * 0.55)], fr * 0.95))
-    tps = digits(pts, R, edges, 2, specs)
-    ob, pp = solid_limb(pts, R, edges, [(Vector(sho), ball or R[0] * 1.1), (W, R[2] * 1.15)], tps, paint, tris, voxel=0.7, smooth=3, sharp_r=fr * 1.7, tip=tip)
+    digits(pts, R, edges, 2, specs)
+    tps = [(Vector(c[-2]), Vector(c[-1]) + (Vector(c[-1]) - Vector(c[-2])).normalized() * fr * 0.6) for c, _ in specs]   # only the last joint tapers
+    ob, pp = solid_limb(pts, R, edges, [(Vector(sho), ball or R[0] * 1.1), (W, R[2] * 1.15)], tps, paint, tris, voxel=min(0.9, max(0.5, fr * 0.14)), smooth=3, sharp_r=fr * 1.15, tip=tip)
     P = Part('ArmFront' if s > 0 else 'ArmBack', list(role_pivot)); P.add(ob, pp)
     return P, ob
 
@@ -228,3 +229,18 @@ def carve(ob, cutter):
     m = ob.modifiers.new('carve', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.object = cutter; m.solver = 'EXACT'
     _apply(ob); bpy.data.objects.remove(cutter, do_unlink=True)
     return ob
+
+
+def grooves(P, pj, axis_c, y0, y1, n, colour, width=3.0, skip=None, seed=0):
+    """Vertical grooves of bark drawn down a trunk-like surface round the vertical axis through axis_c (x, z)."""
+    import random as _r
+    rr = _r.Random(seed)
+    for k in range(n):
+        a = k * 2 * math.pi / n + rr.uniform(-0.15, 0.15); pts = []
+        for j in range(6):
+            y = y1 - (y1 - y0) * j / 5; aa = a + math.sin(j * 1.7 + k) * 0.05
+            o = Vector((math.cos(aa), 0, math.sin(aa)))
+            h = pj.ray_cast(Vector((axis_c[0], y, axis_c[1])) + o * 300, -o, 400)
+            if h[0] is not None and (skip is None or not skip(h[0])): pts.append(tuple(h[0]))
+            elif len(pts) >= 2: break
+        if len(pts) >= 3: P.add(ribbon(pj, pts, width * rr.uniform(0.7, 1.2), lambda p, c=axis_c: (p.x - c[0], 0, p.z - c[1]), lift=0.6, taper=False), lambda m, n: colour)

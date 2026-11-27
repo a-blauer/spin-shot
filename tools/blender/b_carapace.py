@@ -5,7 +5,7 @@ import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 
-BAND_A, BAND_B = CAP(1), mix(CAP(0.7), C(0xf0e2c0), 0.4)
+BAND_A, BAND_B = CAP(1), mix(CAP(1), C(0xf0e2c0), 0.2)
 reset(); parts = []
 for role, s, z in (('LegBack', -1, -40), ('LegFront', 1, -40), ('ArmBack', -1, 44), ('ArmFront', 1, 44)):
     zz = 1 if z > 0 else -1
@@ -26,7 +26,7 @@ def shell_paint(m, n):
     if n.y < -0.5: return FLESH(0.85)
     RINGS = (182, 166, 152, 138, 121, 104, 89, 74, 56)               # the lathe's rings: a band between each pair
     k = sum(1 for y in RINGS if m.y < y)
-    return BAND_B if k % 3 == 2 else (mix(CAP(1), ROOT_D, 0.2) if k % 3 == 1 else BAND_A)
+    return BAND_B if k % 3 == 2 else (mix(CAP(1), ROOT_D, 0.12) if k % 3 == 1 else BAND_A)
 BODY.add(shell, shell_paint)
 pieces = []
 rim = lathe([(124, 64), (134, 56), (134, 44), (122, 40), (114, 52)], seg=14, name='rim')

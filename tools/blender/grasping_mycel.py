@@ -36,12 +36,12 @@ tips = []
 pts = [(0, 136, 4)]; rad = [9]; edges = []
 for k in (-1, 0, 1):                                          # three long hooked fingers curling forward
     ch = [(k * 11, 150, 10), (k * 15, 156, 24), (k * 13, 146, 38), (k * 8, 132, 42)]
-    i = len(pts); pts += ch; rad += [6.5, 5.5, 4, 2.6]; edges += [(0, i), (i, i + 1), (i + 1, i + 2), (i + 2, i + 3)]
+    i = len(pts); pts += ch; rad += [6, 4.8, 3.2, 1.6]; edges += [(0, i), (i, i + 1), (i + 1, i + 2), (i + 2, i + 3)]
     tips.append((Vector(ch[1]).lerp(Vector(ch[2]), 0.5), Vector(ch[3]) + (Vector(ch[3]) - Vector(ch[2])).normalized() * 4))
 cl = skin(pts, rad, edges, sub=2, name='claw')
 pieces.append((cl, lambda m, n: ROOT))
 ho, hp = fuse(pieces, voxel=0.7, smooth=2, tris=0, name='head')
-for a, b in tips: sharpen(ho, a, b, 5.5)
+for a, b in tips: sharpen(ho, a, b, 4)
 decimate(ho, 2200)
 def hpaint(m, n):
     for a, b in tips:

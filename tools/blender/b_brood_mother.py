@@ -6,15 +6,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 
 reset(); parts = []
-SAC, SAC_D = mix(FLESH(0.85), C(0xcfc4a8), 0.5), mix(FLESH(0.6), ROOT_D, 0.4)
+SAC, SAC_D = C(0xc08c7a), C(0x8a5a4a)
 for s in (-1, 1):
-    P, _ = root_leg(s, [s * 22, 60, 26], (s * 22, 66, 26), (s * 27, 38, 32), (s * 26, 13, 30), [15, 13, 11], toes=4, toe_len=22)
+    P, _ = root_leg(s, [s * 22, 60, 26], (s * 24, 66, 26), (s * 29, 38, 32), (s * 28, 13, 30), [20, 17, 14.5], toes=4, toe_len=26)
     parts.append(P)
 
 BODY = Part('Body', [0, 60, 20])
-pieces = [(skin([(0, 66, 24), (0, 92, 28), (0, 120, 32), (0, 146, 36), (0, 158, 38)], [(32, 26), (34, 28), (31, 25), (34, 26), (24, 20)], sub=2, name='torso'), lambda m, n: FLESH(1))]
+pieces = [(skin([(0, 66, 24), (0, 92, 28), (0, 120, 32), (0, 146, 36), (0, 158, 38)], [(42, 34), (46, 37), (41, 33), (43, 33), (28, 24)], sub=2, name='torso'), lambda m, n: ROOT)]
 for s in (-1, 1):
-    pieces += [(blob((s * 32, 146, 36), (15, 14, 14), name='sho'), lambda m, n: ROOT), (blob((s * 26, 116, 42), (11, 11, 11), name='sho2'), lambda m, n: ROOT),
+    pieces += [(blob((s * 36, 146, 36), (19, 18, 18), name='sho'), lambda m, n: ROOT), (blob((s * 32, 116, 42), (15, 15, 15), name='sho2'), lambda m, n: ROOT),
                (blob((s * 22, 64, 26), (14, 13, 14), name='hip'), lambda m, n: ROOT)]
 # the sac: a long chain of swelling segments dragging behind
 SP = [Vector((0, 92, 8)), Vector((0, 72, -40)), Vector((0, 60, -90)), Vector((0, 52, -136)), Vector((0, 44, -168))]
@@ -32,9 +32,12 @@ def body_paint(m, n):
     return bp(m, n)
 BODY.add(body, body_paint); pj = projector(body)
 BODY.add(blob((0, 160, 40), (19, 16, 18), name='necksock'), lambda m, n: FLESH(1), 300)
-# root plating down the torso's front and sides
-for x in (-20, -8, 8, 20):
-    BODY.add(ribbon(pj, [(x, 152, 50), (x * 1.1, 130, 54), (x * 1.15, 108, 56), (x * 1.05, 86, 52), (x, 70, 48)], 4.2, lambda p: (p.x * 0.02, 0, 1), lift=0.9, taper=False), lambda m, n: ROOT)
+BODY.add(decal(pj, (0, 108, 60), (0, 0, 1), 30, seg=56, rings=10, lift=0.9, squash=(0.9, 1.45), wobble=0.05, seed=2), lambda m, n: FLESH(1))   # the pale belly
+for k, (x, y) in enumerate(((-14, 124), (10, 116), (-8, 96), (14, 88), (0, 140))):                 # glowing pores on it
+    BODY.add(decal(pj, (x, y, 60), (x * 0.01, 0, 1), 4.6, seg=12, rings=1, lift=1.3), lambda m, n: C(0x5a3a22))
+    BODY.add(decal(pj, (x, y, 60), (x * 0.01, 0, 1), 3, seg=12, rings=1, lift=1.6), lambda m, n: GLOW(1))
+for s in (-1, 1):
+    BODY.add(ribbon(pj, [(s * 40, 150, 46), (s * 46, 128, 50), (s * 46, 104, 52), (s * 40, 80, 50)], 2.4, lambda p, s=s: (s, 0, 0.5), lift=0.7), lambda m, n: FLESH(0.85))
 # the eggs: faceted pods sunk in the sac, each split by a glowing seam
 for i in range(11):
     t = (i + 0.5) / 11; f = t * (len(SP) - 1); k = min(int(f), len(SP) - 2); c = SP[k].lerp(SP[k + 1], f - k)
@@ -53,10 +56,10 @@ rot_patch(BODY.add, pj, (-36, 90, -60), (-1, 0.5, 0), 12, 8)
 parts.append(BODY)
 
 for s in (-1, 1):
-    P, _ = root_arm(s, [s * 34, 150, 34], (s * 34, 148, 36), (s * 60, 124, 52), (s * 70, 96, 72), [11, 9, 7.5], fingers=3, f_len=22)
+    P, _ = root_arm(s, [s * 34, 150, 34], (s * 38, 148, 36), (s * 62, 124, 52), (s * 72, 96, 72), [15, 13, 11], fingers=3, f_len=26)
     parts.append(P)
 for s in (-1, 1):
-    P, _ = root_arm(s, [s * 28, 118, 40], (s * 28, 116, 42), (s * 46, 96, 58), (s * 50, 72, 74), [8.5, 7, 6], fingers=3, f_len=16)
+    P, _ = root_arm(s, [s * 28, 118, 40], (s * 32, 116, 42), (s * 50, 96, 58), (s * 54, 72, 74), [12, 10, 8.5], fingers=3, f_len=20)
     parts.append(P)
 
 # head: four eyes and a fanged mouth under a crowned cap

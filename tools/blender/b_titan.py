@@ -9,8 +9,7 @@ from common import *
 BARK_A, BARK_B, MOSS, RING_A, RING_B = C(0x5a4030), C(0x3e2c20), C(0x4e6a34), C(0xc8a878), C(0xa88458)
 BAND_A, BAND_B = CAP(1), mix(CAP(0.75), C(0xf0e2c0), 0.3)
 def bark(m, n):
-    a = math.atan2(m.z, m.x)
-    return BARK_B if abs(math.sin(a * 11 + m.y * 0.015)) < 0.2 else BARK_A
+    return C(0x6a4c38) if n.y > 0.6 else (BARK_B if n.y < -0.5 else BARK_A)
 reset(); parts = []
 for s in (-1, 1):
     P, _ = root_leg(s, [s * 32, 96, -6], (s * 34, 100, -6), (s * 38, 58, -2), (s * 38, 20, 0), [24, 22, 20], toes=5, toe_len=32, spread=1.3, paint=bark, tip=BARK_B)
@@ -33,6 +32,7 @@ def body_paint(m, n):
     if math.hypot(m.x, (m.y - 168) * 0.83) < 30 and m.z < 62 and m.z > 20 and n.z < 0.5: return BARK_B   # inside the hollow
     return bp(m, n)
 BODY.add(bo, body_paint); pj = projector(bo)
+grooves(BODY, pj, (0, 0), 104, 226, 18, BARK_B, 3.2, skip=lambda p: math.hypot(p.x, (p.y - 168) * 0.83) < 38 and p.z > 0, seed=2)
 heart = lathe([(0, 16), (8, 12), (13, 4), (12, -6), (6, -14), (0, -18)], seg=8, name='heart')
 bake_world(transform(heart, Matrix.Translation((0, 166, 44))))
 BODY.add(heart, lambda m, n: GLOW(1), 120)
@@ -77,7 +77,7 @@ for i, (a, y, R) in enumerate(((0.8, 266, 22), (2.4, 258, 18), (4.0, 262, 20), (
     HEAD.add(sh, lambda m, n: GILL_A if n.y < -0.4 else (BAND_A if i % 2 else BAND_B), 140)
 for o in HEAD.pieces: deform(o[0], lambda v: v + Vector((0, 16, 0)))     # sits up out of the trunk
 for e in EYES: e['at'][1] += 16
-HEAD.add(blob((0, 236, 18), (30, 14, 30), name='neck'), bark, 300)
+HEAD.add(skin([(0, 214, 14), (0, 228, 16), (0, 242, 18)], [28, 30, 30], sub=1, name='neck'), bark, 300)
 parts.append(HEAD)
 
 export('B_Titan', parts, out_path('B_Titan'), height=250)

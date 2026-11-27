@@ -41,23 +41,32 @@ parts.append(BODY)
 
 EYES = [{'at': [s * 40, 136, 106], 'r': 12, 's': s, 'out': [s * 0.4, 0.35, 0.85]} for s in (-1, 1)]
 HEAD = Part('Head', [0, 80, 60], eyes=EYES)
-pieces = [(blob((0, 96, 92), (78, 46, 48), e=0.85, seg=16, name='head'), skin_p)]
+LIP = C(0x485830)
+pieces = [(blob((0, 106, 92), (78, 38, 48), e=0.85, seg=16, name='skull'), skin_p),
+          (blob((0, 78, 96), (74, 20, 46), e=0.8, seg=16, name='jaw'), lambda m, n: BELLY if n.y < 0 else skin_p(m, n))]
 for s in (-1, 1):
     pieces.append((blob((s * 38, 128, 98), (19, 17, 19), name='eyebump'), skin_p))
     pieces.append((blob((s * 36, 148, 106), (16, 5, 9), rot=(0.3, 0, -s * 0.38), name='brow'), lambda m, n: TD_C))
-ho, hp = fuse(pieces, voxel=1.1, smooth=1, tris=2600, name='head')
-def gape(v):                                                          # the mouth: a deep slot right across the front, curving back
-    cu = v.x * v.x / 4900; my = 86 - cu * 10; mz = 132 - cu * 26
-    if abs(v.y - my) < 5 and v.z > mz - 22: return Vector((v.x, v.y, min(v.z, mz - 22)))
-    return v
-deform(ho, gape)
-HEAD.add(ho, lambda m, n: MOUTH if abs(m.y - (86 - m.x * m.x / 4900 * 10)) < 6 and m.z > 60 and n.z < 0.5 else hp(m, n)); ph = projector(ho); seat_eyes(EYES, ph, 0.25)
-for i in range(13):                                                   # a row of teeth along the top lip, a few up from the bottom
-    x = -66 + i * 11; cu = x * x / 4900; y = 91 - cu * 10; z = 130 - cu * 26
-    h = ph.ray_cast(Vector((x, y + 2, z + 60)), Vector((0, -0.1, -1)).normalized(), 120)
+ho, hp = fuse(pieces, voxel=1.0, smooth=2, tris=0, name='head')
+MZ = lambda x: 134 - x * x / 140                                     # the mouth's line, curving back at the corners
+cut = blob((0, 87, 0), (80, 6.5, 44), seg=40, name='mouthcut')
+deform(cut, lambda v: Vector((v.x, v.y, v.z + MZ(v.x))))
+carve(ho, cut)
+decimate(ho, 3000)
+def inmouth(m):
+    return (m.x / 82) ** 2 + ((m.y - 87) / 8) ** 2 + ((m.z - MZ(m.x)) / 46) ** 2 < 1.12
+HEAD.add(ho, lambda m, n: MOUTH if inmouth(m) else (LIP if abs(m.y - 87) < 10 and n.z > 0.3 else hp(m, n))); ph = projector(ho); seat_eyes(EYES, ph, 0.25)
+HEAD.add(blob((0, 86, 98), (62, 5, 30), name='throat'), lambda m, n: MOUTH, 200)
+HEAD.add(blob((0, 83, 112), (26, 4, 20), name='tongue'), lambda m, n: C(0xa05a4a), 120)
+for i in range(15):                                                  # teeth hanging from the upper lip, a few rising from the lower
+    x = -63 + i * 9; z0 = MZ(x)
+    h = ph.ray_cast(Vector((x, 95, z0 + 80)), Vector((0, 0, -1)), 160)
     if h[0] is None: continue
-    b = h[0] - Vector((0, 0, 2)); L = 9 if i % 3 == 1 else 6
-    HEAD.add(skin([tuple(b), tuple(b + Vector((0, -L, 1.5)))], [3.2, 0.15], sub=1, name='t'), lambda m, n: TOOTH, 14)
+    b = Vector((x, 93.2, h[0].z - 3)); L = 8 if i % 4 == 1 else 5
+    HEAD.add(skin([tuple(b + Vector((0, 1.5, 0))), tuple(b + Vector((0, -L, 0.6)))], [2.6, 0.12], sub=1, name='t'), lambda m, n: TOOTH, 12)
+    if i % 3 == 0 and 0 < i < 14:
+        b2 = Vector((x + 4, 80.8, h[0].z - 4))
+        HEAD.add(skin([tuple(b2 - Vector((0, 1.5, 0))), tuple(b2 + Vector((0, 5, 0.6)))], [2.2, 0.12], sub=1, name='t'), lambda m, n: TOOTH, 12)
 parts.append(HEAD)
 
 export('B_Toad', parts, out_path('B_Toad'), height=170, beast=True)

@@ -71,7 +71,8 @@ for i in range(7):
     x = -9 + i * 3; top = i % 2 == 0
     h = pf.ray_cast(Vector((x, 133.4 if top else 126.8, 50)), Vector((0, 0, -1)), 60)
     if h[0] is not None: HEAD.add(skin([tuple(h[0] - h[1] * 0.4), tuple(h[0] + h[1] * 1.0 + Vector((0, -3.2 if top else 3.2, 0)))], [1.5, 0.12], sub=1, name='t'), lambda m, n: TOOTH, 16)
-for i, (y, R, z, tilt) in enumerate(((160, 54, 6, 0.08), (175, 44, 2, -0.05), (188, 32, -2, 0.1))):
+HEAD.add(skin([(0, 150, 6), (0, 170, 3), (0, 194, -2)], [20, 17, 13], sub=2, name='stem'), lambda m, n: mix(CAP(1), ROOT_D, 0.4), 300)
+for i, (y, R, z, tilt) in enumerate(((160, 54, 6, 0.04), (173, 44, 3, -0.03), (185, 32, 0, 0.05))):
     shelf = lathe([(0, 9), (R * 0.5, 8), (R * 0.85, 4), (R, 0), (R * 0.95, -3), (R * 0.6, -4), (0, -4)], seg=9, name='shelf')
     def _jag(v, R=R, i=i):
         r = math.hypot(v.x, v.z)

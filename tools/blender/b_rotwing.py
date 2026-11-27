@@ -79,7 +79,10 @@ HEAD = Part('Head', [0, 110, 74], eyes=EYES)
 pieces = [(skin([(0, 116, 78), (0, 126, 94), (0, 130, 110)], [12, 11.5, 11], sub=2, name='neck'), hide),
           (blob((0, 128, 116), (15, 13, 16), seg=16, name='skull'), hide),
           (skin([(0, 125, 122), (0, 122, 146), (0, 118, 168)], [(12, 10), (10, 8), (7, 6)], sub=1, name='snout'), hide),
-          (skin([(0, 106, 118), (0, 102, 140), (0, 100, 160)], [(9.5, 5), (8, 4), (5, 3)], sub=1, name='jaw'), lambda m, n: DRG2)]
+          (skin([(0, 108, 114), (0, 103, 140), (0, 100, 160)], [(9.5, 5.5), (8, 4), (5, 3)], sub=1, name='jaw'), lambda m, n: DRG2),
+          (skin([(0, 114, 82), (0, 110, 100), (0, 109, 114)], [(11, 9), (10, 8), (9.5, 6)], sub=2, name='throat'), hide)]
+for s in (-1, 1):                                                     # the hinge: cheek muscle from the skull down to the jaw
+    pieces.append((skin([(s * 9, 126, 112), (s * 9, 116, 116), (s * 8.5, 108, 120)], [(4, 5), (4.5, 5), (4, 4)], sub=1, name='cheek'), hide))
 for s in (-1, 1):
     pieces.append((skin([(s * 14, 138, 112), (s * 10, 136, 128)], [4.4, 3], sub=1, name='brow'), lambda m, n: DRG2))
 ho, hp = fuse(pieces, voxel=0.5, smooth=2, tris=2600, name='head')
