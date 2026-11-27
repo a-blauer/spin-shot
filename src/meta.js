@@ -74,7 +74,9 @@ export const GNOMES = [
   { id: 'forge', name: 'Flintwhistle', title: 'the Smith', opens: 'The Forge', text: 'Elites start dropping weapon fragments; at the Forge they are worked into guns, and every gun forged is yours to start a run with.' },
   { id: 'lectern', name: 'Mother Inkcap', title: 'the Wizard', opens: 'The Lectern', text: 'Reads from her book to make a run harder in a chosen way, and its spoils richer: more gold, more gun parts, more renown, more class points.' },
 ];
-export const MACHINE_NEEDS = { fusion: 'compressor', crucible: 'fusion' };   // an upgrade turns up only once the machine it upgrades is home
+export const MACHINE_NEEDS = { fusion: 'compressor', crucible: 'fusion' };
+// held only by the last boss of a Hard (or Nightmare) Descent
+export const HARD_PRIZES = new Set(['gnome:forge', 'gnome:lectern', 'machine:crucible']);   // an upgrade turns up only once the machine it upgrades is home
 const OLD_MACHINE_RANK = { compressor: 2, showcase: 5, recycler: 9, fortune: 13, fusion: 17, crucible: 20 };   // where ranks used to open them (saves from then keep them)
 export const rankXp = (r) => (r <= 1 ? 0 : Math.round(250 * Math.pow(r - 1, 1.7) / 50) * 50);   // total XP needed to hold rank r
 export const rankOf = (xp) => { let r = 1; while (r < RANKS.length && xp >= rankXp(r + 1)) r++; return r; };
@@ -475,14 +477,24 @@ export const Meta = {
   variant(cls) { const v = (S.variant || {})[cls] || ''; return v && this.trained(cls, v) ? v : ''; },
   setVariant(cls, id) { if (id && !this.trained(cls, id)) return; S.variant = S.variant || {}; S.variant[cls] = id || ''; dirty = true; this.save(); },
   gnomeHome(id) { return unlockAll || !!(S.town && S.town.gnomes[id]); },
-  // what the last boss of this run is holding: the next gnome still lost, or a machine not yet home (an upgrade only if its
-  // machine is), chosen at random between the two; with nothing left, a hoard of gold
-  rollPrize() {
-    const T = S.town || { gnomes: {}, machines: {} }, g = GNOMES.find((G) => !T.gnomes[G.id]);
-    const ms = Object.keys(MACHINE_NAMES).filter((id) => !T.machines[id] && (!MACHINE_NEEDS[id] || T.machines[MACHINE_NEEDS[id]]));
-    const opts = []; if (g) opts.push({ kind: 'gnome', id: g.id }); if (ms.length) opts.push({ kind: 'machine', id: ms[Math.floor(Math.random() * ms.length)] });
-    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : { kind: 'hoard', id: 'gold' };
+  // ---- the prize: what the last boss of a run holds. The player picks it at the Way Down from everything still lost
+  // (an upgrade only once its machine is home); some are held only on Hard or harder. Nothing left: a hoard of gold.
+  prizeOptions() {
+    const T = S.town || { gnomes: {}, machines: {} }, out = [];
+    for (const G of GNOMES) if (!T.gnomes[G.id]) out.push({ kind: 'gnome', id: G.id });
+    for (const id of Object.keys(MACHINE_NAMES)) if (!T.machines[id] && (!MACHINE_NEEDS[id] || T.machines[MACHINE_NEEDS[id]])) out.push({ kind: 'machine', id });
+    for (const P of out) P.hard = HARD_PRIZES.has(P.kind + ':' + P.id);
+    return out;
   },
+  prizeOk(P, df) { return !!P && (!P.hard || df >= 1); },
+  prizePick() { const k = S.prizePick || ''; return this.prizeOptions().find((P) => P.kind + ':' + P.id === k) || null; },
+  setPrizePick(key) { S.prizePick = key || ''; dirty = true; this.save(); },
+  // the prize for a run on difficulty df: the pick if it can be held there, else the first that can, else gold
+  prizeFor(df) {
+    const pk = this.prizePick(); if (this.prizeOk(pk, df)) return { kind: pk.kind, id: pk.id };
+    const P = this.prizeOptions().find((q) => this.prizeOk(q, df)); return P ? { kind: P.kind, id: P.id } : { kind: 'hoard', id: 'gold' };
+  },
+  rollPrize() { return this.prizeFor(this.difficulty()); },
   prizeName(P) { if (!P) return ''; if (P.kind === 'gnome') { const G = GNOMES.find((q) => q.id === P.id); return G ? `${G.name}, ${G.title}` : ''; } if (P.kind === 'machine') return MACHINE_NAMES[P.id] || ''; return 'a hoard of gold'; },
   // the boss is beaten: what it held comes home
   rescue(P) {

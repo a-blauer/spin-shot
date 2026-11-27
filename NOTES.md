@@ -261,3 +261,11 @@
   ~100% on the head, ~0% on the body. Cost ~0.06 ms a shot with 40 enemies. Unchanged: raid heart (E.raidHeart keeps
   its cylinder), flat cut-out mode, melee reach / explosions / contact (still hitR / radius).
 - Test hooks: window.__bodyPoints, __bodyRay, __DATA (TEST builds). Picture: out/hitboxes_before_after.png.
+
+## (55) Choose the prize; Hard-only prizes; rescue reveal
+- Meta.prizeOptions() (lost gnomes, machines not home, upgrades once their base is home; .hard from HARD_PRIZES:
+  gnome:forge, gnome:lectern, machine:crucible). S.prizePick via setPrizePick; prizeFor(df) = pick if allowed on df
+  (hard needs df >= 1), else the first allowed, else hoard. Descent uses prizeFor(difficulty()) at start and again on
+  reaching the last room. Lobby section THE PRIZE (descent only, host/solo; guests use their own saved pick).
+- Win screen (hud drawDescentWon): a glowing green panel first, "RESCUED - HOME TO THIMBLEWICK" / "NEW MACHINE FOUND",
+  name, what it opens or does, and for an upgrade what it replaces. Shots: out/town/win_*.png, lobby_prize*.png.

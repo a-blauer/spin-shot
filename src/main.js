@@ -19,7 +19,7 @@ import { Game } from './game.js';
 import { MACHINES, machine, ASC, ROMAN, temperOf, attuneOf } from './deeds.js';
 import { CORE0 as CORE_0, CORE_DEFS as CORE_LIST, coreSvg } from './cores.js';
 import { TRAINING } from './trainer.js';
-import { Meta, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES, shopGuns } from './meta.js';
+import { Meta, GNOMES, STARTERS, ACHIEVEMENTS, GROUPS, SKINS, GUN_LEVELS, GUN_TRAITS, RANKS, rankXp, WORLD, MEDALS, MEDAL_HEX, HEIRLOOM_ROUND, CLASS_META, CLASS_LEVELS, CLASS_LEVEL_NAMES, shopGuns } from './meta.js';
 
 THREE.ColorManagement.enabled = false;
 const params = new URLSearchParams(location.search);
@@ -31,6 +31,7 @@ if (TEST) import('./signatures.js').then((m) => { window.__sig = m; });
 if (TEST) import('./forge.js').then((m) => { window.__forge = m; });
 if (TEST) window.__trn = TRAINING;
 if (TEST) window.__DATA = DATA;
+if (TEST) window.__openLobby = () => openLobby();
 if (TEST) window.__meta = { Meta, RANKS, ACHIEVEMENTS, CLASS_META, WORLD, SKINS, STARTERS, MELEE, rollBuff, rollGunMod, rollMelee, rankXp };
 
 const glCanvas = document.getElementById('gl');
@@ -712,6 +713,15 @@ function renderLobby() {
       else h += group(`${read.length} page${read.length > 1 ? 's' : ''} read`, read.map((M) => chip('', true, true, M.name, M.boon)).join(''), `<span class="dim2">${read.map((M) => `${M.name}: ${M.desc} Pays ${M.boon}.`).join(' ')}</span>`); }
     h += '</section>';
     if (isD) { const nd = MACHINES.filter((D) => machine(D.id)).length;
+      // the prize: pick what the last boss holds this run
+      { const opts = Meta.prizeOptions(), cur = Meta.prizeFor(curDf), pk = Meta.prizePick(), K = (P) => P.kind + ':' + P.id;
+        const what = (P) => { if (P.kind === 'gnome') { const G = GNOMES.find((q) => q.id === P.id); return `${G.name}, ${G.title}: opens ${G.opens}. ${G.text}`; } const M = MACHINES.find((q) => q.id === P.id); return M ? `${M.name}: ${M.short || M.text}` : ''; };
+        const nm = (P) => (P.kind === 'gnome' ? GNOMES.find((q) => q.id === P.id).name : (MACHINES.find((q) => q.id === P.id) || {}).name || P.id);
+        h += '<section><h3>THE PRIZE</h3>';
+        if (!opts.length) h += group('Nothing lost', chip('', true, false, 'A hoard of gold', '600 gold'), 'Every gnome and every machine is home. The last boss sits on a hoard of gold.');
+        else h += group('Last boss holds', opts.map((P) => chip(`data-prize="${K(P)}"`, cur.kind === P.kind && cur.id === P.id, P.hard && curDf < 1, esc2(nm(P)), P.kind === 'gnome' ? (P.hard ? 'gnome · Hard+' : 'gnome') : P.hard ? 'machine · Hard+' : 'machine')).join(''),
+          esc2(cur.kind === 'hoard' ? 'Nothing it can hold on this difficulty: a hoard of gold.' : what(cur)) + (pk && !Meta.prizeOk(pk, curDf) ? `<br><span class="gold">${esc2(nm(pk))} is only held on Hard or Nightmare. On ${DIFFS[curDf].name} it holds ${esc2(cur.kind === 'hoard' ? 'gold' : nm(cur))} instead.</span>` : '') + '<br><span class="dim2">Beat the last boss of the Descent to bring it home. The Smith, the Wizard and the Crucible are held only on Hard or harder.</span>');
+        h += '</section>'; }
       h += '<section><h3>THE DESCENT</h3>' + group('MACHINES', MACHINES.map((D) => { const ok = machine(D.id), r = Meta.machineHow(D.id); return chip(`data-deed="${D.id}"`, ok, !ok, esc2(D.name), ok ? 'Home' : 'Not found', `data-why="${esc2(r + '. ' + D.text)}" data-grp="d"`); }).join(''),
         info('d') || (nd ? `<ul class="lbkit">${MACHINES.filter((D) => machine(D.id)).map((D) => `<li><b>${esc2(D.name)}:</b> ${esc2(D.short)}</li>`).join('')}</ul>` : 'Machines are helpers that turn up in the Descent. The last boss of every Descent holds one, or a lost gnome of Thimblewick: beat it to bring them home.')) + '</section>'; }
     h += `</main></div><div class="lbfoot"><div class="lbsum"><b>${esc2(MAPS[curMap].name)}</b><span>${DIFFS[curDf].name}</span>${Kc ? `<span class="gold">contract: ${esc2(Kc.title)}</span>` : ''}</div><button id="lbnext" class="lbstart">NEXT: LOADOUT</button></div>`;
@@ -748,6 +758,7 @@ function renderLobby() {
   lobby.querySelectorAll('.lbpick.locked[data-why]').forEach((el) => { el.addEventListener('click', (e) => { e.stopPropagation(); lobbyInfo[el.dataset.grp] = `${el.querySelector('b').textContent}: ${el.dataset.why}`; renderLobby(); }, true); });
   lobby.querySelectorAll('.lbpick[data-mu]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (Meta.dailyOn()) return; Meta.toggleMut(+el.dataset.mu); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-daily]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setDaily(!Meta.dailyOn()); Net.setMap(Meta.map()); renderLobby(); }; });
+  lobby.querySelectorAll('.lbpick[data-prize]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.setPrizePick(el.dataset.prize); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-df]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; Meta.setDifficulty(+el.dataset.df); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-heir]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); if (el.classList.contains('locked')) return; delete lobbyInfo.h; Meta.setHeirloom(el.dataset.heir); renderLobby(); }; });
   lobby.querySelectorAll('.lbpick[data-w]').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); Meta.toggleLoadout(el.dataset.w); if (Net.role === 'client' && Net.ready) Net.setReady(false); renderLobby(); }; });
@@ -970,7 +981,7 @@ function enterVillage() {
   game.villageRT.enter(); title.style.display = 'none'; lobby.style.display = 'none'; locker.style.display = 'none';
   start(); game.vm.hidden = true;
   if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: clothes at Bramble & Bolt, your wardrobe on the dressing porch at home, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
-  else if (!Meta.tipSeen('town1')) { Meta.tipMark('town1'); hud.tip('Thimblewick has lost three of its own to the Blight: its smith, its trainer and its wizard. The last boss of every Descent holds one of them in a cage, or one of the machines. Beat it and they come home: the Forge, the Training Yard and the Lectern open as they do.'); }
+  else if (!Meta.tipSeen('town1')) { Meta.tipMark('town1'); hud.tip('Thimblewick has lost three of its own to the Blight: its smith, its trainer and its wizard. The last boss of every Descent holds one of them in a cage, or one of the machines: choose which at the Way Down (the Smith, the Wizard and the Crucible only on Hard or harder). Beat it and it comes home.'); }
 }
 async function goVillage() {
   const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));

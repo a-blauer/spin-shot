@@ -37,7 +37,7 @@ export class Descent {
     this.bossPick = this.pickBosses();
     this.result = null;
     // what the last boss holds this run (each player's own: the next of their gnomes, or one of their machines)
-    this.prize = Meta.rollPrize(); this.rescued = false; this.prizeO = null;
+    this.prize = Meta.prizeFor(difficulty()); this.rescued = false; this.prizeO = null;
   }
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
@@ -119,6 +119,7 @@ export class Descent {
     if (this.raid && !raidRoom) { this.raid.dispose(); this.raid = null; }
     if (raidRoom && !this.raid) this.raid = new Raid(g, this);
     if (!raidRoom) this.prizeO = null;
+    if (raidRoom && !this.prizeO && !this.rescued) this.prize = Meta.prizeFor(difficulty());
     if (raidRoom && this.raid && this.prize && !this.prizeO) { const O = (this.prizeO = buildPrize(this.prize)), [px, py, pyaw] = this.raid.prizeAt || [0, -900, 0]; O.root.position.copy(this.raid.w(px, py, 0)); O.root.rotation.y = pyaw || 0; this.raid.root.add(O.root); }
     if (raidRoom && this.prize && !this.rescued) { const P0 = this.prize, nm = Meta.prizeName(P0); g.hud.toast(P0.kind === 'gnome' ? `It holds ${nm} in a cage. Bring them home.` : P0.kind === 'machine' ? `It sits on ${nm}. Beat it and the machine is yours.` : 'It sits on a hoard of gold.', '#9affc0'); }
     if (this.sector) { this.sector.dispose(); this.sector = null; }

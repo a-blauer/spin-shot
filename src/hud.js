@@ -13,7 +13,7 @@ import { sigOf, sigState } from './signatures.js';
 import { DATA, RARITY_HEX, SYMBOLS, luckMult, cssRGB, SUITS, SUIT_HEX, SUIT_BONUS } from './data.js';
 
 import { MELEE, MELEE_CODE, isMelee } from './melee.js';
-import { Meta } from './meta.js';
+import { Meta, GNOMES, MACHINE_NEEDS, MACHINE_NAMES } from './meta.js';
 import { ROMAN, attuneOf, temperOf, ASC, MACHINES, machine } from './deeds.js';
 const WD = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
 const BONE = '#f2e8d5', GOLD = '#ffcd5a', BLOOD = '#e0342c', INK = '#140d12', PANEL = 'rgba(22,14,20,0.86)';
@@ -1269,11 +1269,27 @@ export class Hud {
   // The Descent, won: who carried it, and which gun was marked for it
   drawDescentWon(game, P, W, H, S) {
     const g = this.g, D = game.descent; if (!D.result) D.reward();
-    const R = D.result, cy = H * 0.2, EV = '#ff8cff';
+    const R = D.result, pz = D.prize, home = D.rescued && pz && pz.kind !== 'hoard', cy = H * (home ? 0.11 : 0.2), EV = '#ff8cff';
     this.text('THE DESCENT IS DONE', W / 2, cy, 110 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text(`${R.diff.toUpperCase()}   -   ${P.kills} KILLS   -   ${P.headshots} HEADSHOTS`, W / 2, cy + 46 * S, 22 * S, BONE, 'center', F_TXT, 700, 0.1);
+    // what the last boss held, and is now home: the first thing on the page
+    let top = cy + 84 * S;
+    if (home) {
+      const GR = '#9affc0', t = (performance.now() / 1000) % 100, qw = 860 * S, qx = W / 2 - qw / 2, qh = (pz.kind === 'gnome' ? 192 : 168) * S;
+      const isG = pz.kind === 'gnome', G = isG ? GNOMES.find((q) => q.id === pz.id) : null, M = isG ? null : MACHINES.find((q) => q.id === pz.id);
+      g.save(); g.shadowColor = GR; g.shadowBlur = (18 + Math.sin(t * 3) * 8) * S; this.panel(qx, top, qw, qh, GR, 'rgba(10,26,18,0.94)', 12 * S); g.restore();
+      this.text(isG ? 'RESCUED  -  HOME TO THIMBLEWICK' : 'NEW MACHINE FOUND', W / 2, top + 36 * S, 22 * S, GR, 'center', F_TXT, 800, 0.3);
+      this.text((isG ? `${G.name}, ${G.title}` : M ? M.name : Meta.prizeName(pz)).toUpperCase(), W / 2, top + 92 * S, 52 * S, BONE, 'center', F_BIG, 400, 0.06);
+      this.text(isG ? `${G.opens} is open in Thimblewick.` : M ? M.short || M.text : '', W / 2, top + 130 * S, 20 * S, '#d8ccb8', 'center', F_TXT, 600, 0.04);
+      if (isG) { const w = G.text.split(' '), half = Math.ceil(w.length / 2), two = G.text.length > 80;   // long: two lines
+        if (two) { this.text(w.slice(0, half).join(' '), W / 2, top + 156 * S, 16 * S, '#9a9080', 'center', F_TXT, 600, 0.04); this.text(w.slice(half).join(' '), W / 2, top + 176 * S, 16 * S, '#9a9080', 'center', F_TXT, 600, 0.04); }
+        else this.text(G.text, W / 2, top + 156 * S, 17 * S, '#9a9080', 'center', F_TXT, 600, 0.04); }
+      else if (M && MACHINE_NEEDS[M.id]) this.text(`An upgrade to ${MACHINE_NAMES[MACHINE_NEEDS[M.id]]}: it takes its place from your next Descent.`, W / 2, top + 156 * S, 17 * S, '#9a9080', 'center', F_TXT, 600, 0.04);
+      else this.text('It turns up in every Descent from your next one.', W / 2, top + 156 * S, 17 * S, '#9a9080', 'center', F_TXT, 600, 0.04);
+      top += qh + 24 * S;
+    }
     // the ascension
-    const pw = 860 * S, px = W / 2 - pw / 2, py = cy + 84 * S, ph = 250 * S;
+    const pw = 860 * S, px = W / 2 - pw / 2, py = top, ph = 250 * S;
     this.panel(px, py, pw, ph, R.asc ? EV : 'rgba(255,205,90,0.6)', 'rgba(20,10,16,0.9)', 12 * S);
     if (R.asc) {
       const L = R.level, A = ASC[L - 1];
@@ -1294,7 +1310,7 @@ export class Hud {
     // deeds earned on the way
     const nd = MACHINES.filter((d) => machine(d.id)).length; ty += 50 * S;
     this.text(`MACHINES  ${nd} / ${MACHINES.length}`, W / 2, ty, 18 * S, '#9affc0', 'center', F_TXT, 700, 0.15);
-    const pz = D.prize; if (pz && D.rescued) this.text(`Brought home: ${Meta.prizeName(pz)}`, W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
+    if (pz && D.rescued && pz.kind === 'hoard') this.text('The last boss’s hoard: 600 gold', W / 2, ty + 26 * S, 17 * S, '#bdb3a2', 'center', F_TXT, 600, 0.06);
     this.hints('[Enter] Back to the village', W / 2, ty + 78 * S, 24 * S);
   }
   drawPaused(W, H, S) {
