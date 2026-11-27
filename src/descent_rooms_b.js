@@ -52,8 +52,8 @@ export const ROOMS_B = [
       }
       // footbridges over each channel, railed
       for (const s of [-1, 1]) for (const [x, y, along] of [[s * 2600, 0, false], [0, s * 2600, true]]) {
-        Box(V(x, y, 95), along ? V(1000, 300, 30) : V(300, 1000, 30), 0x5a4a30, true, false);
-        for (const e of [-1, 1]) { Box(V(x + (along ? 0 : e * 140), y + (along ? e * 140 : 0), 160), along ? V(1000, 10, 10) : V(10, 1000, 10), iron, false, false); for (const q of [-1, 0, 1]) Box(V(x + (along ? q * 460 : e * 140), y + (along ? e * 140 : q * 460), 135), V(12, 12, 60), iron, false, false); }
+        Box(V(x, y, 95), along ? V(1700, 300, 30) : V(300, 1700, 30), 0x5a4a30, true, false);
+        for (const e of [-1, 1]) { Box(V(x + (along ? 0 : e * 140), y + (along ? e * 140 : 0), 160), along ? V(1700, 10, 10) : V(10, 1700, 10), iron, false, false); for (const q of [-1, 0, 1]) Box(V(x + (along ? q * 800 : e * 140), y + (along ? e * 140 : q * 800), 135), V(12, 12, 60), iron, false, false); }
       }
       // the sump: a round grating over the meeting of the waters, with the winch above it
       Cyl(V(0, 0, 3.2), 1100, 3, 0x0a0e0a, false, false); for (let q = -4; q <= 4; q++) { tile(q * 110 - 14, -520, q * 110 + 14, 520, 5, iron); tile(-520, q * 110 - 14, 520, q * 110 + 14, 5.4, iron); } Glow(V(0, 0, 4.2), V(700, 700, 1.2), slime, 7);
@@ -72,7 +72,7 @@ export const ROOMS_B = [
       ys.forEach((y, i) => { const s = i % 2 ? 1 : -1, x = s * (hx - 250 - 1400); solid(x, y, 0, 2800, 160, H, brick); deco(x, y, 0, 2830, 200, 50, cap); deco(x, y, H - 60, 2830, 200, 60, cap); for (let q = -2; q <= 2; q++) Glow(V(x + q * 520, y, 300), V(60, 166, 8), T.glow, 0); tall(x, y, 1500); });
       for (const y of ys) Box(V(0, y, H - 30), V(hx * 2 - 40, 220, 60), 0x2c201a, false, false);
       // the gun
-      const gy = 0; solid(0, gy, 0, 150, 320, 50, wood, false); for (const e of [-1, 1]) { Cyl(V(e * 100, gy - 60, 80), 160, 20, wood, false, false, AX); Cyl(V(e * 100, gy - 60, 80), 40, 28, iron, false, false, AX); deco(e * 60, gy + 40, 50, 20, 260, 60, wood); }
+      const gy = 0; solid(0, gy, 0, 150, 320, 50, wood, false); for (const e of [-1, 1]) { Cyl(V(e * 100, gy - 60, 80), 160, 20, wood, false, false, AX); Cyl(V(e * 100, gy - 60, 80), 40, 28, iron, false, false, AX); deco(e * 52, gy + 40, 50, 20, 260, 60, wood); }
       Cyl(V(0, gy + 40, 130), 90, 420, iron, false, false, AY); Cyl(V(0, gy - 150, 130), 110, 60, iron, false, false, AY); Ball(V(0, gy - 190, 130), V(60, 60, 60), iron); hit(0, gy, 0, 240, 440, 180, true); L(0, gy, 420, T.lamp, 1700, 2.6);
       // shot in a pyramid, and powder kegs, in every bay
       const shot = (x, y) => { solid(x, y, 0, 220, 220, 14, wood, false); for (let l = 0; l < 3; l++) for (let a = 0; a < 3 - l; a++) for (let b = 0; b < 3 - l; b++) Ball(V(x + (a - (2 - l) / 2) * 64, y + (b - (2 - l) / 2) * 64, 44 + l * 50), V(62, 62, 62), iron); hit(x, y, 0, 200, 200, 150, true); };
@@ -168,7 +168,7 @@ export const ROOMS_B = [
       // riot barricades: mess tables thrown on their sides, across the hall from each door
       for (const s of [-1, 1]) for (const e of [-1, 1]) { const x = e * 500, y = s * 4300; Box(V(x, y, 48), V(420, 12, 92), steel, true, true, e * s * 12); Box(V(x, y + s * 30, 4), V(380, 40, 8), steel, false, false, e * s * 12); for (const q of [-1, 1]) Box(V(x + q * 180, y + s * 26, 30), V(10, 52, 44), 0x3a2c20, false, false, e * s * 12); }
       // the yard phone, the bins, a notice board on the cage
-      for (const s of [-1, 1]) { solid(s * 2200, s * 600, 0, 60, 140, 200, 0x34383e, false); Box(V(s * 2200 - s * 34, s * 600, 150), V(8, 60, 70), 0x1a1c1e, false, false); Glow(V(s * 2200 - s * 39, s * 600, 170), V(4, 30, 16), 0x3aff7a, 0); Cyl(V(-s * 2150, s * 900, 45), 80, 90, 0x3a5a3a, true, false); Cyl(V(-s * 2150, s * 900, 92), 86, 8, iron, false, false); Box(V(s * 344, 0, 80 + 190), V(6, 300, 150), 0x7a5a36, false, false); for (let q = -1; q <= 1; q++) Box(V(s * 349, q * 90, 80 + 190 + q * 16), V(4, 60, 80), 0xe8e0d0, false, false); }
+      for (const s of [-1, 1]) { solid(s * 2200, s * 600, 0, 60, 140, 200, 0x34383e, false); Box(V(s * 2200 - s * 34, s * 600, 150), V(8, 60, 70), 0x1a1c1e, false, false); Glow(V(s * 2200 - s * 39, s * 600, 170), V(4, 30, 16), 0x3aff7a, 0); Cyl(V(-s * 2150, s * 900, 45), 80, 90, 0x3a5a3a, true, false); Cyl(V(-s * 2150, s * 900, 92), 86, 8, iron, false, false); Box(V(s * 338, 0, 80 + 190), V(6, 300, 150), 0x7a5a36, false, false); for (let q = -1; q <= 1; q++) Box(V(s * 343, q * 90, 80 + 190 + q * 16), V(4, 60, 80), 0xe8e0d0, false, false); }
       // mess tables, bolted in rows
       for (const s of [-1, 1]) for (const y of [1700, 2600, 3500]) for (const e of [-1, 1]) P.mess(e * 950, s * y, true, 420, steel);
       // overhead walkway rails and lamps

@@ -383,3 +383,78 @@ export function mossLog(len = 220, seed = 1) {
     for (let k = 0; k < 3; k++) { const x = -len * 0.3 + k * len * 0.25; G.blob(x, -r * 0.95, r * (0.9 + k * 0.15), 14, 9, 3, 0xd8b070, { e: 2.5, nu: 10, nv: 4 }); }
   })];
 }
+
+// ---- the old giants: trees so big a gnome cottage fits between their roots. A trunk furrowed and mossed on its north
+// side, a skirt of roots flaring out and arching into the ground, a few great limbs reaching out with moss hanging from
+// them, and a canopy of dark clumps high overhead. giantLimbs() gives where each limb ends (the map hangs lanterns there).
+export function giantLimbs(h, r, seed = 1) {
+  const R = rng(seed * 7 + h), out = [], n = 5;
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + R() * 0.8, z0 = h * (0.42 + R() * 0.22), L = r * (4.2 + R() * 2.4); out.push({ a, z0, L, tip: [Math.cos(a) * L, Math.sin(a) * L, z0 + h * (0.08 + R() * 0.1)] }); }
+  return out;
+}
+export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, away = null) {   // away: an angle no root grows toward (a path, a door)
+  h = q(h, 50); r = q(r, 10);
+  return ['vgiant|' + [h, r, seed % 9, hx(leaf), away === null ? 'n' : away.toFixed(2)].join('|'), shape((G) => {
+    const R = rng(seed * 131 + h), bark = 0x4a3626, barkD = 0x2e2018, moss = 0x5a8a34, mossL = 0x7aa848;
+    const trunkC = (t, a) => { const f = Math.sin(a * 11 + t * 4) + 0.5 * Math.sin(a * 23 - t * 9); if (t < 0.55 && Math.cos(a - 1.2) > 0.25 + t * 0.6) return f > 0.6 ? mossL : moss; return f > 0.9 ? barkD : f < -1.1 ? 0x5a4432 : bark; };
+    G.tube([[0, 0, -40], [r * 0.05, 0, h * 0.3], [-r * 0.08, r * 0.05, h * 0.62], [0, 0, h * 0.86]], (t) => r * (1.12 - 0.62 * t) * (t < 0.07 ? 1 + (0.07 - t) * 9 : 1), trunkC, { S: 22 });
+    // the root skirt: each root leaves the trunk high, arches out and dives into the ground
+    const nr = 9;
+    for (let i = 0; i < nr; i++) {
+      const a = (i / nr) * Math.PI * 2 + R() * 0.4, reach = r * (2.1 + R() * 1.5), up = r * (0.45 + R() * 0.5), ca = Math.cos(a), sa = Math.sin(a);
+      if (away !== null && Math.abs(Math.atan2(Math.sin(a - away), Math.cos(a - away))) < 0.6) continue;
+      G.tube([[ca * r * 0.5, sa * r * 0.5, r * 1.2], [ca * r * 1.15, sa * r * 1.15, up + r * 0.35], [ca * reach * 0.7, sa * reach * 0.7, up * 0.55], [ca * reach, sa * reach, -30]], (t) => r * 0.42 * (1 - t * 0.75), (t, b) => (Math.cos(b) > 0.2 ? (t > 0.2 && t < 0.9 ? moss : bark) : barkD), { S: 10 });
+    }
+    // the limbs, with moss hanging off them in strands
+    for (const L of giantLimbs(h, r, seed)) {
+      const ca = Math.cos(L.a), sa = Math.sin(L.a), mid = [ca * L.L * 0.5, sa * L.L * 0.5, L.z0 + h * 0.06];
+      G.tube([[ca * r * 0.3, sa * r * 0.3, L.z0 - r * 0.3], mid, L.tip], (t) => r * 0.36 * (1 - t * 0.7), (t, b) => (Math.cos(b) > 0.45 ? moss : bark), { S: 10 });
+      for (let k = 0; k < 6; k++) { const t = 0.3 + k * 0.11, px = ca * L.L * t, py = sa * L.L * t, pz = L.z0 + (L.tip[2] - L.z0) * t + h * 0.03 - r * 0.12, len = 140 + R() * 320; G.tube([[px, py, pz], [px + (R() - 0.5) * 20, py + (R() - 0.5) * 20, pz - len * 0.5], [px, py, pz - len]], (tt) => 9 * (1 - tt * 0.8), 0x8aa860, { S: 4, caps: false }); }
+    }
+    // the canopy: dark clumps over the limbs and the crown
+    const cols = [leaf, mix(leaf, 0x2e5020, 0.5), mix(leaf, 0x5a8a3a, 0.4)];
+    const clump = (x, y, z, s, i) => G.blob(x, y, z, s, s * (0.9 + R() * 0.2), s * 0.62, cols[i % 3], { e: 2, nu: 16, nv: 10, warp: (X, Y, Z, nx, ny, nz) => { const w = 1 + 0.1 * wob(nx * 5 + i, ny * 5 + nz * 3); return [X * w, Y * w, Z * w]; } });
+    let ci = 0;
+    for (const L of giantLimbs(h, r, seed)) { clump(L.tip[0], L.tip[1], L.tip[2] + r * 0.6, r * (1.7 + R() * 0.6), ci++); clump(L.tip[0] * 0.6, L.tip[1] * 0.6, L.tip[2] + r * 1.1, r * 1.6, ci++); }
+    clump(0, 0, h * 0.92, r * 2.6, ci++); for (let i = 0; i < 5; i++) { const a = R() * 6.28; clump(Math.cos(a) * r * 2, Math.sin(a) * r * 2, h * (0.84 + R() * 0.1), r * (1.6 + R() * 0.6), ci++); }
+    // shelf fungus up the trunk
+    for (let i = 0; i < 5; i++) { const a = R() * 6.28, z = h * (0.08 + R() * 0.25), rr = r * (1.06 - z / h * 0.6); G.blob(Math.cos(a) * rr, Math.sin(a) * rr, z, r * 0.22, r * 0.22, r * 0.05, i % 2 ? 0xd8b070 : 0xc89a5a, { e: 2.5, nu: 12, nv: 5 }); }
+  })];
+}
+// ---- a root that has broken the surface and arches over the path: mossy on top, bark beneath; span along X
+export function rootArch(span = 900, hgt = 420, r = 70, seed = 1) {
+  span = q(span); hgt = q(hgt); r = q(r, 5);
+  return ['varch|' + [span, hgt, r, seed % 4].join('|'), shape((G) => {
+    const R = rng(seed * 29 + span), w = (R() - 0.5) * span * 0.15;
+    G.tube([[-span / 2 - r, w, -40], [-span * 0.42, w * 0.5, hgt * 0.75], [0, 0, hgt], [span * 0.42, -w * 0.5, hgt * 0.75], [span / 2 + r, -w, -40]], (t) => r * (1.25 - 0.45 * Math.sin(t * Math.PI)), (t, a) => (Math.cos(a) > 0.15 ? (Math.sin(t * 40) > 0.6 ? 0x7aa848 : 0x5a8a34) : 0x3a2a1e), { S: 12 });
+    for (let k = 0; k < 7; k++) { const t = 0.25 + k * 0.08, x = (t - 0.5) * span * 0.95, z = hgt * Math.sin(t * Math.PI) * 0.97 - r * 0.6, len = 60 + R() * 140; G.tube([[x, 0, z], [x, 0, z - len]], (tt) => 6 * (1 - tt * 0.7), 0x8aa860, { S: 4, caps: false }); }
+  })];
+}
+// ---- the dressing porch's furniture: a painted wardrobe with a carved crown, and a three-leaf folding screen
+export function wardrobeFine(col = 0x2e5a6a) {
+  return ['vwardrobe2|' + hx(col), shape((G) => {
+    const trim = 0xe8d4a0, gold = VC.brass, wood = 0x5a3a22;
+    G.blob(0, 0, 14, 46, 92, 14, wood, { e: 8 }); for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.blob(sx * 34, sy * 78, 4, 9, 9, 6, gold, { e: 3 });
+    G.blob(0, 0, 150, 42, 86, 124, col, { e: 12 });
+    for (const s of [-1, 1]) {
+      G.blob(43, s * 41, 148, 3, 38, 112, dark(col, 0.82), { e: 10 }); G.blob(45.5, s * 41, 148, 1.5, 32, 104, trim, { e: 10 }); G.blob(46.5, s * 41, 148, 1.5, 29, 101, mix(col, 0x1a2a30, 0.25), { e: 10 });
+      // a painted toadstool on each door
+      G.blob(48, s * 41, 168, 1.2, 16, 12, 0xc8392e, { e: 2 }); G.blob(48, s * 41, 150, 1.2, 6, 12, 0xf2e4c6, { e: 4 }); for (const [dy, dz] of [[-7, 172], [6, 175], [0, 166]]) G.blob(48.8, s * 41 + dy, dz, 0.8, 2.5, 2.5, 0xfbf4e6, { e: 2 });
+      G.blob(48, s * 5, 140, 3, 3, 10, gold, { e: 4 });
+    }
+    G.blob(0, 0, 278, 50, 96, 8, dark(col, 0.75), { e: 8 }); G.blob(0, 0, 288, 46, 92, 4, trim, { e: 8 });
+    G.surf((u, v) => { const y = (u - 0.5) * 170, z = 292 + v * 46 * Math.pow(Math.cos((u - 0.5) * Math.PI), 1.5); return [46, y, z]; }, 0, 1, 18, 0, 1, 3, trim);
+    G.blob(47, 0, 318, 2, 14, 14, 0xc8392e, { e: 2 }); G.blob(48, 0, 312, 1.5, 6, 8, 0xf2e4c6, { e: 3 });
+  })];
+}
+export function dressScreen(col = 0xa84a5a) {
+  return ['vscreen|' + hx(col), shape((G) => {
+    const wood = 0x6a4428, trim = 0xe8d4a0;
+    for (let i = 0; i < 3; i++) { const y = (i - 1) * 62, yaw = (i - 1) * 18; const b = G.n;
+      for (const s of [-1, 1]) G.tube([[0, s * 29, 0], [0, s * 29, 200]], 3.5, wood, { S: 6 });
+      G.tube([[0, -29, 200], [0, 0, 214], [0, 29, 200]], 3.5, wood, { S: 6 });
+      G.surf((u, v) => [0, (u - 0.5) * 54, 14 + v * (182 + 12 * Math.sin(u * Math.PI))], 0, 1, 8, 0, 1, 6, (u, v) => (Math.sin(v * 28) > 0.82 ? trim : i === 1 ? mix(col, 0xf2e4c6, 0.15) : col));
+      G.place(b, { x: Math.abs(i - 1) * -14, y, yaw });
+    }
+  })];
+}

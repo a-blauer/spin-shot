@@ -48,7 +48,7 @@ export const ROOMS_D = [
       const sh = ([k, b], x, y, z = 0, yaw = 0) => M.Shape(k, b, V(x, y, z), R(0, yaw, 0));
       // the ground: earth, darker where it has been worked, oil in the ruts, tyre tracks along the lanes
       for (let i = 0; i < 26; i++) { const x = ((i * 823) % (hx * 2 - 400)) - hx + 200, y = ((i * 467) % (hy * 2 - 400)) - hy + 200, w = 200 + (i % 5) * 120; tile(x - w, y - w * 0.6, x + w, y + w * 0.6, 1.4 + (i % 4) * 0.5, [0x41362a, 0x3a2f23, 0x443829, 0x372c21][i % 4]); }
-      for (let i = 0; i < 16; i++) { const x = ((i * 1291) % (hx * 2 - 800)) - hx + 400, y = ((i * 733) % (hy * 2 - 800)) - hy + 400; Cyl(V(x, y, 4.2), 160 + (i % 3) * 90, 1, 0x0e0e10, false, false); Glow(V(x + 20, y - 10, 4.6), V(40, 14, 1), 0x6a5a8a, 0); }   // oil
+      for (let i = 0; i < 16; i++) { const x = ((i * 1291) % (hx * 2 - 800)) - hx + 400, y = ((i * 733) % (hy * 2 - 800)) - hy + 400; Cyl(V(x, y, 2.4), 160 + (i % 3) * 90, 4.4, 0x0e0e10, false, false); Glow(V(x + 20, y - 10, 4.8), V(40, 14, 1), 0x6a5a8a, 0); }   // oil
       for (const s of [-1, 1]) for (const e of [-1, 1]) tile(s * 1150 + e * 70 - 22, -hy + 200, s * 1150 + e * 70 + 22, hy - 200, 3.4, 0x2a2018);   // tracks
       // bales of crushed cars, stacked tight in walls: n long, h high, each car slewed a little on the one below
       let ci = 0; const bale = (x, y, n, h, yaw) => {
@@ -165,7 +165,9 @@ export const ROOMS_D = [
       tile(-hx, -hy, hx, hy, 1.6, water);
       for (let i = 0; i < 60; i++) { const x = ((i * 787) % (hx * 2 - 400)) - hx + 200, y = ((i * 449) % (hy * 2 - 400)) - hy + 200; Glow(V(x, y, 3.2), V(140 + (i % 4) * 60, 8, 2), 0x5ac8ff, 0, R(0, (i * 37) % 180, 0)); }
       // the causeway: a cross of raised stone, one step up
+      { const cv = world.carve; world.carve = null;
       Box(V(0, 0, 20), V(700, hy * 2 - 500, 40), stone, true, false); Box(V(0, 0, 20), V(hx * 2 - 500, 700, 40), stone, true, false); for (const s of [-1, 1]) { tile(s * 330 - 12, -hy + 300, s * 330 + 12, hy - 300, 41.4, pale); tile(-hx + 300, s * 330 - 12, hx - 300, s * 330 + 12, 41.4, pale); }
+      world.carve = cv; }
       // the columns: a grid, alternate ones with a carved base (a great head, on its side, as these places have)
       const xs = [-3500, -2500, -1500, 1500, 2500, 3500], ys = [-4000, -3000, -2000, -1000, 1000, 2000, 3000, 4000];
       for (const x of xs) for (const y of ys) world.group(() => { const odd = (Math.round(x / 1000) + Math.round(y / 1000)) % 2; P.column(x, y, 300, odd ? stone : 0x5a6a6e, pale, 'round'); Cyl(V(x, y, 120), 320, 60, moss, false, false); if ((x * 3 + y) % 4000 === 500) { Box(V(x, y, 75), V(480, 480, 150), pale, true, true); for (const e of [-1, 1]) Ball(V(x + e * 110, y - 246, 90), V(70, 20, 50), 0x2a3a44); } });

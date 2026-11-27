@@ -174,6 +174,7 @@ export class Enemy {
     }
     if (this.slowT > 0) m *= 1 - this.slowAmt;
     if (this.frenzyT > 0) m *= 1.4;
+    if (this.rootT > this.game.time) m = this.isBoss ? m * 0.4 : 0;   // tied: going nowhere
     this.desiredSpeed = this.baseSpeed * m;
     this.moveDir.copy(dir);
   }
@@ -206,6 +207,7 @@ export class Enemy {
         if (cur.length() > sp) cur.setLength(sp);
         this.vel.x = cur.x; this.vel.z = cur.z;
       }
+      if (this.grounded && !this.launched && !this.isBoss && this.rootT > this.game.time) { this.vel.x = 0; this.vel.z = 0; }   // tied: held where the rope left it
       if (this.launched > 0) this.launched = Math.max(0, this.launched - dt);   // must come back to exactly 0: everything else tests it for truth
       this.vel.y -= GRAV * dt;
       if (this.grounded && this.vel.y < -50 && !this.launched) this.vel.y = -50;
@@ -473,7 +475,7 @@ export class Enemy {
         break;
       }
       case 'Leaper': {
-        if (los && this.grounded && dist > 350 && dist < 1100 && this.special <= 0) {
+        if (los && this.grounded && dist > 350 && dist < 1100 && this.special <= 0 && !(this.rootT > G.time)) {
           this.special = 3.5; this.leaping = true; this.leapHit = false;
           const T = dist / 1200 + 0.2;
           const v = To.clone().divideScalar(T);
@@ -527,7 +529,7 @@ export class Enemy {
     // jump only at a player who has been up high for a while, and only some enemies try it
     this.highT = To.y > 230 ? (this.highT || 0) + dt : 0;
     if (this.jumper === undefined) this.jumper = Math.random() < 0.4;
-    if (this.jumper && this.grounded && this.climb <= 0 && this.highT > 1.6 && dist2D < 520 && this.ai !== 'Gilded') {
+    if (this.jumper && this.grounded && this.climb <= 0 && this.highT > 1.6 && dist2D < 520 && this.ai !== 'Gilded' && !(this.rootT > G.time)) {
       this.climb = (this.ai === 'Brute' ? 8 : 5.5) + Math.random() * 3;
       const H = Math.min(To.y + 160, 1100);
       const vz = Math.sqrt(2 * GRAV * H);
@@ -559,7 +561,7 @@ export class Enemy {
         this.sideT = 0.7;
       }
       if (this.stuckSum > 1.6 && dist2D > 500) { this.stuckSum = 0; G.navScar(this, desired); }
-      if (this.stuck > 1.2) { this.stuck = 0; this.launch(desired.clone().multiplyScalar(300).add(new THREE.Vector3(0, 520, 0))); }
+      if (this.stuck > 1.2 && !(this.rootT > G.time)) { this.stuck = 0; this.launch(desired.clone().multiplyScalar(300).add(new THREE.Vector3(0, 520, 0))); }
     } else { this.stuck = 0; this.stuckSum = Math.max(0, (this.stuckSum || 0) - dt * 0.5); }
     return desired;
   }

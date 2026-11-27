@@ -373,6 +373,9 @@ export class Player {
     this.inFwd = menu ? 0 : In.fwd; this.inRight = menu ? 0 : In.right;
     this.sprintHeld = In.sprint;
     this.aiming = In.aim && !menu;
+    { const aimEdge = In.aim && !this.aimWas; this.aimWas = In.aim;   // a gun whose right click is its own (Dynamite Dan: set them off), and so never aims
+      const S0 = this.slot, W0 = S0 && S0.def >= 0 && !this.wield ? DATA.weapons[S0.def] : null, sg0 = W0 && sigOf(W0);
+      if (sg0 && sg0.aimKey) { this.aiming = false; if (aimEdge && !menu) sg0.aimKey(this, S0, W0, sigState(S0)); } }
     if (!menu) this.look(In.lookX, In.lookY);
     if (In.jump) this.onJump();
     if (In.slide) this.onSlidePressed();
@@ -2482,7 +2485,11 @@ export class Player {
     }
     const S = C && C.S && C.S.def >= 0 && (C.def === undefined || C.S.def === C.def) ? C.S : this.slot;
     if (!S || S.def < 0) return;
+    { const sg = sigOf(DATA.weapons[S.def]); if (sg && sg.evoByTie) return; }   // a gun that grows another way (the Lariat: by what it ties)
     if (this.S.Catalyst && (E.burnT > 0) + (E.bleedT > 0) + (E.slowT > 0) + (E.shockT > this.game.time) >= 2) S.evoK = (S.evoK || 0) + n;   // Catalyst: it counts twice
+    this.addEvo(S, n);
+  }
+  addEvo(S, n) {
     S.evoK = (S.evoK || 0) + n;
     while (S.mods.length < 4 && S.evoK >= this.evoNeed(S)) { S.evoK -= this.evoNeed(S); if (!this.evolve(S)) break; }
   }
@@ -2493,7 +2500,7 @@ export class Player {
     if (S === this.slot && !this.wield) this.game.vm.setWeapon(S.def, Math.min(4, S.tier), true);
     this.play('S_Upgrade', 0.9); Meta.bump('mods'); Meta.best('dEvo', S.tier); if (S.tier >= 3) Meta.bump('tier3');
     this.game.banner(`${W.name.toUpperCase()} EVOLVED  -  ${ROMAN[S.tier]}`, lin(1, 0.45, 0.85), 2.6);
-    this.toast(`${W.name} ${ROMAN[S.tier]}: +20% damage, a bigger magazine, a little faster, and a new part slot (${this.partSlots(S)} now).${S.tier < 4 ? `  ${this.evoNeed(S)} kills to the next.` : '  Fully evolved.'}`, '#ff8cff');
+    this.toast(`${W.name} ${ROMAN[S.tier]}: +20% damage, a bigger magazine, a little faster, and a new part slot (${this.partSlots(S)} now).${S.tier < 4 ? `  ${this.evoNeed(S)} ${sigOf(W) && sigOf(W).evoByTie ? 'enemies tied' : 'kills'} to the next.` : '  Fully evolved.'}`, '#ff8cff');
     this.game.fx.flash(this.pos, lin(1, 0.3, 0.9), 110, 0.45, true);
     return true;
   }

@@ -836,6 +836,7 @@ export class Game {
     const probe = V3(0, 0, 0);
     for (const E of L) {
       if (!E.sepX && !E.sepZ) continue;
+      if (E.rootT > this.time && !E.isBoss) { E.sepX = 0; E.sepZ = 0; continue; }   // tied: the crowd does not shove it
       probe.set(E.pos.x + E.sepX, E.pos.y + 14, E.pos.z + E.sepZ);
       if (E.ai === 'Flyer' || !this.phys.overlapsCapsule(probe, E.radius * 0.85, Math.max(E.radius, E.half - 14))) { E.pos.x += E.sepX; E.pos.z += E.sepZ; }
       E.sepX = 0; E.sepZ = 0;

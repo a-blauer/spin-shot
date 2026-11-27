@@ -50,6 +50,7 @@ export function makeVillageUI(H) {
   function show(k, a) {
     if (open && kind === k) return;
     open = true; kind = k; arg = a; msg = ''; msgCls = ''; pick = null;
+    if (k === 'gunshop') tab = 'guns'; else if (k === 'shop' && tab === 'guns') tab = 'hats';   // the guns are sold at their own shop now
     if (k === 'roulette') { C.rou.bets = {}; H.rigs().rouletteBets({}); }
     H.entered(); if (['slots', 'roulette', 'blackjack', 'dice'].includes(k)) H.seat(k, a | 0); el.style.display = 'block'; render(); sound('S_UISelect', 0.7);
   }
@@ -57,13 +58,13 @@ export function makeVillageUI(H) {
   const head = (title, line) => `<div class="vp-head"><div class="tt"><h2>${title}</h2><p>${line}</p></div><div class="vp-purse">${coin()}<b>${fmt(Meta.gold())}</b></div><button class="vp-x">Done<kbd>E</kbd></button></div>`;
   function render() {
     let h = '';
-    if (kind === 'shop') h = renderShop();
+    if (kind === 'shop' || kind === 'gunshop') h = renderShop();
     else if (kind === 'board') h = renderBoard();
     else h = renderCasino();
     const bar = ['slots', 'roulette', 'blackjack', 'dice'].includes(kind); el.classList.toggle('bar', bar);
     el.innerHTML = bar ? `<div class="vp-bar k-${kind}">${h}</div>` : `<div class="vp-card k-${kind}">${h}</div>`;
     el.querySelector('.vp-x').onclick = (e) => { e.stopPropagation(); close(); };
-    if (kind === 'shop') { wireShop(); if (H.cosThumbs) H.cosThumbs(el); } else if (kind === 'board') wireBoard(); else wireCasino();
+    if (kind === 'shop' || kind === 'gunshop') { wireShop(); if (H.cosThumbs) H.cosThumbs(el); } else if (kind === 'board') wireBoard(); else wireCasino();
   }
 
   // ------------------------------------------------------------------ the shop
@@ -75,9 +76,10 @@ export function makeVillageUI(H) {
   }
   function renderShop() {
     const items = shopItems(tab); if (!pick || pick.tab !== tab) { const first = items.find((x) => x.state === 'buy') || items[0]; pick = first ? { tab, key: first.gun ? first.name : first.slot + ':' + first.I.id } : null; }
-    let h = head('Bramble &amp; Bolt', 'Mossbottom’s counter: hats, clothes, trinkets, and guns to start your runs with');
+    const gs = kind === 'gunshop', TABS = SHOP_TABS.filter((T) => (T.id === 'guns') === gs);
+    let h = gs ? head('Flintwhistle’s Guns', 'Old Flintwhistle’s gunsmithy: the guns you start your runs with') : head('Bramble &amp; Bolt', 'Mossbottom’s counter: hats, clothes and trinkets');
     h += '<div class="vp-body"><div class="shop-left"><div class="shop-stage" id="sstage"></div><div class="shop-info" id="sinfo"></div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column">';
-    h += `<div class="vp-tabs">${SHOP_TABS.map((T) => { const L = shopItems(T.id), n = L.filter((x) => x.state === 'owned').length; return `<div class="vp-tab ${T.id === tab ? 'on' : ''}" data-tab="${T.id}">${T.name}<i>${n}/${L.length}</i></div>`; }).join('')}</div><div class="vp-scroll"><div class="grid">`;
+    h += `<div class="vp-tabs">${TABS.map((T) => { const L = shopItems(T.id), n = L.filter((x) => x.state === 'owned').length; return `<div class="vp-tab ${T.id === tab ? 'on' : ''}" data-tab="${T.id}">${T.name}<i>${n}/${L.length}</i></div>`; }).join('')}</div><div class="vp-scroll"><div class="grid">`;
     if (tab === 'guns') {
       for (const x of items) {
         const k = x.name, sel = pick && pick.key === k, st = Meta.starter() === k;
@@ -147,7 +149,7 @@ export function makeVillageUI(H) {
       detach() { host = null; },
       dress(L, slot) { if (ch) scene.remove(ch); ch = buildCharacter(L); if (ch.userData.rig && ch.userData.rig.gun) ch.userData.rig.gun.visible = false; scene.add(ch); want = ['hat', 'hattip', 'face', 'neck'].includes(slot) ? 1 : ['boots', 'legs'].includes(slot) ? -1 : 0; },
       tick(dt) {
-        if (!host || !ch || !open || kind !== 'shop') return;
+        if (!host || !ch || !open || (kind !== 'shop' && kind !== 'gunshop')) return;
         const w = Math.max(200, host.clientWidth | 0), h2 = Math.max(200, host.clientHeight | 0);
         P.R.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); P.R.setSize(w, h2, false); cam.aspect = w / h2; cam.updateProjectionMatrix();
         t += dt; ch.rotation.y = spin + Math.sin(t * 0.5) * 0.25; animateCharacter(ch, t, 0, { preview: true });

@@ -45,7 +45,7 @@ export const SIG = {
   Copperhead: {
     name: 'Venom', short: 'Hits poison and stack without limit. The poisoned burst and spread it.',
     text: 'Every hit poisons for 40% of its damage again over three seconds, and the poison stacks without limit. Anything that dies poisoned bursts and passes half of it to whatever is near.',
-    play: 'Spray a pack, move on, and let them rot. Crits do nothing for the poison; more bullets do.', fav: ['Serrated', 'Split Barrel', 'Extended Mag'], aff: { Multishot: 1.5, MagSize: 1.5 }, proc: { Bleed: 2 },
+    play: 'Tap through a pack, move on, and let them rot. Crits do nothing for the poison; more bullets do.', fav: ['Serrated', 'Split Barrel', 'Extended Mag'], aff: { Multishot: 1.5, MagSize: 1.5 }, proc: { Bleed: 2 },
     post(p, E, C, g, h) { if (h.killed) return; const G = p.game; E.applyBleed(h.dealt * 0.4); E.sgVenom = G.time + 3.2; if (G.time > (E.sgVfx || 0)) { E.sgVfx = G.time + 0.5; G.fx.puff(h.at, [0.45, 0.9, 0.3], 26, 0.4); } },
   },
   Sidewinders: {
@@ -205,7 +205,12 @@ export const SIG = {
   // ------------------------------------------------------------------ launchers
   'Dynamite Dan': {
     name: 'Chain Reaction', short: 'Anything a blast kills drops a lit stick of its own.',
-    text: 'Anything killed by the blast drops a lit stick of its own, which goes off for 70% a moment later. Those kills drop sticks too, four deep.',
+    text: 'Anything killed by the blast drops a lit stick of its own, which goes off for 70% a moment later. Those kills drop sticks too, four deep. Right click sets off every stick you have in the air or on the ground, there and then; it never aims down the sights.',
+    aimKey(p, S) {
+      const G = p.game; let n = 0;
+      for (const P of G.projectiles.list) if (!P.done && P.kind === 'Grenade' && P.sx && P.sx.S === S) { G.projectiles.detonate(P, P.pos.clone()); n++; }
+      if (n) p.play('S_UIMove', 0.6, 0.7); else p.play('S_Deny', 0.4);
+    },
     play: 'Never fire at one enemy. Fire at the weakest one in the thickest part of the crowd.', fav: ['Blast Cap', 'Heavy Rounds', 'Split Barrel'], aff: { ExplosionRadius: 1.5 }, proc: { Explode: 2 },
     kill(p, E, C) {
       const gen = C.gen || 0; if (gen >= 4) return;

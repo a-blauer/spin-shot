@@ -42,7 +42,7 @@ export const SIG2 = {
   // ------------------------------------------------------------------ thrown and returning
   'Come-Back Kid': {
     name: 'Catch', short: 'A boomerang. It hits on the way out and back, harder each time, and you catch it.',
-    text: 'One boomerang, no ammunition. It cuts through everything on the way out and again on the way back, 20% deadlier for each thing it hits, six times over. Catch it and the next throw keeps half of what it built; walls send it home early.',
+    text: 'One boomerang, no ammunition. It cuts through everything on the way out and again on the way back, 20% deadlier for each thing it hits, six times over. Each evolution throws it faster and farther. Catch it and the next throw keeps half of what it built; walls send it home early.',
     play: 'Throw past them, not at them, then step so the return passes through the pack. Stand still and it comes straight back.', fav: ['Heavy Rounds', 'Serrated', 'Swiftness'],
     free: true, snd: ['S_SwingBig', 0.7, 1.15],
     ammo: (p, S, W, g) => [g.out && T_(p) < g.lost ? '0' : '1', g.out && T_(p) < g.lost ? 'IN THE AIR' : 'IN HAND'],
@@ -50,15 +50,15 @@ export const SIG2 = {
     shot(p, S, W, g, C) { C.mult *= 1 + (g.keep || 0); },
     fire(p, S, W, g, C, F) {
       if (p.sgBoom && !p.sgBoom.done) p.game.projectiles.kill(p.sgBoom);
-      const P = p.sgBoom = p.fireProjectile(F.muzzle, F.pdir, F.damage, 1, W); P.life = 6; P.spin = 24; P.pierce = 99; P.bm = { t: 0, back: false, n: 0 };
+      const P = p.sgBoom = p.fireProjectile(F.muzzle, F.pdir, F.damage, 1, W); P.life = 6; P.spin = 24; P.pierce = 99; const tk = S.tier || 0; P.vel.multiplyScalar(1 + 0.15 * tk); P.bm = { t: 0, back: false, n: 0, k: 1 + 0.15 * tk, out: 0.55 * (1 + 0.12 * tk) };
       g.out = true; g.lost = T_(p) + 5.5; g.keep = 0;
     },
     pTick(p, P, dt) {
       const B = P.bm, G = p.game; B.t += dt;
-      if (!B.back) { P.vel.multiplyScalar(Math.max(0, 1 - dt * 1.3)); if (B.t > 0.55) { B.back = true; P.hit.clear(); } return false; }
+      if (!B.back) { P.vel.multiplyScalar(Math.max(0, 1 - dt * 1.3)); if (B.t > B.out) { B.back = true; P.hit.clear(); } return false; }
       const to = p.eye().add(V3(0, -25, 0)).sub(P.pos), d = to.length();
       if (d < 140) { const g = P.sx.g; g.keep = Math.min(1.5, (Math.pow(1.2, B.n) - 1) * 0.5); G.projectiles.kill(P); p.fireCd = Math.min(p.fireCd, 0.12); p.play('S_Pickup', 0.6, 1.3); if (g.keep > 0.15) say(p, front(p), `HOT CATCH  +${Math.round(g.keep * 100)}%`, [1, 0.75, 0.3]); return true; }
-      P.vel.lerp(to.normalize().multiplyScalar(2300), Math.min(1, dt * 7));
+      P.vel.lerp(to.normalize().multiplyScalar(2300 * B.k), Math.min(1, dt * 7));
       return false;
     },
     pHit(p, P, E, at) { if (P.bm.n < 6) { P.bm.n++; P.damage *= 1.2; } p.game.fx.sparks(at, UP, [1, 0.8, 0.4], 4); return true; },
@@ -67,25 +67,22 @@ export const SIG2 = {
     hud: (p, S, W, g) => (!g.out && g.keep > 0.15 ? [`HOT CATCH  +${Math.round(g.keep * 100)}%`, '#ffb347'] : null),
   },
   Whaler: {
-    name: 'Reel In', short: 'A harpoon that drags what it hits to your feet, stunned and taking +50%.',
-    text: 'The harpoon goes through up to three enemies and hauls every one of them to your feet, stunned and taking 50% more damage for three and a half seconds. Kill one on the line and the next harpoon is already loaded.',
-    play: 'It does not finish the fight, it moves it. Reel the dangerous one in, then swap to the shotgun or the blade.', fav: ['Quick Hands', 'Piercing Tip', 'Heavy Rounds'], aff: { ReloadSpeed: 1.5, Pierce: 2 },
-    fire(p, S, W, g, C, F) { p.fireProjectile(F.muzzle, F.pdir, F.damage, 1, W); },
+    name: 'Run Through', short: 'A harpoon that goes through every enemy in its path.',
+    text: 'The harpoon does not stop: it runs through every enemy in its path, full damage to each, until it meets a wall. Kill one with it and the next harpoon is already loaded.',
+    play: 'Line them up. A corridor, a doorway, a queue on the stairs: one throw takes the whole file.', fav: ['Quick Hands', 'Heavy Rounds', 'Serrated'], aff: { ReloadSpeed: 1.5 },
+    fire(p, S, W, g, C, F) { const P = p.fireProjectile(F.muzzle, F.pdir, F.damage, 1, W); if (P) P.pierce = 999; },
     pHit(p, P, E, at) {
-      const G = p.game; G.fx.tracer(G.vm.muzzleWorld(), at, [0.78, 0.72, 0.58], 3, 0.35);
-      if (E.dead) return undefined;
-      if (E.isBoss) { mark(G, E, 0.3, 3.5); return undefined; }
-      const to = p.pos.clone().sub(E.pos); to.y = 0; const d = to.length(), sp = Math.min(2500, Math.max(0, d - 220) * 2.6); to.normalize();
-      E.launch(V3(to.x * sp, 430, to.z * sp)); p.stun(E, 1.5); mark(G, E, 0.5, 3.5); E.sgHook = G.time + 3.5;
+      const G = p.game; G.fx.sparks(at, UP, [0.78, 0.72, 0.58], 4);
+      if (!E.dead) E.sgHook = G.time + 1.5;
       return undefined;
     },
     kill(p, E, C) { const S = C.S, G = p.game; if (!(E.sgHook > G.time) || C.fed || p.slot !== S) return; C.fed = true; if (S.ammo < 1 && S.reserve > 0) { S.ammo = 1; S.reserve--; p.reloading = false; p.fireCd = Math.min(p.fireCd, 0.25); say(p, E.pos, 'LANDED', [0.8, 0.9, 1]); p.play('S_Rack', 0.6, 1.2); } },
   },
   'Bear Trap': {
     name: 'Patience', short: 'Lays traps that grow 25% deadlier every second they wait, up to four times.',
-    text: 'It throws a trap that arms where it lands. A set trap gets 25% deadlier every second it waits, up to four times as strong after twelve, then snaps on the first thing to step near, rooting everything in the blast. You can keep as many set as the magazine holds.',
+    text: 'It throws a trap that arms where it lands. A set trap gets 25% deadlier every second it waits, up to four times as strong after twelve, then snaps on the first thing to step near, rooting everything in the blast. You can keep as many set as the magazine holds. Each evolution makes the trap a size bigger: a wider jaw and a wider blast.',
     play: 'Lay the room before the fight comes to you. The trap you set first is the one that kills the big one.', fav: ['Extended Mag', 'Blast Cap', 'Heavy Rounds'], aff: { MagSize: 1.5, ExplosionRadius: 1.5 },
-    fire(p, S, W, g, C, F) { const P = p.fireProjectile(F.muzzle, F.pdir, 0, 0.5, W); P.gravity = 1; P.vel.y += 220; P.life = 60; P.dmg0 = F.damage; P.spin = 5; },
+    fire(p, S, W, g, C, F) { const P = p.fireProjectile(F.muzzle, F.pdir, 0, 0.5, W); P.gravity = 1; P.vel.y += 220; P.life = 60; P.dmg0 = F.damage; P.spin = 5; P.sz = 1 + 0.1 * (S.tier || 0); P.splash *= P.sz; if (P.group) P.group.scale.setScalar(P.sz); },
     snap(p, P, ripe) {
       const G = p.game, at = P.pos.clone().add(V3(0, 30, 0)); G.projectiles.kill(P); G.audio.playAt('S_Blade', at, 0.9, 0.7);
       asShot(p, ctxOf(P.sx), () => p.explodeAt(at, P.splash, P.dmg0 * (1 + ripe), 0.5, false, false, [1, 0.5, 0.2], null));
@@ -97,9 +94,9 @@ export const SIG2 = {
     pTick(p, P, dt) {
       if (!P.stuck) return false;
       P.armT += dt; const ripe = Math.min(3, 0.25 * P.armT), G = p.game;
-      P.group.scale.setScalar(1 + 0.12 * ripe);
+      P.group.scale.setScalar((1 + 0.12 * ripe) * (P.sz || 1));
       if (P.age > P.life - 0.2) { G.projectiles.kill(P); return true; }
-      if (P.armT > 0.4) for (const E of G.enemies) if (!E.dead && !E.emerging && !E.burrowed && Math.hypot(E.pos.x - P.pos.x, E.pos.z - P.pos.z) < 130 + E.radius && Math.abs(E.feet().y - P.pos.y) < 160) { this.snap(p, P, ripe); break; }
+      if (P.armT > 0.4) for (const E of G.enemies) if (!E.dead && !E.emerging && !E.burrowed && Math.hypot(E.pos.x - P.pos.x, E.pos.z - P.pos.z) < 130 * (P.sz || 1) + E.radius && Math.abs(E.feet().y - P.pos.y) < 160) { this.snap(p, P, ripe); break; }
       return true;
     },
     hud: (p) => { const n = (p.sgTraps || []).filter((q) => !q.done).length; return n ? [`TRAPS SET  ${n}`, '#ffb347'] : null; },
@@ -239,31 +236,35 @@ export const SIG2 = {
   },
   // ------------------------------------------------------------------ ropes, wires and traps for the other gun
   Lariat: {
-    name: 'Hogtie', short: 'Throws a loop that closes on up to four enemies, drags them together and slows them. Damage to one is felt by the others at half.',
-    text: 'The loop opens where it lands and closes on up to four enemies inside it: each takes the hit, is dragged in toward the middle and slowed. While they are on the rope, whatever you do to one of them, with any weapon, the others feel half of. A new throw renews the rope on all.',
+    name: 'Hogtie', short: 'Throws a loop that ties every enemy inside it in place for three seconds. Damage to one is felt by the others at half. It grows by what it ties.',
+    text: 'The loop opens where it lands and closes on every enemy inside it: each takes the hit, is dragged in toward the middle and held fast for three seconds (bosses are only slowed), then slowed while the rope lasts. While they are on the rope, whatever you do to one of them, with any weapon, the others feel half of. The loop opens wider with each evolution, and the gun evolves from enemies it ties, not from kills.',
     play: 'Throw it into the thick of a pack, then hit the one in the middle with anything that splashes.', fav: ['Extended Mag', 'Quick Hands', 'Cryo Cell'], aff: { ReloadSpeed: 1.5 }, proc: { Freeze: 2 },
-    snd: ['S_Swing', 0.7, 1.1],
+    snd: ['S_Swing', 0.7, 1.1], evoByTie: true,
     fire(p, S, W, g, C, F) {
       const G = p.game, wall = G.phys.raycast(F.eye, F.dir, W.range), col = [0.86, 0.72, 0.46]; let best = null, bt = wall ? wall.distance : W.range;
       // a loop, not a bullet: anything the throw passes close to is the target
       for (const E of G.enemies) { if (E.dead || E.burrowed || E.emerging) continue; const t = G.rayEnemy(F.eye, F.dir, bt, E, 70); if (t !== null && t < bt) { bt = t; best = E; } }
-      const at = best ? best.pos.clone() : F.eye.clone().addScaledVector(F.dir, bt), R = 200, foot = best ? best.pos.y - (best.half || 60) : at.y;
+      const at = best ? best.pos.clone() : F.eye.clone().addScaledVector(F.dir, bt), R = 200 * (1 + 0.25 * (S.tier || 0)), foot = best ? best.pos.y - (best.half || 60) : at.y;
       G.fx.tracer(F.muzzle, at, col, 3, 0.22); G.fx.ring(V3(at.x, foot + 4, at.z), R, col, 0.35);
       const eyeAt = V3(at.x, Math.max(at.y, foot + 60), at.z);
-      const caught = near(G, at, R + 40).filter((E) => !E.burrowed && (E === best || G.phys.lineOfSight(eyeAt, E.pos))).sort((a, b) => (a === best ? -1 : b === best ? 1 : a.pos.distanceTo(at) - b.pos.distanceTo(at))).slice(0, 4);
+      const caught = near(G, at, R + 40).filter((E) => !E.burrowed && (E === best || G.phys.lineOfSight(eyeAt, E.pos)));
       if (!caught.length) return;
       // the throw itself lands on each of them in full (not shared: they are not on the rope yet)
       for (const E of caught) { p.dealDamage(E, F.damage, E.pos, F.dir, false, 1, false); if (E !== best && !E.dead) G.fx.tracer(at, E.pos, col, 2, 0.3); }
       const live = caught.filter((E) => !E.dead); if (!live.length) return;
       const H = p.sgHerd = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > G.time && !live.includes(E));
-      H.push(...live); while (H.length > 4) H.shift().sgRope = 0;
+      H.push(...live);
       for (const E of H) { E.sgRope = G.time + 8; E.applySlow(live.includes(E) ? W.slow : 0.25, live.includes(E) ? 6 : 8); }
+      for (const E of live) {
+        E.rootT = G.time + 3;
+        if (!E.sgTied) { E.sgTied = true; p.addEvo(S, E.isBoss ? 10 : E.elite ? 3 : 1); }   // it grows by what it ties, each one once
+      }
       // and the loop pulls tight: they are dragged in toward the middle of it
       for (const E of live) { const d = V3(at.x - E.pos.x, 0, at.z - E.pos.z), L = d.length(); if (L > 40) E.applyKnock(d.multiplyScalar(Math.min(420, 160 + L * 1.6) / L).add(V3(0, 140, 0))); }
       p.game.audio.playAt('S_Slide', at, 0.5, 0.7);
-      say(p, at, live.length > 1 ? `ROPED  ${live.length}` : 'ROPED', [0.9, 0.78, 0.5]);
+      say(p, at, live.length > 1 ? `TIED  ${live.length}` : 'TIED', [0.9, 0.78, 0.5]);
     },
-    hud: (p) => { const n = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > T_(p)).length; return n ? [`ON THE ROPE  ${n}/4`, '#d8b878'] : null; },
+    hud: (p) => { const n = (p.sgHerd || []).filter((E) => !E.dead && E.sgRope > T_(p)).length; return n ? [`ON THE ROPE  ${n}`, '#d8b878'] : null; },
   },
   'Live Wire': {
     name: 'Perimeter', short: 'Plants rods. Lightning runs between them and burns whatever crosses the line.',

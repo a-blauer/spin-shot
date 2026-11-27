@@ -11,16 +11,18 @@ export const ROOMS_A = [
   // The works of a clock the size of a building. The going train stands on a plinth in the middle; four escapement
   // towers make the corners of a square round it, and the benches where it was mended are the cover between.
   mk(TH('Clockwork Hall', 0x1c2224, 0x283034, 0x2e3838, 0xb8923a, 0x5ae0c8, [0.5, 1, 0.9], 0x12201e, [0.5, 0.6, 0.56]), [4800, 4400, 1500], { panel: 'pipes', hang: 'chain', corner: 'crates', c1: 0xb8923a, c2: 0x5a4a2a, n: 10 },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, platOct, solid, deco, hit, tall, L, lowWall, crate, chain, AX, AY, P }) => {
+    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, platOct, solid, deco, hit, tall, L, lowWall, crate, chain, AX, AY, P, group }) => {
       const brass = 0xb8923a, dark = 0x1a1c1e, steel = 0x6a6e76, bronze = 0x7a5a2a;
       slabs(520, T.floor, T.floor2, 0x101416);
       for (const s of [-1, 1]) { tile(s * 2400 - 60, -2000, s * 2400 + 60, 2000, 2.2, bronze); tile(-2400, s * 2000 - 60, 2400, s * 2000 + 60, 2.2, bronze); }
       platOct(0, 0, 1500, 80, steel, dark);
       // the going train: three wheels on an iron frame
+      group(() => {
       for (const e of [-1, 1]) { solid(e * 560, 0, 80, 70, 150, 700, dark, false); deco(e * 560, 0, 80, 120, 200, 40, brass); }
       deco(0, 0, 760, 1200, 110, 50, dark); P.gear(-200, 0, 80 + 400, 700, brass); P.gear(250, 44, 80 + 250, 440, bronze); P.gear(330, -44, 80 + 560, 300, steel); Cyl(V(0, 0, 480), 30, 1100, steel, false, false, AX);
       hit(0, 0, 80, 1000, 120, 700, true); L(0, 0, 900, T.lamp, 2600, 3); tall(0, 0, 760);
       chain(-200, 0, 830, H); Cyl(V(-200, 0, 815), 120, 30, brass, false, false);
+      });
       // four escapement towers, a wheel on each face that looks at the middle and a pendulum inside the frame
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
         const x = sx * 2400, y = sy * 2000;
@@ -85,16 +87,16 @@ export const ROOMS_A = [
   // Low, white and cold. Sides of meat hang in rows from the rails and close the room into lanes you can see through
   // but not shoot through cleanly; the cutting floor in the middle is the only open ground.
   mk(TH('Meat Locker', 0x26303a, 0x34404a, 0x46525c, 0x9aa6b0, 0xbfe6ff, [0.8, 0.92, 1], 0x1c2a34, [0.56, 0.64, 0.74]), [5000, 3600, 900], { panel: 'planks', hang: 'none', corner: 'crates', c1: 0x9aa6b0, c2: 0x6a7680, glow: 0xdff6ff },
-    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, solid, deco, hit, tall, L, crate, AX, AY, P }) => {
+    ({ hx, hy, H, T, Box, Cyl, Oct, Glow, Ball, slabs, tile, solid, deco, hit, tall, L, crate, AX, AY, P, group }) => {
       const steel = 0x8a96a0, dark = 0x2a3038, meat = 0x8a2a26, fat = 0xe0d0c0, ice = 0xbfe6ff;
       slabs(400, T.floor, T.floor2, 0x1a2228);
       for (const y of [-2400, -1200, 1200, 2400]) {
         // the rail, hung from the roof on straps, and what hangs from it
-        Box(V(0, y, 640), V(hx * 2 - 900, 24, 30), steel, false, false); for (let x = -hx + 700; x < hx - 600; x += 900) Box(V(x, y, 640 + (H - 640) / 2), V(14, 14, H - 640), dark, false, false);
-        for (let x = -hx + 800, i = 0; x < hx - 700; x += 330, i++) {
-          if (Math.abs(x) < 520 || i % 5 === 3) continue;   // the door aisle, and a gap every so often to cut through
+        for (let x = -hx + 800, i = 0; x < hx - 700; x += 330, i++) group(() => {
+          Box(V(x, y, 640), V(330, 24, 30), steel, false, false); if (i % 3 === 0) Box(V(x, y, 640 + (H - 640) / 2), V(14, 14, H - 640), dark, false, false);
+          if (Math.abs(x) < 520 || i % 5 === 3) return;   // the door aisle, and a gap every so often to cut through
           Cyl(V(x, y, 600), 8, 60, steel, false, false); solid(x, y, 250, 86, 50, 320, meat, false); deco(x, y, 250, 60, 54, 300, fat); deco(x, y + 20, 520, 40, 12, 50, fat); deco(x, y, 200, 50, 40, 50, meat);
-        }
+        });
       }
       // drains down each lane, and what runs to them
       for (const y of [-1800, -600, 600, 1800]) { tile(-hx + 700, y - 26, hx - 700, y + 26, 2.2, dark); for (let x = -hx + 900; x < hx - 800; x += 600) { tile(x - 60, y - 60, x + 60, y + 60, 2.8, 0x14181c); for (const q of [-30, 0, 30]) tile(x - 50, y + q - 5, x + 50, y + q + 5, 3.4, steel); if ((x / 600 | 0) % 3 === 0) tile(x + 80, y - 14, x + 420, y + 14, 3, 0x5a1a18); } }
@@ -103,7 +105,7 @@ export const ROOMS_A = [
       for (const e of [-1, 1]) Box(V(0, e * 380, 520 + (H - 520) / 2), V(14, 14, H - 520), dark, false, false); Box(V(0, 0, 520), V(40, 800, 20), steel, false, false); for (let y = -330; y <= 330; y += 110) { Cyl(V(0, y, 480), 6, 70, steel, false, false); Box(V(0, y, 436), V(26, 8, 20), steel, false, false); }
       hit(0, 0, 0, 220, 800, 90, true); L(0, 0, 440, T.lamp, 2200, 3);
       // strip curtains at the ends of the door aisle
-      for (const s of [-1, 1]) { Box(V(0, s * 2950, 600), V(1000, 20, 30), steel, false, false); for (let x = -470; x <= 470; x += 78) { if (Math.abs(x) < 160) continue; Box(V(x, s * 2950, 300), V(66, 6, 590), (x / 78 | 0) % 2 ? 0x9ab6c8 : 0x7a96a8, false, false); } }
+      for (const s of [-1, 1]) group(() => { Box(V(0, s * 2950, 600), V(1000, 20, 30), steel, false, false); for (const e of [-1, 1]) Box(V(e * 480, s * 2950, 615 + (H - 615) / 2), V(12, 12, H - 615), dark, false, false); for (let x = -470; x <= 470; x += 78) { if (Math.abs(x) < 160) continue; Box(V(x, s * 2950, 300), V(66, 6, 590), (x / 78 | 0) % 2 ? 0x9ab6c8 : 0x7a96a8, false, false); } })
       // the cutting floor: blocks, a band saw, tubs
       for (const s of [-1, 1]) {
         solid(s * 700, 0, 0, 120, 120, 84, 0x7a5a3a); deco(s * 700, 0, 84, 40, 12, 26, steel); P.table(s * 1500, s * 300, true, 300, steel);
@@ -187,7 +189,7 @@ export const ROOMS_A = [
       slabs(520, T.floor, T.floor2, 0x0e1412);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) { P.tank(sx * 1500, sy * 1150, 760, 820, green, dark); Glow(V(sx * 1500, sy * 1150 - sy * 384, 420), V(60, 6, 300), T.glow, 0); for (let z = 150; z < 800; z += 110) Box(V(sx * 1500 + sx * 386, sy * 1150, z), V(14, 70, 10), steel, false, false); Cyl(V(sx * 1500, sy * 1150, 820 + (H - 820) / 2), 150, H - 820, rust, false, false); }
       // pump engines between the tanks, each with its flywheel
-      for (const sx of [-1, 1]) { solid(sx * 1500, 0, 0, 520, 300, 230, dark); deco(sx * 1500, 0, 230, 400, 200, 60, steel); P.gear(sx * 1500, 180, 260, 360, rust, true, 30); Cyl(V(sx * 1500, 0, 330), 90, 120, steel, false, false); Glow(V(sx * 1500 - sx * 262, 0, 150), V(6, 120, 60), T.glow, 0); L(sx * 1500, 0, 500, T.lamp, 1800, 2.4); }
+      for (const sx of [-1, 1]) { solid(sx * 1500, 0, 0, 520, 300, 230, dark); deco(sx * 1500, 0, 230, 400, 200, 60, steel); P.gear(sx * 1500, 160, 260, 360, rust, true, 30); Cyl(V(sx * 1500, 0, 330), 90, 120, steel, false, false); Glow(V(sx * 1500 - sx * 262, 0, 150), V(6, 120, 60), T.glow, 0); L(sx * 1500, 0, 500, T.lamp, 1800, 2.4); }
       // mains across the floor: waist high, each with a stile over it at the middle
       const main = (x, y, len, along, col) => { Cyl(V(x, y, 62), 110, len, col, false, false, along ? AX : AY); for (let p = -len / 2 + 60; p <= len / 2; p += (len - 120) / 3) { Cyl(V(x + (along ? p : 0), y + (along ? 0 : p), 62), 140, 22, dark, false, false, along ? AX : AY); deco(x + (along ? p : 0), y + (along ? 0 : p), 0, along ? 30 : 90, along ? 90 : 30, 20, dark); } hit(x, y, 0, along ? len : 110, along ? 110 : len, 118, true); };
       for (const s of [-1, 1]) { main(s * 3500, s * 1500, 1700, false, rust); main(-s * 3500, s * 1900, 1100, false, green); main(s * 600, s * 2500, 1500, true, green); main(0, s * 400, 900, true, rust); }

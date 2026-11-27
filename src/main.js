@@ -965,7 +965,7 @@ function enterVillage() {
   game.player.setBody(Meta.look()); game.player.setClass(Meta.cls());
   game.villageRT.enter(); title.style.display = 'none'; lobby.style.display = 'none'; locker.style.display = 'none';
   start(); game.vm.hidden = true;
-  if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: the shop on the square, your wardrobe at home, the challenge board, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
+  if (!Meta.tipSeen('village1')) { Meta.tipMark('village1'); hud.tip('Welcome to Thimblewick. Walk up to anything lit and press E: clothes at Bramble & Bolt, guns at Flintwhistle’s, your wardrobe on the dressing porch at home, the challenge board, the casino under the big toadstool. The Way Down is at the north end of the road.'); }
 }
 async function goVillage() {
   const DSC = Math.max(0, MAPS.findIndex((M) => M.mode === 'descent'));

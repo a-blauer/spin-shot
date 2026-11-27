@@ -17,6 +17,7 @@ import { Net } from './net.js';
 // the people of the village, dressed from the same wardrobe as you
 const look = (o) => { const L = Object.assign({}, DEFAULT_LOOK, o); for (const k of Object.keys(o)) if (COSMETICS[k] && !COSMETICS[k].some((I) => I.id === o[k])) L[k] = DEFAULT_LOOK[k]; return L; };
 const PEOPLE = {
+  gunshop: { name: 'Old Flintwhistle', look: look({ hat: 'cap', hatcol: 'navy', outfit: 'apron', beard: 'forked', haircol: 'snow', nose: 'bulb', tone: 't4', face: 'pipe' }) },
   shop: { name: 'Mossbottom', look: look({ hat: 'acorn', outfit: 'apron', beard: 'round', haircol: 'grey', nose: 'potato', tone: 't3', hatcol: 'mustard', face: 'none' }) },
   board: { name: 'Mayor Thistlewood', look: look({ hat: 'straight', hatcol: 'navy', hattip: 'star', outfit: 'duster', beard: 'long', haircol: 'snow', nose: 'long', tone: 't2', face: 'pipe' }) },
   gate: { name: 'Old Brannock', look: look({ hat: 'cap', outfit: 'rancher', beard: 'braid', haircol: 'ginger', nose: 'bulb', tone: 't5', back: 'pack' }) },
@@ -31,7 +32,8 @@ const FOLK = [
 ];
 // what each says when you walk up, before you open their window
 const HELLO = {
-  shop: ['Hats, boots, guns and buttons. Gold only, no credit.', 'Fresh from the tinker’s cart. Have a look.'],
+  gunshop: ['Every one of these I made by hand. Gold up front.', 'Looking for something with a kick? Have a look.'],
+  shop: ['Hats, boots, coats and buttons. Gold only, no credit.', 'Fresh from the tinker’s cart. Have a look.'],
   board: ['The council posts its contracts here. Win one, get paid.', 'Brave beards wanted. Ask me about the board.'],
   gate: ['The Way Down. Mind your step.', 'Ready when you are. Gather your party first.'],
   roulette: ['Red or black? Place your bets.'], blackjack: ['Twenty-one, dear. Sit down.'], dice: ['Over or under? Roll the bones!'],
@@ -79,7 +81,7 @@ export class Village {
       if (root.userData.rig && root.userData.rig.gun) root.userData.rig.gun.visible = false;
       g.scene.add(root); const p = { key, root, name, yaw0: yaw, yaw, at: [wx, wy], t: Math.random() * 10, said: 0 }; this.people.push(p); return p;
     };
-    for (const k of ['shop', 'board', 'gate']) person(k, VSPOTS[k].npc, PEOPLE[k].look, PEOPLE[k].name);
+    for (const k of ['shop', 'gunshop', 'board', 'gate']) person(k, VSPOTS[k].npc, PEOPLE[k].look, PEOPLE[k].name);
     for (const k of ['roulette', 'blackjack', 'dice']) person(k, VSPOTS.casino[k].npc, PEOPLE[k].look, PEOPLE[k].name);
     VSPOTS.folk.forEach((f, i) => person('folk', f, FOLK[i % FOLK.length], ''));
     // a thing to use: a prompt within reach, and E opens its window
@@ -89,7 +91,8 @@ export class Village {
       I.q = { usable: () => this.on, prompt: () => prompt(), use: () => { if (g.onVillage) g.onVillage(kind, arg); } };
       g.scene.add(I.group); g.interactables.push(I); this.uses.push(I); return I;
     };
-    use('shop', VSPOTS.shop.at, () => `[E] Shop  -  Mossbottom’s counter\nGold: ${Meta.gold().toLocaleString()}`, null, 260);
+    use('shop', VSPOTS.shop.at, () => `[E] Clothes  -  Mossbottom’s counter\nGold: ${Meta.gold().toLocaleString()}`, null, 260);
+    use('gunshop', VSPOTS.gunshop.at, () => `[E] Guns  -  Flintwhistle’s counter\nGold: ${Meta.gold().toLocaleString()}`, null, 260);
     use('wardrobe', VSPOTS.wardrobe.at, () => '[E] Wardrobe\nChange into anything you own', null);
     use('wardrobe', VSPOTS.wardrobe.mirror, () => '[E] Mirror\nChange into anything you own', null);
     use('board', VSPOTS.board.at, () => { const c = Meta.contract(); return `[E] Challenge board\n${c ? `Taken: ${c.title}` : 'Contracts for bonus gold and renown'}`; }, null, 260);

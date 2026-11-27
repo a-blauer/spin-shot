@@ -67,14 +67,16 @@ function kit(K) {
     // a raised floor, stepped on all four sides: `h` in risers of forty, each tread seventy deep; the top is w by d
     plat: (x, y, w, d, h, top, side, spots = []) => {
       for (const [dx, dy] of spots) out.tops.push([x + dx, y + dy, h]);
-      const n = Math.round(h / 40);
+      const n = Math.round(h / 40), Wd = M.world, cv = Wd && Wd.carve; if (cv) Wd.carve = null;
       for (let i = 0; i < n; i++) { const g = (n - 1 - i) * 140; Box(V(x, y, 20 + i * 40), V(w + g, d + g, 40), i === n - 1 ? top : side, true, false); }
+      if (cv) Wd.carve = cv;
       out.raised.push([x - w / 2 - n * 70, y - d / 2 - n * 70, x + w / 2 + n * 70, y + d / 2 + n * 70]);
     },
     // the same, eight-sided
     platOct: (x, y, d, h, top, side) => {
-      const n = Math.round(h / 40);
+      const n = Math.round(h / 40), Wd = M.world, cv = Wd && Wd.carve; if (cv) Wd.carve = null;
       for (let i = 0; i < n; i++) { const g = (n - 1 - i) * 170; Oct(V(x, y, 20 + i * 40), V(d + g, d + g, 40), i === n - 1 ? top : side, true, false); }
+      if (cv) Wd.carve = cv;
       const r = d / 2 + n * 85; out.raised.push([x - r, y - r, x + r, y + r]);
     },
     // a wall to crouch behind and shoot over
@@ -128,7 +130,7 @@ export function craftRoom(kind, K) {
           // a rib from the head of each column up to the ridge
           BoxRot(V(sx * 750, y, 1290), V(1540, 60, 60), rib, R(0, 0, sx * -11.5), false);
         }
-        Oct(V(0, y, 1400), V(130, 130, 90), T.trim, false, false); Glow(V(0, y, 1345), V(60, 60, 24), T.glow, 2);
+        Oct(V(0, y, 1400), V(130, 130, 90), T.trim, false, false); Box(V(0, y, (1440 + H) / 2), V(18, 18, H - 1440), T.trim, false, false); Glow(V(0, y, 1345), V(60, 60, 24), T.glow, 2);
       }
       for (const sx of [-1, 1]) for (let i = 0; i < rows.length - 1; i++) Box(V(sx * 1500, (rows[i] + rows[i + 1]) / 2, 1150), V(60, 1100, 60), rib, false, false);
       out.avoid = (x, y) => Math.abs(Math.abs(x) - 1500) < 160 || rows.some((r) => Math.abs(y - r) < 170);
@@ -321,7 +323,7 @@ function craftRoomB(kind, K, Q) {
         deco(0, y, 34, 210, 190, 14, iron); deco(0, y, 48, 236, 200, 86, 0x4a3a2c); deco(0, y, 126, 250, 214, 10, iron); for (const e of [-1, 1]) deco(e * 121, y, 48, 6, 204, 78, iron);
         Ball(V(0, y, 136), V(210, 176, 60), 0x241e1c); Glow(V(20, y - 30, 160), V(10, 10, 8), T.glow, 2); Glow(V(-24, y + 44, 156), V(8, 8, 8), T.glow, 2);
       };
-      for (const s of [-1, 1]) for (const q of [-1, 0, 1]) { cart(s * 1900 + q * 250); if (q < 1) deco(0, s * 1900 + q * 250 + 125, 40, 10, 44, 10, iron); }
+      for (const s of [-1, 1]) for (const q of [-1, 0, 1]) { cart(s * 1900 + q * 250); if (q < 1) deco(0, s * 1900 + q * 250 + 125, 40, 10, 66, 10, iron); }
       // the tunnel mouth at each end: a timber set round the door
       for (const s of [-1, 1]) { for (const e of [-1, 1]) { deco(e * 560, s * (hy - 40), 0, 90, 80, 820, timber); BoxRot(V(e * 440, s * (hy - 40), 730), V(330, 60, 60), tdark, R(0, 0, e * -45), false); } deco(0, s * (hy - 40), 820, 1300, 80, 100, timber); deco(0, s * (hy - 44), 838, 300, 8, 64, 0xd8c8a0); }
       // the station clock over the crossing
