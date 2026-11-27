@@ -430,3 +430,33 @@
   sits in the notch just under the crosshair; the bell's lip (15.55) clears.
 - tests: tw/fly.py (first person + side stills of one shot into a held line of three); gscan no new floats; dg0
   [55,[],[]]; a 15 s soak firing into six enemies, no errors.
+
+## (65) The run is five places down the valley, then the raid
+- User: fewer, longer rooms (each the equivalent of three old rooms in time and creatures); Mystery Box and Compressor
+  after every room; 5 rooms then the raid boss. Rooms become destinations: larger, real places infected by the Blight,
+  20 of them in one consistent world, built one at a time. Chosen (AskUserQuestion): the valley down to the Root,
+  5 regions of 4; bosses at the end of rooms 2 and 4 only; one destination from each region, in order.
+- REGIONS (descent.js): The Vale (Bramble Farm, Cider Orchard, Millbrook, Crossroads Inn; strain Toadstool),
+  The Wildwood (Old Oak Woods, Bogwater Fen, Lantern Lake, Ranger's Ridge; Mirecap), The Works (Cogsworth Depot,
+  Market Town, The Brewery, Ironworks; Rustcap), Under the Hill (Copperdeep Mine, Glimmer Caves, The Old Hold,
+  The Catacombs; Nightshade), The Rot (Sporefall Wood, The Withered Abbey, The Weeping Garden, The Rootgate; Char).
+  Room 6 is the raid at the Root (strain Char).
+- DESTS 5, ROOMS 6 (raid), STAGES 3. A room's horde comes in three stretches with no lull: depthOf(room, stage) =
+  3(room-1)+1+stage (room 1 = depths 1-3 ... room 5 = 13-15). Each stretch holds what its old room did
+  (24 + 4.5 x depth, x1.6 per extra player); the next is let out once the last of this one is out (Descent.allowed
+  replaces the round's 20%-then-even release, per stretch). Stepping deeper (stepDeeper) sets g.round = depth (all
+  scaling), restarts the per-round drop caps, runs the round hooks quietly (class levels, XP, gold, revive clock,
+  OnRoundStart procs: three times a room, as before) and bumps dRooms. Raid depth 17 (was round 20: the run is 15
+  old rooms deep now, not 19). Toasts: 'More are coming, and they are tougher' / 'The last of them are coming'.
+- Bosses: rooms 2 and 4 (BOSS_ROOMS); room 2's from tiers 1-2, room 4's from tiers 3-4. isBossRoom also counts the
+  raid's room (its fight ends when its boss dies; without that the raid room 'cleared' at once and the run was won).
+- After every room: workbench, Mystery Box (one free roll), Compressor (if unlocked), ammo, the way on. The way on is
+  titled with the next place's name and region (a boss waits there / where the Blight comes up).
+- Route: one per region in order (built destinations of that region; an old room stands in until one is built:
+  DEST_ARENAS in map_descent.js, empty until the first destination). nameOf/regionOf; banner = the place's name.
+- HUD: ROOM shows 1-5 (RAID after); run-end stats show the room. Lobby chip: '5 rooms and the raid - best room N'
+  (best depth / 3). Achievements: reach room 2 / 3 / 5; 'Clear 30 rooms' (dRooms counts three per room; per: 3 in
+  the challenge list). Quartermaster refills 90% on a room clear (three old rooms' worth).
+- tests: dst/run.json plays all five rooms (kills everything each frame) and enters the raid: depths 1-15, horde
+  100/140/181/221/262 solo, bosses only in 2 and 4, box + compressor + bench + ammo after each, raid at depth 17 stays
+  in its fight. dg0 [55,[],[]]; wt clean.

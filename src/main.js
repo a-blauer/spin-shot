@@ -354,8 +354,8 @@ function renderProgress() {
       L.sort((x, y) => ord(x) - ord(y));
       h += `<h4>${esc(G.toUpperCase())}<span>${L.filter((A) => Meta.stat(A.stat) >= A.need).length} / ${L.length}</span></h4><div class="pgrid">`;
       for (const A of L) {
-        const v = Math.min(A.need, Meta.stat(A.stat)), st = Meta.stateOf('a:' + A.id);
-        h += `<div class="pc ${st}"><div class="pt"><b>${esc(A.name)}</b><span>${A.need > 1 ? `${v.toLocaleString()} / ${A.need.toLocaleString()}` : st === 'locked' ? '' : 'Done'}</span></div><div class="pn">${esc(A.desc)}</div>${st === 'locked' && A.need > 1 ? bar(v, A.need) : ''}${rw('a:' + A.id)}</div>`;
+        const v = Math.min(A.need, Meta.stat(A.stat)), st = Meta.stateOf('a:' + A.id), pr = A.per || 1;   // some count in parts of what they show (three old rooms to a room)
+        h += `<div class="pc ${st}"><div class="pt"><b>${esc(A.name)}</b><span>${A.need > 1 ? `${Math.floor(v / pr).toLocaleString()} / ${Math.ceil(A.need / pr).toLocaleString()}` : st === 'locked' ? '' : 'Done'}</span></div><div class="pn">${esc(A.desc)}</div>${st === 'locked' && A.need > 1 ? bar(v, A.need) : ''}${rw('a:' + A.id)}</div>`;
       }
       h += '</div>';
     });
@@ -722,7 +722,7 @@ function renderLobby() {
   if (step === 'run') {
     const dsc = MAPS.findIndex((M) => M.mode === 'descent'), isD = curMap === dsc; if (!isD) window.__survMap = curMap;
     h += '<section><h3>THE RUN</h3>';
-    h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `20 rooms  -  best ${Meta.bestRoundOn('descent')}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'one map, endless rounds'),
+    h += group('GAME TYPE', chip(`data-map="${dsc}"`, isD, daily, 'The Descent', `5 rooms and the raid  -  best room ${Math.min(5, Math.ceil(Meta.bestRoundOn('descent') / 3))}`) + chip(`data-map="${window.__survMap || 0}"`, !isD, daily, 'Survival', 'one map, endless rounds'),
       isD ? esc2(MAPS[dsc].blurb) : 'Hold one map round after round, and work its task to open the way to the last boss.', daily ? 'set by your contract' : '');
     if (!isD) h += group('MAP', MAPS.map((M, i) => (M.mode ? '' : chip(`data-map="${i}"`, curMap === i, daily, esc2(M.name), `best ${Meta.bestRoundOn(M.id)}${MEDALS.map((n, d) => `<i class="med" title="${n}" style="${Meta.medal(M.id) > d ? `background:${MEDAL_HEX[d]};border-color:${MEDAL_HEX[d]}` : ''}"></i>`).join('')}`))).join(''),
       `${esc2(MAPS[curMap].blurb)} <span class="dim2">${MAPS[curMap].rounds} rounds.</span>`, daily ? 'set by your contract' : '');

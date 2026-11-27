@@ -131,8 +131,8 @@ export const MAPS = [
     vault: { floor: 0x0c1418, floor2: 0x12222a, wedgeA: 0x6a6e76, wedgeB: 0x0c1014, glow: 0x2A8A78, colA: 0x3a2e26, colB: 0x2a2420, cap: 0x8a7648, slit: 0x2A8A78, lamp: [0.3, 1.0, 0.85], cairn: [0x3a3e44, 0x5a5e66, 0x2e3238, 0x8a8468], chand: 0x8a7648, chandGlow: 0xc8b85a, chandLamp: [0.9, 0.85, 0.5], sign: 'EVERY NECK HAS ITS DAY', signCol: [150, 230, 210] },
     final: { arena: 'UNDER THE GALLOWS', open: 'THE TRAP IS SPRUNG', toast: 'Step into the light to go down through the trap', under: 'UNDER THE GALLOWS', acts: ['THE TIDE COMES IN', 'THE ROPE TIGHTENS'], taunt: 'Every neck has its day',
       win: 'Gallows Wharf is quiet. The Hangman has taken the drop.' } },
-  // not a place but a way of playing: twenty rooms, a door chosen after each, a boss in every fifth
-  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Twenty rooms, straight down, drawn from forty: no two runs go the same way. Clear a room, fit what you found at its workbench, and go on down. A boss holds every fifth room.',
+  // not a place but a way of playing: five places down the valley, one from each region, then the raid at the Root
+  { id: 'descent', name: 'The Descent', mode: 'descent', blurb: 'Five places down the valley, from the farms to the Root, one from each region. Clear each of the Blight, fit what you found at its workbench, and go on. Bosses wait at the end of the second and the fourth; the raid waits at the bottom.',
     pack: [6, 7, 0, 1, 2, 3, 4, 5], loading: 'Going down...', build: buildDescent, noSky: true, wind: 0.02, spawnYaw: Math.PI,
     palette(P, zone) {
       // the village: a warm late afternoon, blue overhead and a golden haze on the hills

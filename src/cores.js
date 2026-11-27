@@ -64,7 +64,7 @@ export const CORE_DEFS = [
   M('Ember Dash', 'Uncommon', '#ff6a2a', 'EDS', [['EmberDash', 1]], 'Dashing leaves a short line of fire behind you', null, 1),
   M('Smoke Step', 'Uncommon', '#a0a0a8', 'SMK', [['SmokeStep', 1]], 'Dashing drops a smoke cloud; enemies inside lose track of you for 2 seconds', null, 1),
   M('Static Landing', 'Rare', '#9a8cff', 'STL', [['StaticLand', 1]], 'Landing from a mid-air jump or a wall-run shocks the enemies near you', null, 1),
-  M('Quartermaster', 'Uncommon', '#c9a56a', 'QMS', [['RoomReserve', 0.3]], 'Clearing a room refills 30% of every gun\'s reserve', null, 2),
+  M('Quartermaster', 'Uncommon', '#c9a56a', 'QMS', [['RoomReserve', 0.3]], 'Clearing a room refills 90% of every gun\'s reserve', null, 2),
   M('Brace', 'Uncommon', '#aab4c0', 'BRC', [['ReloadGuard', 0.3]], 'Take 30% less damage while reloading', null, 1),
   M('Scrap Magnet', 'Common', '#9affc0', 'MAG', [['ScrapPick', 1]], 'Every part you pick up also gives 1 scrap', null, 3),
   M('Pack Mule', 'Epic', '#d8a050', 'MUL', [['ExtraSlot', 1]], 'Carry one more gun', null, 1),

@@ -34,6 +34,8 @@ const SP = 13200, COLS = 7;
 export const N_ROOMS = ROOM_DIMS.length;
 // filled in as the arenas are built: { c: [x, y], hx, hy, H, zone, theme, boss, plinths }
 export const ARENAS = [];
+// the arenas that are destinations (built after the village), each with { dest: { region, name } }
+export const DEST_ARENAS = [];
 export const VILLAGE_IDX = N_ROOMS + 2;   // the village's chunk, after the rooms and the two boss arenas
 // Where things stand in a room, given which end you came in by (s = 1: in at the south, out at the north; -1 the other way).
 export function spots(A, s) {

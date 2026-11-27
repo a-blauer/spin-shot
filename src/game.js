@@ -17,7 +17,7 @@ import { Player } from './player.js';
 import { Net } from './net.js';
 import { VAULT } from './mapzones.js';
 import { MAPS } from './maps.js';
-import { Descent } from './descent.js';
+import { Descent, ROOMS } from './descent.js';
 import { Village } from './village.js';
 import { Quest } from './quest.js';
 import { Mech } from './mech.js';
@@ -450,7 +450,8 @@ export class Game {
     // rest is let out evenly over the round's length (40s in round one, about two and a half minutes late on). If you kill
     // faster than that, the crowd around you is topped back up to a floor, so there is always a fight and never a wait.
     this.roundT = (this.roundT || 0) + dt;
-    const cap = maxAlive(this.round), span = Math.min(150, 34 + this.round * 7), allowed = Math.ceil(this.toSpawn * Math.min(1, 0.2 + 0.8 * this.roundT / span)), floor = Math.max(3, Math.round(cap * 0.4));
+    const cap = maxAlive(this.round), span = Math.min(150, 34 + this.round * 7), floor = Math.max(3, Math.round(cap * 0.4));
+    const allowed = this.descent && this.descent.stageN ? this.descent.allowed(span) : Math.ceil(this.toSpawn * Math.min(1, 0.2 + 0.8 * this.roundT / span));   // a Descent room lets each of its stretches out in turn
     if (alive <= 2 && this.spawned < this.toSpawn) this.spawnTimer = Math.min(this.spawnTimer, 0.3);   // never leave the player with nothing to shoot
     if (this.spawned < this.toSpawn && alive < cap && this.spawnTimer <= 0 && (this.spawned < allowed || alive < floor)) {
       const thin = alive < floor;   // the crowd has been cut down: refill it quickly
@@ -577,7 +578,7 @@ export class Game {
   gameOver() { if (this.phase === 'GameOver') return; this.coopDown = false; Meta.bump('runs'); Meta.save(); this.phase = 'GameOver'; this.deathTime = this.time; this.audio.play('S_Lose', 1, 0.7); }
 
   // which strain of the Blight grows here: in the Descent it changes every four rooms down; each map has its own
-  strainNow() { if (this.descent) return Math.max(0, Math.min(4, Math.floor(((this.descent.room || 1) - 1) / 4))); return [1, 4, 3, 2, 0, 2, 0][this.mapId] ?? 0; }
+  strainNow() { if (this.descent) { const D = this.descent; return D.room >= ROOMS ? 4 : D.regionOf().strain; } return [1, 4, 3, 2, 0, 2, 0][this.mapId] ?? 0; }   // each region of the valley has its own strain
   pickEnemyType() {
     if (this.descent) return this.descent.pick();
     const er = effRound(this.round); let total = 0; const mi = this.mapId, W = DATA.enemies.map((D) => { let w = D.map === mi && er >= D.minRound ? D.weight : 0; if (w > 0 && D.ai === 'Walker') w = Math.max(3, w - this.round * 0.35); total += w; return w; });   // (the floor of 3 is for THIS map's walker: applied to every walker it sent each map's into all the others, drawn from the wrong sheet as a jumble of parts)

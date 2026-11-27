@@ -1,6 +1,9 @@
-// The Descent: the run as a string of rooms. Clear the room, take what it pays, choose the next door by what is
-// written over it. Rooms 5, 10, 15 and 20 belong to bosses. The host (or the solo player) owns the state; guests
-// are told the room, what it paid and what the doors offer, and build the same things on their own side.
+// The Descent: the run as five destinations down the valley, one from each region in order (the Vale, the Wildwood,
+// the Works, Under the Hill, the Rot), then the raid at the Root. Each destination is the work of three of the old
+// rooms: its horde comes in three stretches with no lull between them, each a step deeper (and harder) than the last.
+// Rooms 2 and 4 end with a boss once the horde is down. After every room the workbench, the Mystery Box (one free
+// roll) and the Compressor come up, and the way on opens. The host (or the solo player) owns the state; guests are
+// told the room, its depth and what it paid, and build the same things on their own side.
 import * as THREE from 'three';
 import { buildPortal, tickPortal, W as PW, SPRING as PSPRING, PORTAL_Y } from './portal.js';
 import { DATA, lin, randInt, zombieCount, maxAlive, difficulty, mutators, mutBoon, DIFFS } from './data.js';
@@ -8,17 +11,31 @@ import { machine, ASC } from './deeds.js';
 import { sigOf } from './signatures.js';
 import { V, R } from './mapkit.js';
 import { Interactable } from './interact.js';
-import { ARENAS, spots, N_ROOMS, bedOf } from './map_descent.js';
+import { ARENAS, spots, N_ROOMS, bedOf, DEST_ARENAS } from './map_descent.js';
 import { rollCore, CORE0, CORE_DEFS, coreTier } from './cores.js';
 import { Meta } from './meta.js';
 import { Raid } from './raid.js';
 import { buildPrize } from './town.js';
 import { Sector, SECTORS } from './sector.js';
 import { STRAINS } from './blight.js';
-// boss health multiplier by depth (room 5 / 10 / 15 / 20), on top of the room's usual health curve
+// boss health multiplier by the boss's tier, on top of the room's usual health curve
 const BOSS_HP = [2.3, 2.5, 2.7, 2.9];
 
-export const ROOMS = 20;
+export const DESTS = 5, ROOMS = DESTS + 1;   // five destinations, then the raid (room 6)
+export const STAGES = 3;                     // each destination is three of the old rooms deep
+// the valley, from the farms down to where the Blight comes up; each region has its own strain of it
+export const REGIONS = [
+  { name: 'The Vale', strain: 0, dests: ['Bramble Farm', 'Cider Orchard', 'Millbrook', 'Crossroads Inn'] },
+  { name: 'The Wildwood', strain: 2, dests: ['Old Oak Woods', 'Bogwater Fen', 'Lantern Lake', "Ranger's Ridge"] },
+  { name: 'The Works', strain: 1, dests: ['Cogsworth Depot', 'Market Town', 'The Brewery', 'Ironworks'] },
+  { name: 'Under the Hill', strain: 3, dests: ['Copperdeep Mine', 'Glimmer Caves', 'The Old Hold', 'The Catacombs'] },
+  { name: 'The Rot', strain: 4, dests: ['Sporefall Wood', 'The Withered Abbey', 'The Weeping Garden', 'The Rootgate'] },
+];
+const BOSS_ROOMS = [2, 4];
+const RAID_DEPTH = 17;   // the raid is fought as deep as two rooms past the last stretch of room 5
+// how deep a stretch of a room is, in the old rooms' terms (room 1 is 1-3, room 5 is 13-15), and how many it holds
+export const depthOf = (room, stage) => (room - 1) * STAGES + 1 + stage;
+const hordeOf = (depth, more) => Math.round((24 + depth * 4.5) * (1 + 0.6 * more));
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const C = (h) => new THREE.Color(h);
 // what the chest at the end of a room is made of: better the deeper you are
@@ -31,9 +48,10 @@ function chestTier(room) {
 export class Descent {
   constructor(game) {
     this.g = game; this.room = 0; this.arena = 0; this.flip = 1; this.cleared = false; this.guns = [1, 2]; this.tier = 0; this.gates = []; this.things = []; this.late = []; this.seq = 0; this.bossT = -1; this.seen = -1; this.zones = []; this.zkey = ''; this.rdy = new Set(); this.rdyN = [0, 1];
-    // nineteen rooms out of all there are, none of them twice in a run (the twentieth is the raid's)
-    const o = [...Array(N_ROOMS).keys()]; for (let i = o.length - 1; i > 0; i--) { const j = randInt(0, i); [o[i], o[j]] = [o[j], o[i]]; }
-    this.order = o.length >= 19 ? o.slice(0, 19) : o.concat(o).slice(0, 19);
+    this.stage = 0; this.depth = 1; this.stageBase = 0; this.stageN = 0; this.stageT = 0;
+    // one destination from each region, in order. A region with none built yet lends one of the old rooms instead.
+    const old = [...Array(N_ROOMS).keys()]; for (let i = old.length - 1; i > 0; i--) { const j = randInt(0, i); [old[i], old[j]] = [old[j], old[i]]; }
+    this.order = REGIONS.map((Rg, r) => { const L = DEST_ARENAS.filter((a) => ARENAS[a] && ARENAS[a].dest && ARENAS[a].dest.region === r); return L.length ? L[randInt(0, L.length - 1)] : old[r % old.length]; });
     this.bossPick = this.pickBosses();
     this.result = null;
     // what the last boss holds this run (each player's own: the next of their gnomes, or one of their machines)
@@ -41,14 +59,17 @@ export class Descent {
   }
   bed() { return bedOf(this.arena); }
   get host() { return this.g.net.role !== 'client'; }
-  isBossRoom(r = this.room) { return r > 0 && r % 5 === 0; }
-  // every fifth room is an ordinary room whose boss comes when its horde is done; the last is the raid's, and no other's
+  isBossRoom(r = this.room) { return BOSS_ROOMS.includes(r) || r >= ROOMS; }   // the raid's room counts as one: it is done when its boss is, not when a horde is
+  // rooms 2 and 4 are ordinary rooms whose boss comes when the horde is done; the sixth is the raid's, and no other's
   arenaFor(room) { return room >= ROOMS ? N_ROOMS + 1 : this.order[room - 1]; }
+  // what this room is called: a destination's own name, or the old room's that stands in for one not built yet
+  nameOf(room = this.room) { const A = ARENAS[this.arenaFor(room)]; return room >= ROOMS ? 'The Root' : A && A.dest ? A.dest.name : (A && A.title) || REGIONS[room - 1].name; }
+  regionOf(room = this.room) { return REGIONS[Math.max(0, Math.min(DESTS - 1, room - 1))]; }
   flipFor(room) { return room % 2 ? 1 : -1; }
   A() { return ARENAS[this.arena]; }
   S() { return spots(this.A(), this.flip); }
-  // one boss from each of the four tiers; which one is the luck of the run
-  pickBosses() { const out = []; for (let t = 1; t <= 4; t++) { const L = DATA.bosses.map((b, i) => (b.tier === t ? i : -1)).filter((i) => i >= 0); out.push(L.length ? L[randInt(0, L.length - 1)] : this.g.map.bosses[(t - 1) % Math.max(1, this.g.map.bosses.length)]); } return out; }
+  // two bosses a run: room 2's from the first two tiers, room 4's from the last two; which ones is the luck of the run
+  pickBosses() { const out = []; for (const T of [[1, 2], [3, 4]]) { const L = DATA.bosses.map((b, i) => (T.includes(b.tier) ? i : -1)).filter((i) => i >= 0); out.push(L.length ? L[randInt(0, L.length - 1)] : this.g.map.bosses[(T[0] - 1) % Math.max(1, this.g.map.bosses.length)]); } return out; }
 
   // ------------------------------------------------------------------ flow (host)
   tick(dt) {
@@ -63,6 +84,7 @@ export class Descent {
     if (this.cleared && this.rdy.size) { const N = this.need(); this.rdyN = [N.filter((k) => this.rdy.has(k)).length, N.length]; if (N.length && this.rdyN[0] >= N.length) { this.next(); return; } } else this.rdyN = [0, this.need().length];
     if (g.phase === 'PreGame') { g.phaseTimer -= dt; if (g.phaseTimer <= 0) this.enter(1); return; }
     if (g.phase === 'Round') {
+      this.stageTick(dt);
       if (this.bossT >= 0) { this.bossT -= dt; if (this.bossT < 0) { if (this.room >= ROOMS && this.raid) this.raid.begin(); else this.spawnBoss(); } }
       g.tickRound(dt);
       if (this.isBossRoom() && g.bossSpawned && (!g.boss || g.boss.dead)) {
@@ -94,17 +116,21 @@ export class Descent {
     this.room = room; this.arena = this.arenaFor(room); this.flip = this.flipFor(room); this.cleared = false; this.seq++; this.rdy.clear();
     for (const E of g.enemies) if (!E.dead) E.remove = true;
     g.hazards.clear(); g.boss = null; g.bossSpawned = false; g.bossRound = false; this.zones = [];
-    g.round = room; g.phase = 'Round';
     const boss = this.isBossRoom(), raidR = room >= ROOMS, n = g.net.role === 'host' ? g.net.ghosts.size : 0;
-    g.toSpawn = raidR ? 0 : Math.round((24 + room * 4.5) * (1 + 0.6 * n));   // a boss's room has its horde first; the raid holds the raid and nothing else   // a boss's room holds the boss and nothing else, unless it calls something up itself   // a room is a few minutes' work, the first ones included
+    // the horde comes in three stretches, each as deep as one of the old rooms; the raid is a step past the last of them
+    this.stage = 0; this.depth = raidR ? RAID_DEPTH : depthOf(room, 0); this.more = n;
+    g.round = this.depth; g.phase = 'Round';
+    this.stageBase = 0; this.stageN = raidR ? 0 : hordeOf(this.depth, n); this.stageT = 0;
+    g.toSpawn = raidR ? 0 : [0, 1, 2].reduce((a, k) => a + hordeOf(depthOf(room, k), n), 0);   // a boss's room has its horde first; the raid holds the raid and nothing else
     g.spawned = 0; g.killed = 0; g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0; g.spawnTimer = raidR ? 5 : 1.6; g.roundT = 0; g.midChest = true;
     this.bossT = raidR ? 2.2 : -1;
-    this.roster = this.rollRoster(room);
+    const last = raidR ? RAID_DEPTH : depthOf(room, STAGES - 1);   // the crowd and the wall guns are drawn for the deepest stretch
+    this.roster = this.rollRoster(last);
     // two guns for the walls, the better ones the deeper you are; and what the chest at the end will be
-    const RAR = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'], want = (room < 6 ? [0, 1] : room < 11 ? [1, 2] : room < 16 ? [2, 3] : [3, 4]).map((k) => RAR[k]);
+    const RAR = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'], want = (last < 6 ? [0, 1] : last < 11 ? [1, 2] : last < 16 ? [2, 3] : [3, 4]).map((k) => RAR[k]);
     const pool = DATA.weapons.map((w, i) => i).filter((i) => i > 0 && !DATA.weapons[i].cash), pick = [];   // nothing that runs on money: there is none down here
     for (let k = 0; k < 2; k++) { const L = pool.filter((i) => !pick.includes(i) && want.includes(DATA.weapons[i].rarity)), L2 = L.length ? L : pool.filter((i) => !pick.includes(i)); pick.push(L2[randInt(0, L2.length - 1)]); }
-    this.guns = pick; this.tier = Math.min(3, chestTier(room) + (boss ? 1 : 0));
+    this.guns = pick; this.tier = Math.min(3, chestTier(last) + (boss ? 1 : 0));
     this.arrive(true);
     if (g.net.role === 'host' && g.player.dead) g.player.revive();
   }
@@ -127,12 +153,13 @@ export class Descent {
     if (!raidRoom) this.sector = new Sector(g, this);
     g.hud.hurtWhite = 0.3; g.audio.play('S_Enter', 1);
     const boss = this.isBossRoom();
-    g.banner(boss ? `ROOM ${room}  -  BOSS` : `ROOM ${room} / ${ROOMS}`, boss ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
+    g.banner(raidRoom ? 'THE ROOT' : this.nameOf().toUpperCase(), boss || raidRoom ? lin(1, 0.25, 0.15) : lin(0.85, 0.08, 0.06), 3.2, 'round');
     g.hud.roundFlash = 1;
-    if (!raidRoom && (room - 1) % 4 === 0) { const St = STRAINS[g.strainNow()], c = St.glow; g.hud.toast(`${St.name.toUpperCase()} SECTOR - ${SECTORS[g.strainNow()].tip}`, [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255]); }
-    if (room === 1) g.hud.toast('Clear the room. Enemies drop parts; a workbench to fit them and the way on open when it is empty.', '#ffd24d');
+    if (!raidRoom) g.hud.toast(`Room ${room} of ${DESTS}  -  ${this.regionOf().name}${boss ? '  -  a boss waits at the end' : ''}`, boss ? '#ff8a6a' : '#e8e0d0');
+    if (!raidRoom) { const St = STRAINS[g.strainNow()], c = St.glow; g.hud.toast(`${St.name.toUpperCase()} SECTOR - ${SECTORS[g.strainNow()].tip}`, [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255]); }
+    if (room === 1) g.hud.toast('Clear the place. Enemies drop parts; a workbench to fit them and the way on open when it is empty.', '#ffd24d');
     this.station('AmmoCrate', S.ammo[0], S.ammo[1], S.ammoYaw, 0, -1, 'Ammo');
-    if (started) { Meta.roundStarted(room, g.map.id); P.onRoundStarted(room); }
+    if (started) { Meta.roundStarted(this.depth, g.map.id); P.onRoundStarted(this.depth); }
     g.navRebuild(P.pos);
   }
   // a boss room's horde is done: after a breath, its boss comes (game.endRound calls this until it has)
@@ -141,7 +168,7 @@ export class Descent {
     this.bossT = 2.6; g.banner('THE BOSS COMES', lin(1, 0.25, 0.15), 2.4); g.audio.play('S_Phase', 0.7);
   }
   spawnBoss() {
-    const g = this.g, A = this.A(), bi = this.bossPick[this.room / 5 - 1], B = DATA.bosses[bi];
+    const g = this.g, A = this.A(), bi = this.bossPick[Math.max(0, BOSS_ROOMS.indexOf(this.room))], B = DATA.bosses[bi];
     // somewhere open, away from the way in, in the room it was fought in
     const c0 = V3(A.c[0], 0, A.c[1] + this.flip * A.hy * 0.3), f = g.findFreeLocationNear(c0, 0, Math.min(A.hx, A.hy) * 0.5) || c0, at = V3(f.x, (f.y || 0) + 260, f.z);
     g.bossSpawned = true;
@@ -159,12 +186,35 @@ export class Descent {
     const g = this.g;
     if (this.cleared) return;
     this.cleared = true; g.phase = 'Intermission'; g.phaseTimer = 0; this.seq++; this.zones = [];
-    g.player.onRoundEnded(this.room); if (g.player.onRoomClear) g.player.onRoomClear(); Meta.bump('dRooms');
+    g.player.onRoundEnded(this.depth); if (g.player.onRoomClear) g.player.onRoomClear(); Meta.bump('dRooms');
     this.progress();
     if (this.room >= ROOMS) { this.reward(); g.levelComplete(); return; }
     this.open();
-    g.banner(`ROOM ${this.room} CLEAR`, this.isBossRoom() ? lin(1, 0.75, 0.2) : [0.95, 0.95, 0.92], 3);
+    g.banner(`${this.nameOf().toUpperCase()} IS CLEAR`, this.isBossRoom() ? lin(1, 0.75, 0.2) : [0.95, 0.95, 0.92], 3);
   }
+  // ---- the three stretches of a room's horde. The next is let out as soon as the last of this one is out (no lull):
+  // the round number (what everything scales by) steps one deeper, and the per-round caps on drops start again, so a
+  // room pays and hurts like the three old rooms it stands for.
+  stageTick(dt) {
+    const g = this.g; if (this.room >= ROOMS || this.cleared) return;
+    this.stageT += dt;
+    if (this.stage >= STAGES - 1 || g.spawned < this.stageBase + this.stageN) return;
+    this.stageBase += this.stageN; this.stage++; this.stageT = 0;
+    this.stepDeeper(depthOf(this.room, this.stage));
+    this.stageN = hordeOf(this.depth, this.more || 0);
+  }
+  stepDeeper(depth) {
+    const g = this.g, P = g.player;
+    if (!P.dead) P.onRoundEnded(this.depth, true);   // the stretch just finished is written down at its own depth
+    this.depth = depth; g.round = depth;
+    g.powerupsThisRound = 0; g.tonicsThisRound = 0; g.grenadesThisRound = 0; g.ammoThisRound = 0;
+    if (!P.dead) P.onRoundStarted(depth, true);
+    if (this.host) Meta.bump('dRooms');
+    Meta.roundStarted(depth, g.map.id);
+    g.hud.toast(this.stage >= STAGES - 1 ? 'The last of them are coming' : 'More are coming, and they are tougher', '#ffb05a');
+  }
+  // how many of the room's horde may be out by now: a fifth of the stretch at once, the rest evenly over its length
+  allowed(span) { return this.stageBase + Math.ceil(this.stageN * Math.min(1, 0.2 + 0.8 * this.stageT / span)); }
   next() { if (this.host && this.cleared && this.room < ROOMS) this.enter(this.room + 1); }
   // the way on opens when everyone still standing has put a hand to it
   need() { const g = this.g; return (g.player.dead ? [] : ['host']).concat([...g.net.ghosts.entries()].filter(([, G]) => !G.dead).map(([k]) => k)); }
@@ -178,13 +228,13 @@ export class Descent {
   // ------------------------------------------------------------------ what stands in a room (built by everyone)
   station(type, x, y, yaw, cost, weapon, label, z = 0) { const W = this.g.world; W.rt = true; let I; try { I = W.Station(type, V(x, y, z), yaw, cost, weapon, label); } finally { W.rt = false; } I.descent = true; this.things.push(I); return I; }
   open() {
-    const g = this.g, S = this.S(), boss = (this.room + 1) % 5 === 0, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
+    const g = this.g, S = this.S(), nxt = this.room + 1, boss = this.isBossRoom(nxt) || nxt >= ROOMS, col = boss ? 0xff5a4a : 0xffcd5a, hex = boss ? '#ff5a4a' : '#ffcd5a';
     const B = this.station('HighRoller', S.bench[0], S.bench[1], S.benchYaw, 0, -1, 'Workbench'); B.makeSolid(-12, 140, -185, 185, 0, 170);
     { const P = g.player; P.fortuneUsed = {}; }   // the Fortune Teller rerolls each buff once a room
-    // the Mystery Box comes up in every third room, with one free roll
-    if (this.room % 3 === 0) { g.player.boxRolls = 1; g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 0, -1, 'Mystery Box'); }
-    // the Compressor stands by the workbench every third room
-    if (machine('compressor') && this.room % 3 === 0) {
+    // the Mystery Box comes up after every room, with one free roll
+    { g.player.boxRolls = 1; g.box = this.station('MysteryBox', S.box[0], S.box[1], S.chestYaw, 0, -1, 'Mystery Box'); }
+    // the Compressor stands by the workbench after every room
+    if (machine('compressor')) {
       const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
       const at = far(side(1)) >= far(side(-1)) ? side(1) : side(-1);
       const C = this.station('Compressor', at[0], at[1], S.benchYaw, 0, -1, 'Compressor'); C.makeSolid(0, 150, -160, 160, 0, 470);
@@ -196,8 +246,9 @@ export class Descent {
     // its pillars and crown are solid (and so something to grapple to); the room's own doorway behind it is hidden
     { const solid = (x0, x1, y0, y1, z0, z1) => { const b = new THREE.Box3(); for (let k = 0; k < 8; k++) b.expandByPoint(V(x + ((k & 1) ? x1 : x0), y + f * ((k & 2) ? y1 : y0), (k & 4) ? z1 : z0).to3()); return g.phys.addDoor(b); };
       I.solids = [solid(-PW - 96, -PW - 2, PORTAL_Y - 48, PORTAL_Y + 48, 0, PSPRING + 20), solid(PW + 2, PW + 96, PORTAL_Y - 48, PORTAL_Y + 48, 0, PSPRING + 20), solid(-PW - 100, PW + 100, PORTAL_Y - 48, PORTAL_Y + 48, PSPRING + PW - 20, PSPRING + PW + 110)]; }
-    I.text(null, V(0, f * 20, 900), S.textYaw, 96, boss ? 'THE SEAL' : 'THE WAY DOWN', hex); I.text(null, V(0, f * 20, 840), S.textYaw, 40, boss ? 'something is waiting' : `room ${this.room + 1} of ${ROOMS}`, '#e8e0d0');
-    I.q = { usable: () => this.cleared, prompt: () => `[E] ${boss ? 'Break the seal' : 'Go on'}  -  room ${this.room + 1}\nFit your parts at the bench first: it stays here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
+    const where = nxt >= ROOMS ? 'THE ROOT' : this.nameOf(nxt).toUpperCase();
+    I.text(null, V(0, f * 20, 900), S.textYaw, 96, where, hex); I.text(null, V(0, f * 20, 840), S.textYaw, 40, nxt >= ROOMS ? 'where the Blight comes up' : `room ${nxt} of ${DESTS}  -  ${this.regionOf(nxt).name}${this.isBossRoom(nxt) ? '  -  a boss waits there' : ''}`, '#e8e0d0');
+    I.q = { usable: () => this.cleared, prompt: () => `[E] Go on to ${nxt >= ROOMS ? 'the Root' : this.nameOf(nxt)}\nFit your parts at the bench first: it stays here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
       use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
     g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); g.fx.ring(V3(S.bench[0], 6, S.bench[1] - f * 120), 260, lin(0.4, 0.9, 1), 0.5); g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
@@ -254,7 +305,7 @@ export class Descent {
     // a boss leaves one good one and often a second, an elite leaves one about a third of the time, and the rank and file
     // leave them rarely: a room is worth one or two (the odds thin as the rooms fill up). Half what it was.
     if (E.isBoss) { drop(3, 0.5); if (Math.random() < 0.5) drop(3, 2.6); for (let k = 0; k < mutBoon('bossPart'); k++) drop(3, 4.4 + k); return; }
-    const odds = mutBoon('parts') * 0.5 * (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.room * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
+    const odds = mutBoon('parts') * 0.5 * (E.elite ? 0.6 : Math.max(0.045, 0.1 - this.depth * 0.003) * (['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 1.5)) * (1 + Math.max(0, P.stat('LuckFind')));
     if (Math.random() >= odds) return;
     drop(E.elite ? 3 : ['Walker', 'Runner', 'Crawler'].includes(E.ai) ? 1 : 2);
   }
@@ -269,7 +320,7 @@ export class Descent {
   reward() {
     if (this.result) return;
     const P = this.g.player, df = difficulty(), R = P.runDmg || {}, tot = Object.values(R).reduce((a, b) => a + b, 0) || 1;
-    Meta.bump('dWins'); Meta.best('dDiff', df + 1); Meta.best('dRoom', ROOMS);
+    Meta.bump('dWins'); Meta.best('dDiff', df + 1); Meta.best('dRoom', DESTS);
     const L = Object.keys(R).map(Number).sort((a, b) => R[b] - R[a]).map((i) => ({ i, name: DATA.weapons[i].name, share: R[i] / tot }));
     const res = this.result = { top: L.slice(0, 3), diff: DIFFS[df].name, asc: null, level: 0, already: false };
     const W = L.find((q) => q.share >= 0.1 && !Meta.ascHas(q.name, df));
@@ -285,20 +336,22 @@ export class Descent {
   }
 
   // ------------------------------------------------------------------ co-op
-  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones, this.rdyN, this.raid ? this.raid.state() : 0]; }
+  state() { return [this.room, this.arena, this.flip, this.cleared ? 1 : 0, this.seq, this.guns, this.tier, this.zones, this.rdyN, this.raid ? this.raid.state() : 0, this.depth, this.stage]; }
   sync(d) {
     const g = this.g, room = d[0] | 0, seq = d[4] | 0;
     if (Array.isArray(d[7])) this.zones = d[7].slice(0, 6).map((Z) => Z.slice(0, 7).map(Number));
     if (Array.isArray(d[8])) this.rdyN = [d[8][0] | 0, Math.max(1, d[8][1] | 0)];
     if (this.raid && Array.isArray(d[9])) this.raid.sync(d[9]);
+    // a stretch deeper in the same room: the same steps the host took (the round number, the caps, the round hooks)
+    { const dp = d[10] | 0, stg = d[11] | 0; if (room === this.room && !this.cleared && dp > this.depth && dp <= RAID_DEPTH) { this.stage = Math.min(STAGES - 1, stg); this.stepDeeper(dp); } }
     if (seq === this.seen || room < 1 || room > ROOMS) return;
     this.seen = seq;
     if (room !== this.room) {
-      this.wipe(); this.room = room; this.arena = Math.max(0, Math.min(ARENAS.length - 1, d[1] | 0)); this.flip = d[2] < 0 ? -1 : 1; this.cleared = false; g.round = room; g.hazards.clear();
+      this.wipe(); this.room = room; this.arena = Math.max(0, Math.min(ARENAS.length - 1, d[1] | 0)); this.flip = d[2] < 0 ? -1 : 1; this.cleared = false; this.stage = 0; this.depth = room >= ROOMS ? RAID_DEPTH : (d[10] | 0) > 0 ? d[10] | 0 : depthOf(room, 0); g.round = this.depth; g.hazards.clear();
       this.guns = (Array.isArray(d[5]) ? d[5] : []).slice(0, 2).map((v) => Math.max(1, Math.min(DATA.weapons.length - 1, v | 0))); this.tier = Math.max(0, Math.min(3, d[6] | 0));
       if (g.player.dead) g.player.revive();
       this.arrive(true);
     }
-    if (d[3] && !this.cleared) { this.cleared = true; this.progress(); if (this.g.player.onRoomClear) this.g.player.onRoomClear(); if (room >= ROOMS) this.reward(); if (room < ROOMS) { this.open(); g.banner(`ROOM ${room} CLEAR`, [0.95, 0.95, 0.92], 3); } }
+    if (d[3] && !this.cleared) { this.cleared = true; this.progress(); if (this.g.player.onRoomClear) this.g.player.onRoomClear(); if (room >= ROOMS) this.reward(); if (room < ROOMS) { this.open(); g.banner(`${this.nameOf().toUpperCase()} IS CLEAR`, [0.95, 0.95, 0.92], 3); } }
   }
 }

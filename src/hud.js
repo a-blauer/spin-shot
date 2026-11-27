@@ -602,13 +602,13 @@ export class Hud {
   }
   drawRound(game, W, H, S) {
     const x = 44 * S, y = 150 * S;
-    const r = game.round;
+    const r = game.descent ? Math.min(5, game.descent.room) : game.round;   // the Descent counts its rooms, not the depth it scales by
     const fl = this.roundFlash > 0 ? this.roundFlash : 0;
     this.roundFlash = Math.max(0, this.roundFlash - 0.016);
     const col = fl > 0 && Math.sin(this.time * 30) > 0 ? BONE : '#d0241d';
     let tx = 160 * S;
     { let fs = 84 * S; const tw = this.measure(`${Math.max(r, 0)}`, fs, F_BIG); if (tw > 86 * S) fs *= (86 * S) / tw;
-      this.text(game.descent ? 'ROOM' : 'ROUND', 80 * S, 70 * S, 13 * S, 'rgba(242,232,213,0.8)', 'center', F_TXT, 700, 0.1);
+      this.text(game.descent ? (game.descent.room > 5 ? 'RAID' : 'ROOM') : 'ROUND', 80 * S, 70 * S, 13 * S, 'rgba(242,232,213,0.8)', 'center', F_TXT, 700, 0.1);
       this.text(`${Math.max(r, 0)}`, 80 * S, 104 * S + this.fs(fs) * 0.42, fs, col, 'center', F_BIG, 400, 0.08); }
     const zn = game.final && game.final.active ? game.map.final.under : game.zones[game.zone] ? `${game.zones[game.zone].name.toUpperCase()}  -  ${diff().name.toUpperCase()}` : '';
     let info = '', ic = BONE;
@@ -1222,7 +1222,7 @@ export class Hud {
         for (const d of last) { this.text(`-${Math.round(d.dmg)}`, x + 50 * S, y, 19 * S, '#ff8a80', 'right', F_TXT, 700); this.text(`${d.who}   ${(game.deathTime - d.t).toFixed(1)}s before`, x + 62 * S, y, 19 * S, 'rgba(242,232,213,0.85)', 'left', F_TXT, 600); y += 26 * S; }
       } }
     const survived = Math.max(0, game.round - 1);
-        const stats = game.descent ? [['ROOM', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PARTS', Object.values(P.coreInv || {}).reduce((a, b) => a + b, 0) + P.weapons.reduce((a, w) => a + ((w.cores && w.cores.length) || 0), 0)]] : [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
+        const stats = game.descent ? [['ROOM', Math.min(5, game.descent.room)], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PARTS', Object.values(P.coreInv || {}).reduce((a, b) => a + b, 0) + P.weapons.reduce((a, w) => a + ((w.cores && w.cores.length) || 0), 0)]] : [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     g.globalAlpha = a; this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, 'rgba(255,205,90,0.7)', 'rgba(20,10,16,0.8)', 12 * S); g.globalAlpha = 1;
     stats.forEach(([k, v], i) => {
@@ -1259,7 +1259,7 @@ export class Hud {
     const cy = H * 0.36;
     this.text('LEVEL COMPLETE', W / 2, cy, 140 * S, GOLD, 'center', F_BIG, 400, 0.06);
     this.text((game.map.final?.win || ""), W / 2, cy + 56 * S, 28 * S, BONE, 'center', F_TXT, 700, 0.1);
-    const stats = game.descent ? [['ROOM', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PARTS', Object.values(P.coreInv || {}).reduce((a, b) => a + b, 0) + P.weapons.reduce((a, w) => a + ((w.cores && w.cores.length) || 0), 0)]] : [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
+    const stats = game.descent ? [['ROOM', Math.min(5, game.descent.room)], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PARTS', Object.values(P.coreInv || {}).reduce((a, b) => a + b, 0) + P.weapons.reduce((a, w) => a + ((w.cores && w.cores.length) || 0), 0)]] : [['ROUND', game.round], ['KILLS', P.kills], ['HEADSHOTS', P.headshots], ['UPGRADES', P.upgradeOrder.length], ['PURSE', `$${cash(P.money)}`]];
     const cw = 170 * S, total = cw * stats.length, x0 = W / 2 - total / 2;
     this.panel(x0 - 20 * S, cy + 96 * S, total + 40 * S, 110 * S, GOLD, 'rgba(20,10,16,0.85)', 12 * S);
     stats.forEach(([k, v], i) => { const sx = x0 + cw * (i + 0.5); this.text(k, sx, cy + 132 * S, 15 * S, 'rgba(242,232,213,0.65)', 'center', F_TXT, 700, 0.06); this.text(`${v}`, sx, cy + 182 * S, 40 * S, i === 5 ? GOLD : BONE, 'center', F_BIG, 400, 0.1); });

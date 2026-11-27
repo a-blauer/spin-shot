@@ -303,15 +303,16 @@ export class Player {
     else if (type === 'Ammo') { for (const S of this.weapons) if (S.def >= 0) S.reserve = Math.min(this.reserveSize(S), S.reserve + this.magSize(S)); this.toast('+1 magazine', '#7fb4ff'); this.play('S_MagIn', 0.8, 1.2); }
     else { this.play('S_PowerUp', 0.9); this.game.activatePowerup(type); }
   }
-  onRoundStarted(r) {
+  onRoundStarted(r, quiet = false) {
     this.lastRound = r;
     { const rv = Math.round(this.stat('Revives')); if (rv <= 0) this.revives = 0; else if (this.reviveRound === undefined || r - this.reviveRound >= 3) this.revives = rv; }   // a spent revive takes three rounds to come back
     this.periodic.fill(0.5); this.secondWindUsed = false;
     this.runProcs('OnRoundStart', null, this.pos, 0, 1);
-    this.play('S_RoundStart', 0.8);
+    if (!quiet) this.play('S_RoundStart', 0.8);
   }
-  onRoundEnded() {
-    this.play('S_RoundEnd', 0.8);
+  // quiet: a stretch of a Descent room handing on to the next, mid-fight (no fanfare)
+  onRoundEnded(_r, quiet = false) {
+    if (!quiet) this.play('S_RoundEnd', 0.8);
     Meta.roundCleared(this.game.round, this.game.map.id, this.cls.id, difficulty()); Meta.dailyRound(this.game.round, false);
     if (this.S.RoundMoney) { this.addMoney(this.S.RoundMoney, false); this.toast(`Round bonus  +$${cash(this.S.RoundMoney)}`, '#ffd24d'); }
     const rate = this.stat('Interest');
@@ -1105,7 +1106,7 @@ export class Player {
     if (burners) this.overshield = Math.min(this.shieldCap(), this.overshield + burners * S.HeatShield * 0.5);
   }
   // Quartermaster: what a cleared room gives back
-  onRoomClear() { if (this.S.RoomReserve) for (let i = 0; i < this.maxSlots; i++) { const Q = this.weapons[i]; if (Q && Q.def >= 0) Q.reserve = Math.min(this.reserveSize(Q), Q.reserve + Math.ceil(this.reserveSize(Q) * this.S.RoomReserve)); } }
+  onRoomClear() { if (this.S.RoomReserve) for (let i = 0; i < this.maxSlots; i++) { const Q = this.weapons[i]; if (Q && Q.def >= 0) Q.reserve = Math.min(this.reserveSize(Q), Q.reserve + Math.ceil(this.reserveSize(Q) * Math.min(1, this.S.RoomReserve * 3))); } }   // a room is three of the old ones: three times the refill
   tickFuseZones(dt) {
     const G = this.game, Z0 = this.fzones; if (!Z0 || !Z0.length) return;
     for (let i = Z0.length - 1; i >= 0; i--) {
