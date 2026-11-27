@@ -29,6 +29,9 @@ import { GRENADES, GRENADE_MAX } from './grenades.js';
 import { MELEE, MELEE_PRICE, MELEE_CODE, isMelee, rollMelee, HONE_MAX, HONE_COST, honeDamage, honeRange, honeSpeed, honeCleave, reachText } from './melee.js';
 // guns whose rounds glow softly: fast-firing orbs that would otherwise wash the screen out (their blasts are a mist, not a fireball)
 const SOFT_ROUNDS = new Set(["Will-o'-Wisp"]);
+// a shot counts if it passes within this of a body's parts (boxed round its triangles): an exact triangle test made thin
+// creatures (the Sporeling's open ribs and stick limbs) a pixel hunt
+const HIT_PAD = 4;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // a wheel wedge or shop offer can be a gun index or a melee code
 const wdef = (c) => (isMelee(c) ? MELEE[c - MELEE_CODE] : DATA.weapons[c]);
@@ -1606,7 +1609,7 @@ export class Player {
     const G = this.game;
     const wall = G.phys.raycast(eye, dir, 30000);
     let best = wall ? wall.distance : 30000;
-    for (const E of G.enemies) { if (E.dead) continue; const t = G.rayEnemy(eye, dir, best, E, 0); if (t !== null && t < best) best = t; }
+    for (const E of G.enemies) { if (E.dead) continue; const t = G.rayEnemy(eye, dir, best, E, HIT_PAD); if (t !== null && t < best) best = t; }
     return eye.clone().addScaledVector(dir, best);
   }
   fireHitscan(start, dir, range, damage, pierce, procCoef, W, width, color, muzzle) {
@@ -1621,7 +1624,7 @@ export class Player {
       let best = null, bestT = wallD;
       for (const E of G.enemies) {
         if (E.dead || ignore.has(E) || E.burrowed) continue;
-        const t = G.rayEnemy(from, dir, bestT, E, W.mode === 'Flame' ? 30 : 0);
+        const t = G.rayEnemy(from, dir, bestT, E, W.mode === 'Flame' ? 30 : HIT_PAD);
         if (t !== null && t < bestT) { bestT = t; best = E; }
       }
       if (!best) {

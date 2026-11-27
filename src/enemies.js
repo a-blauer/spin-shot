@@ -172,9 +172,9 @@ export class Enemy {
       // fast or elite enemies sidestep when the crosshair settles on them
       if ((this.ai === 'Runner' || this.ai === 'Leaper' || this.elite) && d > 320 && d < 1500 && this.life > this.jukeNext) {
         const f = P.forward();
-        if ((-tx * f.x - tz * f.z) / d > 0.99) { this.jukeUntil = this.life + 0.38; this.jukeSide = Math.random() < 0.5 ? -1 : 1; this.jukeNext = this.life + 1.4 + Math.random() * 1.6; }
+        if ((-tx * f.x - tz * f.z) / d > 0.99) { this.jukeUntil = this.life + 0.3; this.jukeSide = Math.random() < 0.5 ? -1 : 1; this.jukeNext = this.life + 2.2 + Math.random() * 2; }
       }
-      if (this.life < this.jukeUntil) { dir.x += px * this.jukeSide * 1.6; dir.z += pz * this.jukeSide * 1.6; m *= 1.3; }
+      if (this.life < this.jukeUntil) { const k = Math.sin(Math.PI * (1 - (this.jukeUntil - this.life) / 0.3)); dir.x += px * this.jukeSide * 1.1 * k; dir.z += pz * this.jukeSide * 1.1 * k; m *= 1 + 0.2 * k; }   // a sidestep that eases in and out, not a snap
       const L = Math.hypot(dir.x, dir.z); if (L > 1e-4) { dir.x /= L; dir.z /= L; }
     }
     if (this.slowT > 0) m *= 1 - this.slowAmt;

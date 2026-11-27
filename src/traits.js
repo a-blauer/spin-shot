@@ -143,7 +143,7 @@ export function traitMove(E, dt, C, desired, speedScale) {
   if (E.hurryT > 0) { E.hurryT -= dt; speedScale *= 1.3; }
   const side = () => V3().crossVectors(flatN(To), V3(0, 1, 0));
   switch (T.move) {
-    case 'zigzag': if (los && dist < 1400 && dist > 250) desired = desired.clone().addScaledVector(side(), Math.sin(E.life * 4 + (E.seed || (E.seed = Math.random() * 9))) * 1.1).normalize(); break;
+    case 'zigzag': if (los && dist < 1400 && dist > 250) desired = desired.clone().addScaledVector(side(), Math.sin(E.life * 2.4 + (E.seed || (E.seed = Math.random() * 9))) * 0.55).normalize(); break;   // a weave you can track, not a jitter
     case 'flank': if (los && dist < 1300 && dist > 420) { if (!E.fs) E.fs = Math.random() < 0.5 ? 1 : -1; desired = desired.clone().multiplyScalar(0.45).addScaledVector(side(), E.fs).normalize(); speedScale *= 1.15; } break;
     case 'strafe': if (los && dist < 900 && dist > 260) { desired = desired.clone().multiplyScalar(0.6).addScaledVector(side(), Math.sin(E.life * 1.6) > 0 ? 1 : -1).normalize(); } break;
     case 'hop': E.hopT = (E.hopT || 0) - dt; if (E.grounded && E.hopT <= 0 && desired.lengthSq() > 0.01) { E.hopT = 0.75; E.vel.y = 520; E.vel.x = desired.x * E.baseSpeed * 1.9; E.vel.z = desired.z * E.baseSpeed * 1.9; E.grounded = false; } if (!E.grounded) return [desired, 1.7]; return [V3(0, 0, 0), 0];

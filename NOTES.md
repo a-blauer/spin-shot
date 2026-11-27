@@ -401,3 +401,13 @@
   revq1.py (quick 3/4 and side looks for many creatures), zf/lineup.py (one frame each in game).
 - tests: boss.json reports 'noboss' for every boss (its __boss helper predates bosses arriving at the end of their
   room's horde, (56)); not a model problem. dg0 [55,[],[]].
+
+## (63) Shots land on thin creatures; the Sporeling runs a readable line
+- User: the Sporeling's pathing was very sporadic and it was far harder to hit, as if its hitbox needed pixel-perfect aim.
+- Hits: hitscan shots (and aimPoint) call rayEnemy with HIT_PAD = 4 (player.js): a shot counts within 4 of a part's
+  slice boxes (the boxes round its triangles), instead of the exact triangle test that (54) made pixel-perfect. Measured
+  with +/-8 aim jitter on the torso (hitpad.json): Sporeling 76% -> 100%; Creeper, Drifter, Puffball, Rotcap 100% both.
+  Projectiles, melee and explosions unchanged.
+- Movement: the Sprinter weave ('zigzag') 0.55 side at 2.4 rad/s (was 1.1 at 4); the crosshair dodge (Runner, Leaper,
+  elites) eases in and out over 0.3 s (sin envelope) at 1.1 side and +20% speed (was a 0.38 s snap at 1.6 and +30%),
+  every 2.2-4.2 s (1.4-3). zig.json / zig2.json / zig3.json log heading against the line to the player.
