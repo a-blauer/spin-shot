@@ -172,7 +172,7 @@ export class World {
     if (collide) {
       const g = COLGEOS[meshId].clone().applyMatrix4(m);
       this.colSolid.push(g);
-      if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
+      if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone(), st: SCAN_STACK ? new Error().stack.split('\n').slice(2, 6).join('|') : 0 }); }
       if (nav) {
         const b = new THREE.Box3().setFromBufferAttribute(g.attributes.position);
         this.game.navBlockBox3(b, 1); if (G) G.nav.push(b);
@@ -241,10 +241,10 @@ export class World {
   L(base, yaw, x, y, z) { return base.add(R(0, yaw, 0).RotateVector(V(x, y, z))); }
   // something you cannot walk through that draws nothing itself: the body of a heap, a statue, a stack of crates
   Solid(center, size, nav = true, yaw = 0) {
-    const g = COLGEOS[0].clone().applyMatrix4(this._matrix(center, size, yaw ? R(0, yaw, 0) : null));
+    const mx = this._matrix(center, size, yaw ? R(0, yaw, 0) : null), g = COLGEOS[0].clone().applyMatrix4(mx);
     if (this.carve) { g.computeBoundingBox(); const b = g.boundingBox; if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) { if (this.grp) this.grp.hit = true; return; } }
     this.colSolid.push(g);
-    if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone() }); }
+    if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone(), st: SCAN_STACK ? new Error().stack.split('\n').slice(2, 6).join('|') : 0, m: SCAN ? mx.elements.slice() : 0 }); }
     if (nav) { const b = new THREE.Box3().setFromBufferAttribute(g.attributes.position); this.game.navBlockBox3(b, 1); if (this.grp) this.grp.nav.push(b); }
   }
   // Anything drawn in this chunk that is chunky enough to look solid where a body walks (a column, a boulder, a lamp post,

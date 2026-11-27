@@ -392,19 +392,27 @@ export function giantLimbs(h, r, seed = 1) {
   for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + R() * 0.8, z0 = h * (0.42 + R() * 0.22), L = r * (4.2 + R() * 2.4); out.push({ a, z0, L, tip: [Math.cos(a) * L, Math.sin(a) * L, z0 + h * (0.08 + R() * 0.1)] }); }
   return out;
 }
-export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, away = null) {   // away: an angle no root grows toward (a path, a door)
+// the root skirt's layout, shared by the shape and by the map (which gives each root a body where it is low enough to
+// walk into, and leaves out any root that would run into a building or across a path: mask, one bit per root)
+export function giantRoots(h, r, seed = 1, mask = 0, all = false) {
   h = q(h, 50); r = q(r, 10);
-  return ['vgiant|' + [h, r, seed % 9, hx(leaf), away === null ? 'n' : away.toFixed(2)].join('|'), shape((G) => {
+  const R = rng(seed * 131 + h), out = [], nr = 9;
+  for (let i = 0; i < nr; i++) {
+    const a = (i / nr) * Math.PI * 2 + R() * 0.4, reach = r * (2.1 + R() * 1.5), up = r * (0.45 + R() * 0.5), ca = Math.cos(a), sa = Math.sin(a);
+    if (!all && (mask >> i) & 1) continue;
+    out.push({ i, pts: [[ca * r * 0.5, sa * r * 0.5, r * 1.2], [ca * r * 1.15, sa * r * 1.15, up + r * 0.35], [ca * reach * 0.7, sa * reach * 0.7, up * 0.55], [ca * reach, sa * reach, -30]], rad: (t) => r * 0.42 * (1 - t * 0.75) });
+  }
+  return out;
+}
+export function giantTree(h, r, seed = 1, leaf = 0x3e6a2c, mask = 0) {   // mask: roots left out (see giantRoots)
+  h = q(h, 50); r = q(r, 10);
+  return ['vgiant|' + [h, r, seed % 9, hx(leaf), mask].join('|'), shape((G) => {
     const R = rng(seed * 131 + h), bark = 0x4a3626, barkD = 0x2e2018, moss = 0x5a8a34, mossL = 0x7aa848;
     const trunkC = (t, a) => { const f = Math.sin(a * 11 + t * 4) + 0.5 * Math.sin(a * 23 - t * 9); if (t < 0.55 && Math.cos(a - 1.2) > 0.25 + t * 0.6) return f > 0.6 ? mossL : moss; return f > 0.9 ? barkD : f < -1.1 ? 0x5a4432 : bark; };
     G.tube([[0, 0, -40], [r * 0.05, 0, h * 0.3], [-r * 0.08, r * 0.05, h * 0.62], [0, 0, h * 0.86]], (t) => r * (1.12 - 0.62 * t) * (t < 0.07 ? 1 + (0.07 - t) * 9 : 1), trunkC, { S: 22 });
     // the root skirt: each root leaves the trunk high, arches out and dives into the ground
-    const nr = 9;
-    for (let i = 0; i < nr; i++) {
-      const a = (i / nr) * Math.PI * 2 + R() * 0.4, reach = r * (2.1 + R() * 1.5), up = r * (0.45 + R() * 0.5), ca = Math.cos(a), sa = Math.sin(a);
-      if (away !== null && Math.abs(Math.atan2(Math.sin(a - away), Math.cos(a - away))) < 0.6) continue;
-      G.tube([[ca * r * 0.5, sa * r * 0.5, r * 1.2], [ca * r * 1.15, sa * r * 1.15, up + r * 0.35], [ca * reach * 0.7, sa * reach * 0.7, up * 0.55], [ca * reach, sa * reach, -30]], (t) => r * 0.42 * (1 - t * 0.75), (t, b) => (Math.cos(b) > 0.2 ? (t > 0.2 && t < 0.9 ? moss : bark) : barkD), { S: 10 });
-    }
+    for (let i = 0; i < 27; i++) R();   // (the roots' own draws, so everything after them comes out as it always has)
+    for (const Q of giantRoots(h, r, seed, mask)) G.tube(Q.pts, Q.rad, (t, b) => (Math.cos(b) > 0.2 ? (t > 0.2 && t < 0.9 ? moss : bark) : barkD), { S: 10 });
     // the limbs, with moss hanging off them in strands
     for (const L of giantLimbs(h, r, seed)) {
       const ca = Math.cos(L.a), sa = Math.sin(L.a), mid = [ca * L.L * 0.5, sa * L.L * 0.5, L.z0 + h * 0.06];
@@ -456,5 +464,37 @@ export function dressScreen(col = 0xa84a5a) {
       G.surf((u, v) => [0, (u - 0.5) * 54, 14 + v * (182 + 12 * Math.sin(u * Math.PI))], 0, 1, 8, 0, 1, 6, (u, v) => (Math.sin(v * 28) > 0.82 ? trim : i === 1 ? mix(col, 0xf2e4c6, 0.15) : col));
       G.place(b, { x: Math.abs(i - 1) * -14, y, yaw });
     }
+  })];
+}
+// ---- the village well, done properly: a footing, five courses of dressed stone laid staggered round an open shaft that
+// darkens as it goes down to the water, a rounded coping, two oak posts seated in the coping carrying a windlass (drum,
+// wound rope, crank) and a shingled roof with gable boards; a bucket on the rope and another on the rim
+export function wellFine() {
+  return ['vwell2', shape((G) => {
+    const R = rng(11), RO = 96, RI = 70, stoneC = () => { const k = R(); return k < 0.18 ? mix(VC.stone, VC.moss, 0.55) : mix(VC.stone, VC.stoneD, k * 0.8); };
+    G.lathe([[RO + 22, 0], [RO + 22, 8], [RO + 12, 12], [RO, 12]], VC.stoneD, 28);
+    for (let row = 0; row < 5; row++) { const n = 16, z = 12 + row * 19 + 9.5; for (let i = 0; i < n; i++) { const a = ((i + (row % 2) * 0.5) / n) * Math.PI * 2, w = (2 * Math.PI * (RO - 9)) / n / 2 - 1, b = G.n; G.blob(0, 0, 0, 13, w, 9, stoneC(), { e: 5, nu: 8, nv: 5 }); G.place(b, { x: Math.cos(a) * (RO - 12), y: Math.sin(a) * (RO - 12), z, yaw: (a * 180) / Math.PI }); } }
+    // the shaft: a lining that runs well below ground, lighter at the top, near black far down, and water in it
+    G.lathe([[RI, -260], [RI, -120], [RI, 0], [RI, 60], [RI, 108]], (k) => [0x101414, 0x1a2222, 0x2a3030, 0x4a4a46][Math.min(3, k)], 24);
+    G.lathe([[RI + 0.5, -40], [0, -40]], 0x1e4a50, 24);
+    G.lathe([[RI - 2, -38], [0, -38]], 0x2a6a70, 24, [0, 0, 0], [0.7, 0.7]);
+    // the coping: a rounded lip all round
+    G.lathe([[RI - 4, 106], [RI + 2, 114], [(RI + RO) / 2, 117], [RO + 6, 113], [RO + 8, 106], [RO + 2, 104]], mix(VC.stone, 0xffffff, 0.08), 28);
+    // two posts seated in the coping, braced, with a windlass between them
+    for (const s of [-1, 1]) { G.blob(0, s * (RO - 8), 205, 9, 9, 95, VC.wood, { e: 8, nu: 8, nv: 4 }); G.blob(0, s * (RO - 8), 112, 13, 13, 6, VC.woodD, { e: 6, nu: 8, nv: 3 });
+      G.tube([[0, s * (RO - 8), 250], [0, s * (RO - 40), 286]], 4, VC.woodD, { S: 5 }); }
+    G.tube([[0, -(RO + 4), 220], [0, RO + 4, 220]], 4, VC.iron, { S: 6 });
+    G.tube([[0, -62, 220], [0, 62, 220]], 15, VC.woodL, { S: 12 });
+    for (let k = 0; k < 9; k++) G.tube([[0, -39 + k * 9, 220], [0, -33 + k * 9, 220]], 16.5, k % 2 ? 0xc8b48a : 0xb8a47a, { S: 12, M: 1, caps: false });
+    G.tube([[0, RO + 4, 220], [22, RO + 10, 220], [22, RO + 10, 196]], 3, VC.iron, { S: 4 }); G.blob(22, RO + 10, 190, 4, 4, 9, VC.woodD, { e: 4 });
+    G.tube([[0, 0, 204], [0, 0, 150]], 1.4, 0xc8b48a, { S: 4 });
+    G.lathe([[13, 0], [16, 22], [17, 24], [0, 24]], VC.wood, 12, [0, 0, 124]); G.lathe([[16.4, 4], [16.8, 8]], VC.iron, 12, [0, 0, 124]); G.lathe([[17.4, 18], [17.6, 21]], VC.iron, 12, [0, 0, 124]);
+    G.tube([[0, -15, 148], [0, 0, 156], [0, 15, 148]], 1.4, VC.iron, { S: 4 });
+    // the roof: a ridge beam on the posts, two pitched planes of shingles that overhang the posts, gable boards
+    G.tube([[0, -(RO + 46), 300], [0, RO + 46, 300]], 7, VC.woodD, { S: 6 });
+    for (const s of [-1, 1]) for (let r = 0; r < 5; r++) G.surf((u, v) => { const t = (r + v) / 5; return [s * (4 + t * 116), (u - 0.5) * (2 * RO + 100), 304 - t * 64 + (1 - v) * 1.5 - r * 0.4]; }, 0, 1, 14, 0, 1, 1, (u) => (Math.floor(u * 14 + r) % 2 ? 0x8a3a2a : 0x6e2e22));
+    for (const e of [-1, 1]) for (const s of [-1, 1]) G.tube([[0, e * (RO + 50), 308], [s * 124, e * (RO + 50), 240]], 3.5, VC.woodL, { S: 5 });
+    // a second bucket set down on the rim
+    G.lathe([[12, 0], [14, 20], [15, 22], [0, 22]], VC.wood, 12, [64, 52, 116]);
   })];
 }
