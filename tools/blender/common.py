@@ -149,3 +149,73 @@ def out_path(name):
     import os
     d = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out'); os.makedirs(d, exist_ok=True)
     return os.path.join(d, name + '.json')
+
+
+def root_leg(s, role_pivot, hip, knee, ank, rad, toes=3, toe_len=16, toe_r=None, spread=1.1, paint=None, tris=1000, ball=None, tip=None, fwd=(0, 0, 1)):
+    """A solid root leg: hip ball, knee, ankle, then toes fanning out along the floor and drawn to sharp points.
+    s is the side (+1 right/front, -1 left/back). Returns a Part."""
+    paint = paint or (lambda m, n: ROOT_D if m.y < 8 else ROOT)
+    pts = [tuple(hip), tuple(knee), tuple(ank)]; R = list(rad); edges = [(0, 1), (1, 2)]
+    tr = toe_r or R[2] * 0.5; f = Vector(fwd).normalized(); side = Vector((0, 1, 0)).cross(f).normalized()
+    specs = []
+    for k in range(toes):
+        a = (k / max(1, toes - 1) - 0.5) * spread * (2 if toes > 1 else 0) + 0.15 * s
+        d = f * math.cos(a) - side * math.sin(a)
+        A = Vector(ank)
+        specs.append(([tuple(A + d * toe_len * 0.35 + Vector((0, -A.y * 0.55, 0))), tuple(A + d * toe_len * 0.7 + Vector((0, -A.y + 3, 0))), tuple(A + d * toe_len + Vector((0, -A.y + 1.2, 0)))], tr))
+    tps = digits(pts, R, edges, 2, specs)
+    ob, pp = solid_limb(pts, R, edges, [(Vector(hip), ball or R[0] * 0.95)], tps, paint, tris, voxel=0.8, smooth=3, sharp_r=tr * 1.7, floor=0.5, tip=tip)
+    P = Part('LegFront' if s > 0 else 'LegBack', list(role_pivot)); P.add(ob, pp)
+    return P, ob
+
+
+def root_arm(s, role_pivot, sho, elb, wri, rad, fingers=3, f_len=16, f_r=None, curl=(0, -1, 0.4), spread=0.5, thumb=True, paint=None, tris=1100, ball=None, tip=None):
+    """A solid root arm: shoulder ball, elbow, wrist, then long fingers curling along curl, drawn to sharp points. Returns (Part, object)."""
+    paint = paint or (lambda m, n: ROOT)
+    pts = [tuple(sho), tuple(elb), tuple(wri)]; R = list(rad); edges = [(0, 1), (1, 2)]
+    fr = f_r or R[2] * 0.45; W = Vector(wri); fa = (W - Vector(elb)).normalized(); cu = Vector(curl).normalized()
+    side = fa.cross(cu).normalized()
+    specs = []
+    for k in range(fingers):
+        o = (k / max(1, fingers - 1) - 0.5) * 2 * spread if fingers > 1 else 0
+        b = W + fa * R[2] * 0.6 + side * o * R[2] * 0.9
+        d1 = (fa + side * o * 0.35).normalized(); d2 = (fa * 0.5 + cu * 0.8 + side * o * 0.25).normalized()
+        specs.append(([tuple(b), tuple(b + d1 * f_len * 0.5), tuple(b + d1 * f_len * 0.5 + d2 * f_len * 0.55)], fr))
+    if thumb:
+        b = W + cu * -0.2 - side * R[2] * 0.9 * (1 if fingers > 1 else 0.6)
+        specs.append(([tuple(b - side * 3), tuple(b - side * 5 + (fa + cu).normalized() * f_len * 0.55)], fr * 0.95))
+    tps = digits(pts, R, edges, 2, specs)
+    ob, pp = solid_limb(pts, R, edges, [(Vector(sho), ball or R[0] * 1.1), (W, R[2] * 1.15)], tps, paint, tris, voxel=0.7, smooth=3, sharp_r=fr * 1.7, tip=tip)
+    P = Part('ArmFront' if s > 0 else 'ArmBack', list(role_pivot)); P.add(ob, pp)
+    return P, ob
+
+
+def seat_eyes(eyes, pj, sink=0.35):
+    """Move each eye onto the surface along its out direction, sunk by sink * its radius (so it sits in the face)."""
+    for e in eyes:
+        o = Vector(e['out']).normalized(); at = Vector(e['at'])
+        h = pj.ray_cast(at + o * 40, -o, 80)
+        if h[0] is not None: e['at'] = list(h[0] - o * e['r'] * sink)
+    return eyes
+
+
+def fan(root, pts, t=1.2, name='fan', scallop=0.0):
+    """A thin membrane stretched from root over the points pts (a fan of triangles), t thick. scallop sags the edge
+    between neighbouring points toward root by that fraction."""
+    from bkit import _obj
+    import bmesh as _bm
+    bm = _bm.new(); R = Vector(root); P = [Vector(p) for p in pts]
+    edge = []
+    for i, p in enumerate(P):
+        edge.append(p)
+        if scallop and i + 1 < len(P): edge.append((p + P[i + 1]) / 2 * (1 - scallop) + R * scallop)
+    n = (edge[0] - R).cross(edge[-1] - R)
+    if n.length < 1e-6: n = Vector((1, 0, 0))
+    n.normalize()
+    for side in (1, -1):
+        off = n * t * 0.5 * side
+        r = bm.verts.new(R + off); vs = [bm.verts.new(e + off) for e in edge]
+        for i in range(len(vs) - 1):
+            f = bm.faces.new((r, vs[i], vs[i + 1]) if side > 0 else (r, vs[i + 1], vs[i]))
+    bm.normal_update()
+    return _obj(name, bm)

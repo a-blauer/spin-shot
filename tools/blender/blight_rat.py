@@ -30,7 +30,7 @@ def hind(s):
     X = lambda x: s * x
     pts = [(X(20), 42, -28), (X(25), 25, -14), (X(23), 11, -34), (X(23), 5, -26)]; rad = [17, 12, 8, 8]
     edges = [(0, 1), (1, 2), (2, 3)]
-    tips = digits(pts, rad, edges, 3, [([(X(23 + k * 4), 5, -19), (X(23 + k * 5.5), 3.4, -9), (X(23 + k * 6.5), 1.6, 1)], 4.2) for k in (-1.5, -0.5, 0.5, 1.5)])
+    tips = digits(pts, rad, edges, 3, [([(X(23 + k * 3.6), 5, -20), (X(23 + k * 4.6), 3.4, -14), (X(23 + k * 5.4), 1.8, -8)], 4.2) for k in (-1.5, -0.5, 0.5, 1.5)])
     ob, paint = solid_limb(pts, rad, edges, [((X(17), 41, -28), 17)], tips, lambda m, n: SKIN if m.y < 12 else FUR, 1400, floor=0.8, tip=C(0xe6d6b8))
     P = Part('LegFront' if s > 0 else 'LegBack', [X(16), 40, -28]); P.add(ob, paint)
     return P
@@ -40,7 +40,7 @@ def fore(s):
     X = lambda x: s * x
     pts = [(X(14), 40, 22), (X(18), 24, 16), (X(18), 10, 28), (X(18), 5, 33)]; rad = [13, 9.5, 7, 7]
     edges = [(0, 1), (1, 2), (2, 3)]
-    tips = digits(pts, rad, edges, 3, [([(X(18 + k * 3.6), 4.5, 38), (X(18 + k * 5), 3, 46), (X(18 + k * 6), 1.5, 54)], 3.8) for k in (-1.5, -0.5, 0.5, 1.5)])
+    tips = digits(pts, rad, edges, 3, [([(X(18 + k * 3.4), 4.5, 37), (X(18 + k * 4.4), 3, 42), (X(18 + k * 5.2), 1.8, 47)], 3.8) for k in (-1.5, -0.5, 0.5, 1.5)])
     ob, paint = solid_limb(pts, rad, edges, [((X(13), 40, 20), 12)], tips, lambda m, n: SKIN if m.y < 12 else FUR, 1200, floor=0.8, tip=C(0xe6d6b8))
     P = Part('ArmFront' if s > 0 else 'ArmBack', [X(12), 38, 22]); P.add(ob, paint)
     return P

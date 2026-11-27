@@ -347,9 +347,11 @@ def sharpen(ob, start, end, r0):
         d = v.co - S; u = d.dot(ax) / L
         if u < 0: continue
         rad = d - ax * d.dot(ax)
-        if rad.length > r0 * 1.7: continue
+        if rad.length > r0 * 1.7 or (v.co - S).length > L + r0 * 2.5: continue     # only the finger itself
         if u >= 1: v.co = E.copy(); continue
         k = (1 - u) ** 0.85
         v.co = S + ax * (u * L) + rad * k
     ob.data.update()
+    bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.08)   # points drawn together: merge them
+    bmesh.ops.dissolve_degenerate(bm, dist=0.02, edges=bm.edges); bm.to_mesh(ob.data); bm.free(); ob.data.update()
     return ob
