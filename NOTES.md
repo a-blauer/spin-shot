@@ -587,3 +587,17 @@
   in the glade and reach the player across the wood (the far camp by the east ford in about 40 s). Cost: 219 draw
   calls, 1.19M triangles (the village 336, 1.3M).
 - tests/dst: nav2.json, chase2.json, boss2.json (room 2), look.py/scan.py/shapes.py take the room.
+
+## (70) No buffs leaking into the Descent; Carapace without the shell; no act titles
+- "RUSH" kept popping up: an evolved gun's Tune-Ups ("...reload speed") were caught by the Rush family's word test in
+  builds.js buildOf, so holding a gun evolved twice woke RUSH I (banner + toast + the dash power) every time you switched
+  to it. buildOf now returns null for `bench` upgrades as well as parts.
+- Character buffs in a run: game.enemyKilled still dropped the old boss buff (rollBuff, the chest pool, which can also
+  pick 'me' parts) beside the Descent's own boss parts. That drop is now outside the Descent only.
+- Carapace (mech 'shell' removed, now null): no immunity during the Spin, no "SHELL" / "ON ITS BACK" floaters (nothing
+  showed it on its back). The Spin is a triple ram labelled "RAMMING - out of its path"; it stands dazed 2.4 s after,
+  like any boss. desc: "Rams across the room, again and again. Get out of its path." (content.json and
+  tools/descent_content.py). Rule: no boss text that claims something the model does not show.
+- Boss bar: no "ACT I/II/III" and no act names; the mid-screen act card is gone. The change still happens at 2/3 and
+  1/3 (roar, ring, "IT ROARS - POUR IT ON", the bar flashes); the two notches stay. PH names stay in bossx.js unused.
+- Test: /tmp/t/fix1.json (Tune-Ups x4 -> no family; Carapace hurt mid-spin; no ACT text; boss drops = 2 parts).

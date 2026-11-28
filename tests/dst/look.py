@@ -1,7 +1,7 @@
 # Stills of a destination (the run's room 1 by default): look.py TAG VIEWS [room]
 #   views (';'-separated): top[:height] | ob:x,y,h,tx,ty  (camera at local x,y,h looking at local tx,ty,0) |
 #   eye:x,y,deg (gnome eye height, facing deg: 0 = north/+Y, 90 = east/+X) | far (fog thinned for the whole view)
-import json, sys, subprocess, os
+import json, os, sys, subprocess, os
 from PIL import Image
 tag = sys.argv[1]; views = [v for v in sys.argv[2].split(';') if v]; room = int(sys.argv[3]) if len(sys.argv) > 3 else 1
 os.makedirs('out/dst', exist_ok=True)
@@ -27,7 +27,7 @@ for i, v in enumerate(views):
         js = f"const g=__dmh;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"
     steps += [{"js": js}, {"wait": 40, "shot": f"dst/{nm}"}]
     names.append(nm)
-json.dump({"w": 1280, "h": 720, "query": "&map=6", "steps": steps}, open('/tmp/dlook.json', 'w'))
+json.dump({"w": 1280, "h": 720, "query": "&map=6" + (("&dest=" + os.environ["DEST"]) if os.environ.get("DEST") else ""), "steps": steps}, open('/tmp/dlook.json', 'w'))
 r = subprocess.run(['timeout', '900', 'python3', 'shot_fl.py', '/tmp/dlook.json'], capture_output=True, text=True)
 print([l for l in r.stdout.splitlines() if l.startswith('js>')][:1])
 print([l for l in r.stdout.splitlines() if 'rror' in l][:5])

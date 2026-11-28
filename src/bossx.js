@@ -56,7 +56,7 @@ export function phaseX(E, dt, C) {
   if (want > E.phase && !(E.ward > 0) && !E.burrowed) {
     const add = (want >= 2 ? D.p2 : []).concat(want >= 3 ? D.p3 : []).map(C.idx).filter((i) => i >= 0);
     E.queue = (want >= 3 ? D.p3 : D.p2).map(C.idx).filter((i) => i >= 0);   // the new moves first, so you meet them
-    E.phase = want; E.phaseT = 1.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0; E.shellT = 0;
+    E.phase = want; E.phaseT = 1.4; E.bossAttack = -1; E.windup = 0; E.exposedT = 0;
     E.attackMask = E.baseMask.concat(add.filter((i) => !E.baseMask.includes(i)));
     G.audio.play('S_Phase', 1); G.audio.playAt('S_BossRoar', E.pos, 0.9, want === 3 ? 0.75 : 0.9); G.shakeAt(E.pos, 900);
     G.hazards.ring(ground(E, E.pos), dmg * 0.5, 1000, Rm.r * 1.6, D.col); G.fx.flash(E.pos, D.col, 500, 0.5, true);
@@ -152,7 +152,6 @@ export function hitX(E, dmg, fromDir, headshot) {
       if (M.up > 0) { if (!(E.xSay > G.time)) { E.xSay = G.time + 0.25; say(E, 'REFLECTED', [0.7, 0.95, 1]); const P = G.player; if (!P.dead) P.receiveDamage(Math.min(P.maxHealth * 0.12, 6 + dmg * 0.02), E, false); } return 0; }
       return dmg;
     case 'stealth': return M.hid ? dmg * 0.5 : dmg;
-    case 'shell': return E.shellT > 0 ? 0 : dmg;
     default: return dmg;
   }
 }
@@ -207,13 +206,13 @@ export function attackX(E, name, dt, C) {
       if (E.bossStep >= n && E.bossT > n * 0.55 + 1) done();
       return true; }
     case 'Spin': {   // Carapace: pulls everything in and goes across the room like a thrown stone, three times
-      if (E.bossStep === 0) { E.windup = 1; E.stop(); if (E.bossT > 0.9) { E.bossStep = 1; E.bossT = 0; E.shellT = 99; E.spinN = 0; E.chargeDir = flat(To); E.puppet.setTint([0.6, 0.8, 0.9]); say(E, 'SHELL', [0.6, 0.85, 1]); G.audio.playAt('S_Stomp', E.pos, 1, 1.3); } return true; }
+      if (E.bossStep === 0) { E.windup = 1; E.stop(); if (E.bossT > 0.9) { E.bossStep = 1; E.bossT = 0; E.spinN = 0; E.chargeDir = flat(To); G.audio.playAt('S_Stomp', E.pos, 1, 1.3); } return true; }
       E.moveToward(E.chargeDir, 1); E.bossMoveOverride = 1700; E.windup = 0.6;
       for (const T of players(G)) if (T.pos.distanceTo(E.pos) < 150 + 70 * E.bodyScale && !(T.spinHit > G.time)) { T.spinHit = G.time + 0.8; T.receiveDamage(dmg * 1.1, E, true); T.applyKnockback(E.chargeDir.clone().multiplyScalar(1200).add(V3(0, 450, 0))); }
       const off = E.pos.clone().sub(Rm.c); off.y = 0;
       if (E.bossT > 1.5 || (E.bossT > 0.25 && off.length() > Rm.r && off.dot(E.chargeDir) > 0)) {
         E.spinN++; E.bossT = 0; G.shakeAt(E.pos, 500); G.fx.dust(E.feet(), lin(0.4, 0.5, 0.55), 220); G.audio.playAt('S_Stomp', E.pos, 1, 1);
-        if (E.spinN >= (E.enraged ? 4 : 3)) { E.shellT = 0; E.exposedT = 3.2; E.puppet.setTint([1.25, 1.15, 0.6]); say(E, 'ON ITS BACK'); done(); } else E.chargeDir = flat(Pl.clone().sub(E.pos));
+        if (E.spinN >= (E.enraged ? 4 : 3)) { E.exposedT = 2.4; E.puppet.setTint([1.25, 1.15, 0.6]); done(); } else E.chargeDir = flat(Pl.clone().sub(E.pos));
       }
       return true; }
     case 'Erupt': {   // the Wyrm: under the floor, then under you

@@ -17,7 +17,7 @@ import { X_ATTACKS, mechX, hitX, deathX, attackX, thinkTotem, phaseX, phaseName 
 const ATTACKS = ['Charge', 'Slam', 'Volley', 'Summon', 'Leap', 'Teleport', 'Ring', 'Barrage', 'Sweep', 'Hook', 'Pools', 'NailWall', 'Ambush', 'Dive'].concat(X_ATTACKS);
 // what the boss bar calls each move while it is winding up, so a fight reads as a set of things to answer
 export const ATTACK_LABEL = { Nova: 'SHOCKWAVES - JUMP EACH ONE', Chase: 'MARKED - KEEP MOVING, LEAD IT AWAY', Cross: 'LINES OF FIRE - STAND BETWEEN THEM', Rain: 'IT RAINS ON YOU - DO NOT STOP', Charge: 'CHARGE - sidestep it', Slam: 'GROUND SLAM - jump the ring', Volley: 'VOLLEY', Summon: 'CALLING THE HANDS', Leap: 'LEAP - move', Teleport: 'VANISHED', Ring: 'SHOCKWAVES - jump them', Barrage: 'BARRAGE - keep moving',
-  Sweep: 'SWEEP - get behind it', Hook: 'CHAIN HOOK - out of the line', Pools: 'BILE - off the green', NailWall: 'NAIL WALL - find the gap', Ambush: 'AMBUSH - it is behind you', Dive: 'DIVE - out of the line' };
+  Sweep: 'SWEEP - get behind it', Hook: 'CHAIN HOOK - out of the line', Pools: 'BILE - off the green', NailWall: 'NAIL WALL - find the gap', Ambush: 'AMBUSH - it is behind you', Dive: 'DIVE - out of the line', Spin: 'RAMMING - out of its path' };
 let HZ_GROUP = 1;
 
 let SERIAL = 0;

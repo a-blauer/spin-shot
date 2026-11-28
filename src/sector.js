@@ -102,8 +102,9 @@ export class Sector {
       this.beds.push({ x, y, gy, grp, cd: 0, pop: 0 });
     }
     if (s === 1) {   // rust fall: sacs of it hang from the roof, swaying, over the whole room
-      const A = this.D.A(), top = A.H + 4;   // hung from the roof itself
-      for (let i = 0; i < 14; i++) { const x = A.c[0] + rr(-A.hx + 400, A.hx - 400), y = A.c[1] + rr(-A.hy + 600, A.hy - 600), L = rr(120, 420), R = rr(40, 80), b = lit.n;
+      // (a destination under the open sky hangs them from its own beams, gantries and eaves: A.hangs, local [x, y, z])
+      const A = this.D.A(), hangs = A.dest ? (A.hangs || []) : null, n = hangs ? hangs.length : 14;
+      for (let i = 0; i < n; i++) { const [x, y, top] = hangs ? [A.c[0] + hangs[i][0], A.c[1] + hangs[i][1], hangs[i][2]] : [A.c[0] + rr(-A.hx + 400, A.hx - 400), A.c[1] + rr(-A.hy + 600, A.hy - 600), A.H + 4], L = hangs ? Math.min(rr(80, 200), top - 200) : rr(120, 420), R = rr(40, 80), b = lit.n; if (L < 40) continue;
         lit.tube([[x, y, top], [x + rr(-20, 20), y + rr(-20, 20), top - L * 0.5], [x, y, top - L]], 4, mixh(T.flesh, 0x000000, 0.3), { S: 5 });
         lit.blob(x, y, top - L - R * 0.9, R * 0.8, R * 0.8, R, (nx, ny, nz) => (nz > 0.6 ? T.flesh : mixh(T.cap, 0x3a1a08, nz < -0.5 ? 0.4 : 0)), { nu: 12, nv: 8 });
         patch(glo, x, y, top - L - R * 1.9, R * 0.22, T.glow, 0.1); void b; }

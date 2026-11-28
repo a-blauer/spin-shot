@@ -600,7 +600,7 @@ window.__shapeSheet = (list, cols = 4, cw = 360, ch = 300) => {
   return out.toDataURL('image/jpeg', 0.9);
 };
 if (TEST) { import('./village_props.js').then((m) => { window.__vprops = m; }); import('./village_shapes.js').then((m) => { window.__vshapes = m; }); }
-if (TEST) { import('./dest_props.js').then((m) => { window.__dprops = m; }); import('./dest_props_wood.js').then((m) => { window.__wprops = m; }); import('./station_shapes.js').then((m) => { window.__sprops = m; }); }
+if (TEST) { import('./dest_props.js').then((m) => { window.__dprops = m; }); import('./dest_props_wood.js').then((m) => { window.__wprops = m; }); import('./station_shapes.js').then((m) => { window.__sprops = m; }); import('./dest_props_works.js').then((m) => { window.__wkprops = m; }); }
 // test hook: a sheet of guns as the workbench shows them, with parts fitted. list: [{ def, cores, yaw, pitch, label }]
 window.__gunSheet = (list, cols = 6, cw = 320, ch = 210) => {
   const out = document.createElement('canvas'); out.width = cw * cols; out.height = ch * Math.ceil(list.length / cols);

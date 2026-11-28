@@ -53,6 +53,8 @@ export class Descent {
     const old = [...Array(N_ROOMS).keys()]; for (let i = old.length - 1; i > 0; i--) { const j = randInt(0, i); [old[i], old[j]] = [old[j], old[i]]; }
     this.order = REGIONS.map((Rg, r) => { const L = DEST_ARENAS.filter((a) => ARENAS[a] && ARENAS[a].dest && ARENAS[a].dest.region === r); return L.length ? L[randInt(0, L.length - 1)] : old[r % old.length]; });
     this.bossPick = this.pickBosses();
+    // test builds: ?test&dest=key puts that destination in its region's room
+    { const fd = typeof location !== 'undefined' && /[?&]test\b/.test(location.search) && new URLSearchParams(location.search).get('dest'); const a = fd && DEST_ARENAS.find((i) => ARENAS[i] && ARENAS[i].dest && ARENAS[i].dest.key === fd); if (a) this.order[ARENAS[a].dest.region] = a; }
     this.result = null;
     // what the last boss holds this run (each player's own: the next of their gnomes, or one of their machines)
     this.prize = Meta.prizeFor(difficulty()); this.rescued = false; this.prizeO = null;

@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { V, V2 } from './mapkit.js';
 import { buildBramble } from './dest_bramble.js';
 import { buildOakwoods } from './dest_oakwoods.js';
+import { buildDepot } from './dest_depot.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -24,6 +25,8 @@ export const DEST_DEFS = [
     air: { sky: 0x6c84b6, fog: 0xd2b482, fogStart: 2400, fogDensity: 0.000072, fogMax: 0.8, sun: [-0.62, -0.42, 0.42], lit: [1.08, 0.95, 0.8, 1.04], shadow: [0.44, 0.44, 0.62, 0.82], sprite: [1.04, 0.98, 0.9] } },
   { key: 'oakwoods', region: 1, name: 'Old Oak Woods', hx: 5600, hy: 6000, H: 2800, flip: 1, bed: 'S_AmbWind', build: buildOakwoods,
     air: { sky: 0x7e9eb4, fog: 0xa4b08a, fogStart: 1800, fogDensity: 0.00009, fogMax: 0.82, sun: [-0.5, -0.36, 0.5], lit: [1.02, 1.0, 0.84, 1.0], shadow: [0.36, 0.46, 0.42, 0.8], sprite: [0.96, 1.0, 0.9] } },
+  { key: 'depot', region: 2, name: 'Cogsworth Depot', hx: 5600, hy: 6000, H: 2600, flip: 1, bed: 'S_AmbMachine', build: buildDepot, wip: true,
+    air: { sky: 0x8a96a8, fog: 0xb8a08a, fogStart: 1800, fogDensity: 0.00009, fogMax: 0.82, sun: [-0.4, 0.3, 0.55], lit: [1.06, 0.98, 0.86, 1.02], shadow: [0.46, 0.42, 0.52, 0.82], sprite: [1.02, 0.96, 0.9] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges
@@ -59,7 +62,7 @@ export function buildDest(M, GM, d, ai) {
   const L = out.spots, W = (p) => (p ? [p[0] + cx, p[1] + cy] : p), spots = { ...L };
   for (const k of ['spawn', 'exit', 'box', 'bench', 'chest', 'ammo', 'press']) spots[k] = W(L[k]);
   spots.guns = (L.guns || [[-hx + 8, 0, 0], [hx - 8, 0, 180]]).map(([x, y, a]) => [x + cx, y + cy, a]);
-  const A = { c: [cx, cy], hx, hy, H: D.H, zone, theme: 0, boss: false, plinths: [], masses: [], dest: { key: D.key, region: D.region, name: D.name, flip: D.flip, bed: D.bed }, spots, bossAt: out.bossAt || null, beds: out.beds || null, title: D.name };
+  const A = { c: [cx, cy], hx, hy, H: D.H, zone, theme: 0, boss: false, plinths: [], masses: [], dest: { key: D.key, region: D.region, name: D.name, flip: D.flip, bed: D.bed }, spots, bossAt: out.bossAt || null, beds: out.beds || null, hangs: out.hangs || null, title: D.name };
   // where they come up: open ground all over the place, never inside anything, and not right by the way in or the
   // stations (out.keep: [x, y, r] in the local frame)
   const keep = (out.keep || []).concat([[L.spawn[0], L.spawn[1], 1500], [L.exit[0], L.exit[1], 900], [L.bench[0], L.bench[1], 500], [L.box[0], L.box[1], 500]]);

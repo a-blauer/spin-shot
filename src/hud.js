@@ -663,12 +663,8 @@ export class Hud {
     const fl = this.bossAct && this.bossAct.t < 0.35 ? 1 - this.bossAct.t / 0.35 : 0;   // the bar flashes when it changes act
     if (fl > 0) { g.fillStyle = `rgba(255,255,255,${0.7 * fl})`; g.fillRect(x, y, w, h); }
     g.strokeStyle = GOLD; g.lineWidth = 2 * S; g.strokeRect(x - 4 * S, y - 4 * S, w + 8 * S, h + 8 * S);
-    // three acts: notches where it changes, and which act this is
-    if (B.boss && B.boss.tier) {
-      for (const q of [1 / 3, 2 / 3]) { g.fillStyle = 'rgba(255,236,200,0.9)'; g.fillRect(x + w * q - 1.5 * S, y - 6 * S, 3 * S, h + 12 * S); }
-      const act = B.phase || 1; this.text(`ACT ${ROMAN[act] || act}`, x + w, y - 14 * S, 18 * S, GOLD, 'right', F_BIG, 400, 0.14, a);
-      const pn = B.phaseName ? B.phaseName() : ''; if (pn) this.text(pn, x + w - this.measure(`ACT ${ROMAN[act] || act}`, 18 * S, F_BIG) - 14 * S, y - 14 * S, 16 * S, 'rgba(242,232,213,0.7)', 'right', F_TXT, 700, 0.1, a);
-    }
+    // notches where it changes (at two thirds and one third)
+    if (B.boss && B.boss.tier) for (const q of [1 / 3, 2 / 3]) { g.fillStyle = 'rgba(255,236,200,0.9)'; g.fillRect(x + w * q - 1.5 * S, y - 6 * S, 3 * S, h + 12 * S); }
     this.text(((B.boss && B.boss.name) || B.displayName()).toUpperCase(), x, y - 14 * S, 32 * S, B.enraged ? '#ff5a3a' : BONE, 'left', F_BIG, 400, 0.14, a);
     // what it is doing, in words: a fight you can read is a fight you can answer
     if (B.raidClock != null) { const c = Math.max(0, B.raidClock), t = `${Math.floor(c / 60)}:${String(Math.floor(c % 60)).padStart(2, '0')}`; this.text(t, x + w, y - 14 * S, 26 * S, B.raidClockCol || BONE, 'right', F_BIG, 400, 0.14, a); }
@@ -681,8 +677,7 @@ export class Hud {
     const g = this.g;
     // one big moment at a time: a later one cuts the earlier short, and the room title gives way to all of them
     if (this.bossDown) { this.bossIntro = null; this.bossAct = null; }
-    if (this.bossAct && this.bossIntro) this.bossIntro = null;
-    if (this.bossIntro || this.bossAct || this.bossDown) this.roundBanner = null;
+    if (this.bossIntro || this.bossDown) this.roundBanner = null;
     const I = this.bossIntro;
     if (I) {
       I.t += dt; const L = 4.2, t = I.t;
@@ -702,16 +697,9 @@ export class Hud {
         g.globalAlpha = 1;
       }
     }
+    // a boss changing shows only as a flash of its bar (no title card)
     const A = this.bossAct;
-    if (A) {
-      A.t += dt; const L = 2.6, t = A.t;
-      if (t > L) this.bossAct = null;
-      else {
-        const a = clamp(Math.min(t / 0.2, (L - t) / 0.5), 0, 1), col = `rgb(${A.col.map((c) => Math.round(Math.min(1, c) * 255)).join(',')})`, cy = H * 0.36, sc = 1 + Math.max(0, 0.2 - t) * 1.5;
-        this.text(`ACT ${ROMAN[A.n] || A.n}`, W / 2, cy - 50 * S, 26 * S, GOLD, 'center', F_BIG, 400, 0.4, a);
-        g.save(); g.translate(W / 2, cy + 20 * S); g.scale(sc, sc); this.text(A.text, 0, 0, 72 * S, col, 'center', F_BIG, 400, 0.08, a); g.restore();
-      }
-    }
+    if (A) { A.t += dt; if (A.t > 0.5) this.bossAct = null; }
     const D = this.bossDown;
     if (D) {
       D.t += dt; const L = 4, t = D.t;

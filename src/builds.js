@@ -32,7 +32,7 @@ const RULES = [
   ['Fortune', ['Money'], ['MoneyGain', 'Interest', 'CasinoDiscount', 'MoneyDamage', 'RoundMoney', 'GoldKill', 'SpendNova', 'ChestLuck', 'ChestRefund', 'PickupRange'], /money|\$|cost/i],
 ];
 export function buildOf(u) {
-  if (u.core) return null;   // the Descent's parts are their own thing: they do not feed the build families
+  if (u.core || u.bench) return null;   // the Descent's parts, and a gun's evolutions (Tune-Ups), feed no build family
   if (u.build !== undefined) return u.build;
   let b = null; const names = (u.mods || []).map((m) => m[0]);
   for (const [name, fx, stats] of RULES) if ((u.fx && fx.includes(u.fx)) || names.some((n) => stats.includes(n)) || (name === 'Blade' && names.some((n) => n.startsWith('Melee')))) { b = name; break; }

@@ -1,6 +1,6 @@
 # Scans of a destination (the run's room ROOM, default 1): floating pieces, things you walk through, invisible walls,
 # pieces clipped into other things' bodies. scan.py [room]
-import json, subprocess, collections, re, sys
+import json, os, subprocess, collections, re, sys
 room = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 vjs = open('dst/dscan.js').read(); fjs = open('dst/fscan.js').read()
 src0 = open('/tmp/fldist/game.js').read().split('\n')
@@ -9,7 +9,7 @@ LO = next(i for i in range(bv, 0, -1) if src0[i].lstrip().startswith('// src/'))
 HI = next(i for i in range(bv, len(src0)) if src0[i].lstrip().startswith('// src/')) + 1
 HELP = sorted({i + 1 + k for i in range(LO, HI) if any(p in src0[i] for p in ('SOL = (', 'wall = (x0', 'roofSolid = (', 'hedge = (', 'close = (', 'fence = (', 'field = (')) for k in range(4)})
 enter = f"window.__HELP={HELP};const g=__dmh,D=g.descent;g.godMode=true;g.tip=()=>{{}};g.phaseTimer=0;__sim(30);if(D.room!=={room}){{D.enter({room});__sim(5);}}g.toSpawn=0;g.spawned=0;for(const E of g.enemies){{E.dead=true;E.remove=true;}}__sim(10);window.__LO={LO};window.__HI={HI};'a'"
-json.dump({"w": 480, "h": 270, "query": "&map=6&scan=1&stack=1", "steps": [{"js": enter}, {"wait": 300}, {"js": vjs}, {"js": fjs}]}, open('/tmp/dscan.json', 'w'))
+json.dump({"w": 480, "h": 270, "query": "&map=6&scan=1&stack=1" + (("&dest=" + os.environ["DEST"]) if os.environ.get("DEST") else ""), "steps": [{"js": enter}, {"wait": 300}, {"js": vjs}, {"js": fjs}]}, open('/tmp/dscan.json', 'w'))
 o = subprocess.run(['python3', 'shot_fl.py', '/tmp/dscan.json'], capture_output=True, text=True, timeout=1500).stdout
 t = [l for l in o.split('\n') if l.startswith('js> {')]
 if len(t) < 2: print(o[-3000:]); sys.exit()

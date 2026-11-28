@@ -37,7 +37,7 @@ B = [
  ('The Hive Queen', 'The Room Is Hers', 'HiveQueen', 1, 12, 280, 36, 1.4, 0xe8a020, ['Volley', 'Dive', 'Barrage'], 'Hornet', 2500, 'swarm', 'Never stops calling the swarm.'),
  ('King Ooze', 'Everything It Ever Ate', 'KingOoze', 1, 12, 250, 42, 1.9, 0x3a5a4a, ['Leap', 'Pools', 'Ring'], 'Ooze', 2500, 'split', 'Kill it and it is two. Kill those and they are four.'),
  ('The Lamplighter', 'Follow The Light', 'Lamplighter', 1, 13, 300, 38, 1.6, 0x22303e, ['Volley', 'Teleport', 'Ring', 'Ambush'], 'Watcher', 2500, 'decoy', 'Three lights in the dark and only one of them is the fish.'),
- ('Carapace', 'The Room Is Its Shell', 'Carapace', 2, 19, 280, 52, 1.5, 0x3a5a6a, ['Spin', 'Sweep', 'Slam', 'Hook', 'Spin'], 'Scarab', 3500, 'shell', 'Nothing gets through the shell. Wait for it to end up on its back.'),
+ ('Carapace', 'The Room Is Its Shell', 'Carapace', 2, 19, 280, 52, 1.5, 0x3a5a6a, ['Spin', 'Sweep', 'Slam', 'Hook', 'Spin'], 'Scarab', 3500, None, 'Rams across the room, again and again. Get out of its path.'),
  ('The Wyrm', 'Under The Floor', 'Wyrm', 2, 18, 320, 50, 2.0, 0xb8926a, ['Erupt', 'Pools', 'Erupt', 'Summon', 'Charge'], 'Grub', 3500, 'burrow', 'Goes under and comes up beneath you. Soft for a moment after.'),
  ('Thunderhead', 'Weather With A Face', 'Thunderhead', 2, 17, 260, 44, 1.7, 0x343a4c, ['Storm', 'Volley', 'Teleport', 'Ring', 'Storm'], 'Drift Jelly', 3500, 'storm', 'It never stops raining on you. Watch the floor.'),
  ('Ash and Ember', 'Two Of One Litter', 'TwinHound', 2, 11, 420, 44, 1.5, 0x2a2226, ['Charge', 'Leap', 'Sweep'], 'CinderHound', 3500, 'twin', 'Two of them. Whichever you leave for last remembers the other.'),
