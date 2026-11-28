@@ -12,13 +12,14 @@ export const MC = {   // the mine's colours
   stone: [0x8a8274, 0x7e766a, 0x948c7e], fire: 0xffa040, glass: 0xffd27a, coal: 0x1e1c1e,
 };
 export const MGAUGE = 64;
+const MCOL = MC;
 const N = (s) => Math.abs(Math.round(s)) || 0;
 
 // ---- a pillar of the hill's own rock, left standing to hold the roof: rough all over, flared at its foot and where it
 // meets the roof, scree at its foot. h: floor to roof (it runs 60 past both).
-export function cavePillar(r = 300, h = 2000, seed = 1) {
-  seed = N(seed); r = q(r, 20); h = q(h, 50);
-  return ['mpillar2|' + [r, h, seed % 4].join('|'), shapeF((G) => {
+export function cavePillar(r = 300, h = 2000, seed = 1, pal = null) {   // pal: another rock ({ rock: [4], rockD, rockL })
+  seed = N(seed); r = q(r, 20); h = q(h, 50); const MC = pal || MCOL;
+  return ['mpillar2|' + [r, h, seed % 4].join('|') + (pal ? '|' + pal.rockD : ''), shapeF((G) => {
     const R = rng(seed * 37 + r), ph = [R() * 6, R() * 6, R() * 6, R() * 6], nV = Math.max(10, Math.round(h / 120));
     const prof = (z) => (z < 140 ? 1 + 0.3 * (1 - z / 140) ** 2 : z > h - 520 ? 0.94 + 0.6 * ((z - h + 520) / 520) ** 2 : 0.94 + 0.04 * Math.sin(z * 0.004 + ph[3]));
     G.surf((u, v) => { const a = u * Math.PI * 2, z = -40 + v * (h + 100), led = Math.max(0, Math.sin(v * 9 + ph[2])) ** 6 * 0.08, k = prof(Math.max(0, z)) * (1 + led + 0.12 * Math.sin(a * 3 + ph[0] + v * 4) + 0.07 * Math.sin(a * 5 + ph[1] - v * 9)); return [Math.cos(a) * r * k, Math.sin(a) * r * k, z]; }, 0, 1, 9, 0, 1, Math.max(6, Math.round(h / 260)),

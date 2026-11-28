@@ -24,6 +24,7 @@ import { buildAbbey, abbeyAir } from './dest_abbey.js';
 import { buildMill, millAir } from './dest_mill.js';
 import { buildLake, lakeAir } from './dest_lake.js';
 import { buildBrew, brewAir } from './dest_brew.js';
+import { buildHold, holdAir } from './dest_hold.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -57,6 +58,8 @@ export const DEST_DEFS = [
     air: { sky: 0x5a5a8e, fog: 0x8e7488, fogStart: 1800, fogDensity: 0.0001, fogMax: 0.84, sun: [-0.84, 0.16, 0.3], lit: [1.1, 0.88, 0.74, 1.04], shadow: [0.44, 0.44, 0.66, 0.84], sprite: [1.04, 0.94, 0.9] } },
   { key: 'brew', region: 2, name: 'The Brewery', hx: 5600, hy: 6000, H: 2600, flip: 1, bed: 'S_AmbMachine', build: buildBrew, ambient: brewAir,
     air: { sky: 0x9ca4b2, fog: 0xc6a684, fogStart: 2000, fogDensity: 0.00009, fogMax: 0.8, sun: [-0.42, 0.42, 0.5], lit: [1.07, 0.96, 0.84, 1.03], shadow: [0.46, 0.43, 0.54, 0.82], sprite: [1.03, 0.97, 0.9] } },
+  { key: 'hold', region: 3, name: 'The Old Hold', hx: 5400, hy: 5800, H: 1300, flip: 1, bed: 'S_AmbCave', build: buildHold, ambient: holdAir,
+    air: { sky: 0x08080a, fog: 0x2a221e, fogStart: 1500, fogDensity: 0.00012, fogMax: 0.86, sun: [0.22, -0.28, 0.93], lit: [1.02, 0.9, 0.78, 1.0], shadow: [0.44, 0.44, 0.54, 0.84], sprite: [1.0, 0.92, 0.84] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges

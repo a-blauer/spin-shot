@@ -17,7 +17,7 @@ for i, v in enumerate(views):
     k, _, a = v.partition(':'); nm = f'{tag}_{i}'
     if k == 'clear':   # clear the room: the stations and the way on come up
         steps += [{"js": "const g=__dmh;g.toSpawn=0;g.spawned=0;for(const E of g.enemies){E.dead=true;E.remove=true;}g.descent.clear();__sim(60);'c'"}]; continue
-    hide = "for(const m of g.world.chunkMeshes||[]){const k=(m.geometry.userData.shape||'');if(/^(mceil|mtite|gceil|gsun|gtite|ghcryst)/.test(k))m.visible=false;}"   # roofs off for the views from above
+    hide = "for(const m of g.world.chunkMeshes||[]){const k=(m.geometry.userData.shape||'');if(/^(mceil|mtite|gceil|gsun|gtite|ghcryst|hceil|hroof|hcorb)/.test(k))m.visible=false;}"   # roofs off for the views from above
     if k == 'top':
         h = float(a or 16000)
         js = f"const g=__dmh;{hide}__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx,{h},cy+1);C.up.set(0,0,-1);C.lookAt(cx,0,cy);C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();C.up.set(0,1,0);'t'"
@@ -29,14 +29,14 @@ for i, v in enumerate(views):
         js = f"const g=__dmh;__thin(false);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y});C.lookAt(cx+{tx},{tz},cy+{ty});C.fov=70;C.updateProjectionMatrix();C.updateMatrixWorld();'a'"
     elif k == 'ob':
         x, y, h, tx, ty = [float(t) for t in a.split(',')]
-        js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y});C.lookAt(cx+{tx},0,cy+{ty});C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();'o'"
+        js = f"const g=__dmh;{hide}__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y});C.lookAt(cx+{tx},0,cy+{ty});C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();'o'"
     elif k == 'eyes':   # eye level after six seconds in place: the air's drift (spores, embers) has filled in round you
         x, y, d = [float(t) for t in a.split(',')]
         cam = f"(()=>{{const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();}})();"
         js = f"const g=__dmh;__thin(false);g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});{cam}for(let i=0;i<360;i++){{g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});__sim(1);}}{cam}'s'"
     else:
         x, y, d = [float(t) for t in a.split(',')]
-        js = f"const g=__dmh;for(const m of g.world.chunkMeshes||[])if(/^(mceil|mtite|gceil|gsun|gtite|ghcryst)/.test(m.geometry.userData.shape||''))m.visible=true;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"
+        js = f"const g=__dmh;for(const m of g.world.chunkMeshes||[])if(/^(mceil|mtite|gceil|gsun|gtite|ghcryst|hceil|hroof|hcorb)/.test(m.geometry.userData.shape||''))m.visible=true;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"
     steps += [{"js": js}, {"wait": 40, "shot": f"dst/{nm}"}]
     names.append(nm)
 json.dump({"w": 1280, "h": 720, "query": "&map=6" + (("&dest=" + os.environ["DEST"]) if os.environ.get("DEST") else ""), "steps": steps}, open('/tmp/dlook.json', 'w'))

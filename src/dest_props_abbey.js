@@ -46,26 +46,27 @@ const wallRows = (o) => { const { len, holes = [], bl = 70, co = 35 } = o, top =
 const covers = (rows, k, s, m = 0) => k >= 0 && k < rows.length && rows[k].some(([a, b]) => s > a - m && s < b + m);
 export function ruinWall(o) {
   const { len, h, t = 70, seed = 1, holes = [], butt = [], bl = 70, co = 35, cope = false, str = [] } = o;
-  return ['abwall4|' + JSON.stringify([len, h, t, seed, o.ruin || 0, o.peak || 0, o.fall || 0, holes, butt, bl, co, cope, str]), shapeF((G) => {
-    const S = AB.stone, top = ruinTop(o), hl = len / 2, rows = wallRows(o);
-    rows.forEach((row, k) => { const z = k * co; for (const [a, b] of row) { const m = (a + b) / 2, j = k * 7 + Math.round(m / bl) + 900, c = k === 0 ? AB.stoneD : (j * 5) % 23 === 0 ? AB.soot : (j * 3) % 17 === 0 ? AB.lichen : S[j % 4];
+  // pal: another stone ({ stone: [4 colours], stoneD, soot, lichen }), for walls that are not the abbey's
+  return ['abwall4|' + JSON.stringify([len, h, t, seed, o.ruin || 0, o.peak || 0, o.fall || 0, holes, butt, bl, co, cope, str]) + (o.pal ? '|' + JSON.stringify(o.pal) : ''), shapeF((G) => {
+    const PL = o.pal || AB, S = PL.stone, top = ruinTop(o), hl = len / 2, rows = wallRows(o);
+    rows.forEach((row, k) => { const z = k * co; for (const [a, b] of row) { const m = (a + b) / 2, j = k * 7 + Math.round(m / bl) + 900, c = k === 0 ? PL.stoneD : (j * 5) % 23 === 0 ? PL.soot : (j * 3) % 17 === 0 ? PL.lichen : S[j % 4];
       G.box(m, 0, z + co / 2, (b - a) / 2 - 0.6, t / 2 + (k === 0 ? 5 : 0), co / 2 - 0.5, c); } });
-    if (cope) for (let s0 = -hl; s0 < hl - 10; s0 += bl) { const m = Math.min(hl - bl / 2, s0 + bl / 2), z = top(m); if (z >= h - 1 && covers(rows, z / co - 1, m - bl / 2 + 8) && covers(rows, z / co - 1, m + bl / 2 - 8)) G.box(m, 0, z + 6, bl / 2 - 0.6, t / 2 + 6, 6, AB.stoneD); }
-    for (const zs of str) { const k = Math.floor(zs / co); for (let s0 = -hl; s0 < hl - 10; s0 += bl) { const m = Math.min(hl - bl / 2, s0 + bl / 2); if ([m - bl / 2 + 6, m, m + bl / 2 - 6].every((x) => covers(rows, k, x) && covers(rows, k - 1, x) && covers(rows, k + 1, x))) G.box(m, 0, zs + 9, bl / 2 - 0.6, t / 2 + 6, 9, AB.stoneD); } }
+    if (cope) for (let s0 = -hl; s0 < hl - 10; s0 += bl) { const m = Math.min(hl - bl / 2, s0 + bl / 2), z = top(m); if (z >= h - 1 && covers(rows, z / co - 1, m - bl / 2 + 8) && covers(rows, z / co - 1, m + bl / 2 - 8)) G.box(m, 0, z + 6, bl / 2 - 0.6, t / 2 + 6, 6, PL.stoneD); }
+    for (const zs of str) { const k = Math.floor(zs / co); for (let s0 = -hl; s0 < hl - 10; s0 += bl) { const m = Math.min(hl - bl / 2, s0 + bl / 2); if ([m - bl / 2 + 6, m, m + bl / 2 - 6].every((x) => covers(rows, k, x) && covers(rows, k - 1, x) && covers(rows, k + 1, x))) G.box(m, 0, zs + 9, bl / 2 - 0.6, t / 2 + 6, 9, PL.stoneD); } }
     // the arches: voussoirs round each opening's head, standing a little proud of the wall, wherever the wall still
     // stands round them
     for (const H of holes) { if (H.k === 'q' || H.k === 'v') continue; const a = H.w / 2, ring = 34, n = H.k === 'r' ? 9 : 5;
       const vous = (c, rr, ang, i) => { const s = c + Math.cos(ang) * rr, z = H.z1 + Math.sin(ang) * rr, k = Math.floor(z / co); if (z + ring / 2 > top(s) || !covers(rows, k, s, 6) || !covers(rows, k + 1, s, 20)) return; const b = G.n, L = H.k === 'r' ? (Math.PI * rr) / n : (rr * Math.PI) / 3 / n; G.box(0, 0, 0, L / 2 - 0.8, t / 2 + 2, ring / 2, S[(i + 400) % 4]); G.place(b, { x: s, z, pitch: 90 - deg(ang) }); };
       if (H.k === 'r') for (let i = 0; i < n; i++) vous(H.s, a + ring / 2, ((i + 0.5) / n) * Math.PI, i);
       else for (const sd of [-1, 1]) for (let i = 0; i < n; i++) { const t0 = ((i + 0.5) / n) * (Math.PI / 3); vous(H.s - sd * a, H.w + ring / 2, sd > 0 ? t0 : Math.PI - t0, i + (sd > 0 ? 1 : 2)); }
-      if (H.z0 > 0 && covers(rows, Math.floor(H.z0 / co) - 1, H.s - a + 4) && covers(rows, Math.floor(H.z0 / co) - 1, H.s + a - 4)) G.box(H.s, 0, H.z0 - 5, a + 10, t / 2 + 6, 5, AB.stoneD); }
+      if (H.z0 > 0 && covers(rows, Math.floor(H.z0 / co) - 1, H.s - a + 4) && covers(rows, Math.floor(H.z0 / co) - 1, H.s + a - 4)) G.box(H.s, 0, H.z0 - 5, a + 10, t / 2 + 6, 5, PL.stoneD); }
     // colonnettes in the square cuts that carry them: a base on the sill, slender shafts, a capital under the springing
     for (const H of holes) { if (H.k !== 'q' || !H.col || !covers(rows, Math.floor(H.z0 / co) - 1, H.s)) continue; const a = H.w / 2, n = H.col, c = pick4(S, Math.round(H.s));
-      G.box(H.s, 0, H.z0 + 5, a - 2, t / 2 - 2, 5, AB.stoneD); G.box(H.s, 0, H.z1 - 11, a + 6, t / 2 + 4, 11, pick4(S, Math.round(H.s / 7)));
+      G.box(H.s, 0, H.z0 + 5, a - 2, t / 2 - 2, 5, PL.stoneD); G.box(H.s, 0, H.z1 - 11, a + 6, t / 2 + 4, 11, pick4(S, Math.round(H.s / 7)));
       for (let i = 0; i < n; i++) { const y = n === 1 ? 0 : (i ? 1 : -1) * t * 0.24, b = G.n; G.lathe([[Math.min(a * 0.55, 10), 0], [Math.min(a * 0.55, 10), H.z1 - H.z0 - 30]], c, 8); G.place(b, { x: H.s, y, z: H.z0 + 9 }); } }
     // buttresses: stepped piers of the same stone against the wall's faces
     for (const B of butt) { const sides = B.side ? [B.side] : [-1, 1], bw = B.w || 90, d = B.d || 90; for (const sd of sides) { const bt = Math.min(top(B.s), h);
-      for (let z = 0, k = 0; z < bt; z += co, k++) { const dd = z > bt * 0.55 ? d * 0.55 : d; G.box(B.s, sd * (t / 2 + dd / 2), z + co / 2, bw / 2, dd / 2, co / 2 - 0.5, k === 0 ? AB.stoneD : S[(k + 2) % 4]); } } }
+      for (let z = 0, k = 0; z < bt; z += co, k++) { const dd = z > bt * 0.55 ? d * 0.55 : d; G.box(B.s, sd * (t / 2 + dd / 2), z + co / 2, bw / 2, dd / 2, co / 2 - 0.5, k === 0 ? PL.stoneD : S[(k + 2) % 4]); } } }
   })];
 }
 // The wall's bodies, in its own frame: boxes [s0, s1, z0, z1] the whole thickness through, following its blocks as they

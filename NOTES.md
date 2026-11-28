@@ -891,3 +891,45 @@
 - Checks: loose parts 0, floating 0 of 572, clipping 0, invisible walls 0, walk-through 0. Grid 11702/11702; chase
   clean from 32 spots. 164 calls, 621k triangles.
 
+
+## (83) The Old Hold (Under the Hill, room 4) built
+- `dest_hold.js` + `dest_props_hold.js`. The gnomes' forefathers' hold, cut into the hill's granite and left long ago:
+  ten halls under their own roofs, walled in coursed granite (the abbey's coursed wall in the hold's stone), round
+  arches between them. You come in at the south through the great doors, shut behind you, the day through the crack
+  between them and along the floor, into the gate hall: two stone gnomes leaning on their war-hammers keep the inner
+  gate, its portcullis up in the arch; braziers, benches, banners from the beams, the expedition's crates and sacks.
+  Beyond it the great hall: two rows of carved pillars (chamfered drums, brass-studded bands, a rune panel on every
+  face at eye height, stepped capitals) carrying a coffered roof of beams with bosses where they cross; banners hung
+  down the nave, braziers by the pillars, shields and crossed axes on the walls, two great hearths either side of the
+  gate, the nave's pale runner with the hold's cog set in brass at its middle (where the boss comes), the feasting
+  tables, and at the north end the throne on its dais with the banners behind it, the Nightshade grown up beside the old
+  king's seat. West, the forges: three hearths with their hoods and flues, bellows, anvils, troughs, the smiths' racks,
+  coal and copper, a colonnade down the middle under the beams, the ore tramway in from the delving. East, the cistern:
+  its pool under fifteen columns and their groin vaults, stepping stones to the spout (a carved gnome's face pouring into
+  a basin). South-west the barracks (stone bunks, footlockers, the long table, a hearth, spear racks, practice dummies);
+  south-east the stores (jars, great casks, barrels, crates, sacks, mushrooms drying from the beams). North-east the mint
+  (the coin press, the melting hearth, counting tables with their scales) and behind its round stone door, rolled shut,
+  the vault: shelves stripped, chests standing open, the gold the looters left heaped in the corner with the Nightshade
+  grown through it, and the breach they knocked through the wall from the road a course at a time. North-west the
+  delving: raw rock past the masons' last wall, propped with timber, two pillars of rock left standing, the tramway to
+  the face and its scaffold, lanterns on posts, the miners' cache, and the breach in its floor where they broke through
+  into the dark: the Nightshade's heart grows up out of it, its threads out through the doors to the forge, the throne,
+  the road. North of the great hall the Kings' Road under one long ribbed vault, an avenue of crowned stone kings to the
+  Deep Gate, shut, the Nightshade's light under it: the way on, down. The stations come up on the ring before the gate.
+  Dust in the firelight, the day's dust at the great doors, embers off the forges, violet motes out of the breach
+  (`holdAir`).
+- New pieces: holdPillar, pilaster, brazier (stand or pedestal), sconce, gnomeStatue (warrior or king), throne, dais,
+  greatDoors, deepGate, hearth, forgeHearth, bellows, anvil, trough, smithRack, longTable, bench, banner, trophy, bunks,
+  weaponRack, dummy, chest (shut or open, empty or gold), shelves (jars, strongboxes, looted), cask, mushString,
+  cisternColumn, spout, coinPress, countTable, vaultDoor, goldHeap, timberProp, cogInlay, holdRubble, coalHeap.
+  `ruinWall` takes `pal` (another stone) and `cavePillar` a palette; nothing changes for their old callers.
+- The halls' roofs are shapes named `hceil` (the delving's `hroof`); look.py hides them in plan and oblique views.
+- Bodies: the beams over the great hall's side walls rest on corbels (between pilasters the bays were too narrow for a
+  door); the ways between halls are 700-800 wide, the gates 1100-1200; the kings stand as an avenue down the road so the
+  ways in from the hall, the delving and the vault stay wide; the Deep Gate's body is in three (leaves, jambs, lintel),
+  so the walk-through scan probes it truly; the forge nearest the south wall closes its gap to it.
+- Checks: loose parts 0, floating 0 of 468, clipping 0, invisible walls 0, walk-through 0. Grid 9022/9022; chase clean
+  from 23 spots (Sporecallers holding their range; a Creeper's pause traced). Every tier 3-4 boss (Hydra, Mirror Queen,
+  Unblinking, Reaper, Grandfather Toad, Rotwing, Stump Titan, Leviathan, Devourer, Nameless) reaches the player from the
+  nave at the gate hall, the forge, the vault, the delving, the road and the stores; the slowest (the Toad and the
+  Devourer, with their pauses) in 35-45 s to the farthest. 241 calls, 545k triangles.
