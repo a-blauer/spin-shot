@@ -742,3 +742,26 @@
 - Checks: loose parts 0, floating 0 of 774, clipping 0, invisible walls 0; walk-through only grass tufts and one wrecked
   stall's canvas. Grid 7830/7830; chase clean from 40 spots (a slow walker taking the long way round a terrace showed
   as stuck twice; traced: it was walking to an alley). 199 calls, 608k triangles.
+
+## (78) Glimmer Caves (Under the Hill, room 4) built
+- `dest_caves.js` + `dest_props_cave.js`. The caves the gnomes come to see by lantern light. You come down the rope
+  ladder under the Sunhole (the roof open to the sky, a log wedged across its throat, ferns where the light falls), by
+  the guide's hut and the caves' board; the show path runs north between two walls of rock into the Glimmer Hall, a
+  great dome where the biggest crystals stand glowing (violet and lake-blue), crystals hang from the roof and
+  glow-worms light it like stars (laid on the roof's own faces). West, the Crystal Gallery, thick with crystal and
+  stalagmite; east, the Mirror Lake under its cascade, a boardwalk across the shallows, a boat drawn up. North, the
+  gem-gatherers' camp (tents, fire, sorting table, crates of crystals) and, north-west, where the Nightshade came up
+  through the rock and the crystals round it went dark. The way on is the Deep Way, a shored tunnel north. Motes of
+  light drift, drips fall from the roof, dust turns in the Sunhole's light (`cavesAir`). The boss comes in the hall.
+- Six masses of rock divide the chambers: each a mesh of its own, solid by blocks along its every face (as far out as
+  the rock comes at walking height) and shut on the walking grid inside. The ways between chambers stay clear of
+  scattered crystal and stalagmite (300 either side), and nothing is scattered closer than a brute can pass to
+  anything else, then the kit's plan() drops any piece that would shut off open floor: every boss, broad ones too,
+  reaches every corner.
+- New pieces: crystal (+ CRB, its reach at walking height), hangCrystal, stalagmite, stalactite, caveColumn, cascade,
+  gemTable, crystalCrate, boardwalk (no rail).
+- look.py: an `at:` view (camera at, looking at), the roof's shapes hidden from above, and no boss in the stills.
+- Checks: loose parts 0, floating 0 of 513, clipping 0, invisible walls 0; walk-through only the guide's hut (a
+  scanner artifact: its door's many pieces pull the probes' centre; rays from all round hit its body). Grid
+  8378/8378; chase clean from 16 spots (only Sporecallers holding their range); both bosses (broad ones included)
+  reach every spot. 174 calls, 193k triangles.

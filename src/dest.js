@@ -19,6 +19,7 @@ import { buildSporefall, sporefallAir } from './dest_sporefall.js';
 import { buildOrchard, orchardAir } from './dest_orchard.js';
 import { buildFen, fenAir } from './dest_fen.js';
 import { buildTown, townAir } from './dest_town.js';
+import { buildCaves, cavesAir } from './dest_caves.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -42,6 +43,8 @@ export const DEST_DEFS = [
     air: { sky: 0x8c8478, fog: 0x8a8274, fogStart: 1500, fogDensity: 0.0001, fogMax: 0.85, sun: [-0.45, -0.3, 0.45], lit: [0.98, 0.9, 0.8, 0.98], shadow: [0.42, 0.4, 0.44, 0.82], sprite: [0.98, 0.94, 0.88] } },
   { key: 'market', region: 2, name: 'Market Town', hx: 5400, hy: 5800, H: 2600, flip: 1, bed: 'S_AmbWind', build: buildTown, ambient: townAir,
     air: { sky: 0x94a0ae, fog: 0xc2ac8e, fogStart: 2000, fogDensity: 0.00008, fogMax: 0.8, sun: [-0.42, 0.38, 0.5], lit: [1.06, 0.97, 0.84, 1.02], shadow: [0.46, 0.43, 0.54, 0.82], sprite: [1.02, 0.96, 0.9] } },
+  { key: 'caves', region: 3, name: 'Glimmer Caves', hx: 5400, hy: 5800, H: 1200, flip: 1, bed: 'S_AmbCave', build: buildCaves, ambient: cavesAir,
+    air: { sky: 0x9ab4d0, fog: 0x1c2030, fogStart: 1600, fogDensity: 0.00012, fogMax: 0.84, sun: [0.22, -0.28, 0.93], lit: [0.92, 0.95, 1.06, 1.0], shadow: [0.42, 0.42, 0.56, 0.84], sprite: [0.94, 0.96, 1.04] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges
