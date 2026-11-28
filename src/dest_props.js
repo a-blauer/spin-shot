@@ -638,15 +638,17 @@ export function farTree(h = 1800, kind = 0, leaf = 0x355e2c, seed = 1) {
 export function hedgeLump(r = 200, leaf = 0x4e7a30, bloom = 0, seed = 1) {
   seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 20);
-  return ['dhedge|' + [r, hx(leaf), hx(bloom), seed % 3].join('|'), shape((G) => {
+  return ['dhedge2|' + [r, hx(leaf), hx(bloom), seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 23 + r), lumps = [];
     for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + R() * 0.8, d = i ? r * 0.42 : 0, s = r * (i ? 0.66 : 0.82); lumps.push([Math.cos(a) * d, Math.sin(a) * d, s * 0.72, s]); }
     const ww = (x, nx, ny, nz) => 1 + wob(nx * 3 + x * 0.01, ny * 3 + nz * 2) * 0.1;   // how far a lump's skin is pushed out, by direction
-    for (const [x, y, z, s] of lumps) G.blob(x, y, z, s, s, s * 0.82, (nx, ny, nz) => (nz > 0.55 ? mix(leaf, 0x8aba54, 0.3) : nz < -0.3 ? dark(leaf, 0.72) : leaf), { nu: 11, nv: 7, warp: (px, py, pz, nx, ny, nz) => { const w = ww(x, nx, ny, nz); return [px * w, py * w, pz * w]; } });
-    // may blossom on the lumps' skins, never inside a neighbouring lump (where it would not show) or off the leaves
-    if (bloom) for (let i = 0; i < 16; i++) { const j = Math.floor(R() * lumps.length), [x, y, z, s] = lumps[j], a = R() * 6.28, el = 0.2 + R() * 0.9, ce = Math.cos(el), nx = ce * Math.cos(a), ny = ce * Math.sin(a), nz = Math.sin(el), w = ww(x, nx, ny, nz) * 0.95, px = x + nx * s * w, py = y + ny * s * w, pz = z + nz * s * 0.82 * w;
-      if (lumps.some(([x2, y2, z2, s2], k) => { if (k === j) return false; const u = (px - x2) / s2, v = (py - y2) / s2, t = (pz - z2) / (s2 * 0.82), L = Math.hypot(u, v, t) || 1; return L < ww(x2, u / L, v / L, t / L) + 0.35; })) continue;
-      G.blob(px, py, pz, 7, 7, 4, bloom, { nu: 6, nv: 4 }); }
+    const spans = []; for (const [x, y, z, s] of lumps) { const b0 = G.n; G.blob(x, y, z, s, s, s * 0.82, (nx, ny, nz) => (nz > 0.55 ? mix(leaf, 0x8aba54, 0.3) : nz < -0.3 ? dark(leaf, 0.72) : leaf), { nu: 11, nv: 7, warp: (px, py, pz, nx, ny, nz) => { const w = ww(x, nx, ny, nz); return [px * w, py * w, pz * w]; } }); spans.push([b0, G.n]); }
+    // may blossom on the lumps' skins (at the skin's own corners, so each sits half in the leaves), never inside a
+    // neighbouring lump (where it would not show)
+    if (bloom) for (let i = 0; i < 16; i++) { const j = Math.floor(R() * lumps.length), [b0, b1] = spans[j], k = b0 + Math.floor(R() * (b1 - b0)), px = G.pos[k * 3], py = G.pos[k * 3 + 1], pz = G.pos[k * 3 + 2], [x, y, z] = lumps[j];
+      if (pz < z + 4) continue;
+      if (lumps.some(([x2, y2, z2, s2], m) => { if (m === j) return false; const u = (px - x2) / s2, v = (py - y2) / s2, t = (pz - z2) / (s2 * 0.82), L = Math.hypot(u, v, t) || 1; return L < ww(x2, u / L, v / L, t / L) + 0.35; })) continue;
+      G.blob(px, py, pz, 7, 7, 4, bloom, { nu: 6, nv: 4 }); void x; void y; }
   })];
 }
 export { q, hx, rng };

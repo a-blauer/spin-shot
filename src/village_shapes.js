@@ -23,7 +23,7 @@ export function stemR(h, r, z) { const P = stemProfile(h, r); for (let i = 1; i 
 // ---- a mushroom cottage: a fat stem with a round door, windows and a flower box, under a spotted cap with a chimney
 export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
   h = q(h); r = q(r);
-  return ['vshroomhouse|' + [h, r, hx(cap), hx(stem), seed % 7].join('|'), shape((G) => {
+  return ['vshroomhouse2|' + [h, r, hx(cap), hx(stem), seed % 7].join('|'), shape((G) => {
     const R = rng(seed * 97 + h);
     // the stem bulges a little and leans; stone footing ring
     const prof = stemProfile(h, r);
@@ -35,7 +35,7 @@ export function shroomHouse(h, r, cap = VC.red, stem = VC.cream, seed = 1) {
     const skin = (x, z, inset) => Math.sqrt(Math.max(0, stemR(h, r, Math.max(0, z)) ** 2 - x * x)) + inset;
     const door = (u, v, inset) => { const x = (u - 0.5) * dw, top = dh - dw / 2, z = v * (top + Math.sqrt(Math.max(0, (dw / 2) ** 2 - x * x))); return [skin(x, z, inset), x, z]; };
     G.surf((u, v) => door(u, v, 6), 0, 1, 16, 0, 1, 10, (u) => ((Math.floor(u * 4) % 2) ? VC.wood : dark(VC.wood, 0.9)));
-    G.surf((u, v) => { const a = Math.PI * u, rr = dw / 2 + 4 + v * 14, y = Math.cos(a) * rr, z = dh - dw / 2 + Math.sin(a) * rr; return [skin(y, z, 9), y, z]; }, 0, 1, 16, 0, 1, 1, VC.stone);
+    G.surf((u, v) => { const a = Math.PI * u, rr = dw / 2 + v * 18, y = Math.cos(a) * rr, z = dh - dw / 2 - 6 + Math.sin(a) * (rr + 6); return [skin(y, z, 6), y, z]; }, 0, 1, 16, 0, 1, 1, VC.stone);   // the arch's ends sit down on the jambs and it meets the door's head: one piece with them
     for (const s of [-1, 1]) G.blob(skin(s * (dw / 2 + 11), (dh - dw / 2) / 2, 3), s * (dw / 2 + 11), (dh - dw / 2) / 2, 8, 7, (dh - dw / 2) / 2, VC.stone, { e: 6 });
     G.blob(skin(34, dh * 0.45, 12), 34, dh * 0.45, 5, 5, 5, VC.brass);
     G.blob(skin(0, 0, 18), 0, 5, 26, 54, 6, VC.stone, { e: 4 }); G.blob(skin(0, 0, 40), 0, 2, 22, 46, 3, VC.stoneD, { e: 4 });   // a worn stone step, not a plank

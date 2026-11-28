@@ -801,3 +801,25 @@
   wallX/wallY helpers.
 - Checks: loose parts 0, floating 0 of 903, clipping 0, invisible walls 0, walk-through 0. Grid 10700/10700; chase
   clean from 16 spots. 270 calls, 600k triangles.
+
+## (80) Millbrook (the Vale, room 1) built
+- `dest_mill.js` + `dest_props_mill.js`. A mill village on the brook, a morning's walk down the Vale from
+  Thimblewick, built with Thimblewick's own houses: thatched cottages and mushroom cottages round the green (its
+  well, its old oak, the maypole with its ribbons plaited round it after the dance), the bakery with its brick oven
+  and chimney, the smithy (open shed, hearth, hood and chimney, bellows, anvil, quench trough), the little shop;
+  gardens of cabbages and pumpkins, flowers by the doors, woodpiles and washing lines. The stone bridge (coped
+  parapets, cutwaters both ways) takes the lane over the Mill Brook. North of it the mill pond above its weir, the race
+  from the sluice along the mill's south wall where the great wheel turns, the mill (stone ground floor, boarded floor
+  over it, red tiles, the lucam with its hoist and chain over the yard door); the Toadstool came up through its floor
+  where the grain lay spilled and its heart has burst out of the east door. The yard: the granary on its staddle
+  stones, carts, flour sacks, the miller's house. Downstream the washing stones, stepping stones, pollard willows, a
+  boat tied up; stooks in the north-east meadow, haystacks and the cart shed in the south-west, raised beds, hives and
+  old apple trees south-east, a wood above the pond, hedges round it all. The way on is the crossroads at the north
+  end with its finger post. Thistledown drifts over the meadows, a mist lies on the water, flour dust round the mill
+  (`millAir`).
+- New pieces: millHouse, millWheel, raceKerb, weir, sluice, cutwater, granary, breadOven, smithy, maypole, stook,
+  washSlabs, fingerpost. The bridge's parapets are the abbey's coursed wall, unruined and coped.
+- Fixed in shared pieces: the mushroom cottage's door arch stood off the stem (now one piece with the jambs and the
+  door's head), and a hedge's blossom could float off its leaves (now placed at the leaves' own corners).
+- Checks: loose parts 0, floating 0 of 903, clipping 0, invisible walls 0, walk-through 0. Grid 10230/10230; chase
+  clean from 16 spots (one Sporeling slow round the sluice: traced, it gets there). 192 calls, 671k triangles.
