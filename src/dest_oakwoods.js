@@ -6,8 +6,8 @@
 // out of the root plate, pale threads run across the glade, and it has taken the stone circle too.
 //
 // Local frame (dest.js): +Y north, +X east, z up; the ground is flat at z = 0. Playable: x in [-5600, 5600],
-// y in [-6000, 6000]. The brook is deep enough to stop you (movement and the walking grid) but at the bridge and the
-// two fords, where it runs shallow over stones.
+// y in [-6000, 6000]. The brook is shallow: anything can wade it anywhere (stones at the two fords, the bridge for
+// the road); only the bridge's rails stop you.
 import { V, R } from './mapkit.js';
 import { shape } from './propkit.js';
 import { destKit } from './dest_kit.js';
@@ -50,8 +50,7 @@ export function buildOakwoods(M, O) {
   for (let i = 0; i < 40; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300); if (Math.hypot((x - OW.glade[0]) / 1900, (y - OW.glade[1]) / 1500) < 1) continue; patch(x, y, rr(380, 760), pick([0x52603a, 0x58583a, 0x4e5a34])); }
   path(ROAD_S, 340, 0x7a6448); path(ROAD_M, 340, 0x7a6448); path(ROAD_N, 360, 0x7a6448); path([[60, 2900], [30, 3400]], 300, 0x7a6448);
 
-  // ---- the brook: a dark ribbon of water on its muddy bed, banks of stones, reeds and ferns; deep (shut) but at the
-  // bridge and the two fords
+  // ---- the brook: a ribbon of shallow water on its muddy bed, banks of stones, reeds and ferns; open everywhere
   { const pts = []; for (let x = -6100; x <= 6100; x += 60) pts.push([x, streamY(x) + Math.sin(x * 0.004) * 40]);
     const at = (x) => pts[Math.max(0, Math.min(pts.length - 1, Math.round((x + 6100) / 60)))];
     const ribbon = (key, w, z, col) => M.Shape(key, () => { const pos = [], cl = [], idx = []; const C = (h) => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
@@ -59,20 +58,13 @@ export function buildOakwoods(M, O) {
       for (let i = 0; i < pts.length - 1; i++) for (let j = 0; j < 4; j++) { const a = i * 5 + j, b = a + 1, c = a + 5, d = c + 1; idx.push(a, c, b, b, c, d); }
       return { pos, col: cl, idx }; }, V(0, 0, 0), R(0, 0, 0));
     ribbon('dbrookbed|oak', SW + 150, 0.9, (i, j) => (j === 0 || j === 4 ? 0x5a5a3a : 0x4a3e2e));
-    ribbon('dbrook|oak', SW, 1.6, (i, j) => { const ford = FORDS.some(([fx, fw]) => Math.abs(pts[i][0] - fx) < fw); return ford ? (j % 2 ? 0x6a948a : 0x5a8480) : j === 2 ? 0x2e5254 : Math.sin(i * 0.9 + j) > 0.6 ? 0x4a7270 : 0x3a6262; });
+    ribbon('dbrook|oak', SW, 1.6, (i, j) => { const ford = FORDS.some(([fx, fw]) => Math.abs(pts[i][0] - fx) < fw); return ford ? (j % 2 ? 0x6a948a : 0x5a8480) : j === 2 ? 0x3e6664 : Math.sin(i * 0.9 + j) > 0.6 ? 0x5a8480 : 0x4a7470; });
     // where the bridge runs: along its length (u) and across it (n), from its middle
     const bu = [Math.cos((BRIDGE.yaw * Math.PI) / 180), Math.sin((BRIDGE.yaw * Math.PI) / 180)], bn = [-bu[1], bu[0]];
     const along = (x, y) => (x - BRIDGE.x) * bu[0] + (y - BRIDGE.y) * bu[1], across = (x, y) => (x - BRIDGE.x) * bn[0] + (y - BRIDGE.y) * bn[1];
-    const ford = (x) => FORDS.some(([fx, fw]) => Math.abs(x - fx) < fw);
-    // deep water: nothing walks in it (a body for movement only) but at the fords and under the bridge's deck; beside the
-    // deck, outside its rails, the water is shut too, so the only way over there is along the deck from its ends
-    for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], mx = (x0 + x1) / 2, my = (y0 + y1) / 2; if (ford(mx) || Math.abs(across(mx, my)) < 150 || Math.abs(mx) > hx + 200) continue; M.BlockerYaw(V(mx, my, 150), V(Math.hypot(x1 - x0, y1 - y0) + 8, SW - 40, 300), (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI); }
-    for (const s of [-1, 1]) M.BlockerYaw(V(BRIDGE.x + bn[0] * s * 152, BRIDGE.y + bn[1] * s * 152, 150), V(SW - 40, 64, 300), BRIDGE.yaw);
     // the walking grid along the bridge's rails, both sides, its whole length: shut, so the horde is led round the rails'
     // ends onto the deck and never along a rail's outside
     for (let gx = -450; gx <= 450; gx += 100) for (let gy = -1750; gy <= -650; gy += 100) { const a = Math.abs(along(gx, gy)), c = Math.abs(across(gx, gy)); if (a < BRIDGE.L / 2 - 10 && c >= 78 && c < 190) O.GM.NavBlockBox({ min: V(gx - 50, gy - 50, 0), max: V(gx + 50, gy + 50, 100) }, 1); }   // no longer than the water is wide: nothing sticks out onto the banks
-    // and the walking grid knows: the brook is shut but at the fords and along the bridge's deck
-    for (let gx = -hx + 50; gx < hx; gx += 100) { const y0 = at(gx)[1]; for (let gy = Math.round((y0 - 300) / 100) * 100 + 50; gy < y0 + 300; gy += 100) if (Math.abs(gy - at(gx)[1]) < SW / 2 - 30 && !ford(gx) && !(Math.abs(across(gx, gy)) < 80 && Math.abs(along(gx, gy)) < BRIDGE.L / 2)) O.GM.NavBlockBox({ min: V(gx - 50, gy - 50, 0), max: V(gx + 50, gy + 50, 100) }, 1); }
     // the banks: stones bedded along both edges, reeds in clumps, ferns behind
     for (let i = 0; i < pts.length; i += 2) { const [x, y] = pts[i]; if (Math.abs(x) > hx - 100 || Math.abs(x - BRIDGE.x) < 260) continue; for (const s of [-1, 1]) { const e = s * (SW / 2 + rr(10, 50)); if (rnd() < 0.45) S(rock(pick([22, 30]), pick([1, 2, 3]), true), x + rr(-20, 20), y + e, -4, rr(0, 360)); } }
     for (let x = -hx + 400; x < hx - 300; x += rr(380, 700)) { if (Math.abs(x - BRIDGE.x) < 400 || FORDS.some(([fx, fw]) => Math.abs(x - fx) < fw + 150)) continue; const s = rnd() < 0.5 ? -1 : 1, [px, py] = at(x); S(reeds(pick([120, 150]), pick([1, 2, 3])), px, py + s * (SW / 2 - 10), 0, rr(0, 360)); }

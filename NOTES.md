@@ -601,3 +601,11 @@
 - Boss bar: no "ACT I/II/III" and no act names; the mid-screen act card is gone. The change still happens at 2/3 and
   1/3 (roar, ring, "IT ROARS - POUR IT ON", the bar flashes); the two notches stay. PH names stay in bossx.js unused.
 - Test: /tmp/t/fix1.json (Tune-Ups x4 -> no family; Carapace hurt mid-spin; no ACT text; boss drops = 2 parts).
+
+## (71) Old Oak Woods: the brook can be waded anywhere
+- The brook was shut (BlockerYaw boxes along it, two beside the bridge, and grid blocks) except at the two fords and
+  the bridge. All of that is gone: players and creatures cross anywhere. The water is a shade lighter so it reads as
+  shallow; the fords' stones stay as dressing. The bridge keeps its solid rails and the grid strips along them.
+- Checked: raycasts along the whole brook at 30/80/140 hit nothing in the water; the player walks across at 12 points;
+  grid 10239/10239 reachable; chase from 10 spots (4 beside the brook) 0 stuck; both bosses reach the player from 5
+  spots (the camp in 26 s, was about 40). Test: /tmp/t/brook.json, brook2.json, brook3.json.
