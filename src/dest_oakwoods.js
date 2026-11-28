@@ -20,21 +20,21 @@ export const OW = {
   lodge: [-2600, -3600], camp: [2800, -3500], char: [-3600, 900], circle: [3300, 1500], great: [-1300, 2300],
   glade: [0, 3900], hide: [4100, 4300], floor: [0, 5000], floorR: 950,
 };
-const ROAD_S = [[0, -6100], [-80, -5000], [120, -4000], [300, -3000], [220, -2100], [-60, -1600]];
-const ROAD_M = [[60, -800], [-260, -300], [-480, 500], [-380, 1400], [-80, 2250], [60, 2900]];
+const ROAD_S = [[0, -6100], [-80, -5000], [120, -4000], [300, -3000], [220, -2100], [0, -1610]];
+const ROAD_M = [[0, -790], [-260, -300], [-480, 500], [-380, 1400], [-80, 2250], [60, 2900]];
 const ROAD_N = [[0, 5900], [0, 6100]];
 export const ROADS = [ROAD_S, ROAD_M, [[60, 2900], [0, 3700], [0, 5900]]];
 const STREAM = [[-6100, -700], [-4600, -1000], [-3300, -820], [-2200, -1300], [-1000, -1100], [0, -1200], [1100, -1500], [2300, -1260], [3500, -1650], [4600, -1400], [6100, -1700]];
 const SW = 300;   // the brook's width
 // where it can be crossed: [x centre, half width along x]
-const BRIDGE = { x: 0, y: -1200, yaw: 79.2, L: 780, W: 240 };
+const BRIDGE = { x: 0, y: -1200, yaw: 90, L: 780, W: 240 };
 const FORDS = [[-3150, 230], [2950, 230]];
 // the brook's middle at x (a polyline in x)
 const streamY = (x) => { for (let i = 1; i < STREAM.length; i++) { const [x0, y0] = STREAM[i - 1], [x1, y1] = STREAM[i]; if (x <= x1) return y0 + (y1 - y0) * ((x - x0) / (x1 - x0)); } return STREAM[STREAM.length - 1][1]; };
 
 export function buildOakwoods(M, O) {
   const { hx, hy } = O;
-  const K = destKit(M, 23, O), { S, body, round, patch, blot, path, rnd, rr, Box, lineDist } = K;
+  const K = destKit(M, 23, O, { exactNav: true }), { S, body, round, trunk, patch, blot, path, rnd, rr, Box, lineDist } = K;
   const pick = (L) => L[Math.floor(rnd() * L.length)];
   const SOL = (x, y, w, d, h, yaw = 0, nav = true) => body(x, y, w, d, h, yaw, 0, nav);
   // a pitched roof's body: a slab from the eave (x0, z0) up to the ridge (x1, z1), y0..y1 along the ridge (a frame at
@@ -60,10 +60,19 @@ export function buildOakwoods(M, O) {
       return { pos, col: cl, idx }; }, V(0, 0, 0), R(0, 0, 0));
     ribbon('dbrookbed|oak', SW + 150, 0.9, (i, j) => (j === 0 || j === 4 ? 0x5a5a3a : 0x4a3e2e));
     ribbon('dbrook|oak', SW, 1.6, (i, j) => { const ford = FORDS.some(([fx, fw]) => Math.abs(pts[i][0] - fx) < fw); return ford ? (j % 2 ? 0x6a948a : 0x5a8480) : j === 2 ? 0x2e5254 : Math.sin(i * 0.9 + j) > 0.6 ? 0x4a7270 : 0x3a6262; });
-    const crossing = (x, y) => Math.abs(x - BRIDGE.x) < BRIDGE.W / 2 + 40 || FORDS.some(([fx, fw]) => Math.abs(x - fx) < fw);
-    // deep water: nothing walks in it (a body for movement only), and the walking grid knows
-    for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], mx = (x0 + x1) / 2, my = (y0 + y1) / 2; if (crossing(mx, my) || Math.abs(mx) > hx + 200) continue; M.BlockerYaw(V(mx, my, 150), V(Math.hypot(x1 - x0, y1 - y0) + 8, SW - 40, 300), (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI); }
-    for (let gx = -hx + 50; gx < hx; gx += 100) { const y0 = at(gx)[1]; for (let gy = Math.round((y0 - 300) / 100) * 100 + 50; gy < y0 + 300; gy += 100) if (Math.abs(gy - at(gx)[1]) < SW / 2 - 30 && !crossing(gx, gy)) O.GM.NavBlockBox({ min: V(gx - 50, gy - 50, 0), max: V(gx + 50, gy + 50, 100) }, 1); }
+    // where the bridge runs: along its length (u) and across it (n), from its middle
+    const bu = [Math.cos((BRIDGE.yaw * Math.PI) / 180), Math.sin((BRIDGE.yaw * Math.PI) / 180)], bn = [-bu[1], bu[0]];
+    const along = (x, y) => (x - BRIDGE.x) * bu[0] + (y - BRIDGE.y) * bu[1], across = (x, y) => (x - BRIDGE.x) * bn[0] + (y - BRIDGE.y) * bn[1];
+    const ford = (x) => FORDS.some(([fx, fw]) => Math.abs(x - fx) < fw);
+    // deep water: nothing walks in it (a body for movement only) but at the fords and under the bridge's deck; beside the
+    // deck, outside its rails, the water is shut too, so the only way over there is along the deck from its ends
+    for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], mx = (x0 + x1) / 2, my = (y0 + y1) / 2; if (ford(mx) || Math.abs(across(mx, my)) < 150 || Math.abs(mx) > hx + 200) continue; M.BlockerYaw(V(mx, my, 150), V(Math.hypot(x1 - x0, y1 - y0) + 8, SW - 40, 300), (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI); }
+    for (const s of [-1, 1]) M.BlockerYaw(V(BRIDGE.x + bn[0] * s * 152, BRIDGE.y + bn[1] * s * 152, 150), V(SW - 40, 64, 300), BRIDGE.yaw);
+    // the walking grid along the bridge's rails, both sides, its whole length: shut, so the horde is led round the rails'
+    // ends onto the deck and never along a rail's outside
+    for (let gx = -450; gx <= 450; gx += 100) for (let gy = -1750; gy <= -650; gy += 100) { const a = Math.abs(along(gx, gy)), c = Math.abs(across(gx, gy)); if (a < BRIDGE.L / 2 - 10 && c >= 78 && c < 190) O.GM.NavBlockBox({ min: V(gx - 50, gy - 50, 0), max: V(gx + 50, gy + 50, 100) }, 1); }   // no longer than the water is wide: nothing sticks out onto the banks
+    // and the walking grid knows: the brook is shut but at the fords and along the bridge's deck
+    for (let gx = -hx + 50; gx < hx; gx += 100) { const y0 = at(gx)[1]; for (let gy = Math.round((y0 - 300) / 100) * 100 + 50; gy < y0 + 300; gy += 100) if (Math.abs(gy - at(gx)[1]) < SW / 2 - 30 && !ford(gx) && !(Math.abs(across(gx, gy)) < 80 && Math.abs(along(gx, gy)) < BRIDGE.L / 2)) O.GM.NavBlockBox({ min: V(gx - 50, gy - 50, 0), max: V(gx + 50, gy + 50, 100) }, 1); }
     // the banks: stones bedded along both edges, reeds in clumps, ferns behind
     for (let i = 0; i < pts.length; i += 2) { const [x, y] = pts[i]; if (Math.abs(x) > hx - 100 || Math.abs(x - BRIDGE.x) < 260) continue; for (const s of [-1, 1]) { const e = s * (SW / 2 + rr(10, 50)); if (rnd() < 0.45) S(rock(pick([22, 30]), pick([1, 2, 3]), true), x + rr(-20, 20), y + e, -4, rr(0, 360)); } }
     for (let x = -hx + 400; x < hx - 300; x += rr(380, 700)) { if (Math.abs(x - BRIDGE.x) < 400 || FORDS.some(([fx, fw]) => Math.abs(x - fx) < fw + 150)) continue; const s = rnd() < 0.5 ? -1 : 1, [px, py] = at(x); S(reeds(pick([120, 150]), pick([1, 2, 3])), px, py + s * (SW / 2 - 10), 0, rr(0, 360)); }
@@ -75,7 +84,7 @@ export function buildOakwoods(M, O) {
 
   // ---- the way in: the timber arch over the road with the wood's name on it, boulders either side, the waymarker
   { const y = -5650; S(woodArch(600), 0, y, 0, 90); for (const s of [-1, 1]) round(s * 300, y, 22, 450);
-    M.Sign(V(0, y - 10, 348), -90, 'OLD OAK WOODS', { r: 0.95, g: 0.9, b: 0.76 }, 34);
+    M.Sign(V(0, y - 10, 348), -90, 'OLD OAK WOODS', { r: 0.95, g: 0.9, b: 0.76 }, 34); M.Sign(V(0, y + 10, 348), 90, 'OLD OAK WOODS', { r: 0.95, g: 0.9, b: 0.76 }, 34);
     for (const [x, yy, r] of [[-620, -5700, 170], [-820, -5450, 120], [640, -5760, 150], [860, -5520, 110], [-560, -5980, 130], [580, -5990, 140]]) { S(rock(r, Math.round(Math.abs(x)) % 3 + 1, true), x, yy, 0, rr(0, 360)); round(x, yy, r * 0.92, r * 0.9); }
     S(waymarker(), 420, -5200, 0, 180); round(420, -5200, 26, 170); }
 
@@ -85,15 +94,15 @@ export function buildOakwoods(M, O) {
     SOL(x, y, W + 34, L + 52, eave + 10);
     for (const sx of [-1, 1]) roofSolid(x, y, sx * (hw + over), eave - over * ((ridge - eave) / hw), 0, ridge, -hl - over, hl + over);
     SOL(x, y + CB.chimY, 160, 110, ridge + 160);
-    body(x + hw + porch / 2 + 4, y, porch, L + 40, porchZ, 0, 0, false); O.GM.NavBlockBox({ min: V(x + hw, y - hl - 30, 0), max: V(x + hw + porch + 20, y + hl + 30, 100) }, 1);
+    body(x + hw + porch / 2 + 4, y, porch, L + 40, porchZ, 0, 0, false);
     for (const yy of [-hl + 10, -hl / 3, hl / 3, hl - 10]) round(x + hw + porch - 16, y + yy, 13, porchEave + 10, 0, false);
     M.SolidRot(V(x + hw + porch / 2 + 20, y, (porchEave + eave - 30) / 2 + 14), V(porch + 70, L + 80, 18), R(-((Math.atan2(eave - 30 - porchEave, porch + 30) * 180) / Math.PI), 0, 0));
     K.lit(x + hw + 20, y + 120, 236, { r: 1, g: 0.78, b: 0.45 }, 800);
     // round it: the woodshed, the chopping block and the axe, a barrel under the eave, the washing line, the herb beds
     S(woodshed(560), x - 120, y - 1050, 0, 0); SOL(x - 120, y - 1050, 250, 580, 290);
-    S(stump(44, 46, 2, true), x + 420, y - 900, 0, 30); round(x + 420, y - 900, 50, 50, 0, false);
-    S(choppingBlock(), x + 600, y - 640, 0, 0); round(x + 600, y - 640, 40, 60, 0, false);
-    S(rainBarrel(1), x + hw + 30, y - hl - 30, 0, 0); round(x + hw + 30, y - hl - 30, 38, 90, 0, false);
+    S(stump(44, 46, 2, true), x + 420, y - 900, 0, 30); round(x + 420, y - 900, 50, 50);
+    S(choppingBlock(), x + 600, y - 640, 0, 0); round(x + 600, y - 640, 40, 60);
+    S(rainBarrel(1), x + hw + 30, y - hl - 30, 0, 0); round(x + hw + 30, y - hl - 30, 38, 90);
     S(washLine(700, 3), x - 120, y + 1000, 0, 0); for (const s of [-1, 1]) round(x - 120 + s * 350, y + 1000, 14, 220, 0, false);
     const gx = x - 1250; for (const [i, by] of [-260, 0, 260].entries()) { S(raisedBed(420, 140), gx, y + by, 0, 0); SOL(gx, y + by, 420, 140, 44);
       for (let k = 0; k < 5; k++) S(i === 1 ? flowerClump(26, 0xb88ae0, 0xffffff, 1 + (k % 2)) : grassTuft(pick([36, 44]), pick([1, 2, 3])), gx - 160 + k * 80, y + by + rr(-12, 12), 36, rr(0, 360)); }
@@ -104,13 +113,13 @@ export function buildOakwoods(M, O) {
   { const [x, y] = OW.camp;
     for (const [dx, dy, n, len, yw] of [[700, -650, 4, 380, 90], [950, 250, 4, 360, 0], [-650, -800, 3, 340, 20]]) { S(logPile(n, len, 30, Math.round(dx)), x + dx, y + dy, 0, yw); SOL(x + dx, y + dy, n * 61 + 24, len + 40, 30 + (n - 1) * 52 + 32, yw); }
     S(sawTrestle(), x - 100, y + 400, 0, 0); SOL(x - 100, y + 400, 120, 560, 170);
-    for (const [dx, dy, r, axe] of [[-500, 700, 40, true], [400, 900, 46, true], [-900, -100, 52, false], [600, -1100, 44, false], [-200, -1200, 38, false], [1300, -300, 48, false]]) { S(stump(r, 46 + (r % 3) * 6, Math.round(dx), axe), x + dx, y + dy, 0, rr(0, 360)); round(x + dx, y + dy, r * 1.08, 56 + (r % 3) * 6, 0, false); }
+    for (const [dx, dy, r, axe] of [[-500, 700, 40, true], [400, 900, 46, true], [-900, -100, 52, false], [600, -1100, 44, false], [-200, -1200, 38, false], [1300, -300, 48, false]]) { S(stump(r, 46 + (r % 3) * 6, Math.round(dx), axe), x + dx, y + dy, 0, rr(0, 360)); round(x + dx, y + dy, r * 1.08, 56 + (r % 3) * 6); }
     S(tent(330, 280, 230), x + 700, y + 800, 0, 180); SOL(x + 700, y + 800, 370, 300, 240);
-    { const fx = x + 100, fy = y - 200; S(campfire(), fx, fy, 0, 0); round(fx, fy, 92, 180, 0, false); K.lit(fx, fy, 40, { r: 1, g: 0.55, b: 0.25 }, 700, 0xff8a3a);
-      for (const a of [0.6, 2.4, 4.3]) { const sx = fx + Math.cos(a) * 240, sy = fy + Math.sin(a) * 240, yw = (a * 180) / Math.PI + 90; S(logSeat(200), sx, sy, 0, yw + 90); SOL(sx, sy, 40, 210, 50, yw + 90, false); } }
+    { const fx = x + 100, fy = y - 200; S(campfire(), fx, fy, 0, 0); round(fx, fy, 92, 180); K.lit(fx, fy, 40, { r: 1, g: 0.55, b: 0.25 }, 700, 0xff8a3a);
+      for (const a of [0.6, 2.4, 4.3]) { const sx = fx + Math.cos(a) * 240, sy = fy + Math.sin(a) * 240, yw = (a * 180) / Math.PI + 90; S(logSeat(200), sx, sy, 0, yw + 90); SOL(sx, sy, 40, 210, 50, yw + 90); } }
     S(cart(2, 3), x - 1100, y - 300, 0, 75); SOL(x - 1100, y - 300, 240, 140, 150, 75);
     for (const [dx, dy, w] of [[1200, 500, 70], [1280, 590, 60]]) { S(crate(w, Math.round(dx + dy)), x + dx, y + dy, 0, rr(-10, 10)); } SOL(x + 1240, y + 545, 160, 160, 80);
-    for (const [dx, dy] of [[1150, 700], [1230, 760]]) S(sack(24, 0xc8b48a), x + dx, y + dy, -4, rr(0, 360)); SOL(x + 1190, y + 730, 130, 110, 50, 0, false);
+    for (const [dx, dy] of [[1150, 700], [1230, 760]]) S(sack(24, 0xc8b48a), x + dx, y + dy, -4, rr(0, 360)); SOL(x + 1190, y + 730, 130, 110, 50);
     S(lanternPost(300, 2), x + 400, y + 200, 0, 180); round(x + 400, y + 200, 12, 300, 0, false); K.lit(x + 400 - 62, y + 200, 242, { r: 1, g: 0.76, b: 0.42 }, 800);
     for (const [dx, dy] of [[-100, 400], [700, -650], [-650, -800]]) patch(x + dx, y + dy, 380, 0xa88c5e);
     path([[ROAD_S[3][0] + 40, ROAD_S[3][1] - 100], [1300, -3250], [x - 300, y - 100]], 220, 0x7e6a4c); }
@@ -122,7 +131,7 @@ export function buildOakwoods(M, O) {
     for (const [dx, dy, r] of [[-350, 300, 320], [450, -350, 260]]) K.lit(x + dx, y + dy, r * 0.62 + 6, { r: 1, g: 0.42, b: 0.18 }, 360, 0xff7a3a);
     S(leanTo(380), x - 800, y - 500, 0, 40); { const [cx2, cy2] = offs(x - 800, y - 500, 40, -70, 0); SOL(cx2, cy2, 280, 420, 230, 40); }
     for (const [dx, dy, yw] of [[700, 500, 10], [900, 260, 100]]) { S(logPile(3, 300, 22, Math.round(dx)), x + dx, y + dy, 0, yw); SOL(x + dx, y + dy, 3 * 45 + 24, 340, 22 * 2 + 2 * 38 + 20, yw); }
-    for (const [dx, dy] of [[-200, -650], [-120, -700], [-160, -600]]) S(sack(26, 0x2e2a26), x + dx, y + dy, -4, rr(0, 360)); SOL(x - 160, y - 650, 170, 150, 56, 0, false);
+    for (const [dx, dy] of [[-200, -650], [-120, -700], [-160, -600]]) S(sack(26, 0x2e2a26), x + dx, y + dy, -4, rr(0, 360)); SOL(x - 160, y - 650, 170, 150, 56);
     S(wheelbarrow(1), x + 300, y - 800, 0, 30); SOL(x + 300, y - 800, 170, 80, 70, 30);
     path([[-470, 500], [-1600, 650], [x + 700, y - 100]], 220, 0x7e6a4c); }
 
@@ -143,8 +152,8 @@ export function buildOakwoods(M, O) {
   { const fx = -1950, fy = 4300, L = 2800, tr = 150; S(fallenOak(L, tr, 2), fx, fy, 0, 90);
     body(fx, fy + 100, tr * 2.1, L - 200, tr * 1.75, 0);
     const pr = tr * 3.2; body(fx, fy - L / 2 - 30, pr * 2 + 40, tr * 1.3, pr * 1.68);
-    for (const [x, y, r] of [[1300, 3300, 150], [1500, 4600, 120], [-700, 5100, 110]]) { S(rock(r, Math.round(x) % 3 + 1, true), x, y, 0, rr(0, 360)); round(x, y, r * 0.92, r * 0.9); }
-    for (let i = 0; i < 26; i++) { const a = rr(0, Math.PI * 2), d = Math.sqrt(rnd()) * 1, x = Math.cos(a) * d * 1700, y = OW.glade[1] + Math.sin(a) * d * 1300; if (x < -1500) continue; S(flowerClump(pick([30, 40]), pick([0x6a7ae8, 0xe8e0f8, 0xf2d04a]), 0xffffff, pick([1, 2])), x, y, 0, rr(0, 360)); }
+    for (const [x, y, r] of [[1300, 3300, 150], [1500, 4600, 120], [-700, 5100, 110]]) { S(rock(r, Math.round(x) % 3 + 1, true), x, y, 0, rr(0, 360)); trunk(x, y, r * 0.92, r * 0.9); }
+    for (let i = 0; i < 16; i++) { const a = rr(0, Math.PI * 2), d = Math.sqrt(rnd()) * 1, x = Math.cos(a) * d * 1700, y = OW.glade[1] + Math.sin(a) * d * 1300; if (x < -1500) continue; S(flowerClump(pick([30, 40]), pick([0x6a7ae8, 0xe8e0f8, 0xf2d04a]), 0xffffff, pick([1, 2])), x, y, 0, rr(0, 360)); }
     // the Blight's heart, heaving out from under the root plate
     const hx0 = fx + 280, hy0 = fy - L / 2 - 220; S(blightMass(460, 3, 'mire'), hx0, hy0, 0, 30); round(hx0, hy0, 460 * 0.62, 460 * 0.55); blightAt.push([hx0, hy0, 460]);
     K.lit(hx0 + 120, hy0 + 60, 120, { r: 0.45, g: 1, b: 0.82 }, 900, 0x6effd2); }
@@ -162,13 +171,13 @@ export function buildOakwoods(M, O) {
   // old oaks, the waymarker pointing on
   { const [x, y] = OW.floor; S(flagFloor(OW.floorR, 1), x, y, 0.4, 0);
     S(waymarker(), 520, 5650, 0, 180); round(520, 5650, 26, 170);
-    for (const [ox, h, sd] of [[-560, 2200, 1], [560, 2000, 2]]) { S(oak(h, sd), ox, 5850, 0, rr(0, 360)); round(ox, 5850, oakTrunk(h), h * 0.45); } }
+    for (const [ox, h, sd] of [[-560, 2200, 1], [560, 2000, 2]]) { S(oak(h, sd), ox, 5850, 0, rr(0, 360)); trunk(ox, 5850, oakTrunk(h), h * 0.45); } }
 
   // ---- the hunter's hide in the north-east, looking out over the glade: its poles and deck are solid
   { const [x, y] = OW.hide; S(hide(), x, y, 0, 180); for (const [dx, dy] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) round(x + dx * HD.w / 2, y + dy * HD.w / 2, 12, HD.deck + 120, 0, false); body(x, y, HD.w + 20, HD.w + 20, 22, 0, HD.deck - 18, false); }
 
   // ---- the east bank: a ridge of great mossy boulders, broken by trees
-  for (const [y, r] of [[-3400, 300], [-2700, 240], [-600, 340], [200, 260], [900, 300], [2000, 280], [2700, 220], [-4300, 260]]) { const x = hx - 260 + rr(-60, 60); S(rock(r, Math.round(y) % 3 + 1, true), x, y, 0, rr(0, 360)); round(x, y, r * 0.92, r * 0.9); }
+  for (const [y, r] of [[-3400, 300], [-2700, 240], [-600, 340], [200, 260], [900, 300], [2000, 280], [2700, 220], [-4300, 260]]) { const x = hx - 260 + rr(-60, 60); S(rock(r, Math.round(y) % 3 + 1, true), x, y, 0, rr(0, 360)); trunk(x, y, r * 0.92, r * 0.9); }
 
   // ---- the oaks: everywhere the paths, the brook and the clearings are not; thickest round the edge
   const clear = [[0, -5300, 1000, 900], [OW.lodge[0] - 300, OW.lodge[1], 1700, 1500], [OW.camp[0] + 200, OW.camp[1] + 100, 1700, 1500], [OW.char[0], OW.char[1], 1400, 1200], [OW.circle[0], OW.circle[1] + 200, 1200, 1300], [OW.great[0], OW.great[1], 850, 850], [0, 3900, 2100, 1600], [0, 5000, 1300, 1100], [OW.hide[0], OW.hide[1], 600, 600], [FORDS[0][0], streamY(FORDS[0][0]), 600, 500], [FORDS[1][0], streamY(FORDS[1][0]), 600, 500], [-1950, 4300, 500, 1700]];
@@ -178,13 +187,13 @@ export function buildOakwoods(M, O) {
     const x = gx + rr(-170, 170), y = gy + rr(-170, 170), edge = Math.min(hx - Math.abs(x), hy - Math.abs(y)) < 900, h = pick([1500, 1800, 2100]), sd = pick([1, 2, 3]), rot = rr(0, 360);
     if (!edge && rnd() > 0.8) continue; if (!free(x, y, 80) || Math.abs(x) > hx - 150 || Math.abs(y) > hy - 150) continue;
     if (blightAt.some(([bx, by, br]) => Math.hypot(x - bx, y - by) < br + 300)) continue;
-    plants.push({ x, y, half: oakTrunk(h), tree: true, place: () => { S(oak(h, sd), x, y, 0, rot); round(x, y, oakTrunk(h), h * 0.45); } });
+    plants.push({ x, y, half: oakTrunk(h), circle: true, place: () => { S(oak(h, sd), x, y, 0, rot); trunk(x, y, oakTrunk(h), h * 0.45); } });
   }
   // undergrowth: holly and hazel by some of the trees and thick along the edge, every bush solid
   const LEAF = [0x2e5426, 0x365e2a, 0x2a4c22];
   for (const { x, y } of plants.slice()) { const edge = Math.min(hx - Math.abs(x), hy - Math.abs(y)) < 900; if (!edge && rnd() > 0.35) continue; const a = rr(0, Math.PI * 2), d = rr(330, 420), bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d, r = pick([140, 180]), leaf = pick(LEAF), bloom = pick([0, 0, 0xe8e0d0]), sd2 = pick([1, 2]), rot2 = rr(0, 360);
     if (!free(bx, by, r) || Math.abs(bx) > hx - 100 || Math.abs(by) > hy - 100 || blightAt.some(([qx, qy, qr]) => Math.hypot(bx - qx, by - qy) < qr + r + 60)) continue;
-    plants.push({ x: bx, y: by, half: r * 1.08, place: () => { S(hedgeLump(r, leaf, bloom, sd2), bx, by, 0, rot2); round(bx, by, r * 1.08, r * 1.25); } }); }
+    plants.push({ x: bx, y: by, half: r * 1.08, circle: true, place: () => { S(hedgeLump(r, leaf, bloom, sd2), bx, by, 0, rot2); trunk(bx, by, r * 1.08, r * 1.25); } }); }
   for (const p of K.plan(plants, [0, -5300])) p.place();
   // fallen branches and old stumps on the forest floor
   for (let i = 0; i < 14; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 500, hy - 500); if (!free(x, y, 120) || !K.clear(x, y, 120)) continue; const r = pick([36, 48]); S(stump(r, pick([40, 60]), i, false), x, y, 0, rr(0, 360)); round(x, y, r * 1.08, 66, 0, false); }

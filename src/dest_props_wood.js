@@ -128,7 +128,7 @@ export function fern(s = 1, seed = 1) {
 // a stone footing, the door and two windows in the front, a window in each side, gables of upright boards, a shingled
 // roof with moss on it, a stone chimney up the +Y gable end. The porch: a plank deck, four posts, its own lower roof.
 // Sizes: CB.W deep (X), CB.L long (Y), eave CB.eave, ridge CB.ridge; the porch runs CB.porch out from the front wall.
-export const CB = { W: 700, L: 960, eave: 320, ridge: 610, over: 56, porch: 230, porchZ: 26, porchEave: 250, chimY: 560 };
+export const CB = { W: 700, L: 960, eave: 320, ridge: 610, over: 56, porch: 230, porchZ: 16, porchEave: 250, chimY: 560 };
 export function logCabin(seed = 1) {
   return ['dcabin|' + (seed % 2), shape((G) => {
     const R = rng(seed * 101 + 7), { W, L, eave, ridge, over, porch, porchZ, porchEave } = CB, hw = W / 2, hl = L / 2, lr = 15, step = lr * 1.86;
@@ -314,12 +314,12 @@ export function altarStone() {
 
 // ---- a footbridge along X over a brook: stone abutments at either end, two log stringers on them, a plank deck
 // (its top at FB.deck) and a rail each side on posts. L long, W wide.
-export const FB = { deck: 34 };
+export const FB = { deck: 16 };   // low enough that anything walking steps straight up onto it
 export function footbridge(L = 760, W = 230) {
   L = q(L, 20); W = q(W, 10);
   return ['dbridge|' + [L, W].join('|'), shape((G) => {
     const hl = L / 2, hw = W / 2, top = FB.deck;
-    for (const s of [-1, 1]) G.blob(s * (hl - 50), 0, 12, 70, hw + 30, 22, (nx, ny, nz) => WC.stone[Math.floor((nx + 2) * 3 + ny * 5) & 3], { e: 4, nu: 10, nv: 4 });
+    for (const s of [-1, 1]) G.blob(s * (hl - 50), 0, 0, 70, hw + 30, top - 1, (nx, ny, nz) => WC.stone[Math.floor((nx + 2) * 3 + ny * 5) & 3], { e: 4, nu: 10, nv: 4 });
     for (const y of [-hw * 0.6, hw * 0.6]) G.tube([[-hl, y, top - 16], [hl, y, top - 16]], 12, WC.log, { S: 8, M: 10 });
     for (let x = -hl + 12; x < hl - 6; x += 24) G.blob(x, 0, top - 3.5, 11, hw + 6 + ((x / 24) % 2) * 3, 3.5, Math.round(x / 24) % 3 ? 0x8a6a48 : 0x7a5c3e, { e: 8, nu: 4, nv: 3 });
     for (const s of [-1, 1]) { for (let x = -hl + 30; x <= hl - 29; x += (L - 60) / 4) G.tube([[x, s * (hw - 4), top - 20], [x, s * (hw - 4), top + 96]], 6, WC.log, { S: 6, M: 4 }); G.tube([[-hl + 24, s * (hw - 4), top + 92], [hl - 24, s * (hw - 4), top + 92]], 5.5, WC.logD, { S: 6, M: 10 }); }

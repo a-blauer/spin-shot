@@ -553,3 +553,37 @@
   clear to the way on: the workbench and the compressor stand side by side on one side of the floor facing in, the box
   across from them on the other side facing in (Bramble Farm: bench [-700, 4830], press [-700, 4330], both yaw 0; box
   [700, 4600] yaw 180; Old Oak Woods the same on its flagstone floor). The chest spot follows the box.
+
+## (69) Old Oak Woods, the Wildwood's first place (room 2)
+- The old wood north of the Vale where the foresters work; strain Mirecap; a boss at the end (room 2). Layout (local):
+  the forest road in under a timber arch with the wood's name on it (both faces), boulders and a waymarker; the
+  forester's lodge west of the road (log cabin, porch with a lantern, stone chimney, woodshed, chopping block, axe in
+  a stump, rain barrel, washing line, fenced herb beds); the woodcutters' camp east (three log piles, the saw trestle
+  with a two-man saw, stumps with axes, a canvas tent, a campfire with a tripod and pot, log seats, a cart, crates,
+  sacks, a lantern post); the brook across the middle (dark water on a muddy bed, stones, reeds) with a footbridge on
+  the road and two fords; the charcoal burners' clearing west (two earth mounds with wood ends at their feet and
+  embers at their vents, a lean-to, cordwood, sacks); the stone circle east (seven standing stones, two fallen, the
+  altar); the great hollow oak by the road; the glade (the boss's ground) with the fallen giant along its west side,
+  the Blight's heart heaving out of its root plate, pale threads across the grass; the flagstone floor at the north
+  end for the stations, the road out between two old oaks; a hunter's hide in the north-east; a ridge of boulders
+  on the east edge; oaks everywhere else, thickest at the edge, holly and hazel under them, ferns, fallen stumps; the
+  Wildwood and hills beyond.
+- Pieces (dest_props_wood.js): oak (buttress roots that dive into the ground, boughs, crown above head height),
+  greatOak (the hollow, burrs, a rolled lip of bark), fallenOak (root plate stood on edge, broken boughs, shelf fungus),
+  stump (rings, an axe), logPile (logs hard against each other, stakes), fern, logCabin (notched logs, openings cut in
+  the courses, gables, shakes, chimney, porch) + CB, woodshed, sawTrestle, tent, campfire, logSeat, charcoalMound,
+  leanTo, standingStone, altarStone, footbridge + FB, waymarker, hide + HD, woodArch, flagFloor, rainBarrel.
+  blightMass 'mire'. dest_kit: plan() lays out trees and bushes so no pocket of open ground is ever sealed (the
+  thing walling a pocket off is left out until every open cell is reachable); exactNav (this place) gives bodies their
+  true footprint on the walking grid (a turned box's rectangle, a round body's circle, + 28) and trunk() the same for
+  one round body. Why: a creature that can see you walks straight at you, and a grid cell shut but open on the ground
+  turns it back there: it jittered at the corners of square footprints round trunks and turned log piles.
+- Walkable decks are low: the porch and the footbridge at 16 (at 26 and 34 creatures failed to step up onto them and
+  waited at the edge). The bridge runs square to the grid; the water beside its rails is shut and so are the grid
+  cells along the rails' outsides, so the horde goes round the rails' ends onto the deck. Wide bosses take the fords.
+- Checks: loose parts 0; floating 0 of 1303; invisible walls 0; clipping 0; walk-through only reeds and herbs;
+  grid 10211 of 10211 cells reachable, every spawn reachable; chase from 10 spots (lodge porch, camp, bridge, charcoal,
+  circle, great oak, glade, floor, hide, west ford) clean on most runs, an odd straggler mid-route at most; bosses spawn
+  in the glade and reach the player across the wood (the far camp by the east ford in about 40 s). Cost: 219 draw
+  calls, 1.19M triangles (the village 336, 1.3M).
+- tests/dst: nav2.json, chase2.json, boss2.json (room 2), look.py/scan.py/shapes.py take the room.

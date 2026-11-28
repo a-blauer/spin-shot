@@ -4,15 +4,25 @@ import * as THREE from 'three';
 import { V, R } from './mapkit.js';
 import { dark, mix } from './village_shapes.js';
 
-export function destKit(M, seed0 = 1, O = null) {
+export function destKit(M, seed0 = 1, O = null, opts = {}) {
   const { Box, Cyl, Glow, Lamp, Shape, Solid, Oct } = M;
   let seed = seed0; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, rr = (a, b) => a + rnd() * (b - a);
   // a sculpted piece ([key, build] pair) at a spot, turned (yaw in degrees) and scaled
   const S = (pair, x, y, z = 0, yaw = 0, s = 1) => Shape(pair[0], pair[1], V(x, y, z), R(0, yaw, 0), 0xffffff, s);
+  // With opts.exactNav a body's place on the walking grid is its true shape (the cells whose middles lie within 28 of
+  // it: a turned box's own rectangle, a round body's circle), not the square that holds it; otherwise the grid takes the
+  // square round it with 40 to spare. A cell shut on the grid but open on the ground turns back a creature that can see
+  // you and walks straight at you, so places dense with turned and round things want the exact one.
+  const exact = !!opts.exactNav;
+  const navCells = (x, y, z0, h, inside) => { if (z0 + h < 40 || z0 > 150) return; const done = new Set(), R2 = inside.r + 30;
+    for (let px = x - R2; px <= x + R2 + 1; px += 50) for (let py = y - R2; py <= y + R2 + 1; py += 50) { const [ix, iy] = O.GM.cellOf(O.cx + px, O.cy + py), k = ix * 100000 + iy; if (done.has(k)) continue; done.add(k);
+      const [wx, wy] = O.GM.cellCenter(ix, iy), lx = wx - O.cx, ly = wy - O.cy; if (inside(lx - x, ly - y)) O.GM.NavBlockBox({ min: V(lx - 40, ly - 40, z0), max: V(lx + 40, ly + 40, z0 + Math.min(h, 100)) }, 1); } };
   // a body for something drawn: a box standing on z0, turned by yaw (degrees); nav false for things you can step past
-  const body = (x, y, w, d, h, yaw = 0, z0 = 0, nav = true) => Solid(V(x, y, z0 + h / 2), V(w, d, h), nav, yaw);
+  const body = (x, y, w, d, h, yaw = 0, z0 = 0, nav = true) => { if (!exact || !nav) return Solid(V(x, y, z0 + h / 2), V(w, d, h), nav, yaw);
+    Solid(V(x, y, z0 + h / 2), V(w, d, h), false, yaw); const c = Math.cos((yaw * Math.PI) / 180), s = Math.sin((yaw * Math.PI) / 180), f = (u, v) => Math.abs(u * c + v * s) <= w / 2 + 28 && Math.abs(-u * s + v * c) <= d / 2 + 28; f.r = Math.hypot(w, d) / 2 + 28; navCells(x, y, z0, h, f); };
   // a round body (a trunk, a tank, a stack): eight sides from two turned boxes
-  const round = (x, y, r, h, z0 = 0, nav = true) => { for (const yw of [0, 45]) { Solid(V(x, y, z0 + h / 2), V(r * 2, r * 0.83, h), nav, yw); Solid(V(x, y, z0 + h / 2), V(r * 0.83, r * 2, h), nav, yw); } };
+  const round = (x, y, r, h, z0 = 0, nav = true) => { for (const yw of [0, 45]) { Solid(V(x, y, z0 + h / 2), V(r * 2, r * 0.83, h), nav && !exact, yw); Solid(V(x, y, z0 + h / 2), V(r * 0.83, r * 2, h), nav && !exact, yw); }
+    if (exact && nav) { const f = (u, v) => Math.hypot(u, v) <= r + 28; f.r = r + 28; navCells(x, y, z0, h, f); } };
   // a warm light: a small glowing body and a lamp a little above it
   const lit = (x, y, z, c = { r: 1, g: 0.78, b: 0.45 }, r = 900, glowCol = 0xffd27a) => { Glow(V(x, y, z), V(22, 22, 26), glowCol, 2); Lamp(V(x, y, z + 10), c, 2.2, r, false); };
   // flat patches of ground cover, each a hair over the last so overlapping ones never fight
@@ -42,6 +52,10 @@ export function destKit(M, seed0 = 1, O = null) {
   // is not in the way.
   const clear = (x, y, m = 20) => { const L = M.world.scanCol || [], ch = M.world.chunk, wx = (O ? O.cx : 0) + x, wz = (O ? O.cy : 0) + y;
     for (const c of L) { if (c.ch !== ch) continue; const b = c.b; if (b.min.y > 60 || b.max.y < 6) continue; if (wx > b.min.x - m && wx < b.max.x + m && wz > b.min.z - m && wz < b.max.z + m) return false; } return true; };
+  // a round body whose place on the walking grid is round too: the cells whose middles lie within r + 28 of it, not the
+  // square round it, so a gap that is open between two trunks is open on the grid as well (a creature that can see you
+  // walks straight; a cell shut on the grid that is open on the ground would turn it back there)
+  const trunk = (x, y, r, h, z0 = 0) => { round(x, y, r, h, z0, false); const f = (u, v) => Math.hypot(u, v) <= r + 28; f.r = r + 28; navCells(x, y, z0, h, f); };
   // Lay out many solid things (trees, bushes) without sealing off any pocket of open ground. items: [{ x, y, half }],
   // each blocking the walking grid over a square of its half size (and the grid's own margin, 40). Every open cell must
   // stay reachable from start; while one is not, the planned thing that walls its pocket off from the rest (or, failing
@@ -50,7 +64,7 @@ export function destKit(M, seed0 = 1, O = null) {
   const plan = (items, start) => {
     const Cs = 100, hx = O.hx, hy = O.hy, nx = Math.round((hx * 2) / Cs), ny = Math.round((hy * 2) / Cs), N = nx * ny;
     const base = new Uint8Array(N); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const [ix, iy] = O.GM.cellOf(O.cx - hx + Cs * (i + 0.5), O.cy - hy + Cs * (j + 0.5)); base[j * nx + i] = O.GM.navFree(ix, iy) ? 1 : 0; }
-    const cover = items.map((o) => { const out = [], r = o.half + 40; for (let j = Math.max(0, Math.floor((o.y - r + hy) / Cs)); j <= Math.min(ny - 1, Math.floor((o.y + r + hy) / Cs)); j++) for (let i = Math.max(0, Math.floor((o.x - r + hx) / Cs)); i <= Math.min(nx - 1, Math.floor((o.x + r + hx) / Cs)); i++) { const x = -hx + Cs * (i + 0.5), y = -hy + Cs * (j + 0.5); if (Math.abs(x - o.x) <= r && Math.abs(y - o.y) <= r) out.push(j * nx + i); } return out; });
+    const cover = items.map((o) => { const out = [], r = o.half + (o.circle ? 28 : 40); for (let j = Math.max(0, Math.floor((o.y - r + hy) / Cs)); j <= Math.min(ny - 1, Math.floor((o.y + r + hy) / Cs)); j++) for (let i = Math.max(0, Math.floor((o.x - r + hx) / Cs)); i <= Math.min(nx - 1, Math.floor((o.x + r + hx) / Cs)); i++) { const x = -hx + Cs * (i + 0.5), y = -hy + Cs * (j + 0.5); if (o.circle ? Math.hypot(x - o.x, y - o.y) <= r : Math.abs(x - o.x) <= r && Math.abs(y - o.y) <= r) out.push(j * nx + i); } return out; });
     const nb = (c) => { const i = c % nx, j = (c - i) / nx, r = []; if (i > 0) r.push(c - 1); if (i < nx - 1) r.push(c + 1); if (j > 0) r.push(c - nx); if (j < ny - 1) r.push(c + nx); return r; };
     const keep = items.map(() => true), s0 = Math.floor((start[1] + hy) / Cs) * nx + Math.floor((start[0] + hx) / Cs);
     for (let iter = 0; iter < 600; iter++) {
@@ -66,5 +80,5 @@ export function destKit(M, seed0 = 1, O = null) {
     }
     return items.filter((o, k) => keep[k]);
   };
-  return { S, body, round, lit, patch, blot, path, rnd, rr, lineDist, clear, plan, Box, Cyl, Glow, Lamp, Shape, Solid };
+  return { S, body, round, trunk, lit, patch, blot, path, rnd, rr, lineDist, clear, plan, Box, Cyl, Glow, Lamp, Shape, Solid };
 }
