@@ -18,6 +18,7 @@ const barkC = (seed, base) => (t, a) => (Math.sin(a * 5 + Math.sin(t * 5 + seed)
 // boughs out and up, and a broad crown of leaf masses at their ends with one over the top. The crown's underside is
 // well over a gnome's head (about h/2), so the trunk is all that stands in your way.
 export function oak(h = 1600, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   h = q(h, 100);
   return ['doak|' + [h, seed % 4].join('|'), shape((G) => {
     const R = rng(seed * 313 + h), tr = h * 0.055, base = WC.bark[seed % 3], bc = barkC(seed, base);
@@ -66,6 +67,7 @@ export const greatTrunk = (h) => q(h, 100) * 0.08 * 1.42;
 // ---- a fallen oak, long dead, along X: the trunk lying half bedded in the ground, its root plate stood on edge at the
 // -X end with earth still in it, broken boughs on the +X end, moss along the top. Lies from -L/2 to +L/2.
 export function fallenOak(L = 2400, tr = 120, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   L = q(L, 100); tr = q(tr);
   return ['dfallenoak|' + [L, tr, seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 59 + L), z0 = tr * 0.82, bc = barkC(seed, WC.bark[0]), mossTop = (t, a) => (Math.sin(a) > 0.7 && Math.sin(t * 13 + seed) > 0.1 ? (Math.sin(t * 40) > 0 ? WC.moss : WC.mossL) : bc(t, a));
@@ -87,6 +89,7 @@ export function fallenOak(L = 2400, tr = 120, seed = 1) {
 
 // ---- a stump: flared foot, bark round it, the sawn top with its rings (and an axe left in it)
 export function stump(r = 40, h = 50, seed = 1, axe = false) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 5); h = q(h, 5);
   return ['dstump|' + [r, h, seed % 3, axe ? 1 : 0].join('|'), shape((G) => {
     const R = rng(seed * 17 + r), bc = barkC(seed, WC.bark[seed % 3]);
@@ -100,6 +103,7 @@ export function stump(r = 40, h = 50, seed = 1, axe = false) {
 // ---- a stack of cut logs along Y: rows of n, n-1, ... logs (each len long, radius lr), the sawn ends showing their
 // rings, a stake at each end of the bottom row to keep it from rolling
 export function logPile(n = 4, len = 360, lr = 30, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   len = q(len, 20); lr = q(lr, 2);
   return ['dlogs|' + [n, len, lr, seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 41 + n), d = lr * 2;
@@ -114,6 +118,7 @@ export function logPile(n = 4, len = 360, lr = 30, seed = 1) {
 
 // ---- a fern: fronds arching out from a crown, each a tapering ribbon with a pale rib, the tips curling down
 export function fern(s = 1, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['dfern|' + [Math.round(s * 10), seed % 4].join('|'), shape((G) => {
     const R = rng(seed * 29 + Math.round(s * 10)), n = 7 + (seed % 3);
     G.blob(0, 0, 4, 10 * s, 10 * s, 6 * s, WC.fernD, { nu: 6, nv: 3 });
@@ -130,6 +135,7 @@ export function fern(s = 1, seed = 1) {
 // Sizes: CB.W deep (X), CB.L long (Y), eave CB.eave, ridge CB.ridge; the porch runs CB.porch out from the front wall.
 export const CB = { W: 700, L: 960, eave: 320, ridge: 610, over: 56, porch: 230, porchZ: 16, porchEave: 250, chimY: 560 };
 export function logCabin(seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['dcabin|' + (seed % 2), shape((G) => {
     const R = rng(seed * 101 + 7), { W, L, eave, ridge, over, porch, porchZ, porchEave } = CB, hw = W / 2, hl = L / 2, lr = 15, step = lr * 1.86;
     const logC = (k) => (t, a) => (Math.sin(a * 5 + t * 23 + k) > 0.55 ? WC.logD : Math.sin(t * 9 + k * 3) > 0.85 ? WC.lichen : WC.log);
@@ -262,6 +268,7 @@ export function logSeat(len = 200) {
 // ---- a charcoal burner's mound: a dome of earth and turf over the stacked wood, vent holes round its foot, a ring of
 // raked soil about it
 export function charcoalMound(r = 280, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 20);
   return ['dcharmound|' + [r, seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 61 + r);
@@ -294,6 +301,7 @@ export function leanTo(len = 360) {
 
 // ---- a standing stone: a rough slab stood on end, leaning a little, lichen and moss on it, its foot sunk in the turf
 export function standingStone(h = 300, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   h = q(h, 20);
   return ['dmenhir|' + [h, seed % 5].join('|'), shape((G) => {
     const R = rng(seed * 83 + h), w = h * (0.26 + R() * 0.08), d = h * (0.14 + R() * 0.05), lean = (R() - 0.5) * 8, base = WC.stone[seed % 4];
@@ -367,6 +375,7 @@ export function woodArch(w = 600) {
 // ---- an old floor of flagstones in the forest: rings of flat stones, moss in the joints, lichen on some, a few gone
 // at the ragged edge, a round stone at the middle
 export function flagFloor(r = 900, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 50);
   return ['dflags|' + [r, seed % 2].join('|'), shape((G) => {
     const R = rng(seed * 19 + r);
@@ -380,6 +389,7 @@ export function flagFloor(r = 900, seed = 1) {
 }
 // ---- a rain barrel: staves and hoops, the water dark in it
 export function rainBarrel(seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['drainbarrel|' + (seed % 2), shape((G) => {
     G.lathe([[30, 0], [34, 30], [35, 54], [33, 84], [31, 88]], (k) => (k % 2 ? 0x6e5238 : 0x7a5c40), 14);
     for (const z of [12, 46, 78]) G.lathe([[34.5 + (z === 46 ? 1 : 0), z - 3], [35 + (z === 46 ? 1 : 0), z + 3]], WC.iron, 14);

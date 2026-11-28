@@ -256,7 +256,7 @@ export function cart(load = 0, seed = 1) {
 }
 // ---- a crate of slats, and a grain sack tied at the neck
 export function crate(w = 70, seed = 1) {
-  w = q(w, 5);
+  w = q(w, 5); seed = Math.abs(Math.round(seed)) || 0;   // a negative seed picked no colour (a black crate)
   return ['vcrate|' + [w, seed % 3].join('|'), shape((G) => {
     const h = w * 0.85, c = [0xa8784a, 0x9a6a40, 0xb08452][seed % 3], cd = dark(c, 0.72), W = w / 2;
     block(G, -W + 4, -W + 4, 2, W - 4, W - 4, h - 2, cd);

@@ -42,13 +42,14 @@ export class Geo {
       const t = i / M, P = curve.getPointAt(t), T = curve.getTangentAt(t);
       if (!N) N = Math.abs(T.z) < 0.9 ? V3(0, 0, 1) : V3(1, 0, 0);
       N = N.clone().addScaledVector(T, -N.dot(T)).normalize(); const B = new THREE.Vector3().crossVectors(T, N);
-      const cap = caps ? Math.min(0.5, R(t) / L) : 0, e = cap && t < cap ? Math.sqrt(Math.max(0, 1 - ((cap - t) / cap) ** 2)) : cap && t > 1 - cap ? Math.sqrt(Math.max(0, 1 - ((t - 1 + cap) / cap) ** 2)) : 1;
+      const cap = caps && caps !== 'flat' ? Math.min(0.5, R(t) / L) : 0, e = cap && t < cap ? Math.sqrt(Math.max(0, 1 - ((cap - t) / cap) ** 2)) : cap && t > 1 - cap ? Math.sqrt(Math.max(0, 1 - ((t - 1 + cap) / cap) ** 2)) : 1;
       const rr = Math.max(0.3, R(t) * e), [fa, fb] = flat ? flat(t) : [1, 1];
       for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2, ca = Math.cos(a) * rr * fa, sa = Math.sin(a) * rr * fb; this.v(P.x + N.x * ca + B.x * sa, P.y + N.y * ca + B.y * sa, P.z + N.z * ca + B.z * sa, cf(t, a)); }
       rings.push(P);
     }
     for (let i = 0; i < M; i++) for (let j = 0; j < S; j++) { const a = b + i * S + j, a2 = b + i * S + ((j + 1) % S); this.idx.push(a, a2, a + S, a2, a2 + S, a + S); }
     if (open) { /* ends left open: the tube runs into something */ }
+    if (caps === 'flat') for (const [i, t] of [[0, 0], [M, 1]]) { const P = rings[i], c0 = this.v(P.x, P.y, P.z, cf(t, 0)); for (let j = 0; j < S; j++) { const a = b + i * S + j, a2 = b + i * S + ((j + 1) % S); if (i === 0) this.idx.push(c0, a2, a); else this.idx.push(c0, a, a2); } }
     return this;
   }
   // a body of revolution about Z: prof [[r, z], ...] bottom to top; c a colour or c(k, t) for profile point k (t its share
@@ -93,4 +94,4 @@ export class Geo {
 export const shape = (fn) => () => { const G = new Geo(); fn(G); return G.out(); };
 // the same for built things (planks, boards, staves): a squared-off blob (e 8 or more, no warp) is drawn as a true box,
 // so a board's ends are square and a row of them closes up, where a blob's poles would taper them to points
-export const shapeB = (fn) => () => { const G = new Geo(), blob = G.blob.bind(G); G.blob = (cx, cy, cz, hx, hy, hz, c, o = {}) => ((o.e || 2) >= 8 && !o.warp ? G.box(cx, cy, cz, hx, hy, hz, c) : blob(cx, cy, cz, hx, hy, hz, c, o)); fn(G); return G.out(); };
+export const shapeB = (fn) => () => { const G = new Geo(), blob = G.blob.bind(G), tube = G.tube.bind(G); G.blob = (cx, cy, cz, hx, hy, hz, c, o = {}) => ((o.e || 2) >= 8 && !o.warp ? G.box(cx, cy, cz, hx, hy, hz, c) : blob(cx, cy, cz, hx, hy, hz, c, o)); G.tube = (pts, r, c, o = {}) => tube(pts, r, c, o.caps === undefined ? { ...o, caps: 'flat' } : o); fn(G); return G.out(); };

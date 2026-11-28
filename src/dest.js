@@ -25,7 +25,7 @@ export const DEST_DEFS = [
     air: { sky: 0x6c84b6, fog: 0xd2b482, fogStart: 2400, fogDensity: 0.000072, fogMax: 0.8, sun: [-0.62, -0.42, 0.42], lit: [1.08, 0.95, 0.8, 1.04], shadow: [0.44, 0.44, 0.62, 0.82], sprite: [1.04, 0.98, 0.9] } },
   { key: 'oakwoods', region: 1, name: 'Old Oak Woods', hx: 5600, hy: 6000, H: 2800, flip: 1, bed: 'S_AmbWind', build: buildOakwoods,
     air: { sky: 0x7e9eb4, fog: 0xa4b08a, fogStart: 1800, fogDensity: 0.00009, fogMax: 0.82, sun: [-0.5, -0.36, 0.5], lit: [1.02, 1.0, 0.84, 1.0], shadow: [0.36, 0.46, 0.42, 0.8], sprite: [0.96, 1.0, 0.9] } },
-  { key: 'depot', region: 2, name: 'Cogsworth Depot', hx: 5600, hy: 6000, H: 2600, flip: 1, bed: 'S_AmbMachine', build: buildDepot, wip: true,
+  { key: 'depot', region: 2, name: 'Cogsworth Depot', hx: 5600, hy: 6000, H: 2600, flip: 1, bed: 'S_AmbMachine', build: buildDepot,
     air: { sky: 0x8a96a8, fog: 0xb8a08a, fogStart: 1800, fogDensity: 0.00009, fogMax: 0.82, sun: [-0.4, 0.3, 0.55], lit: [1.06, 0.98, 0.86, 1.02], shadow: [0.46, 0.42, 0.52, 0.82], sprite: [1.02, 0.96, 0.9] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];

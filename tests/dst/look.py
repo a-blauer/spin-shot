@@ -19,6 +19,9 @@ for i, v in enumerate(views):
     if k == 'top':
         h = float(a or 16000)
         js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx,{h},cy+1);C.up.set(0,0,-1);C.lookAt(cx,0,cy);C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();C.up.set(0,1,0);'t'"
+    elif k == 'tq':   # top-down over local x,y from height h (same way up as 'top': north at the bottom, east to the right)
+        x, y, h = [float(t) for t in a.split(',')]
+        js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y}+1);C.up.set(0,0,-1);C.lookAt(cx+{x},0,cy+{y});C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();C.up.set(0,1,0);'t'"
     elif k == 'ob':
         x, y, h, tx, ty = [float(t) for t in a.split(',')]
         js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y});C.lookAt(cx+{tx},0,cy+{ty});C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();'o'"

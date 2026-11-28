@@ -231,7 +231,7 @@ export function pumpkin(r = 40) { r = q(r, 2); return ['vpump|' + r, shape((G) =
 export function noticeBoard(w = 300) {
   w = q(w);
   return ['vboard|' + w, shape((G) => {
-    for (const s of [-1, 1]) G.tube([[0, s * w / 2, -10], [0, s * w / 2, 290]], 9, VC.wood, { S: 8 });
+    for (const s of [-1, 1]) G.tube([[0, s * w / 2, -10], [0, s * w / 2, 338]], 9, VC.wood, { S: 8 });
     G.blob(0, 0, 175, 6, w / 2 - 6, 85, VC.woodL, { e: 8 });
     G.blob(1, 0, 175, 7, w / 2 - 2, 89, VC.woodD, { e: 10, nu: 6, nv: 3 });
     G.blob(4, 0, 175, 5, w / 2 - 14, 78, 0xa07a4a, { e: 10 });

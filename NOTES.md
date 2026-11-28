@@ -609,3 +609,29 @@
 - Checked: raycasts along the whole brook at 30/80/140 hit nothing in the water; the player walks across at 12 points;
   grid 10239/10239 reachable; chase from 10 spots (4 beside the brook) 0 stuck; both bosses reach the player from 5
   spots (the camp in 26 s, was about 40). Test: /tmp/t/brook.json, brook2.json, brook3.json.
+
+## (72) Cogsworth Depot (The Works, room 3) built
+- dest_depot.js + dest_props_works.js. A walled railway depot, 11200 x 12000: the line in and out under arches in the
+  south and north walls, the road in at the gate (GX 700) beside the south arch; the station (house, platform with its
+  canopy, name boards, benches, churns; ramps at both ends), the loop, the engine and a train of wagons; west of the
+  line the signal box, coal stage, water tower, turntable, engine shed, two water cranes; east the goods sidings under
+  the gantry, the goods shed and its platform (ramps, hand crane), the burst van where the Blight (Rustcap) came in.
+  The four quarters: coal merchants' bays and the weighbridge (NE), stables with hay, trough and pump (E), the gangers'
+  mess in an old carriage body with rail racks and the trolley on its spur (SE), the railwaymen's allotments (W), the
+  engine works' yard with a boiler on trestles, sand house and ash heap (NW). A closed footbridge over the lines.
+- Ground: packed earth, black cinders either side of every line (kit `band`), setts on the roads and the station
+  approach (kit `settRoad`: rows of setts on grit, kerbs that stop where a line crosses), timber level crossings
+  laid wherever a road meets a line, weeds along the walls, coal dust, puddles. Lines come from one LINES list
+  (cinders, crossings and tracks agree); each track a hair above the last.
+- Track: `track()` now has a grey ballast bed (mottled, oily middle, sloped shoulders), sleepers bedded in it, rails at
+  RAIL_TOP 10.4; everything on rails stands at RAIL_TOP. Buffer heads now face along the track (they lay flat).
+- propkit: tube caps: 'flat' (full radius to the ends, closed by discs); shapeB makes it the default for the
+  destination pieces, so short bars, legs and rails no longer come to points (logs end sawn). Destination prop
+  functions normalise their seed (abs, round): a negative seed picked no colour (the black crate). village crate too.
+- The village notice board's posts now run up to its roof (it floated); the depot uses its own timetable board.
+- Footbridge: towers solid; each stair a 60-degree slab (too steep to walk) over its stringers, its underside boarded
+  in and solid; boarded across at the foot. Wall corners closed (outer wall runs reach the side walls' outer faces).
+- Checks: loose parts 0 (166 shapes; farm and woods rescanned: 0), floating 0 of 466, clipping 0, invisible walls 0
+  (walk-through: only the scanner's blind spot on the middle pumpkin, whose bed body covers it); grid 11548/11548
+  reachable; chase from 18 spots clean after: hay moved off the stable front, a low edging instead of the allotment's
+  fence (creatures that see you beeline into a fence), ramps on the platform ends. 210 calls, 823k triangles.

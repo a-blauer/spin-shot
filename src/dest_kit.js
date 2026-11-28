@@ -80,5 +80,43 @@ export function destKit(M, seed0 = 1, O = null, opts = {}) {
     }
     return items.filter((o, k) => keep[k]);
   };
-  return { S, body, round, trunk, lit, patch, blot, path, rnd, rr, lineDist, clear, plan, Box, Cyl, Glow, Lamp, Shape, Solid };
+  // ---- a band of ground along a polyline at height z (cinders by a line, a verge of weeds along a wall): w wide, its
+  // edges ragged (rag); col(i, j) the colour at the i-th point along it, j = 0..4 across
+  let bandN = 0;
+  const band = (pts, w, z, col, rag = 0.12) => {
+    const P = []; for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 60)); for (let i = 0; i < n; i++) P.push([x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]); }
+    P.push(pts[pts.length - 1]);
+    Shape('dband|' + (bandN++) + '|' + seed0 + '|' + pts.flat().map(Math.round).join(',') + '|' + w + '|' + z, () => { const pos = [], cl = [], idx = [], C = new THREE.Color(), N = P.length;
+      for (let i = 0; i < N; i++) { const [x, y] = P[i], [xa, ya] = P[Math.max(0, i - 1)], [xb, yb] = P[Math.min(N - 1, i + 1)], L = Math.hypot(xb - xa, yb - ya) || 1, nx = -(yb - ya) / L, ny = (xb - xa) / L;
+        for (let j = 0; j <= 4; j++) { const edge = j === 0 || j === 4, e = (j / 4 - 0.5) * w * (1 + (edge ? rag : rag * 0.3) * (Math.sin(i * 0.83 + j * 1.9) + 0.5 * Math.sin(i * 2.1 - j))); pos.push(x + nx * e, y + ny * e, z); C.setHex(col(i, j), THREE.NoColorSpace); cl.push(C.r, C.g, C.b); } }
+      for (let i = 0; i < N - 1; i++) for (let j = 0; j < 4; j++) { const a = i * 5 + j, b = a + 1, c = a + 5, d = c + 1; idx.push(a, c, b, b, c, d); }
+      return { pos, col: cl, idx }; }, V(0, 0, 0), R(0, 0, 0));
+  };
+  // ---- a road of setts along a polyline (smoothed): rows of stone blocks across it, every other row stepped by half a
+  // block, on a bed of dark grit; a kerb of long stones along each edge, 3 proud. z: the setts' top. opts.skip(x, y):
+  // no kerb there (where a line crosses: the place lays the crossing's planks). Returns the road's length.
+  let roadN = 0; const hash = (a, b) => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); };
+  const settRoad = (pts, w, z = 2.6, opts = {}) => {
+    const cols = opts.cols || [0x8a8478, 0x7e786e, 0x948e82, 0x847c70], grit = opts.grit || 0x4a443e, kerb = opts.kerb || 0xa8a296, kerbW = opts.kerbW ?? 16, sl = opts.sl || 24, swd = opts.sw || 34, skip = opts.skip || (() => false);
+    let P = pts.map((p) => p.slice()); for (let it = 0; it < 3 && P.length > 2; it++) { const Q = [P[0]]; for (let i = 0; i < P.length - 1; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1]; Q.push([x0 * 0.75 + x1 * 0.25, y0 * 0.75 + y1 * 0.25], [x0 * 0.25 + x1 * 0.75, y0 * 0.25 + y1 * 0.75]); } Q.push(P[P.length - 1]); P = Q; }
+    const acc = [0]; for (let i = 1; i < P.length; i++) acc.push(acc[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1])); const total = acc[acc.length - 1];
+    const at = (s) => { let i = 1; while (i < P.length - 1 && acc[i] < s) i++; const t = (s - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]), [x0, y0] = P[i - 1], [x1, y1] = P[i], L = Math.hypot(x1 - x0, y1 - y0) || 1; return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, (x1 - x0) / L, (y1 - y0) / L]; };
+    const off = (q, e, zz) => [q[0] - q[3] * e, q[1] + q[2] * e, zz];
+    Shape('dsett|' + (roadN++) + '|' + seed0 + '|' + pts.flat().map(Math.round).join(',') + '|' + w, () => { const pos = [], cl = [], idx = [], C = new THREE.Color();
+      const quad = (a, b, c, d, hex) => { const k0 = pos.length / 3; for (const p of [a, b, c, d]) pos.push(p[0], p[1], p[2]); C.setHex(hex, THREE.NoColorSpace); for (let k = 0; k < 4; k++) cl.push(C.r, C.g, C.b); idx.push(k0, k0 + 1, k0 + 2, k0, k0 + 2, k0 + 3); };
+      const nRows = Math.max(1, Math.round(total / sl)), hw = w / 2, n = Math.max(1, Math.round(w / swd)), bw = w / n;
+      for (let r = 0; r < nRows; r++) { const qa = at((r / nRows) * total), qb = at(((r + 1) / nRows) * total), qm = at(((r + 0.5) / nRows) * total), hl = total / nRows / 2 - 1.5;
+        quad(off(qa, -hw, z - 0.4), off(qa, hw, z - 0.4), off(qb, hw, z - 0.4), off(qb, -hw, z - 0.4), grit);
+        const sh = r % 2 ? bw / 2 : 0, lo = [qm[0] - qm[2] * hl, qm[1] - qm[3] * hl, qm[2], qm[3]], hi = [qm[0] + qm[2] * hl, qm[1] + qm[3] * hl, qm[2], qm[3]];
+        for (let k = -1; k <= n; k++) { const e0 = Math.max(-hw + 1, -hw + k * bw + sh + 1.5), e1 = Math.min(hw - 1, -hw + (k + 1) * bw + sh - 1.5); if (e1 - e0 < 4) continue;
+          const c = cols[Math.floor(hash(r, k) * cols.length)], zz = z + (hash(k + 7, r) - 0.5) * 0.4; quad(off(lo, e0, zz), off(lo, e1, zz), off(hi, e1, zz), off(hi, e0, zz), c); } }
+      if (kerbW > 0) for (const sd of [-1, 1]) { const nK = Math.max(1, Math.round(total / 70)); for (let i = 0; i < nK; i++) { const qa = at((i / nK) * total), qb = at(((i + 1) / nK) * total - 2), qm = at(((i + 0.5) / nK) * total), mid = off(qm, sd * (hw + kerbW / 2), 0); if (skip(mid[0], mid[1])) continue;
+        const e0 = sd * hw, e1 = sd * (hw + kerbW), c = i % 3 ? kerb : dark(kerb, 0.9), zt = z + 3;
+        if (sd > 0) { quad(off(qa, e0, zt), off(qa, e1, zt), off(qb, e1, zt), off(qb, e0, zt), c); quad(off(qa, e0, z - 0.4), off(qa, e0, zt), off(qb, e0, zt), off(qb, e0, z - 0.4), dark(c, 0.8)); quad(off(qa, e1, zt), off(qa, e1, 0), off(qb, e1, 0), off(qb, e1, zt), dark(c, 0.75)); }
+        else { quad(off(qa, e1, zt), off(qa, e0, zt), off(qb, e0, zt), off(qb, e1, zt), c); quad(off(qa, e0, zt), off(qa, e0, z - 0.4), off(qb, e0, z - 0.4), off(qb, e0, zt), dark(c, 0.8)); quad(off(qa, e1, 0), off(qa, e1, zt), off(qb, e1, zt), off(qb, e1, 0), dark(c, 0.75)); }
+        for (const q of [qa, qb]) quad(off(q, e0, z - 0.4), off(q, e1, z - 0.4), off(q, e1, zt), off(q, e0, zt), dark(c, 0.85)); } }
+      return { pos, col: cl, idx }; }, V(0, 0, 0), R(0, 0, 0));
+    return total;
+  };
+  return { S, body, round, trunk, lit, patch, blot, path, band, settRoad, rnd, rr, lineDist, clear, plan, Box, Cyl, Glow, Lamp, Shape, Solid };
 }

@@ -17,6 +17,7 @@ export const FC = {   // the farm's own colours
 // the top, a row of coping stones stood on edge along the crown, lichen on some faces and moss along the foot. A dark
 // core runs through it so a chink between stones never shows daylight.
 export function stoneWall(len = 1000, h = 120, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   len = q(len, 20); h = q(h);
   return ['dwall|' + [len, h, seed % 6].join('|'), shape((G) => {
     const R = rng(seed * 977 + len), half = len / 2, t = (z) => 40 - 9 * (z / h), sc = (x, y, z) => (wob(x * 0.05 + seed, z * 0.07) > 0.62 ? FC.lichen : wob(x * 0.03, y * 0.2 + z * 0.05 + seed) > 0.7 ? FC.lichen2 : null);
@@ -72,6 +73,7 @@ export function gateLeaf(w = 250, h = 130) {
 // FH gives the heights the map needs (the eaves, the ridge, where the door lantern hangs).
 export const FH = { g: 340, up: 600, jet: 18, ridge: 930, over: 64 };
 export function farmhouse(w = 1100, d = 760, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   w = q(w, 20); d = q(d, 20);
   return ['dfarmhouse|' + [w, d, seed % 4].join('|'), shape((G) => {
     const R = rng(seed * 131 + w), hw = w / 2, hd = d / 2, { g: zg, up: zu, jet, ridge: zr, over } = FH;
@@ -178,6 +180,7 @@ export function farmhouse(w = 1100, d = 760, seed = 1) {
 // knee braces, and the underside of the roof boarded on rafters. BN holds the sizes the map's bodies follow.
 export const BN = { W: 1700, L: 2700, eave: 720, kneeX: 530, knee: 1060, ridge: 1330, over: 50, doorW: 720, doorH: 600, posts: [-1000, -340, 340, 1000], postX: 560 };
 export function barn(seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['dbarn|' + (seed % 3), shape((G) => {
     const R = rng(seed * 71 + 5), { W, L, eave, kneeX, knee, ridge, over, doorW, doorH } = BN, hw = W / 2, hl = L / 2, dh = doorW / 2;
     const red = (k) => mix(FC.red, k % 3 === 0 ? 0x8a3a2c : k % 3 === 1 ? 0xa4402e : 0x93372a, 0.6), back = 0x3a2a20, white = 0xe6dccb, shingle = [0x4a3e3a, 0x544642, 0x403634], wood = 0x6a4e34;
@@ -338,6 +341,7 @@ export function churnStand(w = 200) {
 // ---- a chicken coop: a whitewashed hut on four legs, a pent roof of green-painted boards, a ramp down from the
 // pop-hole on the front (+X), a nest box on the +Y side with its own lid
 export function coop(seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['dcoop|' + (seed % 3), shape((G) => {
     // a hen house on legs: whitewashed boards on a frame, a red shingled gable roof, the pop-hole and its ramp at the
     // front (+X), a nest box with a lifting lid on the +Y side, a wired window at the back. Footprint 2*CP.hx by
@@ -387,6 +391,7 @@ export const CP = { hx: 92, hy: 112, z0: 52, eave: 168, ridge: 236, nest: 56 };
 // ---- a scarecrow on a pole: a sack head with button eyes and a stitched grin under a floppy gnome's hat gone pale,
 // a patched coat on the cross-arm, straw out of the cuffs and the collar. Faces +X.
 export function scarecrow(seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   return ['dscare|' + (seed % 4), shape((G) => {
     const R = rng(seed * 53 + 9), pole = 0x6a5038, sack = 0xc8b088, coat = [0x6a5a48, 0x5a6a5a, 0x7a5a44][seed % 3], patch = 0xa47a4a, hat = [0xa84a3e, 0x6a7a9a][seed % 2];
     G.tube([[0, 0, -10], [0, 0, 236]], 5.5, pole, { S: 8 }); G.tube([[0, -98, 172], [0, 98, 176]], 4.5, pole, { S: 8 });
@@ -408,6 +413,7 @@ export function scarecrow(seed = 1) {
 // ---- a haystack: a round stack built up in courses and drawn in to a thatched peak, sun-bleached on top, a twisted
 // rope band round its waist, a skirt of pulled straw at its foot lying flat on the ground
 export function haystack(r = 180, h = 320, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r); h = q(h);
   return ['dstack2|' + [r, h, seed % 4].join('|'), shape((G) => {
     const prof = [[r * 0.94, 0], [r, h * 0.16], [r * 0.99, h * 0.4], [r * 0.86, h * 0.62], [r * 0.56, h * 0.82], [r * 0.2, h * 0.95], [0, h]];
@@ -475,6 +481,7 @@ export function basket(r = 30, fruit = 0xc8342a) {
 
 // ---- an apple tree: a short gnarled trunk, three boughs, a round crown of soft lumps; apples hang on the lumps' undersides
 export function appleTree(h = 520, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   h = q(h, 20);
   return ['dapple|' + [h, seed % 6].join('|'), shape((G) => {
     const R = rng(seed * 211 + h), bark = 0x5e4a3a, tr = h * 0.05, leaf = [0x5a8a3a, 0x4e7e32, 0x6a983e];
@@ -494,6 +501,7 @@ export function appleTree(h = 520, seed = 1) {
 
 // ---- a split-rail fence run along X: rough posts every `bay`, three split rails between them, a little crooked
 export function railFence(len = 880, h = 100, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   len = q(len, 20); h = q(h);
   return ['drail|' + [len, h, seed % 4].join('|'), shape((G) => {
     const R = rng(seed * 37 + len), n = Math.max(1, Math.round(len / 220)), bay = len / n;
@@ -576,6 +584,7 @@ const MASS = {
   rust: { flesh: 0xdac9a6, rust: 0x8a4a22, rustD: 0x5a2e16, pink: 0xb08a6a, seam: 0x2a160e, cap: 0xc4782c, capD: 0x8a5018, gill: 0xd8c09a, puff: [0xf2e2c0, 0xa88a60] },
 };
 export function blightMass(r = 260, seed = 1, strain = 'toad') {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r);
   return ['dblight2|' + [r, seed % 5].join('|') + (strain === 'toad' ? '' : '|' + strain), shape((G) => {
     const P = MASS[strain] || MASS.toad, R = rng(seed * 97 + r), { flesh, rust, rustD, pink, seam, cap, capD, gill } = P;
@@ -591,6 +600,7 @@ export function blightMass(r = 260, seed = 1, strain = 'toad') {
 
 // ---- a field of standing wheat (out of reach, past the walls): a soft-edged slab of ears, lighter on top, rows in it
 export function wheatField(w = 4000, d = 3000, c = 0xd8b45e, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   w = q(w, 100); d = q(d, 100);
   return ['dwheat|' + [w, d, hx(c), seed % 4].join('|'), shape((G) => {
     G.blob(0, 0, 0, w / 2, d / 2, 70, (nx, ny, nz) => (nz < 0.3 ? dark(c, 0.7) : wob(nx * 30 + seed, ny * 3) > 0.55 ? dark(c, 0.88) : wob(ny * 40, nx * 2 + seed) < -0.5 ? mix(c, 0xf2dc96, 0.4) : c), { e: 5, nu: 40, nv: 10, warp: (x, y, z, nx, ny, nz) => [x, y, nz > 0.2 ? z + wob(x * 0.004 + seed, y * 0.004) * 10 : z] });
@@ -611,6 +621,7 @@ export function duckHouse() {
 // ---- a tree for the distance (the woods past the walls, the giants on the skyline): a trunk and a crown of a few soft
 // lumps, or a fir of stacked skirts; a tenth of a near tree's faces
 export function farTree(h = 1800, kind = 0, leaf = 0x355e2c, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   h = q(h, 200);
   return ['dfartree|' + [h, kind, hx(leaf), seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 59 + h), bark = 0x4e3a2c, tr = h * 0.04;
@@ -623,6 +634,7 @@ export function farTree(h = 1800, kind = 0, leaf = 0x355e2c, seed = 1) {
 // ---- a lump of hedge (hawthorn, field maple): four soft masses of leaf, lighter on top, a scatter of may blossom if
 // asked; half the faces of a garden bush, made to be set shoulder to shoulder along a line
 export function hedgeLump(r = 200, leaf = 0x4e7a30, bloom = 0, seed = 1) {
+  seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 20);
   return ['dhedge|' + [r, hx(leaf), hx(bloom), seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 23 + r), lumps = [];
