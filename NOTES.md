@@ -859,3 +859,35 @@
   eaves, fixed); every boss tried (Drifter, Bracketback, Sporeling, Creeper, Blight Rat) reaches the player from the
   field at 14 spots. 214 calls, 677k triangles.
 
+## (82) The Brewery (the Works, room 3) built
+- `dest_brew.js` + `dest_props_brew.js`. Hopwell Brewery on the canal, an afternoon's haze over it from its own
+  chimney. The road comes in from the south past the brewery's terrace of cottages and its inn, the Tap (its sign out
+  over the road, tables laid in front, barrels by the door), to the gate in the yard wall with HOPWELL BREWERY on its
+  arch. In the yard: the maltings down the west side with its two kilns (pyramid roofs, louvred cowls) and sacks of
+  malt at its doors; the cooper's lean-to on the east side (a cask being raised over his fire, staves stacked, casks
+  finished, piles of barrels outside); the steam dray (upright boiler, chimney, barrels on its bed) by the wharf; the
+  wharf along the canal with bollards, the crane, crates, piled barrels and the barge moored half loaded. At the north
+  end the five-storey tower brewhouse (pilasters, round-headed windows, string courses, the cart door, the lucam with
+  its hoist and a sack on the chain, the louvred ventilator and vane on its slate roof); the copper house east of it
+  (cast-iron columns and trusses, two coppers set in brick over their fires, their vapour pipes up through the roof);
+  the fermenting shed west of it behind its brick arcade, three tuns inside; the mains overhead between them on iron
+  trestles down to the wort pump. Behind: the boiler house, its chimney, the coal, the water tank on its tower. Across
+  the canal (copings, the lock with two pairs of mitred gates and their balance beams, the keeper's hut, the towpath,
+  the brick road bridge, a footbridge in the north) the hop garden in rows on poles and wires, the oast with its white
+  cowl and its barn, pockets of hops. West of the maltings the barley in stacks, bales, a cart; barley fields beyond
+  the edge, the town's chimneys to the south. The Rustcap came up in the fermenting shed: the middle tun has burst and
+  its heart pours out through the arcade; it has come out at the maltings' door, onto the wharf and into the hops, its
+  threads across the yard. Its sacs hang from the mains, the copper house's tie beams, the arcade's arches, the gate's
+  arch, the crane's jib and the cooperage's beam (`hangs`). Smoke off the chimney and steam off the coppers drift
+  east, malt dust by the maltings, rust spores off the heart (`brewAir`).
+- New pieces: brewhouse, copperKettle, copperShed, tun (whole or burst), tunShed, maltKiln, oast, hopRow, barge,
+  lockGates, steamDray, pipeRun, workShed, firePot, barrelPile, innSign, bollard. brickHouse (dest_props_works) takes
+  `coarse: true` for big buildings laid in long bricks (a fifth of the faces); nothing else changes for its old callers.
+- The walk-through scan now probes a long thin piece (a row of hops, a run of wall) across its short side: probed along
+  its length from its middle, the probe landed inside the piece's own body and missed. Lantern Lake, Millbrook and the
+  abbey still scan clean with it.
+- Bodies: the lock's balance beams are kept off the walking grid (tall creatures were held under them); the space behind
+  the burst tun between its neighbours is filled (it was a pocket a player could have stood in).
+- Checks: loose parts 0, floating 0 of 572, clipping 0, invisible walls 0, walk-through 0. Grid 11702/11702; chase
+  clean from 32 spots. 164 calls, 621k triangles.
+

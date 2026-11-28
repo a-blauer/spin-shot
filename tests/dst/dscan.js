@@ -17,7 +17,10 @@
     if (pts.length < 3) continue;
     let mx = 0, mz = 0; for (const p of pts) { mx += p[0]; mz += p[2]; } mx /= pts.length; mz /= pts.length;
     let n = 0, hit = 0; const k = Math.max(1, Math.floor(pts.length / 24));
-    for (let i = 0; i < pts.length; i += k) { const p = pts[i]; let nx = p[0] - mx, nz = p[2] - mz, L = Math.hypot(nx, nz); if (L < 1) { nx = 1; nz = 0; L = 1; } nx /= L; nz /= L;
+    // a long thin piece (a row of hops, a run of wall) is probed across its short side: probed along its length from its
+    // middle, the probe would land inside the piece's own body and see nothing
+    const thin = Math.max(sx, sz) > 4 * Math.min(sx, sz);
+    for (let i = 0; i < pts.length; i += k) { const p = pts[i]; let nx = p[0] - mx, nz = p[2] - mz, L = Math.hypot(nx, nz); if (thin) { if (sx > sz) { nx = 0; nz = Math.sign(nz) || 1; } else { nz = 0; nx = Math.sign(nx) || 1; } L = Math.abs(sx > sz ? p[2] - mz : p[0] - mx); } else { if (L < 1) { nx = 1; nz = 0; L = 1; } nx /= L; nz /= L; }
       probe.set(p[0] + nx * 90, Math.max(30, Math.min(90, p[1])), p[2] + nz * 90); n++; const h = g.phys.raycast(probe, new V3(-nx, 0, -nz), 90 + Math.min(40, L + 6)); if (h) hit++; }
     if (hit / n < 0.34) walk.push([Math.round(mx - cx), Math.round(mz - cz), Math.round(sx), Math.round(h), Math.round(sz), +(hit / n).toFixed(2), r[5]]);
   }
