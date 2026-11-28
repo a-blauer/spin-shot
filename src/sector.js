@@ -49,6 +49,8 @@ export class Sector {
   // a place on the room's own floor, clear of the doors, the ammo, the bench and the chest, and of everything picked so far
   spot(r, { edge = false, tries = 40 } = {}) {
     const g = this.g, A = this.D.A(), S = this.D.S(), [cx, cy] = A.c, keep = [S.spawn, S.exit, S.ammo, S.bench, S.chest, S.box];
+    // a destination names the places its strain's beds and pools go (local [x, y]); each is used once
+    if (A.dest && A.beds) { while ((this.bedI = this.bedI || 0) < A.beds.length) { const [bx, by] = A.beds[this.bedI++], x = cx + bx, y = cy + by, gy = g.fx.groundY(V3(x, 300, y), 500); if (gy < -40 || gy > 40) continue; this.spots.push([x, y, r]); return [x, gy, y]; } return null; }
     for (let k = 0; k < tries; k++) {
       let x, y;
       if (edge) { const side = this.rnd() < 0.5, e = this.rnd() < 0.5 ? -1 : 1; x = side ? cx + e * (A.hx - r - this.rr(60, 260)) : cx + this.rr(-A.hx + 400, A.hx - 400); y = side ? cy + this.rr(-A.hy + 500, A.hy - 500) : cy + e * (A.hy - r - this.rr(60, 260)); }
@@ -77,8 +79,8 @@ export class Sector {
       lit.place(b, { x, y, z, pitch: lean, yaw: rnd() * 360 });
       for (let q = 0; q < 3; q++) { const a = rnd() * 6.28, r = w * rr(0.08, 0.3); const b2 = lit.n; lit.blob(0, 0, 0, w * 0.06, w * 0.06, w * 0.03, T.flesh, { nu: 6, nv: 4 }); lit.place(b2, { x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, z: z + h + w * 0.28 - r * 0.25 }); }
     };
-    // ---- creep: mold in along the walls and out over the floor, thickest at the edges
-    const n = 9 + Math.round(rnd() * 4) + s;
+    // ---- creep: mold in along the walls and out over the floor, thickest at the edges (a destination lays its own)
+    const n = this.D.A().dest ? 0 : 9 + Math.round(rnd() * 4) + s;
     for (let i = 0; i < n; i++) {
       const r = rr(260, 620), at = this.spot(r * 1.3, { edge: i < n * 0.65 }); if (!at) continue; const [x, gy, y] = at;
       patch(lit, x, y, gy + 1.2, r, moldA, 0.3); patch(lit, x + r * 0.12, y - r * 0.08, gy + 2.2, r * 0.6, moldB, 0.35);
@@ -153,7 +155,7 @@ export class Sector {
   hostTick(dt) {
     const g = this.g, D = this.D;
     if (this.quiet || D.cleared || g.phase !== 'Round' || g.roundT < 3) return;
-    const room = this.room, dmg = 10 + room * 1.1, dps = 7 + room * 0.45, col = rgb(this.T.glow), rust = [0.95, 0.55, 0.2];
+    const room = this.D.depth || this.room, dmg = 10 + room * 1.1, dps = 7 + room * 0.45, col = rgb(this.T.glow), rust = [0.95, 0.55, 0.2];
     const players = [g.player, ...g.net.ghosts.values()].filter((T) => !T.dead && (!T.pos || T.pos.y < 600));
     const floor = (x, z) => { const y = g.fx.groundY(V3(x, 300, z), 500); return y < -40 || y > 40 ? null : V3(x, y + 1, z); };
     for (const Q of this.queue) { Q.t -= dt; if (Q.t <= 0) { g.hazards.fire(Q.at, Q.dps, Q.r, Q.life, Q.col); Q.done = true; } }

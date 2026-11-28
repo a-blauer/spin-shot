@@ -65,7 +65,7 @@ export class Descent {
   // what this room is called: a destination's own name, or the old room's that stands in for one not built yet
   nameOf(room = this.room) { const A = ARENAS[this.arenaFor(room)]; return room >= ROOMS ? 'The Root' : A && A.dest ? A.dest.name : (A && A.title) || REGIONS[room - 1].name; }
   regionOf(room = this.room) { return REGIONS[Math.max(0, Math.min(DESTS - 1, room - 1))]; }
-  flipFor(room) { return room % 2 ? 1 : -1; }
+  flipFor(room) { const A = ARENAS[this.arenaFor(room)]; return A && A.dest ? A.dest.flip || 1 : room % 2 ? 1 : -1; }   // a destination has its own way round
   A() { return ARENAS[this.arena]; }
   S() { return spots(this.A(), this.flip); }
   // two bosses a run: room 2's from the first two tiers, room 4's from the last two; which ones is the luck of the run
@@ -170,7 +170,7 @@ export class Descent {
   spawnBoss() {
     const g = this.g, A = this.A(), bi = this.bossPick[Math.max(0, BOSS_ROOMS.indexOf(this.room))], B = DATA.bosses[bi];
     // somewhere open, away from the way in, in the room it was fought in
-    const c0 = V3(A.c[0], 0, A.c[1] + this.flip * A.hy * 0.3), f = g.findFreeLocationNear(c0, 0, Math.min(A.hx, A.hy) * 0.5) || c0, at = V3(f.x, (f.y || 0) + 260, f.z);
+    const c0 = A.bossAt ? V3(A.c[0] + A.bossAt[0], 0, A.c[1] + A.bossAt[1]) : V3(A.c[0], 0, A.c[1] + this.flip * A.hy * 0.3), f = g.findFreeLocationNear(c0, 0, A.bossAt ? 900 : Math.min(A.hx, A.hy) * 0.5) || c0, at = V3(f.x, (f.y || 0) + 260, f.z);
     g.bossSpawned = true;
     // a boss is a fight, not a speed bump: deeper ones carry more, and each extra player adds most of another one
     const hpK = BOSS_HP[(B.tier || 1) - 1] || BOSS_HP[0], more = g.net.role === 'host' ? g.net.ghosts.size : 0;
@@ -236,7 +236,7 @@ export class Descent {
     // the Compressor stands by the workbench after every room
     if (machine('compressor')) {
       const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
-      const at = far(side(1)) >= far(side(-1)) ? side(1) : side(-1);
+      const at = S.press || (far(side(1)) >= far(side(-1)) ? side(1) : side(-1));   // a destination says where it goes
       const C = this.station('Compressor', at[0], at[1], S.benchYaw, 0, -1, 'Compressor'); C.makeSolid(0, 150, -160, 160, 0, 470);
     }
     const [x, y] = S.exit;

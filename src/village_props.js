@@ -249,7 +249,8 @@ export function cart(load = 0, seed = 1) {
     G.tube([[184, -38, 10], [184, 38, 10]], 3, wdD, { S: 6 });
     for (const e of [-1, 1]) { const y = e * 60, pts = []; for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI * 2; pts.push([Math.cos(a) * 52, y, 52 + Math.sin(a) * 52]); } G.tube(pts, 4, wdD, { S: 6, caps: false }); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; G.tube([[0, y, 52], [Math.cos(a) * 50, y, 52 + Math.sin(a) * 50]], 2.2, wd, { S: 4 }); } G.blob(0, y, 52, 7, 8, 7, VC.iron, { nu: 8, nv: 5 }); }
     G.tube([[0, -64, 52], [0, 64, 52]], 3.4, VC.iron, { S: 6 });
-    if (load === 0) { for (let i = 0; i < 4; i++) { const x = -50 + i * 32 + R() * 6, y = (i % 2 ? 18 : -18); G.blob(x, y, z0 + 26, 22, 20, 22, 0xc8b48a, { nu: 12, nv: 8, warp: (X, Y, Z) => [X, Y, Z * (Z > 0 ? 1 - Z / 60 : 1)] }); G.tube([[x, y, z0 + 44], [x, y, z0 + 50]], 4, 0x8a6a3a, { S: 6 }); } }
+    block(G, -12, -48, 50, 12, 48, z0 + 1, wdD);   // the bolster the bed rests on, over the axle
+    if (load === 0) { for (let i = 0; i < 4; i++) { const x = -50 + i * 32 + R() * 6, y = (i % 2 ? 18 : -18); G.blob(x, y, z0 + 26, 22, 20, 22, 0xc8b48a, { nu: 12, nv: 8, warp: (X, Y, Z) => [X, Y, Z * (Z > 0 ? 1 - Z / 60 : 1)] }); G.tube([[x, y, z0 + 36], [x, y, z0 + 46]], 4, 0x8a6a3a, { S: 6 }); } }   // the tie, out of the sack's flattened top
     else { for (let i = 0; i < 6; i++) { const x = -48 + (i % 3) * 40, y = i < 3 ? -18 : 18, r = 18 + R() * 4; G.blob(x, y, z0 + 8 + r * 0.8, r, r, r * 0.8, (X, Y) => (Math.cos(Math.atan2(Y, X) * 8) > 0.7 ? 0xd06a1a : 0xe8862a), { nu: 16, nv: 8 }); G.tube([[x, y, z0 + 8 + r * 1.55], [x + 3, y, z0 + 14 + r * 1.6]], 2, 0x5a6a2a, { S: 4 }); } }
   })];
 }

@@ -273,6 +273,13 @@ export class World {
     (this.solidified || (this.solidified = [])).push(...add.map((b) => [ch, Math.round(b.max.x - b.min.x), Math.round(b.max.z - b.min.z), Math.round(b.max.y - b.min.y), Math.round((b.min.x + b.max.x) / 2), Math.round((b.min.z + b.max.z) / 2), Math.round(b.min.y)]));
     return add.length;
   }
+  // a solid with a full turn (a roof plane, a leaning beam): blocks movement and shots, never the walking grid
+  SolidRot(center, size, rot) {
+    const mx = this._matrix(center, size, rot), g = COLGEOS[0].clone().applyMatrix4(mx);
+    if (this.carve) { g.computeBoundingBox(); const b = g.boundingBox; if (this.carved(b.min.x, b.min.z, b.max.x, b.max.z)) { if (this.grp) this.grp.hit = true; return; } }
+    this.colSolid.push(g);
+    if (SCAN || this.recordProps) { g.computeBoundingBox(); (this.scanCol || (this.scanCol = [])).push({ ch: this.chunk, b: g.boundingBox.clone(), st: 0 }); }
+  }
   Blocker(center, size) {
     const m = this._matrix(center, size, null);
     this.colBlock.push(COLGEOS[0].clone().applyMatrix4(m));
@@ -336,8 +343,10 @@ export class World {
 
   // ------------------------------------------------------------------ sprites (three space helpers)
   spriteAt(name, center3, right3, up3, w, h, tint = [1, 1, 1, 1], kind = 'sprite') {
-    const b = this.statics[kind];
-    b.pushBasis(sprite(name), center3, right3, up3, w, h, tint[0], tint[1], tint[2], tint[3], 0, 0, kind === 'add' ? 1 : 0);
+    const b = this.statics[kind], ch = this.chunk === undefined || this.chunk === null ? -1 : this.chunk;
+    // every static sprite is kept with its chunk, so showChunk can draw only the ones of the place you are in
+    (this.staticRec || (this.staticRec = [])).push([kind, sprite(name), center3.clone(), right3.clone(), up3.clone(), w, h, tint.slice(), ch]);
+    if (this.shownChunk === undefined || ch < 0 || this.shownChunk < 0 || ch === this.shownChunk) b.pushBasis(sprite(name), center3, right3, up3, w, h, tint[0], tint[1], tint[2], tint[3], 0, 0, kind === 'add' ? 1 : 0);
   }
   Foliage(name, base, height, aspect = 1, tint = [1, 1, 1, 1]) {
     base = this.T(base);
@@ -382,17 +391,20 @@ export class World {
     if (this.carve) { const q = this.T(loc).to3(); if (this.carved(q.x - 20, q.z - 20, q.x + 20, q.z + 20)) return; }
     if (bulb) this.AddInstance(2, loc, V(30), R(0, 0, 0), Pal.Bulb, false, true, false);
     const c = lin(color);
-    this.pendingLamps.push({ loc: this.T(loc), c, radius });
+    this.pendingLamps.push({ loc: this.T(loc), c, radius, ch: this.chunk });
   }
   _finishLamps() {
     this.xf = null;
+    const pc = this.chunk;
     for (const L of this.pendingLamps) {
+      this.chunk = L.ch;   // its halo and ground glow belong to the chunk the lamp was hung in
       this.GlowCross(L.loc, L.c, Math.min(520, Math.max(160, L.radius * 0.42)), 0.55);
       const g = this.GroundAt(V2(L.loc.X, L.loc.Y));
       if (g && L.loc.Z - g.p.Z < 900 && L.loc.Z > g.p.Z) {
         this.SurfaceDecal('FX_Glow', g.p, g.n, V2(L.radius * 1.1, L.radius * 1.1), 0, [L.c.r, L.c.g, L.c.b, 0.35], 'add');
       }
     }
+    this.chunk = pc;
   }
   Sign(loc, yaw, text, color, size) {
     const col = `rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`;
@@ -797,8 +809,9 @@ export class World {
     const D = this.Station('Door', V(center.X, center.Y, 0), yaw, cost, -1, this.game.zones[zoneB].name, V(70, 420, 520));
     D.zoneA = zoneA; D.zoneB = zoneB;
   }
-  SpawnAt(loc, zone) {
+  SpawnAt(loc, zone, mark = true) {
     this.game.spawnPoints.push({ pos: this.T(loc).to3(), zone });
+    if (!mark) return;   // a destination marks its own ground (or leaves it whole)
     this.Box(V(loc.X, loc.Y, 3), V(170, 120, 6), 0x4A3426, false, false, frand() * 180);
     this.Box(V(loc.X + 30, loc.Y - 20, 8), V(60, 50, 12), 0x3A281C, false, false, frand() * 180);
   }
@@ -867,7 +880,7 @@ export class World {
   buildMap(MAP) {
     const GM = this.game, M = {};
     for (const k of ['Box', 'BoxRot', 'Glow', 'Cyl', 'Ball', 'ConeShape', 'Blocker', 'Ramp', 'Floor', 'Wall', 'Lamp', 'Sign', 'Building', 'StreetLamp', 'Barrel', 'Crate', 'DeadTree', 'Wagon', 'Headstone', 'Boxcar',
-      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'BoxYaw', 'Solid', 'BlockerYaw', 'AddZone', 'L', 'GlowCross', 'Hang']) M[k] = this[k].bind(this);
+      'Station', 'WallBuy', 'Door', 'SpawnAt', 'AddInstance', 'Foliage', 'SurfaceDecal', 'Arch', 'Wedge', 'Pyramid', 'Oct', 'Ring', 'Shape', 'BoxYaw', 'Solid', 'SolidRot', 'BlockerYaw', 'AddZone', 'L', 'GlowCross', 'Hang']) M[k] = this[k].bind(this);
     M.RotFromXY = RotFromXY; M.world = this; M.at = this.at.bind(this);
     // the map sees the game through a window that puts its nav boxes through the same transform as its geometry
     M.GM = new Proxy(GM, { get: (g, k) => (k === 'NavBlockBox' ? (b, d) => g.NavBlockBox(this.Tbox(b), d) : typeof g[k] === 'function' ? g[k].bind(g) : g[k]), set: (g, k, v) => { g[k] = v; return true; } });
@@ -930,7 +943,17 @@ export class World {
   }
 
   // draw only one chunk of a chunked map (the room you are in); -1 shows them all
-  showChunk(c) { for (const m of this.chunkMeshes || []) m.visible = c < 0 || m.userData.chunk === c; }
+  showChunk(c) {
+    for (const m of this.chunkMeshes || []) m.visible = c < 0 || m.userData.chunk === c;
+    // the static sprites (lamp halos, ground glows, decals) of this chunk and of none: an open place must not see
+    // every other room's lamps on its horizon
+    if (this.staticRec && this.shownChunk !== c) {
+      this.shownChunk = c;
+      for (const b of Object.values(this.statics)) b.begin();
+      for (const [kind, spr, cc, rr, uu, w, h, t, ch] of this.staticRec) if (c < 0 || ch < 0 || ch === c) this.statics[kind].pushBasis(spr, cc, rr, uu, w, h, t[0], t[1], t[2], t[3], 0, 0, kind === 'add' ? 1 : 0);
+      for (const b of Object.values(this.statics)) b.end();
+    }
+  }
   finish() {
     this._hangAll();
     // instanced render batches

@@ -45,6 +45,7 @@ const status = (t) => { if (loading) loading.textContent = t; };
 const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, powerPreference: 'high-performance', reversedDepthBuffer: true });   // float depth with a reversed range: far surfaces keep their precision, so layered map pieces stop fighting
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, TEST ? 1 : 1.5));
+if (TEST) window.__renderer = renderer;   // test-only: draw-call and triangle counts
 const hud = new Hud(hudCanvas);
 const audio = new Audio('audio/');
 let game = null;

@@ -1,0 +1,4 @@
+{"w":480,"h":270,"query":"&map=6","steps":[
+{"js":"const g=__dmh,D=g.descent;g.godMode=true;g.tip=()=>{};g.phaseTimer=0;__sim(30);g.toSpawn=0;g.spawned=0;for(const E of g.enemies){E.dead=true;E.remove=true;}__sim(10);'a'"},
+{"js":"(()=>{const g=__dmh,W=g.world,ch=g.descent.arena;const by={};let tot=0,calls=0;for(const m of W.chunkMeshes||[]){if(m.userData.chunk!==ch)continue;calls++;const G=m.geometry,t=(G.index?G.index.count:G.attributes.position.count)/3,n=m.count,k=(G.userData.shape||('prim'+m.geometry.uuid.slice(0,4))).split('|')[0];by[k]=by[k]||[0,0,0];by[k][0]+=t*n;by[k][1]+=n;by[k][2]++;tot+=t*n;}const L=Object.entries(by).sort((a,b)=>b[1][0]-a[1][0]).slice(0,22).map(([k,v])=>[k,Math.round(v[0]/1000)+'k',v[1],v[2]]);return JSON.stringify({calls,tris:Math.round(tot/1000)+'k',top:L})})()"}
+]}

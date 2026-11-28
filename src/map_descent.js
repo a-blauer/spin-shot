@@ -6,6 +6,7 @@ import { V, V2, R } from './mapkit.js';
 import { buildVillage, VSIZE } from './map_village.js';
 import { craftRoom, craftBoss, craftRaid, RAID_DIMS, ROOM_DIMS, BOSS_DIMS, EXTRA } from './descent_rooms.js';
 import { RAID } from './raid.js';
+import { DEST_DEFS, buildDest, destBounds } from './dest.js';
 import * as SH from './descent_shapes.js';
 
 // each theme: floor, inlay, wall, trim, glow, lamp colour, fog, shadow tint
@@ -26,7 +27,7 @@ export const ROOT_THEME = THEMES.push({ name: 'The Root', title: 'The Root', flo
 const BEDS = { S_AmbFire: ['Cinder Works', 'Magma Chamber', 'Feast Hall'], S_AmbWater: ['Mire Cellar', 'Drowned Hall', 'Sunken Library', 'Sewer Junction', 'The Bathhouse', 'The Cistern', 'Glasshouse'],
   S_AmbMachine: ['Clockwork Hall', 'Pump Station', 'Meat Locker', 'The Warehouse', 'The Scrapyard', 'Apothecary', 'The Distillery', 'Deep Station'], S_AmbCave: ['Crystal Cavern', 'Fungal Grotto', 'Salt Mine', 'Webbed Den', 'The Hive'],
   S_AmbWind: ['Rime Vault', 'Null Chamber'] };
-export function bedOf(arena) { if (arena === N_ROOMS + 1) return 'S_AmbWind'; const T = THEMES[arena]; if (!T) return 'S_AmbStone'; for (const k of Object.keys(BEDS)) if (BEDS[k].includes(T.name)) return k; return 'S_AmbStone'; }
+export function bedOf(arena) { if (arena === N_ROOMS + 1) return 'S_AmbWind'; if (ARENAS[arena] && ARENAS[arena].dest) return ARENAS[arena].dest.bed; const T = THEMES[arena]; if (!T) return 'S_AmbStone'; for (const k of Object.keys(BEDS)) if (BEDS[k].includes(T.name)) return k; return 'S_AmbStone'; }
 const BOSS_NAMES = ['The Seal', 'The Bottom'];
 const up = (h, k) => { const r = Math.min(255, Math.round(((h >> 16) & 255) * k)), g = Math.min(255, Math.round(((h >> 8) & 255) * k)), b = Math.min(255, Math.round((h & 255) * k)); return (r << 16) | (g << 8) | b; };
 for (const T of THEMES) { T.floor = up(T.floor, 1.35); T.floor2 = up(T.floor2, 1.5); T.wall = up(T.wall, 1.3); T.roof = up(T.wall, 0.45); }
@@ -39,6 +40,7 @@ export const DEST_ARENAS = [];
 export const VILLAGE_IDX = N_ROOMS + 2;   // the village's chunk, after the rooms and the two boss arenas
 // Where things stand in a room, given which end you came in by (s = 1: in at the south, out at the north; -1 the other way).
 export function spots(A, s) {
+  if (A.spots) return A.spots;   // a destination's stations stand where it put them
   const [cx, cy] = A.c, hy = A.hy, hx = A.hx;
   return { spawn: [cx, cy - s * (hy - 320)], yaw: s > 0 ? Math.PI : 0, exit: [cx, cy + s * (hy - 110)], textYaw: s > 0 ? -90 : 90,
     box: [cx + Math.min(2300, (A.E || 1e9) - 450), cy + s * (hy - 170)], bench: [cx - 900, cy + s * (hy - 12)], benchYaw: s > 0 ? -90 : 90, chest: [cx + Math.min(760, (A.E || 1e9) - 1050), cy + s * (hy - 190)], chestYaw: s > 0 ? -90 : 90,
@@ -79,7 +81,7 @@ function roomPlan(i, hx, hy) {
 export function buildDescent(M) {
   const { Box, BoxRot, Glow, Cyl, Oct, Ball, ConeShape, Pyramid, Ring, Floor, Lamp, SpawnAt, AddZone, GM } = M;
   const rowsN = Math.ceil((N_ROOMS + 2) / COLS);
-  GM.navInit(-6400, -6400, (COLS - 1) * SP + 6400, (rowsN - 1) * SP + 6400, 100);
+  { const [dx0, dy0, dx1, dy1] = destBounds(); GM.navInit(Math.min(-6400, dx0), Math.min(-6400, dy0), Math.max((COLS - 1) * SP + 6400, dx1), Math.max((rowsN - 1) * SP + 6400, dy1), 100); }   // the rooms and every destination
   const brazier = (x, y, T, h = 150) => { Cyl(V(x, y, h / 2), 70, h, T.trim, true, true); Cyl(V(x, y, h + 8), 110, 16, T.wall, false, false); Glow(V(x, y, h + 34), V(60, 60, 44), T.glow, 2); Lamp(V(x, y, h + 90), { r: T.lamp[0], g: T.lamp[1], b: T.lamp[2] }, 2.2, 1500, false); };
   // ---- what makes each room its own place. Almost none of it collides: it is on the walls, hung from the roof, laid on
   // the floor or heaped in the corners, clear of the doors, the wall guns and the bench end of the room.
@@ -363,5 +365,8 @@ export function buildDescent(M) {
     buildVillage(M, vc[0], vc[1]);
     ARENAS[VI] = { c: vc, hx: VSIZE, hy: VSIZE, H: 1e6, zone, village: true, theme: 0, boss: false, plinths: [], spawns: 0 };
     M.world.solidify(VI); M.world.chunk = null; }
+  // the destinations, each in its own cell south of the rooms, each its own chunk after the village's
+  DEST_ARENAS.length = 0;
+  DEST_DEFS.forEach((D, d) => { const ai = VILLAGE_IDX + 1 + d; ARENAS[ai] = buildDest(M, GM, d, ai); DEST_ARENAS.push(ai); });
   const S0 = spots(ARENAS[0], 1); M.Spawn(V(S0.spawn[0], S0.spawn[1], 100));
 }

@@ -460,3 +460,51 @@
 - tests: dst/run.json plays all five rooms (kills everything each frame) and enters the raid: depths 1-15, horde
   100/140/181/221/262 solo, bosses only in 2 and 4, box + compressor + bench + ammo after each, raid at depth 17 stays
   in its fight. dg0 [55,[],[]]; wt clean.
+
+## (66) Destinations: the framework, and the first place, Bramble Farm
+- The first of the 20 destinations (65). Each is a real place, handmade, built and checked one at a time.
+- Framework:
+  - dest.js: DEST_DEFS (spacing DSP 20000; Bramble: hx 5400, hy 5800, H 2600, flip 1, ambient bed S_AmbWind, its own
+    air palette). buildDest builds the place inside M.at at its origin (zone group 'dest:key'), rings it with an
+    invisible Blocker fence and a nav-blocked band outside, turns its spots to world, sets A.dest {key, region, name,
+    flip, bed}, bossAt, beds and title, lays spawn marks on a staggered 900 grid (kept 1500 off the spawn, 900 off
+    the exit, 500 off the bench and the box), then solidifies (0 added at the farm: everything chunky has a body).
+  - dest_kit.js: S (a shape at a spot), body / round (fitted bodies; nav off for things you step past), lit,
+    patch / blot ground cover, path (a wavering dirt ribbon with edge stones; skip(x, y) keeps the stones off floors),
+    lineDist, clear(x, y, m) (a spot m clear of every ground-standing body built so far: for scattering).
+  - dest_props.js: the Vale's pieces (farmhouse, barn, silo, coop, cart shed, duck house, drystone walls, gate posts
+    and leaves, pump, churn, scarecrow, haystacks, hives, wheelbarrow, ladder, baskets, rail fences, raised beds,
+    sign, plough, furrows, apple trees, wheat fields, far trees, hedge lumps, Blight masses). Sizes snap to a few
+    variants (pick) so pieces instance.
+  - map_descent.js builds the destinations after the village (DEST_ARENAS); navInit covers their bounds. The run
+    takes the region's built destination for its room, else an old room stands in.
+  - world.js: SolidRot (a body with a full turn: roof slabs, a leaning ladder). Static sprites (lamp halos, decals)
+    are kept per chunk (staticRec, shownChunk): the farm's horizon no longer sparkles with other rooms' halos.
+  - sector.js: a destination's strain beds come from A.beds (each used once); no generic creep blotches there (they
+    read as stains on grass); hazard damage goes by depth.
+- Bramble Farm (the Vale, room 1): the lane comes in at the south gate past the sign; the packed-earth yard with the
+  well, pump, trough, cart and sacks; the farmhouse west of it (kitchen garden, woodpile, washing line, bench); the
+  great barn north of it with the track running through it door to door (hay down one aisle, stalls down the
+  other, lanterns); the silo at its shoulder; the pond with reeds, lilies, a rowboat and a duck house, the windmill
+  beyond; the pumpkin patch and vegetable beds east; the coop and its run; the cart shed; the orchard (ladder,
+  baskets, windfalls) south-west; haystacks and hives north-east; the round threshing floor at the north gate where
+  the stations come up. Drystone walls and a hawthorn hedge round it, a hedgerow across the south-east field with a
+  way through east of the coop run, the ploughed field beyond, wheat fields and the Wildwood's edge outside. The
+  Blight came up under the barn: a mass bursting through its floor, pale veins running out, toadstools along them,
+  the Vale strain's puffball beds in six places. Meadow tufts thicken along the walls and hedges.
+- Solid: buildings (walls, gables, roofs, chimney), walls, fences, every hedge bush (an eight-sided body per bush, as
+  wide as its leaves at chest height, on the walking grid), trees, rocks, stacks, hives, carts, crates, toadstool
+  clusters, the duck house. Only grass, reeds, flowers and the beds' greens let you through.
+- Checks: loose parts inside sculpted shapes 0 (apples hang at the canopy mesh's corners, where they always touch;
+  blossoms sit on the hedge skins); floating 0 of 857; invisible walls 0; clipping only into a piece's own bodies or
+  where things abut (stall fronts on the barn wall, the Blight through the barn's corner); walking grid 10022 of
+  10025 cells reachable (one corner cell), every spawn mark reachable; the horde reaches the player at 8 spots
+  (barn, behind the house, pond shore, threshing floor, coop run, orchard, patch, yard), none stuck (Spitters and
+  the Golden Truffle are left out of that count: they keep their distance by design). The place's own meshes:
+  220 draw calls, 927k triangles (the village: 336, 1.3M).
+- Fixed on the way: the hedgerow's way through opened onto the coop run's fence, so the walking grid had it shut and
+  the horde went round the hedge's end (moved east of the run; the bushes beside it are the small ones, set back);
+  the track's edge stones poked up through the barn's boards; tufts are kept clear of every body.
+- tests/dst: look.py (stills: top, oblique, eye level), scan.py + dscan.js + fscan.js (walk-through, invisible
+  walls, clipping, floating), shapes.py + shapescan.js (loose parts inside shapes), nav.json (reachability),
+  chase.json (horde pathing from 8 spots), perf.py (whole-frame cost), tri.json (the place's own meshes), run.json.
