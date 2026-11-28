@@ -963,3 +963,35 @@
 - Checks: loose parts 0, floating 0 of 416, clipping 0, invisible walls 0, walk-through 0. Grid 10290/10290; chase clean
   from 32 spots (Sporecallers holding their range; Rotcaps' detours through the maze traced to the player). 182 calls,
   526k triangles.
+
+## (85) The Crossroads Inn (Vale, room 1) built
+- `dest_inn.js` + `dest_props_inn.js`. The coaching inn where the Vale's two roads cross: the Thimblewick road south
+  to north and the old drove road west to east. You come up the Thimblewick road between its hedges, past the coach
+  that never came in (through the hedge and over on its side, its luggage in the grass, a wheel off it); the farrier's
+  (the forge open to the road, the tyring platform, wheels against the wall) and the wheelwright's shed before the
+  crossing, the tollhouse with its three-sided front and its gate swung back down the west road. The finger post at the
+  crossing points to Thimblewick, Millbrook, Bramble Farm and the Wildwood. On the north-east corner the Four Ways:
+  stone below, timber-framed and jettied above, red tiles, the taproom's great chimney stack up its gable; its sign
+  out over the road and its name over the carriage way. The taproom can be walked into (front doors, back doors to the
+  yard, a door off the carriage way): the bar with its pumps and the back bar of bottles and casks, the inglenook with
+  the fire still in and a settle each side, two round tables, the dart board and the slate. Through the carriage way
+  the stable yard: six stalls with split doors, the hay-loft door and its hoist, the cupola; the coach house with the
+  mail coach and a cart; the yard wall and its back gate. The Blight came up through the cellar: the flaps burst in
+  the yard and its heart beside them, toadstools up through the roof tiles, its threads out under the carriage way and
+  down all four roads. North the beer garden (the old oak and its ring bench, tables, the skittle alley); north-west
+  the green round the duck pond with its cottages, the pump and the pound; south-west the stubble with its stooks;
+  south-east the orchard. The way on: the Wildwood road north to the coaching halt and its milestone, where the
+  stations come up. The drove road is shut both ways: an elm down across it in the west, the carters' barricade in the
+  east. Smoke off the inn's chimneys, spores round the heart (`innAir`).
+- New pieces: inn and innTop (the upper floor, roof and ceilings apart, so views from above can take them off: look.py
+  hides `inroof`), barCounter, settle, pubTable, picnicTable, ringBench, innSign, stableBlock, coachHouse, stagecoach
+  (standing or wrecked on its side), luggage, cartWheel, tyringPlatform, milestone, fingerpost4, mountingBlock,
+  cellarFlaps, hurdle, bale, muckHeap, skittleAlley, tollhouse. Millbrook's `courses`, `coursesY` and `tileRoof` are
+  exported for them.
+- Bodies: the taproom's walls in pieces round its doors, its ceiling and the floor above it off the walking grid; the
+  bar's counter and back bar apart (a gnome can get behind the bar; the horde can't); the coach's pole on its own body;
+  the reeds round the pond solid. The slivers shut in between the edge, the hedges and the two road blocks are taken off
+  the walking grid.
+- Checks: loose parts 0, floating 0 of 951, clipping 0, invisible walls 0, walk-through 0. Grid 9398/9398; chase clean
+  from 28 spots, the taproom's four included (Rotcaps' and Puffballs' detours round the hedges traced to the player).
+  221 calls, 843k triangles (Millbrook 671k, Bramble 918k).

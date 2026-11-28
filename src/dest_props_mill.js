@@ -17,15 +17,15 @@ const pick = (a, i) => a[((i % a.length) + a.length) % a.length];
 
 // coursed stone over a rectangle face: blocks in running bond along X from x0 to x1 (at y, t thick, facing ±Y), z0 to
 // z1, leaving the openings [xa, xb, za, zb] clear. For walls drawn inside a building's shape.
-const courses = (G, x0, x1, y, t, z0, z1, holes = [], co = 38, bl = 76, cols = MB.stone, seed = 0) => {
+export const courses = (G, x0, x1, y, t, z0, z1, holes = [], co = 38, bl = 76, cols = MB.stone, seed = 0) => {
   for (let k = 0, z = z0; z < z1 - 1; k++, z += co) { const zt = Math.min(z1, z + co), zm = (z + zt) / 2, cuts = holes.filter(([, , za, zb]) => zm > za && zm < zb).sort((a, b) => a[0] - b[0]), solid = []; let p = x0;
     for (const [a, b] of cuts) { if (a > p) solid.push([p, Math.min(a, x1)]); p = Math.max(p, b); } if (p < x1) solid.push([p, x1]);
     for (const [i0, i1] of solid) for (let s = x0 - (k % 2 ? bl / 2 : 0); s < i1; s += bl) { const a = Math.max(i0, s), b = Math.min(i1, s + bl); if (b - a < 5) continue; G.box((a + b) / 2, y, (z + zt) / 2, (b - a) / 2 - 0.6, t / 2, (zt - z) / 2 - 0.5, k === 0 ? MB.stoneD : pick(cols, k * 3 + Math.round(a / bl) + seed)); } } };
 // the same along Y (a wall at x running from y0 to y1)
-const coursesY = (G, y0, y1, x, t, z0, z1, holes = [], co = 38, bl = 76, cols = MB.stone, seed = 0) => { const b = G.n; courses(G, y0, y1, 0, t, z0, z1, holes, co, bl, cols, seed); G.map(b, ([px, py, pz]) => [x - py, px, pz]); };
+export const coursesY = (G, y0, y1, x, t, z0, z1, holes = [], co = 38, bl = 76, cols = MB.stone, seed = 0) => { const b = G.n; courses(G, y0, y1, 0, t, z0, z1, holes, co, bl, cols, seed); G.map(b, ([px, py, pz]) => [x - py, px, pz]); };
 // a pitched roof of tiles over a box: ridge along X, eaves at ze, ridge at zr, half-widths hw (to the eaves' edge,
 // over the walls by ov) and hd along X; tiles in rows, the ridge capped
-const tileRoof = (G, hl, hw, ze, zr, seed = 0, cols = MB.tile) => {
+export const tileRoof = (G, hl, hw, ze, zr, seed = 0, cols = MB.tile) => {
   const run = hw, rise = zr - ze, L = Math.hypot(run, rise), ang = Math.atan2(rise, run), rows = Math.max(3, Math.round(L / 34));
   for (const sd of [-1, 1]) for (let i = 0; i < rows; i++) { const t = (i + 0.5) / rows, y = sd * run * (1 - t), z = ze + rise * t, b = G.n;
     G.box(0, 0, 0, hl, L / rows / 2 + 1.5, 5, pick(cols, i + (sd > 0 ? 1 : 0) + seed)); G.place(b, { y, z: z + 2, roll: -sd * deg(ang) }); }

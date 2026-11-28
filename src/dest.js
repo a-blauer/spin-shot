@@ -26,6 +26,7 @@ import { buildLake, lakeAir } from './dest_lake.js';
 import { buildBrew, brewAir } from './dest_brew.js';
 import { buildHold, holdAir } from './dest_hold.js';
 import { buildGarden, gardenAir } from './dest_garden.js';
+import { buildInn, innAir } from './dest_inn.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -63,6 +64,8 @@ export const DEST_DEFS = [
     air: { sky: 0x08080a, fog: 0x2a221e, fogStart: 1500, fogDensity: 0.00012, fogMax: 0.86, sun: [0.22, -0.28, 0.93], lit: [1.02, 0.9, 0.78, 1.0], shadow: [0.44, 0.44, 0.54, 0.84], sprite: [1.0, 0.92, 0.84] } },
   { key: 'garden', region: 4, name: 'The Weeping Garden', hx: 5400, hy: 5800, H: 2600, flip: 1, bed: 'S_AmbWind', build: buildGarden, ambient: gardenAir,
     air: { sky: 0x7c7a88, fog: 0x8a8892, fogStart: 1700, fogDensity: 0.0001, fogMax: 0.84, sun: [-0.5, -0.35, 0.42], lit: [0.97, 0.94, 0.98, 1.0], shadow: [0.44, 0.44, 0.56, 0.84], sprite: [0.97, 0.95, 1.0] } },
+  { key: 'inn', region: 0, name: 'The Crossroads Inn', hx: 5400, hy: 5800, H: 2400, flip: 1, bed: 'S_AmbWind', build: buildInn, ambient: innAir,
+    air: { sky: 0x86a0c6, fog: 0xd8bc90, fogStart: 2300, fogDensity: 0.00007, fogMax: 0.78, sun: [0.55, -0.35, 0.36], lit: [1.1, 0.95, 0.8, 1.02], shadow: [0.44, 0.45, 0.6, 0.82], sprite: [1.04, 0.97, 0.88] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges
