@@ -701,3 +701,21 @@
 - Hedge strip and corners shut on the walking grid (no pockets behind the hedge).
 - Checks: loose parts 0 (29476 shapes), floating 0 of 1004, clipping 0, invisible walls 0; walk-through only grass
   tufts and the garden flowers (soft plants). Grid 10398/10398; chase clean from 20 spots. 191 calls, 746k triangles.
+
+## (76) Bogwater Fen (The Wildwood, room 2) built
+- `dest_fen.js` + `dest_props_fen.js`. Reed and black water past the old woods. The old causeway (gravel, stakes along
+  it) comes in at the fen's board (BOGWATER FEN) and runs north over two dykes on plank bridges. The eel-catcher's hut
+  on its stilts at the West Mere (ladder to its porch, jetty, two punts, eel traps, nets drying, his fire); the boss's
+  ground is the open fen east of it; the drainage windpump on the south dyke (tarred smock, white cap, lattice sails,
+  fantail, scoop wheel's housing in the water); the peat cuttings beyond (black pits, stacks drying, barrow, lean-to);
+  the duck decoy's pond and netted pipe with its reed screens (north-west); the Big Mere with the drowned chapel on its
+  island (roofless, broken walls, west door and east window under their arches): the Mirecap came up through its floor,
+  pale threads out over the water. Pollard willows line the dykes; alder carr thick round the edge. The way on is the
+  staithe, a stone landing with mooring posts. Will-o'-the-wisps drift over the meres (`fenAir`).
+- All the water is shallow: wade it anywhere (meres, dykes, pits are drawn, not walled). The decoy pipe is shut on the
+  walking grid (nowhere to go between its hoops).
+- New pieces: pollardWillow, alder, fenReeds (lighter than the village reeds), windpump, stiltHut, punt, eelTrap,
+  netRack, peatStack, peatBarrow, decoyPipe (+ decoyHoops), reedScreen, chapelRuin (+ chapelWalls).
+- Checks: loose parts 0, floating 0 of 1300, clipping 0, invisible walls 0; walk-through only reeds and sedge (soft
+  plants). Grid 12685/12685; chase clean from 16 spots; both bosses reach every corner in 3-14 s. 146 calls, 638k
+  triangles.

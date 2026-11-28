@@ -17,6 +17,7 @@ import { buildDepot } from './dest_depot.js';
 import { buildMine } from './dest_mine.js';
 import { buildSporefall, sporefallAir } from './dest_sporefall.js';
 import { buildOrchard, orchardAir } from './dest_orchard.js';
+import { buildFen, fenAir } from './dest_fen.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -34,6 +35,8 @@ export const DEST_DEFS = [
     air: { sky: 0x07080a, fog: 0x2c2418, fogStart: 1100, fogDensity: 0.00016, fogMax: 0.88, sun: [0.22, -0.28, 0.93], lit: [1.0, 0.9, 0.78, 1.0], shadow: [0.46, 0.44, 0.54, 0.84], sprite: [1.0, 0.92, 0.84] } },
   { key: 'orchard', region: 0, name: 'Cider Orchard', hx: 5400, hy: 5800, H: 2400, flip: 1, bed: 'S_AmbWind', build: buildOrchard, ambient: orchardAir,
     air: { sky: 0x7a9ac0, fog: 0xd8c08a, fogStart: 2400, fogDensity: 0.00007, fogMax: 0.78, sun: [-0.55, -0.4, 0.5], lit: [1.08, 0.98, 0.82, 1.04], shadow: [0.46, 0.46, 0.6, 0.82], sprite: [1.04, 0.98, 0.9] } },
+  { key: 'fen', region: 1, name: 'Bogwater Fen', hx: 5600, hy: 6000, H: 2400, flip: 1, bed: 'S_AmbWater', build: buildFen, ambient: fenAir,
+    air: { sky: 0x9aa8a8, fog: 0xb4bcae, fogStart: 1300, fogDensity: 0.00011, fogMax: 0.86, sun: [-0.4, -0.5, 0.42], lit: [0.96, 1.0, 0.94, 1.0], shadow: [0.4, 0.48, 0.5, 0.82], sprite: [0.96, 1.0, 0.96] } },
   { key: 'sporefall', region: 4, name: 'Sporefall Wood', hx: 5600, hy: 6000, H: 2800, flip: 1, bed: 'S_AmbWind', build: buildSporefall, ambient: sporefallAir,
     air: { sky: 0x8c8478, fog: 0x8a8274, fogStart: 1500, fogDensity: 0.0001, fogMax: 0.85, sun: [-0.45, -0.3, 0.45], lit: [0.98, 0.9, 0.8, 0.98], shadow: [0.42, 0.4, 0.44, 0.82], sprite: [0.98, 0.94, 0.88] } },
 ];
