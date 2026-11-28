@@ -765,3 +765,39 @@
   scanner artifact: its door's many pieces pull the probes' centre; rays from all round hit its body). Grid
   8378/8378; chase clean from 16 spots (only Sporecallers holding their range); both bosses (broad ones included)
   reach every spot. 174 calls, 193k triangles.
+
+## (79) The Withered Abbey (The Rot, room 5) built
+- `dest_abbey.js` + `dest_props_abbey.js`. The gnomes' old abbey on the edge of the Root, fired by the brothers to hold
+  the Rot back; the roofs burned, the tower fell into the crossing and the Char came back through the ashes. Its heart
+  grows out of the tower's rubble under the one arch of the tower still standing, the bell fallen beside it. The
+  pilgrims' road comes in at the south through the gatehouse (portcullis jammed half up) into the outer court: the
+  founder's statue (his hood broken off at his feet), the guest house with its chimney still standing, the fishponds
+  gone to black sludge. North of the court the cloister (round arches on paired colonnettes over a low wall, an opening
+  in the middle of each side, the south arcade half fallen; a dead garth, its well and a dead pear tree), the refectory
+  with its tables burnt to the trestles, the west range, the chapter house (three arches from the walk, its stone
+  bench, the abbots' slabs), the slype; the infirmary (burnt beds, Y-tracery in its chapel window) and the physic
+  garden's dead herb beds and sundial. The church: the west front with its great window (tracery whole), the nave's
+  north arcade standing to its clerestory and the south one fallen to stumps and drums, roof timbers down across it
+  (one leaning on a pier), the transepts, the choir with its altar, the founder's tomb and the east window's broken
+  tracery. Graves round it (wooden crosses, some burnt or leaning, a few stones, the tall ringed cross, abbots'
+  tombs), the dead orchard west, the dovecote north-east (open on its south side, nest-holes inside), the precinct
+  wall round it all, broken through twice south of the court. The way on: the flagged floor at the north end and the
+  north gate. Ash drifts down all the time; embers rise off the heart (`abbeyAir`).
+- Walls are built course by course (`ruinWall`): running bond, ragged ruined tops, gables, string courses, coping,
+  buttresses; openings pointed, round, square-headed (colonnettes or a pier standing in them) or broken through as a
+  V; voussoirs round every head. Every block stands on the course under it (or on a pier or colonnettes), so nothing
+  hangs where a breach took what held it. The bodies follow the blocks exactly (columns between every block edge),
+  so a 360 door is three cells wide on the walking grid and broad creatures use it.
+- New pieces: ruinWall/wallBodies, ringWall/ringBodies (the dovecote), pier (clustered, whole or broken),
+  fallenDrums, rubble, tracery (3 lights and a ring, or 2 lights), tombChest (an effigy with its hood and beard),
+  deadTree, stoneCross, pondKerb, bell (lying on its lip, its clapper inside), charBeam (lying or leaning), well,
+  herbBed, graveCross, highAltar, founder, portcullis, flags (a floor of flagstones, some lifted), sundial, deadTuft,
+  ledge, graveSlab, cot.
+- Creatures do not step over low bodies reliably, so everything low that has a body shuts its cells on the grid
+  (beams, benches, burnt beds, the altar's steps), the ponds' kerbs have none (wadeable), and Char growths stay out of
+  doorways. Things thinner than a cell (grave crosses, headstones, reeds, the warning board) shut their cells with a
+  band so no creature is sent through them.
+- scan.py now checks clipping for whichever destination DEST names (it used Bramble's lines before) and knows the
+  wallX/wallY helpers.
+- Checks: loose parts 0, floating 0 of 903, clipping 0, invisible walls 0, walk-through 0. Grid 10700/10700; chase
+  clean from 16 spots. 270 calls, 600k triangles.

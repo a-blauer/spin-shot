@@ -4,10 +4,16 @@ import json, os, subprocess, collections, re, sys
 room = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 vjs = open('dst/dscan.js').read(); fjs = open('dst/fscan.js').read()
 src0 = open('/tmp/fldist/game.js').read().split('\n')
-bv = next(i for i, l in enumerate(src0) if 'function buildBramble(' in l)
+BN = 'buildBramble'
+if os.environ.get('DEST'):
+    import re as _re
+    for l in src0:
+        mm = _re.search(r"key: '" + os.environ['DEST'] + r"'.*?build: (\w+)", l)
+        if mm: BN = mm.group(1); break
+bv = next(i for i, l in enumerate(src0) if 'function ' + BN + '(' in l)
 LO = next(i for i in range(bv, 0, -1) if src0[i].lstrip().startswith('// src/')) + 1
 HI = next(i for i in range(bv, len(src0)) if src0[i].lstrip().startswith('// src/')) + 1
-HELP = sorted({i + 1 + k for i in range(LO, HI) if any(p in src0[i] for p in ('SOL = (', 'wall = (x0', 'roofSolid = (', 'hedge = (', 'close = (', 'fence = (', 'field = (')) for k in range(4)})
+HELP = sorted({i + 1 + k for i in range(LO, HI) if any(p in src0[i] for p in ('SOL = (', 'wall = (x0', 'wallX = (', 'wallY = (', 'roofSolid = (', 'hedge = (', 'close = (', 'fence = (', 'field = (')) for k in range(4)})
 enter = f"window.__HELP={HELP};const g=__dmh,D=g.descent;g.godMode=true;g.tip=()=>{{}};g.phaseTimer=0;__sim(30);if(D.room!=={room}){{D.enter({room});__sim(5);}}g.toSpawn=0;g.spawned=0;for(const E of g.enemies){{E.dead=true;E.remove=true;}}__sim(10);window.__LO={LO};window.__HI={HI};'a'"
 json.dump({"w": 480, "h": 270, "query": "&map=6&scan=1&stack=1" + (("&dest=" + os.environ["DEST"]) if os.environ.get("DEST") else ""), "steps": [{"js": enter}, {"wait": 300}, {"js": vjs}, {"js": fjs}]}, open('/tmp/dscan.json', 'w'))
 o = subprocess.run(['python3', 'shot_fl.py', '/tmp/dscan.json'], capture_output=True, text=True, timeout=1500).stdout
