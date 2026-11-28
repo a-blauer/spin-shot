@@ -679,3 +679,25 @@
   pond's reeds and the garden's dead stalks (soft plants, as before) and the scanner's long-object blind spot on one
   garden fence (raycasts stop at it from both sides). Grid 11901/11901 reachable; chase clean from 24 spots (only
   Sporecallers keep their range, by design). 201 calls, 636k triangles.
+
+## (75) Cider Orchard (The Vale, room 1) built
+- `dest_orchard.js` + `dest_props_vale.js`. The cider makers' orchard below Thimblewick, late summer, the crop on the
+  trees. A hedge all round, the lane in at the south gate (sign CIDER ORCHARD), the keeper's thatched cottage (well,
+  flower beds, washing, chopping block) and three hive benches by it; the track up the middle between four plots of
+  pruned apple trees in rows (red or green-gold crop, windfalls under some, ladders against a few, baskets); the
+  dovecote in the west; the cider yard in the east: the twin-screw press under its open tiled shed (cheese of straw and
+  pomace, screws, capstans, the tub under the spout), crates of apples, the horse mill (stone chase, runner wheel,
+  sweep), the barrel store (two racks), the cooper's corner (stave stacks, a barrel raised over its cresset, lit),
+  the pomace heap. The old orchard in the north-west with the wassail tree (ribbons, four lanterns lit, mistletoe):
+  the Toadstool heaves out under it, pale threads and red caps down the rows. Way on: a sorting yard of setts by the
+  north gate, crates stacked along it, a cart of barrels. Bees about the hives and wasps at the pomace (`orchardAir`).
+- New pieces: orchardTree (apples hung at the leaf masses' own corners so none floats), windfalls, appleCrate,
+  barrel, barrelRack, ciderPress, pressShed (middle truss optional), horseMill, staveStack, barrelRaising, dovecote,
+  wassailTree (+ wassailLamps), pomaceHeap, orchardCart.
+- Shared fixes: blightMass's mats sat a hair above the ground (now just under it) and the toadstools on and round it
+  now run their stalks down into the ground (they could stand on air between mats). shapescan.js: anything reaching
+  the prop's foot (z 0) or sunk below it counts as standing on the ground. Rescanned: farm, woods, depot, mine and
+  Sporefall Wood all 0 loose.
+- Hedge strip and corners shut on the walking grid (no pockets behind the hedge).
+- Checks: loose parts 0 (29476 shapes), floating 0 of 1004, clipping 0, invisible walls 0; walk-through only grass
+  tufts and the garden flowers (soft plants). Grid 10398/10398; chase clean from 20 spots. 191 calls, 746k triangles.

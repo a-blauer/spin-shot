@@ -42,7 +42,7 @@
     C.forEach((c, ci) => { const step = Math.max(1, Math.floor(c.t.length / 900));
       for (let k = 0; k < c.t.length; k += step) { const t = c.t[k], [a, b, cc] = tri(t); for (const [p, q] of [[a, b], [b, cc], [cc, a]]) for (const cj of touch(ci, p, q)) { const A1 = cf(ci), B1 = cf(cj); if (A1 !== B1) cp[A1] = B1; } } });
     let zmin = 1e9; for (const c of C) zmin = Math.min(zmin, c.min[1]);   // three's Y is up
-    const roots = new Set(); C.forEach((c, ci) => { if (c.min[1] <= zmin + EPS) roots.add(cf(ci)); });
+    const roots = new Set(); C.forEach((c, ci) => { if (c.min[1] <= Math.max(zmin, 0) + EPS) roots.add(cf(ci)); });   // anything down to the prop's foot (z = 0) or sunk below it stands on the ground
     const loose = []; C.forEach((c, ci) => { if (!roots.has(cf(ci))) loose.push([Math.round((c.min[0] + c.max[0]) / 2), Math.round((c.min[2] + c.max[2]) / 2), Math.round(c.min[1]), Math.round(c.max[0] - c.min[0]), Math.round(c.max[2] - c.min[2]), Math.round(c.max[1] - c.min[1])]); });   // x, y (UE), z, sizes
     if (loose.length) out.push([G.userData.shape || ('id' + id), C.length, loose.length, loose.slice(0, 8)]);
   }
