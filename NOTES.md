@@ -933,3 +933,33 @@
   Unblinking, Reaper, Grandfather Toad, Rotwing, Stump Titan, Leviathan, Devourer, Nameless) reaches the player from the
   nave at the gate hall, the forge, the vault, the delving, the road and the stores; the slowest (the Toad and the
   Devourer, with their pauses) in 35-45 s to the farthest. 241 calls, 545k triangles.
+
+## (84) The Weeping Garden (The Rot, room 5) built
+- `dest_garden.js` + `dest_props_garden.js`. The garden the gnomes made for their dead of the Rot, walled in old brick,
+  marble mourners along its walks. The Char came up under the Weeping Tree at its heart and the gardeners burned what
+  they could to stop it; it has the garden now. You come in at the south gate (shut behind you) by the lodge, up the
+  avenue of black weeping cherries and gas lamps to the lower garden: the long canal between two fountains, black water
+  weeping from their bowls, the four parterres (two burnt), mourners at the canal's corners. The cross walk runs west
+  into the maze (hedges on a seven by seven grid, half its dead ends opened, its north-east corner burnt, a gravel square
+  three cells wide at its heart: a mourner, two benches, four urns) and east to the glasshouse's side door (its glass
+  half gone, dead palms, the old basin, the Char's caps grown huge in its heat; a door in each end and each side, all
+  standing open). South-west the rose garden: four beds round the sundial, rose arches over the walks between them, the
+  roses gone over in one bed, burnt to stubs in two, the Char come up in the fourth. South-east the gardeners' yard: the
+  bothy, potting sheds, potting bench, frames, compost bins, hives, barrow, butts. Up through the balustrade the great
+  lawn, the Weeping Tree and its curtains of black strands, the Char's heart in the cleft at its foot, mourners round it
+  on the ring walk; the grotto west (black water down its back into a pool), the temple east with a mourner in it.
+  North the pergola walk, the yews (some burnt), the lily pond, the dovecote, and the north gate: the way on, toward the
+  Root. The Char's masses, caps, puffballs and veins out from the heart; ash and embers on the air (`gardenAir`).
+- New pieces: wallPier, gatePier, ironGates, weepingCherry, weepingTree, hedge, urn, mourner, fountain, balustrade,
+  glasshouse, deadPalm, grotto, pergola, temple, deadBed, coldFrame, compostBins, pottingBench, topiary, roseBush,
+  roseArch.
+- Creatures (all maps): one that can see you within 800 goes straight at you only if the line at knee height is clear
+  too (`kneeClear`, rechecked every quarter second); otherwise it takes the flow round. A basin, trough or low wall that
+  the eye sees over no longer has them pushing into it until they hop. Bosses unchanged.
+- Bodies: the maze's heart is three cells square (a mourner's plinth filled the one-cell heart and cut the maze in two);
+  the glasshouse's doors swing square to the wall and are on the walking grid (at 50 degrees the leaves narrowed the end
+  doors to 143 and the Puffballs stuck); the yard's beds moved out of the glasshouse's south door; every rose bush has a
+  round body, the burnt ones at their stubs' height.
+- Checks: loose parts 0, floating 0 of 416, clipping 0, invisible walls 0, walk-through 0. Grid 10290/10290; chase clean
+  from 32 spots (Sporecallers holding their range; Rotcaps' detours through the maze traced to the player). 182 calls,
+  526k triangles.

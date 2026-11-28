@@ -278,6 +278,13 @@ export class Enemy {
   canSee(where) {
     return this.game.phys.lineOfSight(new THREE.Vector3(this.pos.x, this.pos.y + 40, this.pos.z), where);
   }
+  // the line to the player at knee height is clear too: a basin, a trough or a low wall is seen over but not walked
+  // through, so a creature that went straight at you would push into it; it takes the flow round instead
+  kneeClear(where) {
+    const G = this.game; if (G.time < (this.kcT || 0)) return this.kcOk;
+    this.kcT = G.time + 0.25; const a = this.feet(); a.y += 30;
+    return (this.kcOk = G.phys.lineOfSight(a, new THREE.Vector3(where.x, where.y - 60, where.z)));
+  }
 
   // ------------------------------------------------------------------ tick
   // the body: sculpted (the Blight) or raised from painted art; its strain, its colours, and the hit shape it gives
@@ -427,6 +434,7 @@ export class Enemy {
     }
     let desired = new THREE.Vector3(), speedScale = 1;
     const los = dist < 2200 ? this.canSee(Pl) : false;
+    const straight = los && dist < 800 && this.kneeClear(Pl);   // straight at you only when nothing low is in the way either
     const flow = (flee = false) => G.flowDirection(Me, flee, this.wide);
     traitTick(this, dt, { P, Pl, To, dist, los });
     switch (this.ai) {
@@ -489,7 +497,7 @@ export class Enemy {
           this.lungeT = 0.4;
           return;
         }
-        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
+        desired = straight && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Screamer': {
@@ -499,7 +507,7 @@ export class Enemy {
           G.audio.playAt('S_Screech', Me, 1, 1, 0.1);
           for (const E of G.enemies) if (!E.dead && E.pos.distanceToSquared(Me) < 700 * 700) E.frenzyT = Math.max(E.frenzyT, 5);
         }
-        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
+        desired = straight && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Burrower': {
@@ -509,15 +517,15 @@ export class Enemy {
           this.stop();
           return;
         }
-        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
+        desired = straight && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       case 'Bloater': {
-        desired = los && dist < 800 && Math.abs(To.y) < 260 ? safeN2(To) : flow();
+        desired = straight && Math.abs(To.y) < 260 ? safeN2(To) : flow();
         break;
       }
       default:
-        desired = los && dist < 800 && Math.abs(To.y) < 200 ? safeN2(To) : flow();
+        desired = straight && Math.abs(To.y) < 200 ? safeN2(To) : flow();
         break;
     }
     [desired, speedScale] = traitMove(this, dt, { P, To, dist, los }, desired, speedScale);
