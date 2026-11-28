@@ -719,3 +719,26 @@
 - Checks: loose parts 0, floating 0 of 1300, clipping 0, invisible walls 0; walk-through only reeds and sedge (soft
   plants). Grid 12685/12685; chase clean from 16 spots; both bosses reach every corner in 3-14 s. 146 calls, 638k
   triangles.
+
+## (77) Market Town (The Works, room 3) built
+- `dest_town.js` + `dest_props_town.js`. The town the works sell their goods in. Main Street comes up from the south
+  between terraces of houses and shops (brick, painted render, timber frame; slate and tile; shopfronts with fascias,
+  striped awnings, a key, a boot, a loaf or a kettle hung over some doors), across Mill Lane, into the Market Square:
+  great flags, the market hall on its piers, stalls in rows with their goods out, the pump and trough, the bandstand,
+  gas lamps round it, and the town hall on the north side under its clock. The Rustcap came up through the flags in
+  the middle of the market and burst two stalls; its threads run out over the square and up the street, caps along
+  them. Church Street runs north to the church in its yard (headstones, yews) and the vicarage; the cattle market (pens,
+  the auctioneer's office, the weighbridge) lies east of the square; the gasworks south-east (holder, retort house and
+  its stack, coal); the allotments north-east; back gardens behind every terrace, reached by alleys. The way on is the
+  little square at the top of the town past the town gardens. Motes of the Rustcap drift down the streets (`townAir`).
+- Houses close up along a terrace with nothing past their party walls; the ends of each row get side windows and
+  quoins. The walls, both roof slopes and the chimney of every house are solid.
+- Pen rails are thinner than a walking-grid cell, so the cells either side of each rail are shut (a rail falling
+  between cell middles had left a gap the creatures tried to walk through). The bandstand has no rail, and the wrecked
+  stalls lie low (step over), so nothing in the square pins a creature or turns a broad one (a Puffball) away.
+- New pieces: townHouse (+ HS, the heights for bodies), marketStall, stallWreck, marketHall, townHall, bandstand,
+  gasLamp, pillarBox, parkBench, townBoard, gasholder, stack, church, headstone, coalHeap, penRail, bedPlants (a light
+  planting for raised beds).
+- Checks: loose parts 0, floating 0 of 774, clipping 0, invisible walls 0; walk-through only grass tufts and one wrecked
+  stall's canvas. Grid 7830/7830; chase clean from 40 spots (a slow walker taking the long way round a terrace showed
+  as stuck twice; traced: it was walking to an alley). 199 calls, 608k triangles.
