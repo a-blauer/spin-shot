@@ -42,5 +42,29 @@ export function destKit(M, seed0 = 1, O = null) {
   // is not in the way.
   const clear = (x, y, m = 20) => { const L = M.world.scanCol || [], ch = M.world.chunk, wx = (O ? O.cx : 0) + x, wz = (O ? O.cy : 0) + y;
     for (const c of L) { if (c.ch !== ch) continue; const b = c.b; if (b.min.y > 60 || b.max.y < 6) continue; if (wx > b.min.x - m && wx < b.max.x + m && wz > b.min.z - m && wz < b.max.z + m) return false; } return true; };
-  return { S, body, round, lit, patch, blot, path, rnd, rr, lineDist, clear, Box, Cyl, Glow, Lamp, Shape, Solid };
+  // Lay out many solid things (trees, bushes) without sealing off any pocket of open ground. items: [{ x, y, half }],
+  // each blocking the walking grid over a square of its half size (and the grid's own margin, 40). Every open cell must
+  // stay reachable from start; while one is not, the planned thing that walls its pocket off from the rest (or, failing
+  // that, any that touches the pocket) is left out. Works on the walking grid as it stands, so everything else is built
+  // first. Returns the items kept, in order.
+  const plan = (items, start) => {
+    const Cs = 100, hx = O.hx, hy = O.hy, nx = Math.round((hx * 2) / Cs), ny = Math.round((hy * 2) / Cs), N = nx * ny;
+    const base = new Uint8Array(N); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const [ix, iy] = O.GM.cellOf(O.cx - hx + Cs * (i + 0.5), O.cy - hy + Cs * (j + 0.5)); base[j * nx + i] = O.GM.navFree(ix, iy) ? 1 : 0; }
+    const cover = items.map((o) => { const out = [], r = o.half + 40; for (let j = Math.max(0, Math.floor((o.y - r + hy) / Cs)); j <= Math.min(ny - 1, Math.floor((o.y + r + hy) / Cs)); j++) for (let i = Math.max(0, Math.floor((o.x - r + hx) / Cs)); i <= Math.min(nx - 1, Math.floor((o.x + r + hx) / Cs)); i++) { const x = -hx + Cs * (i + 0.5), y = -hy + Cs * (j + 0.5); if (Math.abs(x - o.x) <= r && Math.abs(y - o.y) <= r) out.push(j * nx + i); } return out; });
+    const nb = (c) => { const i = c % nx, j = (c - i) / nx, r = []; if (i > 0) r.push(c - 1); if (i < nx - 1) r.push(c + 1); if (j > 0) r.push(c - nx); if (j < ny - 1) r.push(c + nx); return r; };
+    const keep = items.map(() => true), s0 = Math.floor((start[1] + hy) / Cs) * nx + Math.floor((start[0] + hx) / Cs);
+    for (let iter = 0; iter < 600; iter++) {
+      const blk = new Uint8Array(N); items.forEach((o, k) => { if (keep[k]) for (const c of cover[k]) blk[c] = 1; });
+      const seen = new Uint8Array(N), q = [s0]; seen[s0] = 1; while (q.length) { const c = q.pop(); for (const d of nb(c)) if (!seen[d] && base[d] && !blk[d]) { seen[d] = 1; q.push(d); } }
+      let pocket = -1; for (let c = 0; c < N; c++) if (base[c] && !blk[c] && !seen[c]) { pocket = c; break; }
+      if (pocket < 0) break;
+      const P = new Uint8Array(N), pq = [pocket]; P[pocket] = 1; while (pq.length) { const c = pq.pop(); for (const d of nb(c)) if (!P[d] && base[d] && !blk[d]) { P[d] = 1; pq.push(d); } }
+      let best = -1, both = false;
+      items.forEach((o, k) => { if (!keep[k] || both) return; let tp = false, tr = false; for (const c of cover[k]) for (const d of nb(c)) { if (P[d]) tp = true; if (seen[d]) tr = true; } if (tp && (tr || best < 0)) { best = k; both = tr; } });
+      if (best < 0) { for (let c = 0; c < N; c++) if (P[c]) base[c] = 0; continue; }   // shut in by the place itself: the builder's to open
+      keep[best] = false;
+    }
+    return items.filter((o, k) => keep[k]);
+  };
+  return { S, body, round, lit, patch, blot, path, rnd, rr, lineDist, clear, plan, Box, Cyl, Glow, Lamp, Shape, Solid };
 }

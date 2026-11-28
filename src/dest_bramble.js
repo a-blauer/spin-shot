@@ -257,9 +257,9 @@ export function buildBramble(M, O) {
   const beds = [[3000, 950], [-900, 2900], [-2900, -3500], [-2300, 2700], [1800, 3600], [3900, 2500]];
   return {
     spots: { spawn: [0, -5250], yaw: Math.PI, exit: [0, 5300], textYaw: -90, ammo: [650, -5250], ammoYaw: 90,
-      // on the threshing floor: the box at its north side with the way on behind it, the workbench and the compressor
-      // either side of the floor turned in towards it and towards you as you come up from the barn
-      bench: [-660, 4620], benchYaw: -25, box: [0, 4900], chest: [0, 4900], chestYaw: -90, press: [660, 4620], pressYaw: -155 },
+      // on the threshing floor, the way up the middle to the way on left clear: the workbench and the compressor side by
+      // side on its west side, facing in; the box across from them on the east side, facing in
+      bench: [-700, 4830], benchYaw: 0, box: [700, 4600], chest: [700, 4600], chestYaw: 180, press: [-700, 4330], pressYaw: 0 },
     keep: [[BR.floor[0], BR.floor[1], 900]],
     beds,
   };

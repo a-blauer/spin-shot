@@ -45,9 +45,9 @@ export function buildOakwoods(M, O) {
   // ---- the ground: moss and leaf litter under the trees, grass in the glades, bare earth where people work
   Box(V(0, 0, -60), V(hx * 2 + 24000, hy * 2 + 24000, 120), 0x48662e, true, false);
   for (const [x, y, d, c] of [[-3600, -4600, 2600, 0x56703a], [3800, -1400, 2400, 0x4e6a32], [-4200, 3200, 2600, 0x52703a], [1800, 600, 2000, 0x5a7438], [3600, 4600, 2200, 0x4e6c30], [-1400, -2600, 1800, 0x5a5a36], [4200, -4800, 1800, 0x5e5a38]]) patch(x, y, d, c);
-  for (const [x, y, w, d, c] of [[0, 3900, 3800, 3000, 0x66883a], [0, 4900, 2200, 1500, 0x6a8a3c], [OW.circle[0], OW.circle[1], 2000, 2000, 0x62843a], [0, -5300, 1800, 1400, 0x5e7e38]]) blot(x, y, w, d, c, 0);
-  for (const [x, y, w, d, yw] of [[OW.camp[0], OW.camp[1], 2200, 1700, 15], [OW.char[0], OW.char[1], 1800, 1500, -10], [OW.lodge[0] + 300, OW.lodge[1], 1600, 1500, 0]]) blot(x, y, w, d, 0x6a5a3e, yw);
-  for (let i = 0; i < 40; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300); if (Math.hypot((x - OW.glade[0]) / 1900, (y - OW.glade[1]) / 1500) < 1) continue; blot(x, y, rr(300, 700), rr(240, 500), pick([0x6a5a3a, 0x5e5034, 0x725e3a]), rr(0, 180)); }
+  for (const [x, y, d, c] of [[0, 3900, 3600, 0x56783a], [0, 3900, 3000, 0x5e8038], [-200, 4100, 2300, 0x648a3c], [0, 4950, 2100, 0x5e8038], [OW.circle[0], OW.circle[1], 1800, 0x547636], [OW.circle[0], OW.circle[1], 1400, 0x5a7c38], [0, -5300, 1700, 0x527238]]) patch(x, y, d, c);
+  for (const [x, y, d, c] of [[OW.camp[0], OW.camp[1], 2200, 0x566038], [OW.camp[0] + 100, OW.camp[1], 1700, 0x5e5838], [OW.camp[0] + 150, OW.camp[1] - 50, 1200, 0x665a3c], [OW.char[0], OW.char[1], 1800, 0x4e5432], [OW.char[0] + 50, OW.char[1], 1400, 0x4a4434], [OW.lodge[0] + 300, OW.lodge[1], 1800, 0x56603a], [OW.lodge[0] + 350, OW.lodge[1], 1300, 0x62583c]]) patch(x, y, d, c);
+  for (let i = 0; i < 40; i++) { const x = rr(-hx + 300, hx - 300), y = rr(-hy + 300, hy - 300); if (Math.hypot((x - OW.glade[0]) / 1900, (y - OW.glade[1]) / 1500) < 1) continue; patch(x, y, rr(380, 760), pick([0x52603a, 0x58583a, 0x4e5a34])); }
   path(ROAD_S, 340, 0x7a6448); path(ROAD_M, 340, 0x7a6448); path(ROAD_N, 360, 0x7a6448); path([[60, 2900], [30, 3400]], 300, 0x7a6448);
 
   // ---- the brook: a dark ribbon of water on its muddy bed, banks of stones, reeds and ferns; deep (shut) but at the
@@ -85,7 +85,7 @@ export function buildOakwoods(M, O) {
     SOL(x, y, W + 34, L + 52, eave + 10);
     for (const sx of [-1, 1]) roofSolid(x, y, sx * (hw + over), eave - over * ((ridge - eave) / hw), 0, ridge, -hl - over, hl + over);
     SOL(x, y + CB.chimY, 160, 110, ridge + 160);
-    body(x + hw + porch / 2 + 4, y, porch, L + 40, porchZ, 0, 0, false);
+    body(x + hw + porch / 2 + 4, y, porch, L + 40, porchZ, 0, 0, false); O.GM.NavBlockBox({ min: V(x + hw, y - hl - 30, 0), max: V(x + hw + porch + 20, y + hl + 30, 100) }, 1);
     for (const yy of [-hl + 10, -hl / 3, hl / 3, hl - 10]) round(x + hw + porch - 16, y + yy, 13, porchEave + 10, 0, false);
     M.SolidRot(V(x + hw + porch / 2 + 20, y, (porchEave + eave - 30) / 2 + 14), V(porch + 70, L + 80, 18), R(-((Math.atan2(eave - 30 - porchEave, porch + 30) * 180) / Math.PI), 0, 0));
     K.lit(x + hw + 20, y + 120, 236, { r: 1, g: 0.78, b: 0.45 }, 800);
@@ -106,19 +106,20 @@ export function buildOakwoods(M, O) {
     S(sawTrestle(), x - 100, y + 400, 0, 0); SOL(x - 100, y + 400, 120, 560, 170);
     for (const [dx, dy, r, axe] of [[-500, 700, 40, true], [400, 900, 46, true], [-900, -100, 52, false], [600, -1100, 44, false], [-200, -1200, 38, false], [1300, -300, 48, false]]) { S(stump(r, 46 + (r % 3) * 6, Math.round(dx), axe), x + dx, y + dy, 0, rr(0, 360)); round(x + dx, y + dy, r * 1.08, 56 + (r % 3) * 6, 0, false); }
     S(tent(330, 280, 230), x + 700, y + 800, 0, 180); SOL(x + 700, y + 800, 370, 300, 240);
-    { const fx = x + 100, fy = y - 200; S(campfire(), fx, fy, 0, 0); round(fx, fy, 86, 40, 0, false); K.lit(fx, fy, 40, { r: 1, g: 0.55, b: 0.25 }, 700, 0xff8a3a);
+    { const fx = x + 100, fy = y - 200; S(campfire(), fx, fy, 0, 0); round(fx, fy, 92, 180, 0, false); K.lit(fx, fy, 40, { r: 1, g: 0.55, b: 0.25 }, 700, 0xff8a3a);
       for (const a of [0.6, 2.4, 4.3]) { const sx = fx + Math.cos(a) * 240, sy = fy + Math.sin(a) * 240, yw = (a * 180) / Math.PI + 90; S(logSeat(200), sx, sy, 0, yw + 90); SOL(sx, sy, 40, 210, 50, yw + 90, false); } }
     S(cart(2, 3), x - 1100, y - 300, 0, 75); SOL(x - 1100, y - 300, 240, 140, 150, 75);
     for (const [dx, dy, w] of [[1200, 500, 70], [1280, 590, 60]]) { S(crate(w, Math.round(dx + dy)), x + dx, y + dy, 0, rr(-10, 10)); } SOL(x + 1240, y + 545, 160, 160, 80);
     for (const [dx, dy] of [[1150, 700], [1230, 760]]) S(sack(24, 0xc8b48a), x + dx, y + dy, -4, rr(0, 360)); SOL(x + 1190, y + 730, 130, 110, 50, 0, false);
     S(lanternPost(300, 2), x + 400, y + 200, 0, 180); round(x + 400, y + 200, 12, 300, 0, false); K.lit(x + 400 - 62, y + 200, 242, { r: 1, g: 0.76, b: 0.42 }, 800);
-    for (const [dx, dy] of [[-100, 400], [700, -650], [-650, -800]]) blot(x + dx, y + dy, 420, 300, 0xb89a68, rr(0, 180));
+    for (const [dx, dy] of [[-100, 400], [700, -650], [-650, -800]]) patch(x + dx, y + dy, 380, 0xa88c5e);
     path([[ROAD_S[3][0] + 40, ROAD_S[3][1] - 100], [1300, -3250], [x - 300, y - 100]], 220, 0x7e6a4c); }
 
   // ---- the charcoal burners' clearing, west of the road past the brook: two mounds, their lean-to, sacks and cordwood
   { const [x, y] = OW.char;
     for (const [dx, dy, r] of [[-350, 300, 320], [450, -350, 260]]) { S(charcoalMound(r, Math.round(r / 20)), x + dx, y + dy, 0, rr(0, 360)); round(x + dx, y + dy, r * 0.86, r * 0.5); }
-    blot(x + 50, y, 1500, 1200, 0x3a3430, 20);
+    patch(x + 50, y, 1000, 0x3a3430);
+    for (const [dx, dy, r] of [[-350, 300, 320], [450, -350, 260]]) K.lit(x + dx, y + dy, r * 0.62 + 6, { r: 1, g: 0.42, b: 0.18 }, 360, 0xff7a3a);
     S(leanTo(380), x - 800, y - 500, 0, 40); { const [cx2, cy2] = offs(x - 800, y - 500, 40, -70, 0); SOL(cx2, cy2, 280, 420, 230, 40); }
     for (const [dx, dy, yw] of [[700, 500, 10], [900, 260, 100]]) { S(logPile(3, 300, 22, Math.round(dx)), x + dx, y + dy, 0, yw); SOL(x + dx, y + dy, 3 * 45 + 24, 340, 22 * 2 + 2 * 38 + 20, yw); }
     for (const [dx, dy] of [[-200, -650], [-120, -700], [-160, -600]]) S(sack(26, 0x2e2a26), x + dx, y + dy, -4, rr(0, 360)); SOL(x - 160, y - 650, 170, 150, 56, 0, false);
@@ -172,16 +173,19 @@ export function buildOakwoods(M, O) {
   // ---- the oaks: everywhere the paths, the brook and the clearings are not; thickest round the edge
   const clear = [[0, -5300, 1000, 900], [OW.lodge[0] - 300, OW.lodge[1], 1700, 1500], [OW.camp[0] + 200, OW.camp[1] + 100, 1700, 1500], [OW.char[0], OW.char[1], 1400, 1200], [OW.circle[0], OW.circle[1] + 200, 1200, 1300], [OW.great[0], OW.great[1], 850, 850], [0, 3900, 2100, 1600], [0, 5000, 1300, 1100], [OW.hide[0], OW.hide[1], 600, 600], [FORDS[0][0], streamY(FORDS[0][0]), 600, 500], [FORDS[1][0], streamY(FORDS[1][0]), 600, 500], [-1950, 4300, 500, 1700]];
   const free = (x, y, m) => !clear.some(([cx, cy, ax, ay]) => Math.hypot((x - cx) / (ax + m), (y - cy) / (ay + m)) < 1) && ROADS.every((P) => lineDist(x, y, P) > 330 + m) && Math.abs(y - streamY(x)) > SW / 2 + 120 + m;
-  const trees = [];
+  const plants = [];
   for (let gx = -hx + 260; gx < hx - 200; gx += 600) for (let gy = -hy + 260; gy < hy - 200; gy += 600) {
     const x = gx + rr(-170, 170), y = gy + rr(-170, 170), edge = Math.min(hx - Math.abs(x), hy - Math.abs(y)) < 900, h = pick([1500, 1800, 2100]), sd = pick([1, 2, 3]), rot = rr(0, 360);
     if (!edge && rnd() > 0.8) continue; if (!free(x, y, 80) || Math.abs(x) > hx - 150 || Math.abs(y) > hy - 150) continue;
     if (blightAt.some(([bx, by, br]) => Math.hypot(x - bx, y - by) < br + 300)) continue;
-    S(oak(h, sd), x, y, 0, rot); round(x, y, oakTrunk(h), h * 0.45); trees.push([x, y, h]);
+    plants.push({ x, y, half: oakTrunk(h), tree: true, place: () => { S(oak(h, sd), x, y, 0, rot); round(x, y, oakTrunk(h), h * 0.45); } });
   }
   // undergrowth: holly and hazel by some of the trees and thick along the edge, every bush solid
   const LEAF = [0x2e5426, 0x365e2a, 0x2a4c22];
-  for (const [x, y] of trees) { const edge = Math.min(hx - Math.abs(x), hy - Math.abs(y)) < 900; if (!edge && rnd() > 0.35) continue; const a = rr(0, Math.PI * 2), d = rr(330, 420), bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d, r = pick([140, 180]); if (!free(bx, by, r) || Math.abs(bx) > hx - 100 || Math.abs(by) > hy - 100 || blightAt.some(([qx, qy, qr]) => Math.hypot(bx - qx, by - qy) < qr + r + 60)) continue; S(hedgeLump(r, pick(LEAF), pick([0, 0, 0xe8e0d0]), pick([1, 2])), bx, by, 0, rr(0, 360)); round(bx, by, r * 1.08, r * 1.25); }
+  for (const { x, y } of plants.slice()) { const edge = Math.min(hx - Math.abs(x), hy - Math.abs(y)) < 900; if (!edge && rnd() > 0.35) continue; const a = rr(0, Math.PI * 2), d = rr(330, 420), bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d, r = pick([140, 180]), leaf = pick(LEAF), bloom = pick([0, 0, 0xe8e0d0]), sd2 = pick([1, 2]), rot2 = rr(0, 360);
+    if (!free(bx, by, r) || Math.abs(bx) > hx - 100 || Math.abs(by) > hy - 100 || blightAt.some(([qx, qy, qr]) => Math.hypot(bx - qx, by - qy) < qr + r + 60)) continue;
+    plants.push({ x: bx, y: by, half: r * 1.08, place: () => { S(hedgeLump(r, leaf, bloom, sd2), bx, by, 0, rot2); round(bx, by, r * 1.08, r * 1.25); } }); }
+  for (const p of K.plan(plants, [0, -5300])) p.place();
   // fallen branches and old stumps on the forest floor
   for (let i = 0; i < 14; i++) { const x = rr(-hx + 500, hx - 500), y = rr(-hy + 500, hy - 500); if (!free(x, y, 120) || !K.clear(x, y, 120)) continue; const r = pick([36, 48]); S(stump(r, pick([40, 60]), i, false), x, y, 0, rr(0, 360)); round(x, y, r * 1.08, 66, 0, false); }
 
@@ -203,7 +207,7 @@ export function buildOakwoods(M, O) {
   const beds = [[-1500, -2300], [2300, -2700], [-2700, 1700], [2500, 2400], [-700, 3700], [900, 4300]].map(settle);
   return {
     spots: { spawn: [0, -5300], yaw: Math.PI, exit: [0, 5650], textYaw: -90, ammo: [650, -5300], ammoYaw: 90,
-      bench: [-620, 5060], benchYaw: -25, box: [0, 5320], chest: [0, 5320], chestYaw: -90, press: [620, 5060], pressYaw: -155 },
+      bench: [-660, 5230], benchYaw: 0, box: [660, 5000], chest: [660, 5000], chestYaw: 180, press: [-660, 4730], pressYaw: 0 },
     keep: [[OW.floor[0], OW.floor[1], 900]],
     beds, bossAt: [200, 3800],
   };

@@ -23,7 +23,7 @@ export function oak(h = 1600, seed = 1) {
     const R = rng(seed * 313 + h), tr = h * 0.055, base = WC.bark[seed % 3], bc = barkC(seed, base);
     const lx = (R() - 0.5) * tr * 1.2, ly = (R() - 0.5) * tr * 1.2;
     G.tube([[0, 0, -30], [lx * 0.3, ly * 0.3, h * 0.12], [lx, ly, h * 0.3], [lx * 1.2, ly * 1.2, h * 0.42]], (t) => tr * (1.5 - 0.6 * t), bc, { S: 14, M: 12 });
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + R() * 0.5, L = tr * (1.8 + R() * 0.8); G.tube([[Math.cos(a) * tr * 0.5, Math.sin(a) * tr * 0.5, h * 0.07], [Math.cos(a) * L * 0.6, Math.sin(a) * L * 0.6, tr * 0.32], [Math.cos(a) * L, Math.sin(a) * L, -10]], (t) => tr * 0.5 * (1 - t * 0.7), bc, { S: 7, M: 6, flat: () => [1, 0.7] }); }
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + R() * 0.5, L = tr * (1.4 + R() * 0.5); G.tube([[Math.cos(a) * tr * 0.45, Math.sin(a) * tr * 0.45, h * 0.08], [Math.cos(a) * L * 0.62, Math.sin(a) * L * 0.62, tr * 0.3], [Math.cos(a) * L, Math.sin(a) * L, -tr * 0.45]], (t) => tr * 0.5 * (1 - t * 0.45), bc, { S: 7, M: 6, flat: () => [1, 0.75] }); }
     const lumps = [], nL = 4 + (seed % 2);
     for (let i = 0; i < nL; i++) {
       const a = (i / nL) * Math.PI * 2 + R() * 0.7, L = h * (0.3 + R() * 0.1), tip = [Math.cos(a) * L + lx, Math.sin(a) * L + ly, h * (0.6 + R() * 0.1)];
@@ -53,7 +53,7 @@ export function greatOak(h = 2800) {
     const hr = tr * 1.42 * 0.97, hz = h * 0.13;
     G.blob(hr - tr * 0.18, 0, hz * 0.5 + 6, tr * 0.2, tr * 0.42, hz * 0.5, 0x120e0a, { nu: 12, nv: 8 });
     { const lip = []; for (let i = 0; i <= 16; i++) { const t = -0.1 + (i / 16) * (Math.PI + 0.2), y = Math.cos(t) * tr * 0.46, z = Math.max(0, hz * 0.5 + 6 + Math.sin(t) * hz * 0.56); lip.push([hr - tr * 0.06, y, z]); } lip[0][2] = -6; lip[16][2] = -6; G.tube(lip, (t) => tr * (0.13 - 0.03 * Math.abs(t - 0.5)), barkC(5, WC.bark[0]), { S: 7, M: 24 }); }
-    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + 0.45, L = tr * (2.2 + R() * 0.7); G.tube([[Math.cos(a) * tr * 0.5, Math.sin(a) * tr * 0.5, h * 0.06], [Math.cos(a) * L * 0.55, Math.sin(a) * L * 0.55, tr * 0.36], [Math.cos(a) * L, Math.sin(a) * L, -14]], (t) => tr * 0.46 * (1 - t * 0.7), bc, { S: 8, flat: () => [1, 0.62] }); }
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + 0.45, L = tr * (1.6 + R() * 0.5); G.tube([[Math.cos(a) * tr * 0.5, Math.sin(a) * tr * 0.5, h * 0.06], [Math.cos(a) * L * 0.58, Math.sin(a) * L * 0.58, tr * 0.34], [Math.cos(a) * L, Math.sin(a) * L, -tr * 0.45]], (t) => tr * 0.46 * (1 - t * 0.4), bc, { S: 8, M: 8, flat: () => [1, 0.7] }); }
     const lumps = [];
     for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + R() * 0.5, L = h * (0.33 + R() * 0.08), tip = [Math.cos(a) * L, Math.sin(a) * L + 30, h * (0.58 + R() * 0.08)]; G.tube([[0, 30, h * 0.36], [tip[0] * 0.45, tip[1] * 0.45, h * 0.47], [tip[0] * 0.82, tip[1] * 0.82, tip[2] - h * 0.04], tip], (t) => tr * 0.56 * (1 - t * 0.66), bc, { S: 9 }); lumps.push([tip[0], tip[1], tip[2] + h * 0.07, h * (0.18 + R() * 0.03)]); }
     lumps.push([0, 30, h * 0.78, h * 0.27]); for (let i = 0; i < 6; i++) { const a = ((i + 0.5) / 6) * Math.PI * 2; lumps.push([Math.cos(a) * h * 0.22, Math.sin(a) * h * 0.22 + 30, h * (0.7 + R() * 0.05), h * 0.16]); }
@@ -91,7 +91,7 @@ export function stump(r = 40, h = 50, seed = 1, axe = false) {
   return ['dstump|' + [r, h, seed % 3, axe ? 1 : 0].join('|'), shape((G) => {
     const R = rng(seed * 17 + r), bc = barkC(seed, WC.bark[seed % 3]);
     G.lathe([[r * 1.5, -6], [r * 1.3, h * 0.12], [r * 1.06, h * 0.4], [r, h - 2], [r * 0.97, h]], (k) => (k < 1 ? WC.barkD : WC.bark[seed % 3]), 14);
-    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + R(), L = r * 2.1; G.tube([[Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9, h * 0.25], [Math.cos(a) * L, Math.sin(a) * L, -6]], (t) => r * 0.3 * (1 - t * 0.6), bc, { S: 6, flat: () => [1, 0.7] }); }
+    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + R(), L = r * 1.7; G.tube([[Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9, h * 0.25], [Math.cos(a) * L, Math.sin(a) * L, -r * 0.35]], (t) => r * 0.32 * (1 - t * 0.4), bc, { S: 6, M: 4, flat: () => [1, 0.75] }); }
     for (let k = 0; k < 4; k++) { const rk = r * (0.95 - k * 0.24); G.lathe([[rk, h], [rk, h + 0.6 + k * 0.4], [0, h + 0.6 + k * 0.4]], k % 2 ? WC.grain : WC.grainD, 14); }
     if (axe) { const b = G.n; G.tube([[0, 0, 0], [0, 0, 70]], 2.6, 0x8a6a44, { S: 6 }); G.blob(0, 6, -2, 3, 11, 9, WC.iron, { e: 6, nu: 6, nv: 4 }); G.blob(0, -3, 0, 3.4, 5, 6, WC.iron, { e: 6, nu: 6, nv: 4 }); G.place(b, { x: r * 0.2, y: 0, z: h + 8, pitch: -38 }); }
   })];
@@ -104,11 +104,11 @@ export function logPile(n = 4, len = 360, lr = 30, seed = 1) {
   return ['dlogs|' + [n, len, lr, seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 41 + n), d = lr * 2;
     for (let row = 0; row < n; row++) for (let i = 0; i < n - row; i++) {
-      const x = (i - (n - row - 1) / 2) * d * 1.01, z = lr + row * lr * 1.72, r = lr * (0.9 + R() * 0.14), y0 = -len / 2 + (R() - 0.5) * 24, y1 = len / 2 + (R() - 0.5) * 24, bc = barkC(i + row, WC.bark[(i + row) % 3]);
+      const x = (i - (n - row - 1) / 2) * d, z = lr + row * lr * 1.72, r = lr * (1 + R() * 0.06), y0 = -len / 2 + (R() - 0.5) * 24, y1 = len / 2 + (R() - 0.5) * 24, bc = barkC(i + row, WC.bark[(i + row) % 3]);
       G.tube([[x, y0, z], [x, y1, z]], r, bc, { S: 10, caps: false });
       for (const [yy, s] of [[y0, -1], [y1, 1]]) for (let k = 0; k < 3; k++) { const rk = r * (1 - k * 0.3), ring = []; for (let j = 0; j < 10; j++) { const a = (j / 10) * Math.PI * 2; ring.push([x + Math.cos(a) * rk, yy + s * k * 0.5, z + Math.sin(a) * rk]); } G.fan(x, yy + s * k * 0.5, z, ring, k === 0 ? WC.grainD : k === 1 ? WC.grain : WC.heart); }
     }
-    for (const s of [-1, 1]) G.tube([[s * (n * d * 0.5 + 6), 0, -10], [s * (n * d * 0.5 + 8), 0, lr * 2.4]], 6, WC.log, { S: 6 });
+    for (const s of [-1, 1]) G.tube([[s * (n * lr + 5), 0, -10], [s * (n * lr + 6), 0, lr * 2.4]], 6, WC.log, { S: 6, M: 3 });
   })];
 }
 
@@ -188,7 +188,7 @@ export function logCabin(seed = 1) {
       const za = porchEave - 4, zb = eave - 30, x0 = px + 40, x1 = d0, pz = (x) => za + (zb - za) * (x0 - x) / (x0 - x1);
       G.surf((u, v) => { const x = x0 + (x1 - x0) * v; return [x, -hl - 40 + u * (L + 80), pz(x) + 14 + ((v * 5) % 1) * 3]; }, 0, 1, 16, 0, 1, 10, (u, v) => [0x5a4a3c, 0x66543e][(Math.floor(v * 5) + Math.floor(u * 24)) % 2]);
       G.surf((u, v) => { const x = x0 + (x1 - x0) * v; return [x, -hl - 40 + u * (L + 80), pz(x) + 6]; }, 0, 1, 4, 0, 1, 2, 0x3a2c20);
-      for (let i = 0; i < 2; i++) G.blob(px + 22 + i * 28, 0, porchZ * (1 - (i + 1) / 3) / 2 + 1, 15, 66, porchZ * (1 - (i + 1) / 3) / 2 + 1, 0x6e5238, { e: 8, nu: 4, nv: 3 }); }
+      for (let i = 0; i < 2; i++) G.blob(px + 14 + i * 28, 0, porchZ * (1 - (i + 1) / 3) / 2 + 1, 15, 66, porchZ * (1 - (i + 1) / 3) / 2 + 1, 0x6e5238, { e: 8, nu: 4, nv: 3 }); }
   })];
 }
 
@@ -231,7 +231,7 @@ export function tent(L = 330, W = 280, H = 230) {
     G.surf((u, v) => { const s = (u - 0.5) * 2; return [-hl, s * hw * v, H - (H - 4) * v]; }, 0, 1, 4, 0, 1, 4, WC.canvasD);
     G.surf((u, v) => { const s = (u - 0.5) * 2; return [hl - 6, s * hw * v * 0.9, H - (H - 4) * v]; }, 0, 1, 4, 0, 1, 4, 0x1e1a14);
     for (const s of [-1, 1]) { G.surf((u, v) => [hl + 2 + v * 10, s * (hw * u * 0.5 + 8 * v), H - (H - 4) * u], 0, 1, 4, 0, 1, 1, WC.canvas); G.tube([[hl + 8, s * hw * 0.26, H * 0.46], [hl + 4, s * hw * 0.3, H * 0.4]], 1.6, WC.rope, { S: 4, M: 2 }); }
-    for (const x of [-hl * 0.6, 0, hl * 0.6]) for (const s of [-1, 1]) G.tube([[x, s * hw, 6], [x, s * (hw + 10), -4]], 2.2, 0x8a6a44, { S: 4, M: 2 });
+    for (const x of [-hl * 0.6, 0, hl * 0.6]) { const ze = 4 - Math.sin(((x + hl) / L) * Math.PI) * 6; for (const s of [-1, 1]) G.tube([[x, s * (hw - 1), ze + 1], [x, s * (hw + 10), ze - 12]], 2.2, 0x8a6a44, { S: 4, M: 2 }); }
     for (const x of [-hl - 16, hl + 16]) { const xs = x < 0 ? -1 : 1; G.tube([[x, 0, H], [x + xs * 90, 0, 0]], 1.3, WC.rope, { S: 4, M: 4 }); G.tube([[x + xs * 92, 0, 10], [x + xs * 90, 0, -10]], 2.4, 0x8a6a44, { S: 4, M: 2 }); }
   })];
 }
@@ -265,10 +265,16 @@ export function charcoalMound(r = 280, seed = 1) {
   r = q(r, 20);
   return ['dcharmound|' + [r, seed % 3].join('|'), shape((G) => {
     const R = rng(seed * 61 + r);
-    G.blob(0, 0, 2, r * 1.18, r * 1.18, 3, WC.earthD, { nu: 14, nv: 3 });
-    G.blob(0, 0, 0, r, r, r * 0.62, (nx, ny, nz) => (nz > 0.25 && wob(nx * 5 + seed, ny * 5) > 0.15 ? WC.turf : wob(nx * 7, ny * 7 + nz * 3) > 0.5 ? WC.earthD : WC.earth), { nu: 16, nv: 9, warp: (x, y, z, nx, ny, nz) => { const w = 1 + wob(nx * 3 + seed, ny * 3) * 0.06; return [x * w, y * w, Math.max(z * w, -2)]; } });
-    for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2 + R() * 0.3, el = 0.35, rr2 = r * Math.cos(el) * 0.97; G.blob(Math.cos(a) * rr2, Math.sin(a) * rr2, r * 0.62 * Math.sin(el) * 0.97, 7, 7, 6, 0x14100c, { nu: 6, nv: 4 }); }
-    G.blob(0, 0, r * 0.6, 12, 12, 8, 0x14100c, { nu: 8, nv: 4 });
+    G.blob(0, 0, 2, r * 1.22, r * 1.22, 3, 0x6a6258, { nu: 16, nv: 3 });
+    G.blob(0, 0, 0, r, r, r * 0.62, (nx, ny, nz) => (nz > 0.5 && wob(nx * 5 + seed, ny * 5) > 0.45 ? WC.turf : wob(nx * 7, ny * 7 + nz * 3) > 0.35 ? 0x3a322c : nz < 0.3 ? 0x5a5048 : 0x4a4038), { nu: 16, nv: 9, warp: (x, y, z, nx, ny, nz) => { const w = 1 + wob(nx * 3 + seed, ny * 3) * 0.06; return [x * w, y * w, Math.max(z * w, -2)]; } });
+    // the ends of the stacked wood showing at its foot: short logs out through the earth, their sawn ends to the air
+    for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2 + R() * 0.2, lr = 7 + R() * 4, z = 12 + R() * 12, ca = Math.cos(a), sa = Math.sin(a), e = r * 1.08, ring = [];
+      G.tube([[ca * r * 0.82, sa * r * 0.82, z], [ca * e, sa * e, z]], lr, 0x4e3a2a, { S: 7, M: 2, caps: false });
+      for (let j = 0; j < 7; j++) { const b = (j / 7) * Math.PI * 2; ring.push([ca * e - sa * Math.cos(b) * lr, sa * e + ca * Math.cos(b) * lr, z + Math.sin(b) * lr]); } G.fan(ca * e, sa * e, z, ring, i % 2 ? WC.grainD : 0x8a6a48); }
+    const mw = (nx, ny) => 1 + wob(nx * 3 + seed, ny * 3) * 0.06;   // how far the mound's skin is pushed out, by direction
+    // the vents sit on corners of the mound's mesh, half in its skin, so none is buried or stands off it
+    for (let i = 0; i < 9; i++) { const a = (Math.round((i * 16) / 9) / 16) * Math.PI * 2, el = Math.PI / 6, nx = Math.cos(a) * Math.cos(el), ny = Math.sin(a) * Math.cos(el), w = mw(nx, ny); G.blob(nx * r * w, ny * r * w, r * 0.62 * Math.sin(el) * w, 7, 7, 6, 0x14100c, { nu: 6, nv: 4 }); }
+    G.blob(0, 0, r * 0.62 * mw(0, 0) - 2, 12, 12, 8, 0x14100c, { nu: 8, nv: 4 });
   })];
 }
 
@@ -282,7 +288,7 @@ export function leanTo(len = 360) {
     G.tube([[60, -hl - 24, H], [60, hl + 24, H]], 7, WC.logD, { S: 6, M: 6 });
     for (let y = -hl; y <= hl + 1; y += len / 4) G.tube([[64, y, H + 6], [60 - D, y, -6]], 4.5, WC.log, { S: 5, M: 5 });
     G.surf((u, v) => { const x = 66 - (D + 6) * v, z = H + 14 - (H + 10) * v; return [x, -hl - 20 + u * (len + 40), z + ((u * 9) % 1) * 4]; }, 0, 1, 10, 0, 1, 6, (u) => [0x6a5848, 0x5a4a3c, 0x7a6650][Math.floor(u * 10) % 3]);
-    G.blob(-40, 0, 8, 80, hl - 20, 9, 0x7a6a3a, { nu: 10, nv: 4 });
+    G.blob(-40, 0, 2, 80, hl - 20, 10, 0x7a6a3a, { nu: 10, nv: 4 });
   })];
 }
 

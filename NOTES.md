@@ -547,3 +547,9 @@
   floating 0, invisible walls 0, clips only self or abutting; grid 10022/10025, all spawns reachable; chase: the horde
   reaches every spot (the stragglers it lists are walking round the barn to its doors); dg0 [55,[],[]]; wt clean;
   run.json to the raid; village floats 0.
+
+## (68) The box is not in front of the way on
+- User: no Mystery Box in front of the portal. Destinations now keep the way up the middle of the stations' floor
+  clear to the way on: the workbench and the compressor stand side by side on one side of the floor facing in, the box
+  across from them on the other side facing in (Bramble Farm: bench [-700, 4830], press [-700, 4330], both yaw 0; box
+  [700, 4600] yaw 180; Old Oak Woods the same on its flagstone floor). The chest spot follows the box.
