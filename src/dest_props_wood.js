@@ -374,15 +374,15 @@ export function woodArch(w = 600) {
 
 // ---- an old floor of flagstones in the forest: rings of flat stones, moss in the joints, lichen on some, a few gone
 // at the ragged edge, a round stone at the middle
-export function flagFloor(r = 900, seed = 1) {
+export function flagFloor(r = 900, seed = 1, joint = WC.moss, lichen = true, stones = WC.stone) {
   seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
   r = q(r, 50);
-  return ['dflags|' + [r, seed % 2].join('|'), shape((G) => {
+  return ['dflags|' + [r, seed % 2].join('|') + (joint === WC.moss && lichen && stones === WC.stone ? '' : '|' + joint + '|' + lichen + '|' + stones.join(',')), shape((G) => {
     const R = rng(seed * 19 + r);
-    G.blob(0, 0, 0.6, r, r, 0.8, WC.moss, { nu: 24, nv: 2 });
+    G.blob(0, 0, 0.6, r, r, 0.8, joint, { nu: 24, nv: 2 });
     for (let ring = 0, rr = 110; rr < r - 40; ring++, rr += 92) {
       const n = Math.max(1, Math.round((2 * Math.PI * rr) / 104));
-      for (let i = 0; i < n; i++) { if (R() < 0.12 && rr > r * 0.6) continue; const a = (i / n) * Math.PI * 2 + ring * 0.37 + R() * 0.08, b = G.n; G.blob(0, 0, 0, 40 + R() * 6, Math.min(44, (Math.PI * rr) / n - 6), 2.2, (nx, ny, nz) => (nz > 0.5 && wob(nx * 3 + i, ny * 3 + ring) > 0.55 ? WC.lichen : WC.stone[(i + ring) % 4]), { e: 3, nu: 6, nv: 2 }); G.place(b, { x: Math.cos(a) * rr, y: Math.sin(a) * rr, z: 1.8, yaw: (a * 180) / Math.PI }); }
+      for (let i = 0; i < n; i++) { if (R() < 0.12 && rr > r * 0.6) continue; const a = (i / n) * Math.PI * 2 + ring * 0.37 + R() * 0.08, b = G.n; G.blob(0, 0, 0, 40 + R() * 6, Math.min(44, (Math.PI * rr) / n - 6), 2.2, (nx, ny, nz) => (lichen && nz > 0.5 && wob(nx * 3 + i, ny * 3 + ring) > 0.55 ? WC.lichen : stones[(i + ring) % stones.length]), { e: 3, nu: 6, nv: 2 }); G.place(b, { x: Math.cos(a) * rr, y: Math.sin(a) * rr, z: 1.8, yaw: (a * 180) / Math.PI }); }
     }
     G.blob(0, 0, 2, 64, 64, 2.4, WC.stone[2], { e: 3, nu: 10, nv: 2 });
   })];

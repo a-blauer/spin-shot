@@ -582,6 +582,8 @@ const MASS = {
   toad: { flesh: 0xe2d8c0, rust: 0x7a3e2c, rustD: 0x4e2a20, pink: 0xb8907a, seam: 0x2a1a16, cap: 0xa4432a, capD: 0x7a2a1a, gill: 0xd8c8a4, puff: [0xf2ece0, 0xa89a80] },
   mire: { flesh: 0xcfd3b4, rust: 0x3e4a32, rustD: 0x262e22, pink: 0x6a765a, seam: 0x121812, cap: 0x3e6c4c, capD: 0x2a4a36, gill: 0xc4c8a8, puff: [0xdfe6cc, 0x8e9a7e] },
   rust: { flesh: 0xdac9a6, rust: 0x8a4a22, rustD: 0x5a2e16, pink: 0xb08a6a, seam: 0x2a160e, cap: 0xc4782c, capD: 0x8a5018, gill: 0xd8c09a, puff: [0xf2e2c0, 0xa88a60] },
+  shade: { flesh: 0xd0c4da, rust: 0x4a3450, rustD: 0x2e2034, pink: 0x8a6a96, seam: 0x1a1020, cap: 0x56367c, capD: 0x3a2256, gill: 0xd8cce4, puff: [0xeae2f2, 0x9a86aa] },
+  char: { flesh: 0x8e7e76, rust: 0x3a2e2a, rustD: 0x221a18, pink: 0x6a5650, seam: 0x120c0a, cap: 0x2a2326, capD: 0x1a1416, gill: 0x9a8a80, puff: [0xd8ccc4, 0x6a5e58] },
 };
 export function blightMass(r = 260, seed = 1, strain = 'toad') {
   seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)

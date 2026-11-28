@@ -54,7 +54,7 @@ export class Geo {
   }
   // a body of revolution about Z: prof [[r, z], ...] bottom to top; c a colour or c(k, t) for profile point k (t its share
   // of the way up). Each profile span is its own band, so colour changes between points are crisp. at: offset.
-  lathe(prof, c, S = 16, at = [0, 0, 0], squash = [1, 1]) {
+  lathe(prof, c, S = 16, at = [0, 0, 0], squash = [1, 1], ring = false) {   // ring: leave the ends open (a wheel's rim, a coping)
     const cf = typeof c === 'function' ? c : () => c, n = prof.length;
     // runs of spans that share a colour are one smooth surface; a new colour starts a new one (a crisp edge)
     for (let k = 0; k < n - 1;) {
@@ -64,8 +64,8 @@ export class Geo {
       k = e;
     }
     // close a profile that ends off the axis
-    if (prof[0][0] > 0.01) { const [r, z] = prof[0], ring = []; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2; ring.push([at[0] + Math.cos(a) * r * squash[0], at[1] + Math.sin(a) * r * squash[1], at[2] + z]); } this.fan(at[0], at[1], at[2] + z, ring, cf(0, 0)); }
-    if (prof[n - 1][0] > 0.01) { const [r, z] = prof[n - 1], ring = []; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2; ring.push([at[0] + Math.cos(a) * r * squash[0], at[1] + Math.sin(a) * r * squash[1], at[2] + z]); } this.fan(at[0], at[1], at[2] + z, ring, cf(n - 2, 1)); }
+    if (prof[0][0] > 0.01 && !ring) { const [r, z] = prof[0], ring = []; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2; ring.push([at[0] + Math.cos(a) * r * squash[0], at[1] + Math.sin(a) * r * squash[1], at[2] + z]); } this.fan(at[0], at[1], at[2] + z, ring, cf(0, 0)); }
+    if (prof[n - 1][0] > 0.01 && !ring) { const [r, z] = prof[n - 1], ring = []; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2; ring.push([at[0] + Math.cos(a) * r * squash[0], at[1] + Math.sin(a) * r * squash[1], at[2] + z]); } this.fan(at[0], at[1], at[2] + z, ring, cf(n - 2, 1)); }
     return this;
   }
   // a box with crisp flat faces (half sizes hx, hy, hz): planks, boards, battens, beams, staves. Each face has its own
@@ -90,8 +90,12 @@ export class Geo {
     }, 0, 1, nu, 0, 1, nv, typeof c === 'function' ? (u, v) => { const th = u * Math.PI * 2, ph = -Math.PI / 2 + v * Math.PI; return c(Math.cos(ph) * Math.cos(th), Math.cos(ph) * Math.sin(th), Math.sin(ph)); } : c, true);
   }
 }
+// a shape's triangles each on their own corners, so the faces shade flat: rock that reads as broken stone, not cloth
+export const facet = (o, flat = true) => { const pos = [], col = [], idx = []; for (let t = 0; t < o.idx.length; t++) { const i = o.idx[t], c = flat ? o.idx[t - (t % 3)] : i; pos.push(o.pos[i * 3], o.pos[i * 3 + 1], o.pos[i * 3 + 2]); col.push(o.col[c * 3], o.col[c * 3 + 1], o.col[c * 3 + 2]); idx.push(t); } return { pos, col, idx }; };   // flat: each face one colour (its first corner's)
 // build a shape: fn(G) fills a Geo
 export const shape = (fn) => () => { const G = new Geo(); fn(G); return G.out(); };
 // the same for built things (planks, boards, staves): a squared-off blob (e 8 or more, no warp) is drawn as a true box,
 // so a board's ends are square and a row of them closes up, where a blob's poles would taper them to points
 export const shapeB = (fn) => () => { const G = new Geo(), blob = G.blob.bind(G), tube = G.tube.bind(G); G.blob = (cx, cy, cz, hx, hy, hz, c, o = {}) => ((o.e || 2) >= 8 && !o.warp ? G.box(cx, cy, cz, hx, hy, hz, c) : blob(cx, cy, cz, hx, hy, hz, c, o)); G.tube = (pts, r, c, o = {}) => tube(pts, r, c, o.caps === undefined ? { ...o, caps: 'flat' } : o); fn(G); return G.out(); };
+// the same as shapeB, faceted (rock, slag, crystal)
+export const shapeF = (fn) => () => facet(shapeB(fn)());

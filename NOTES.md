@@ -635,3 +635,21 @@
   (walk-through: only the scanner's blind spot on the middle pumpkin, whose bed body covers it); grid 11548/11548
   reachable; chase from 18 spots clean after: hay moved off the stable front, a low edging instead of the allotment's
   fence (creatures that see you beeline into a fence), ramps on the platform ends. 210 calls, 823k triangles.
+
+## (73) Copperdeep Mine (Under the Hill, room 4) built
+- `dest_mine.js` + `dest_props_mine.js`. A cavern cut into the hill for its copper, about 10,000 x 10,600, its
+  faceted roof (`ceilZ`) held up by pillars of the hill's own rock, walls faceted low-poly with a copper seam in the
+  north face. You ride the lift's cage down at the south end (lift head, cage, sheave; tally hut, bench, bell post);
+  the tramway runs north up the middle to the seam, with a branch west to the old galleries (three adits, tool racks,
+  a winch, log piles) and one east to the smelter (brick furnace lit at its mouth, its chimney up through the roof,
+  bellows, spout and moulds, slag heaps, copper ingots, charcoal sacks and heap, quench trough, rain barrel). Miners'
+  camp NW (huts, campfire, seats, washing line), still pool NE (jetty), stamp mill and scaffolds by the seam, a
+  flagstone floor at the way on (bench, box, compressor). The Blight (Nightshade) heaves out of the seam.
+- Lamps: lamp posts along every line, strings of lanterns, up to 28 lanterns along the wall foot; scree along it.
+- Boss arena: the open middle (bossAt [0, 300]); the Creeper bosses (Rootworm, Devourer) reach every corner, the
+  slowest (Devourer, with its pauses) in about 30 s from the far ends.
+- Fixed on the way: furnace bricks picked their colour with a negative index at the lower corners (black blocks);
+  every built destination and the village were then checked for any vertex with no colour: none.
+- Checks: loose parts 0 (5995 shapes scanned), floating 0 of 553, clipping 0, invisible walls 0; walk-through flags only
+  on huts, scaffolds, lift head and stamp mill (the scanner's blind spot; raycasts hit them). Grid 9513/9513
+  reachable; chase clean from 12 spots. 130 calls, 268k triangles.

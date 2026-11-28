@@ -369,7 +369,7 @@ export function handTrolley() {
     for (let i = 0; i < 6; i++) G.box(0, -66 + i * 26.4, 37, 104, 12.6, 3.4, i % 2 ? KC.wood : mix(KC.wood, 0x000000, 0.12));
     for (const sx of [-1, 1]) { for (const s of [-1, 1]) G.tube([[sx * 98, s * 50, 38], [sx * 128, s * 50, 104]], 2.6, KC.iron, { S: 5, M: 2 }); G.tube([[sx * 128, -54, 104], [sx * 128, 54, 104]], 3, KC.woodD, { S: 6, M: 2 }); }
     G.box(-30, -20, 54, 34, 20, 14, 0x4a5a3e); G.box(-30, -20, 69, 35, 21, 1.5, dark(0x4a5a3e, 0.8)); G.box(-30, -20, 72, 12, 2, 2, KC.iron);
-    G.lathe([[12, 40.4], [22, 40.4], [24, 44], [22, 48], [12, 48], [10, 44]], 0x9a8a62, 12, [44, 30, 0]);
+    G.lathe([[12, 40.4], [22, 40.4], [24, 44], [22, 48], [12, 48], [10, 44], [12, 40.4]], 0x9a8a62, 12, [44, 30, 0], [1, 1], true);
   })];
 }
 // ---- a boiler out of an engine on two timber trestles: the barrel with its bands, the smokebox with its door hung open
@@ -398,7 +398,7 @@ export function waterCrane() {
     G.box(0, 0, 352, 22, 22, 10, KC.iron); G.tube([[0, 0, 356], [250, 0, 356]], 9, KC.iron, { S: 10, M: 4 }); G.tube([[250, 0, 356], [262, 0, 340]], 9, KC.iron, { S: 10, M: 2 });
     G.tube([[0, 0, 404], [230, 0, 366]], 2, KC.iron, { S: 4, M: 3 }); G.tube([[0, 0, 344], [0, 0, 406]], 4, KC.iron, { S: 6, M: 2 });
     G.tube([[262, 0, 340], [264, 4, 300], [266, 14, 230], [262, 22, 160], [254, 24, 120]], 11, 0x3a2a20, { S: 10, M: 10 });
-    { const b = G.n; G.lathe([[22, -2], [24, -2], [24, 2], [22, 2]], KC.red, 14, [0, 0, 0]); G.place(b, { y: 32, z: 220, roll: 90 }); G.tube([[0, 16, 220], [0, 32, 220]], 3, KC.iron, { S: 5, M: 2 }); for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; G.tube([[Math.cos(a) * 22, 32, 220 + Math.sin(a) * 22], [-Math.cos(a) * 22, 32, 220 - Math.sin(a) * 22]], 1.4, KC.red, { S: 4, M: 2 }); } }
+    { const b = G.n; G.lathe([[22, -2], [24, -2], [24, 2], [22, 2], [22, -2]], KC.red, 14, [0, 0, 0], [1, 1], true); G.place(b, { y: 32, z: 220, roll: 90 }); G.tube([[0, 16, 220], [0, 32, 220]], 3, KC.iron, { S: 5, M: 2 }); for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; G.tube([[Math.cos(a) * 22, 32, 220 + Math.sin(a) * 22], [-Math.cos(a) * 22, 32, 220 - Math.sin(a) * 22]], 1.4, KC.red, { S: 4, M: 2 }); } }
     const bx = 80, by = -80; for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; G.tube([[bx + Math.cos(a) * 22, by + Math.sin(a) * 22, 0], [bx + Math.cos(a) * 16, by + Math.sin(a) * 16, 40]], 2, KC.iron, { S: 4, M: 2 }); }
     G.lathe([[14, 36], [22, 40], [24, 70], [22, 72], [20, 42], [0, 42]], KC.iron, 10, [bx, by, 0]); G.blob(bx, by, 66, 19, 19, 10, (nx, ny) => (Math.sin(nx * 9 + ny * 7) > 0.3 ? 0xff8a2a : 0x3a2018), { nu: 8, nv: 4 });
   })];
