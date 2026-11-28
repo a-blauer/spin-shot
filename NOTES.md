@@ -823,3 +823,39 @@
   door's head), and a hedge's blossom could float off its leaves (now placed at the leaves' own corners).
 - Checks: loose parts 0, floating 0 of 903, clipping 0, invisible walls 0, walk-through 0. Grid 10230/10230; chase
   clean from 16 spots (one Sporeling slow round the sluice: traced, it gets there). 192 calls, 671k triangles.
+
+## (81) Lantern Lake (the Wildwood, room 2, a boss room) built
+- `dest_lake.js` + `dest_props_lake.js`. A lake in a clearing of the old forest, at dusk, where the forest folk keep
+  Lantern Night: the Blight came while the festival was being got ready. The road comes in from the south under the
+  festival's arch (LANTERN LAKE on its board, a lantern at each end of its beam) between lantern posts to the green on
+  the south shore: a canopy of lantern strings from a tall pole out to a ring of eight, bunting between those, the
+  supper laid on four trestle tables under it (bowls, jugs, loaves, cups), stalls round it selling lanterns, cloth,
+  bread and pots, two knocked flat with their lanterns dropped in the grass. The boardwalk runs from a flagged quay
+  across the shallows on two landings to the island, lantern posts standing in the water along it; on the island the
+  pavilion (eight posts, a ring beam, a shingled roof on hip rafters, a finial) with the great lantern on its chain and
+  a lantern under each corner of the eaves, a round tree with stones at its foot. West of the green the
+  lantern-makers' hamlet: their workshop and their house (log cabins), three drying racks hung with lanterns (some
+  papered, some still bare frames), the makers' benches (paper, frames, a paste pot and its brush, cord), withies
+  stacked, a woodpile, a handcart; their boathouse (boarded, open to the water, a boat inside) and jetty below it with
+  rowboats tied up. The old weeping willow on the west shore with a bench under it. East, the festival field with the
+  beacon built and never lit and straw bales round it, festival poles and bunting along its west side; the boss
+  comes in the middle of it. North-east, the festival-goers' tents round their fire. The Mirecap came down the stream
+  from the north: its heart in the reeds where the stream runs into the lake, masses up the stream and along the
+  north shore, its threads out over the water to the island and up the path to the stones; the lanterns near it have
+  burnt out to their frames and a dropped one or two lie on the trail. The footbridge takes the north trail over the
+  stream. Lantern boats float lit on the water, lilies in the bays, reeds in clumps along the shores and the stream.
+  The way on: the old standing stones where the forest road leaves north. Fireflies over the grass, a mist on the
+  water, the Mirecap's wisps off its heart (`lakeAir`).
+- New pieces: lanternString (between poles of two heights), festivalPole, lakePost (lit; deadPost burnt out),
+  stallLanterns, pavilion, walkway, landing, lakeJetty, boathouse, lanternBoat, trestle (supper or makers' goods),
+  dryingRack, weepingWillow, tent, bonfire, lakeArch, fallenLantern, withies, strawBale, bunting. A lantern's paper is
+  a glowing shape of its own drawn with its frame. The lake's water lies at 1.05 so the lamps' pools of light show on
+  it.
+- Bodies: reeds go in clumps with a clear way between any two; the boathouse's roof body stops at its walls (a tall
+  creature brushing the eaves was caught on it); the island's stones lie against its tree's foot; the tall things on
+  the tables (jugs, frames, the paste pot) are solid too.
+- Checks: loose parts 0, floating 0 of 746, clipping 0, invisible walls 0, walk-through 0. Grid 12268/12268; chase
+  clean from 40 spots (two transients traced: a Creeper pausing between lunges, and a Rotcap held on the boathouse
+  eaves, fixed); every boss tried (Drifter, Bracketback, Sporeling, Creeper, Blight Rat) reaches the player from the
+  field at 14 spots. 214 calls, 677k triangles.
+

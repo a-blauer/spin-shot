@@ -22,6 +22,7 @@ import { buildTown, townAir } from './dest_town.js';
 import { buildCaves, cavesAir } from './dest_caves.js';
 import { buildAbbey, abbeyAir } from './dest_abbey.js';
 import { buildMill, millAir } from './dest_mill.js';
+import { buildLake, lakeAir } from './dest_lake.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -51,6 +52,8 @@ export const DEST_DEFS = [
     air: { sky: 0x8e8678, fog: 0x8a8276, fogStart: 1700, fogDensity: 0.0001, fogMax: 0.84, sun: [-0.48, -0.36, 0.44], lit: [0.98, 0.9, 0.8, 0.98], shadow: [0.47, 0.45, 0.5, 0.82], sprite: [0.98, 0.94, 0.88] } },
   { key: 'mill', region: 0, name: 'Millbrook', hx: 5400, hy: 5800, H: 2400, flip: 1, bed: 'S_AmbWater', build: buildMill, ambient: millAir,
     air: { sky: 0x7a9cc4, fog: 0xd0bc90, fogStart: 2400, fogDensity: 0.00007, fogMax: 0.78, sun: [-0.5, -0.45, 0.45], lit: [1.06, 0.97, 0.84, 1.03], shadow: [0.46, 0.47, 0.6, 0.82], sprite: [1.03, 0.98, 0.9] } },
+  { key: 'lake', region: 1, name: 'Lantern Lake', hx: 5600, hy: 6000, H: 2600, flip: 1, bed: 'S_AmbWater', build: buildLake, ambient: lakeAir,
+    air: { sky: 0x5a5a8e, fog: 0x8e7488, fogStart: 1800, fogDensity: 0.0001, fogMax: 0.84, sun: [-0.84, 0.16, 0.3], lit: [1.1, 0.88, 0.74, 1.04], shadow: [0.44, 0.44, 0.66, 0.84], sprite: [1.04, 0.94, 0.9] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges
