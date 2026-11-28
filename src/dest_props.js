@@ -1,7 +1,7 @@
 // Sculpted pieces for the destinations (the Vale's farms first). Same rules as village_shapes.js: UE frame (X the
 // front, Y right, Z up, cm), each returns [key, build] for world.Shape(), keys carry every number the shape depends
 // on, and things stand on z = 0. Every piece is whole: no part hangs in the air or stops short of what holds it.
-import { shape, wob } from './propkit.js';
+import { shapeB as shape, wob } from './propkit.js';
 import { dark, mix, VC } from './village_shapes.js';
 
 const q = (v, s = 10) => Math.round(v / s) * s;
@@ -183,8 +183,10 @@ export function barn(seed = 1) {
     const red = (k) => mix(FC.red, k % 3 === 0 ? 0x8a3a2c : k % 3 === 1 ? 0xa4402e : 0x93372a, 0.6), back = 0x3a2a20, white = 0xe6dccb, shingle = [0x4a3e3a, 0x544642, 0x403634], wood = 0x6a4e34;
     const roofZ = (x) => { const a = Math.abs(x); return a >= kneeX ? knee + (eave - knee) * (a - kneeX) / (hw - kneeX) : ridge + (knee - ridge) * a / kneeX; };   // the gambrel line over the walls
     // stone footing all round, broken at the doors
-    for (const sx of [-1, 1]) G.blob(sx * hw, 0, 36, 22, hl + 22, 36, 0x8a8478, { e: 8, nu: 10, nv: 4 });
-    for (const sy of [-1, 1]) for (const sx of [-1, 1]) G.blob(sx * ((hw + dh) / 2 + 12), sy * hl, 36, (hw - dh) / 2 + 10, 22, 36, 0x8a8478, { e: 8, nu: 10, nv: 4 });
+    const stoneC = [0x8a8478, 0x7e786c, 0x968e80, 0x847c70], course = (x0, y0, x1, y1, z, h, d, k0) => { const L = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / L, uy = (y1 - y0) / L; let t = (k0 % 2) * 34, k = k0; G.box(x0 + ux * L / 2, y0 + uy * L / 2, z, Math.abs(ux) * L / 2 + Math.abs(uy) * (d - 3), Math.abs(uy) * L / 2 + Math.abs(ux) * (d - 3), h - 1, 0x4e4a42);
+      if (t > 0) G.box(x0 + ux * t / 2, y0 + uy * t / 2, z, Math.abs(ux) * (t / 2 - 1.5) + Math.abs(uy) * d, Math.abs(uy) * (t / 2 - 1.5) + Math.abs(ux) * d, h - 1.5, stoneC[k++ % 4]);
+      while (t < L - 4) { const w = Math.min(L - t, 60 + R() * 50), m = t + w / 2; G.box(x0 + ux * m, y0 + uy * m, z + (R() - 0.5) * 1.5, Math.abs(ux) * (w / 2 - 1.5) + Math.abs(uy) * d, Math.abs(uy) * (w / 2 - 1.5) + Math.abs(ux) * d, h - 1.5, stoneC[k++ % 4]); t += w; } };
+    for (const [z, h, k0] of [[18, 18, 0], [54, 18, 1]]) { for (const sx of [-1, 1]) course(sx * hw, -hl - 22, sx * hw, hl + 22, z, h, 22, k0 + (sx > 0 ? 2 : 0)); for (const sy of [-1, 1]) for (const sx of [-1, 1]) course(sx * (hw - 22), sy * hl, sx * (dh + 2), sy * hl, z, h, 22, k0 + 1); }
     // ---- the long walls (+X, -X): a dark backing, battens over it
     for (const sx of [-1, 1]) {
       G.blob(sx * (hw - 6), 0, (72 + eave + 26) / 2, 8, hl, (eave + 26 - 72) / 2, back, { e: 10, nu: 6, nv: 4 });
@@ -274,8 +276,8 @@ export function barn(seed = 1) {
     for (const py of BN.posts) G.blob(0, py, eave - 8, hw - 4, 14, 14, wood, { e: 8, nu: 8, nv: 3 });
     for (const sx of [-1, 1]) G.blob(sx * BN.postX, 0, eave - 8, 14, hl - 6, 12, wood, { e: 8, nu: 6, nv: 3 });
     // the floor: old boards laid along the length, worn pale down the middle where the carts go
-    G.blob(0, 0, 0.9, hw - 4, hl - 4, 0.9, 0x2e241a, { e: 10, nu: 6, nv: 3 });
-    for (let x = -hw + 20; x < hw - 10; x += 40) G.blob(x, 0, 1.8, 19.4, hl - 4, 1.6, Math.abs(x) < 330 ? mix(0x7a6650, 0x9a8468, 0.5 + 0.5 * Math.sin(x)) : mix(0x5e4a36, 0x6e5840, 0.5 + 0.5 * Math.sin(x * 1.3)), { e: 8, nu: 4, nv: 3 });
+    G.box(0, 0, 1.6, hw - 4, hl - 4, 1.6, 0x2a2018);
+    for (let x = -hw + 20; x < hw - 10; x += 40) { let y = -hl + 4 - R() * 600; while (y < hl - 4) { const len = 520 + R() * 420, y0 = Math.max(y, -hl + 4), y1 = Math.min(y + len, hl - 4), worn = Math.abs(x) < 330, c = worn ? mix(0x7a6650, 0x9a8468, R()) : mix(0x5e4a36, 0x725c44, R()); if (y1 - y0 > 30) G.box(x, (y0 + y1) / 2, 4.5, 19.1, (y1 - y0) / 2 - 1, 1.4, c); y += len; } }
   })];
 }
 
@@ -285,8 +287,9 @@ export function silo(h = 1500, r = 270) {
   h = q(h); r = q(r);
   return ['dsilo|' + [h, r].join('|'), shape((G) => {
     const n = Math.round((Math.PI * 2 * r) / 34), st = [0x7a5a3c, 0x6e5034, 0x86643f, 0x735638];
-    G.lathe([[r + 18, 0], [r + 18, 104], [r + 12, 116], [r + 2, 122]], (k) => (k < 2 ? 0x8a8478 : 0x7a746a), 24);
-    for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, b = G.n; G.blob(r + 18, 0, 0, 3, 34, 16, i % 2 ? 0x968e7c : 0x7e786a, { e: 6, nu: 6, nv: 3 }); G.place(b, { z: 30 + (i % 3) * 34, yaw: (a * 180) / Math.PI }); }
+    G.lathe([[r + 6, 0], [r + 6, 118]], 0x4e4a42, 24); G.lathe([[r + 20, 112], [r + 20, 118], [r + 2, 124]], 0x7a746a, 24);
+    { const sc = [0x8a8478, 0x7e786c, 0x968e80, 0x847c70], n0 = Math.round((Math.PI * 2 * (r + 13)) / 58); for (let c = 0; c < 3; c++) for (let i = 0; i < n0; i++) { const a = ((i + (c % 2) * 0.5) / n0) * Math.PI * 2, b = G.n; G.box(r + 13, 0, 0, 8, (Math.PI * (r + 13)) / n0 - 1.6, 17.5, sc[(i * 3 + c) % 4]); G.place(b, { z: 19 + c * 37, yaw: (a * 180) / Math.PI }); } }
+    G.lathe([[r - 6, 116], [r - 6, h - 4]], 0x2a2018, 32);
     for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, b = G.n; G.blob(r, 0, 0, 7, (Math.PI * r) / n + 0.6, (h - 120) / 2, st[i % 4], { e: 8, nu: 4, nv: 3 }); G.place(b, { z: 120 + (h - 120) / 2, yaw: (a * 180) / Math.PI }); }
     for (let z = 260; z < h - 40; z += 170) G.lathe([[r + 6, z - 7], [r + 9, z - 5], [r + 9, z + 5], [r + 6, z + 7]], FC.iron, 32);
     // the dome
@@ -336,21 +339,50 @@ export function churnStand(w = 200) {
 // pop-hole on the front (+X), a nest box on the +Y side with its own lid
 export function coop(seed = 1) {
   return ['dcoop|' + (seed % 3), shape((G) => {
-    const ww = 0xe8e0cc, wd = 0xd6ccb4, rf = 0x5a7a52, leg = FC.weathD, z0 = 56;
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.blob(sx * 76, sy * 96, z0 / 2, 7, 7, z0 / 2 + 2, leg, { e: 8, nu: 6, nv: 3 });
-    G.blob(0, 0, z0 + 4, 90, 110, 6, leg, { e: 8, nu: 8, nv: 3 });
-    for (let i = 0; i < 7; i++) G.blob(0, -96 + i * 32, z0 + 70, 86, 15.4, 62, i % 2 ? ww : wd, { e: 10, nu: 6, nv: 3 });
-    // pent roof: high at the back (-X), low at the front, overhanging
-    { const b = G.n; G.blob(0, 0, 0, 118, 132, 5, rf, { e: 8, nu: 8, nv: 3 }); G.place(b, { z: z0 + 148, pitch: 12 }); }
-    for (const sy of [-1, 1]) { G.surf((u, v) => { const x = -86 + 172 * u; return [x, sy * 111, z0 + 132 + v * (24 - x * 0.2)]; }, 0, 1, 4, 0, 1, 2, ww); }
-    // pop-hole with its slide door up, and the ramp with cleats
-    G.blob(87, 0, z0 + 30, 2, 22, 22, 0x2a221c, { e: 8, nu: 4, nv: 3 }); G.blob(89, 0, z0 + 62, 2, 24, 12, leg, { e: 8, nu: 4, nv: 3 });
-    { const b = G.n; G.blob(0, 0, 0, 78, 20, 3, FC.weath, { e: 8, nu: 6, nv: 3 }); for (let i = 0; i < 6; i++) G.blob(-60 + i * 24, 0, 4, 3, 18, 2, leg, { e: 8, nu: 4, nv: 3 }); G.place(b, { x: 150, z: z0 / 2 - 2, pitch: (Math.atan2(z0 + 6, 150) * 180) / Math.PI }); }
-    // nest box on the side, lid shut, a latch
-    G.blob(0, 124, z0 + 42, 70, 16, 34, ww, { e: 10, nu: 6, nv: 3 }); { const b = G.n; G.blob(0, 0, 0, 74, 22, 3, rf, { e: 8, nu: 6, nv: 3 }); G.place(b, { y: 126, z: z0 + 82, roll: 14 }); }
-    G.blob(70, 124, z0 + 50, 3, 3, 6, FC.iron, { e: 6, nu: 6, nv: 3 });
+    // a hen house on legs: whitewashed boards on a frame, a red shingled gable roof, the pop-hole and its ramp at the
+    // front (+X), a nest box with a lifting lid on the +Y side, a wired window at the back. Footprint 2*CP.hx by
+    // 2*CP.hy; the nest box stands out CP.nest past +Y.
+    const R = rng(seed * 31 + 5), { hx: X, hy: Y, z0, eave, ridge } = CP, ww = [0xe8e0cc, 0xdcd2bc, 0xe2d8c2], frame = 0x6e5a44, iron = FC.iron;
+    // the frame: corner posts that run down to be the legs, sills, plates
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) G.box(sx * (X - 5), sy * (Y - 5), (eave + 2) / 2, 6, 6, (eave + 2) / 2, frame);
+    for (const sx of [-1, 1]) { G.box(sx * (X - 5), 0, z0 + 3, 5, Y - 2, 5, frame); G.box(sx * (X - 5), 0, eave - 3, 5, Y - 2, 4, frame); }
+    for (const sy of [-1, 1]) { G.box(0, sy * (Y - 5), z0 + 3, X - 2, 5, 5, frame); G.box(0, sy * (Y - 5), eave - 3, X - 2, 5, 4, frame); }
+    G.box(0, 0, z0 + 2, X - 6, Y - 6, 3, 0x5a4a3a);
+    // a dark core, so a crack between boards never shows the sky
+    G.box(0, 0, (z0 + 8 + eave) / 2, X - 9, Y - 9, (eave - z0 - 8) / 2, 0x2a2018);
+    // board walls: upright boards on all four sides, gaps for the pop-hole and the window
+    const board = (x, y, z0b, z1b, along, k) => G.box(x, y, (z0b + z1b) / 2, along === 'y' ? 2 : 8.6, along === 'y' ? 8.6 : 2, (z1b - z0b) / 2, ww[k % 3]);
+    let k = 0;
+    for (let y = -Y + 13; y < Y - 8; y += 18, k++) { const hole = Math.abs(y) < 28; board(X - 1, y, z0 + 6, hole ? z0 + 6 : eave - 6, 'y', k); if (hole) board(X - 1, y, z0 + 62, eave - 6, 'y', k); }
+    k = 0; for (let y = -Y + 13; y < Y - 8; y += 18, k++) { const win = Math.abs(y) < 40; board(-X + 1, y, z0 + 6, win ? z0 + 46 : eave - 6, 'y', k + 1); if (win) board(-X + 1, y, eave - 22, eave - 6, 'y', k + 1); }
+    const roofZ = (x) => eave + (ridge - eave) * (1 - Math.abs(x) / (X + 22));
+    for (const sy of [-1, 1]) { k = 0; for (let x = -X + 13; x < X - 8; x += 18, k++) board(x, sy * (Y - 1), z0 + 6, roofZ(Math.abs(x) + 9) - 2, 'x', k + 2); G.box(0, sy * (Y + 1), ridge - 34, 13, 1, 9, 0x2a2018); }
+    // the pop-hole: dark, a slide door run up in its guides above it, a sill
+    G.box(X - 2, 0, z0 + 34, 1, 26, 28, 0x1e1812); for (const s of [-1, 1]) G.box(X + 2, s * 30, z0 + 70, 2, 3, 40, frame);
+    G.box(X + 3, 0, z0 + 86, 1.5, 27, 20, 0xc8bca4); G.box(X + 3, 0, z0 + 6, 3, 30, 2, frame);
+    // the ramp from the pop-hole to the ground, cleats across it
+    { const b = G.n, L = Math.hypot(z0 + 6, 150); G.box(L / 2, 0, 0, L / 2, 22, 2.5, 0xa89a80); for (let i = 1; i < 7; i++) G.box((L * i) / 7, 0, 4, 2, 20, 2, frame); G.place(b, { x: X, z: z0 + 6, pitch: (Math.atan2(z0 + 6, 150) * 180) / Math.PI }); }
+    // the window at the back: a dark opening behind wire, a frame round it
+    G.box(-X - 1, 0, z0 + 70, 1, 38, 22, 0x1e1812); for (let i = -3; i <= 3; i++) G.box(-X - 2.5, i * 10, z0 + 70, 0.6, 0.6, 22, 0x9a9a9a); for (let j = -2; j <= 2; j++) G.box(-X - 2.5, 0, z0 + 70 + j * 9, 0.6, 38, 0.6, 0x9a9a9a);
+    for (const s of [-1, 1]) { G.box(-X - 3, s * 42, z0 + 70, 2, 4, 26, frame); G.box(-X - 3, 0, z0 + 70 + s * 26, 2, 46, 4, frame); }
+    // the nest box on the +Y side: three hatches under a lid that lifts on hinges, a latch
+    { const ny = Y + CP.nest / 2, nz0 = z0 + 18, nz1 = z0 + 74; G.box(0, ny, (nz0 + nz1) / 2, 62, CP.nest / 2, (nz1 - nz0) / 2, ww[1]); G.box(0, ny, nz0 - 3, 64, CP.nest / 2 + 2, 3, frame);
+      for (const x of [-42, 0, 42]) G.box(x, ny + CP.nest / 2 + 0.5, nz0 + 24, 16, 1, 16, 0x8a7a64);
+      { const b = G.n; G.box(0, 0, 0, 68, CP.nest / 2 + 8, 2.5, 0x8a3a2c); G.place(b, { y: ny + 2, z: nz1 + 8, roll: -16 }); }
+      for (const x of [-40, 40]) G.box(x, Y + 3, nz1 + 6, 6, 2, 2, iron); G.box(0, ny + CP.nest / 2 + 2, nz1 - 4, 2, 1, 6, iron);
+      for (const x of [-56, 56]) G.box(x, ny + CP.nest / 2 - 6, nz0 / 2 - 2, 4, 4, nz0 / 2, frame); }
+    // the roof: red shingles in courses on two slopes over a board deck, a ridge board; overhangs all round
+    const ov = 22, pitch = Math.atan2(ridge - eave, X + ov), rows = 6;
+    for (const sx of [-1, 1]) {
+      const nx = sx * Math.sin(pitch), nz = Math.cos(pitch);
+      G.surf((u, v) => { const x = sx * (X + ov) * (1 - v), z = eave - 4 + (ridge - eave + 4) * v, lift = ((v * rows) % 1) * 3; return [x + nx * lift, -Y - ov + u * (Y + ov) * 2, z + nz * lift + 3]; }, 0, 1, 10, 0, 1, rows * 2, (u, v) => [0x8a3a2c, 0x7a3226, 0x96402e][(Math.floor(v * rows) + Math.floor(u * 14) * 5 + seed) % 3]);
+      G.surf((u, v) => { const x = sx * (X + ov) * (1 - v), z = eave - 4 + (ridge - eave + 4) * v; return [x - nx * 3, -Y - ov + u * (Y + ov) * 2, z - nz * 3]; }, 0, 1, 2, 0, 1, 2, 0x4e3a2a);
+    }
+    G.box(0, 0, ridge + 4, 7, Y + ov + 2, 5, 0x6a2a20);
+    void R;
   })];
 }
+export const CP = { hx: 92, hy: 112, z0: 52, eave: 168, ridge: 236, nest: 56 };
 
 // ---- a scarecrow on a pole: a sack head with button eyes and a stitched grin under a floppy gnome's hat gone pale,
 // a patched coat on the cross-arm, straw out of the cuffs and the collar. Faces +X.
@@ -537,17 +569,22 @@ export function furrows(w = 1600, d = 1000, rows = 14) {
 // ---- the Blight where it broke the ground: a low heaving mat of fungal growth, rust-dark and mottled with pale flesh,
 // split by black seams; the Vale's red-capped toadstools crowd up out of it (one great one, a ring of big ones, many
 // small), pale puffballs swell between them. Glowing pores are left to the map (the strain's lime).
-export function blightMass(r = 260, seed = 1) {
+// strain: 'toad' (the Vale's) or 'mire' (the Wildwood's: a sodden olive mat, the caps a deep green, the flesh grey-pale)
+const MASS = {
+  toad: { flesh: 0xe2d8c0, rust: 0x7a3e2c, rustD: 0x4e2a20, pink: 0xb8907a, seam: 0x2a1a16, cap: 0xa4432a, capD: 0x7a2a1a, gill: 0xd8c8a4, puff: [0xf2ece0, 0xa89a80] },
+  mire: { flesh: 0xcfd3b4, rust: 0x3e4a32, rustD: 0x262e22, pink: 0x6a765a, seam: 0x121812, cap: 0x3e6c4c, capD: 0x2a4a36, gill: 0xc4c8a8, puff: [0xdfe6cc, 0x8e9a7e] },
+};
+export function blightMass(r = 260, seed = 1, strain = 'toad') {
   r = q(r);
-  return ['dblight2|' + [r, seed % 5].join('|'), shape((G) => {
-    const R = rng(seed * 97 + r), flesh = 0xe2d8c0, rust = 0x7a3e2c, rustD = 0x4e2a20, pink = 0xb8907a, seam = 0x2a1a16, cap = 0xa4432a, capD = 0x7a2a1a, gill = 0xd8c8a4;
+  return ['dblight2|' + [r, seed % 5].join('|') + (strain === 'toad' ? '' : '|' + strain), shape((G) => {
+    const P = MASS[strain] || MASS.toad, R = rng(seed * 97 + r), { flesh, rust, rustD, pink, seam, cap, capD, gill } = P;
     const mott = (nx, ny, nz, i) => { const w = wob(nx * 5 + i, ny * 5 + nz * 4); return nz < -0.2 ? rustD : w > 0.68 ? seam : w > 0.25 ? rust : w < -0.45 ? flesh : pink; };
     for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + R(), d = i ? r * (0.3 + R() * 0.45) : 0, rr2 = r * (i ? 0.34 + R() * 0.18 : 0.6); G.blob(Math.cos(a) * d, Math.sin(a) * d, rr2 * 0.12, rr2, rr2 * (0.8 + R() * 0.3), rr2 * 0.34, (nx, ny, nz) => mott(nx, ny, nz, i), { nu: 12, nv: 7, warp: (x, y, z, nx, ny, nz) => { const w = 1 + wob(nx * 3 + i, ny * 3 + nz) * 0.16; return [x * w, y * w, Math.max(z * w, -rr2 * 0.1)]; } }); }
     const toad = (x, y, z, h, w, lean) => { const b = G.n; G.lathe([[w * 0.24, -4], [w * 0.2, h * 0.18], [w * 0.15, h * 0.55], [w * 0.13, h * 0.92], [w * 0.5, h * 0.94], [w * 0.53, h], [w * 0.42, h + w * 0.22], [0, h + w * 0.3]], (k) => (k < 3 ? flesh : k < 4 ? gill : k < 5 ? capD : cap), 10); for (let q2 = 0; q2 < 5; q2++) { const a = R() * 6.28, rr2 = w * (0.06 + R() * 0.3), skin = h + w * 0.3 - (w * 0.08) * (rr2 / (w * 0.42)); G.blob(Math.cos(a) * rr2, Math.sin(a) * rr2, skin, w * 0.05, w * 0.05, w * 0.03, flesh, { nu: 6, nv: 4 }); } G.place(b, { x, y, z, pitch: lean, yaw: R() * 360 }); };   // warts on the cap's skin
     toad(r * 0.05, 0, r * 0.12, r * 1.15, r * 0.8, 5);
     for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + R(), d = r * (0.42 + R() * 0.15); toad(Math.cos(a) * d, Math.sin(a) * d, r * 0.06, r * (0.5 + R() * 0.15), r * (0.38 + R() * 0.1), (R() - 0.5) * 24); }
     for (let i = 0; i < 12; i++) { const a = R() * Math.PI * 2, d = r * (0.25 + R() * 0.75); toad(Math.cos(a) * d, Math.sin(a) * d, d > r * 0.7 ? 2 : r * 0.04, r * (0.14 + R() * 0.14), r * (0.12 + R() * 0.08), (R() - 0.5) * (d > r * 0.7 ? 14 : 36)); }   // out past the mat they stand in the earth
-    for (let i = 0; i < 4; i++) { const a = R() * Math.PI * 2, d = r * (0.3 + R() * 0.5), pr = r * (0.1 + R() * 0.07); G.blob(Math.cos(a) * d, Math.sin(a) * d, r * 0.08 + pr * 0.7, pr, pr, pr * 0.85, (nx, ny, nz) => (nz > 0.6 ? 0xf2ece0 : nz < -0.3 ? 0xa89a80 : flesh), { nu: 12, nv: 8 }); }
+    for (let i = 0; i < 4; i++) { const a = R() * Math.PI * 2, d = r * (0.3 + R() * 0.5), pr = r * (0.1 + R() * 0.07); G.blob(Math.cos(a) * d, Math.sin(a) * d, r * 0.08 + pr * 0.7, pr, pr, pr * 0.85, (nx, ny, nz) => (nz > 0.6 ? P.puff[0] : nz < -0.3 ? P.puff[1] : flesh), { nu: 12, nv: 8 }); }
   })];
 }
 
@@ -597,3 +634,4 @@ export function hedgeLump(r = 200, leaf = 0x4e7a30, bloom = 0, seed = 1) {
       G.blob(px, py, pz, 7, 7, 4, bloom, { nu: 6, nv: 4 }); }
   })];
 }
+export { q, hx, rng };

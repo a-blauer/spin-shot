@@ -6,6 +6,7 @@
   const D = g.descent, A = D.A(), cx = A.c[0], cz = A.c[1];
   const inA = (b) => Math.abs((b.min.x + b.max.x) / 2 - cx) < A.hx + 300 && Math.abs((b.min.z + b.max.z) / 2 - cz) < A.hy + 300;
   const ids = new Map(); for (const r of W.scanAll || []) { if (r[1] || !inA(r[3])) continue; const G = GEOS[r[0]]; if (!G || !G.userData || !G.userData.shape) continue; if (!ids.has(r[0])) ids.set(r[0], r); }
+  if (window.__ST) for (let i = 0; i < GEOS.length; i++) { const G = GEOS[i]; if (G && G.userData && /^st_/.test(G.userData.shape || '')) ids.set(i, [i]); }   // the stations' sculpts too (after a clear)
   const out = [];
   const t0 = performance.now();
   for (const [id, r] of ids) {

@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { V, R, UVec } from './mapkit.js';
 import { toonMaterial, hex } from './render.js';
 import { textMesh } from './text.js';
-import { PRIM } from './world.js';
+import { PRIM, shapeId } from './world.js';
+import { workbenchShape, pressShape, BENCH, PRESS } from './station_shapes.js';
 import { ViewModel } from './viewmodel.js';
 import { TONICS, RARITIES, RARITY_HEX, rarityIndex, rollRarity, rollBoxRarity, rollWeaponOfRarity, luckRerollChance, rarityPrice, VAULT_COST } from './data.js';
 import { MELEE, MELEE_CODE, MELEE_PRICE, isMelee, rollMelee, HONE_MAX } from './melee.js';
@@ -46,6 +47,8 @@ export class Interactable {
     this.build(size);
   }
 
+  // a sculpted piece (station_shapes.js) drawn as part of this thing: the world's toon look, its own colours
+  sculpt(pair, parent = null) { const m = new THREE.Mesh(PRIM.GEOS[shapeId(pair[0], pair[1])], toonMaterial({ vcol: true, double: true })); (parent || this.group).add(m); return m; }
   part(parent, meshId, loc, size, color, rot = null, glow = 0) {
     const m = new THREE.Mesh(PRIM.GEOS[meshId], mat(color, glow > 0 ? Math.min(1.4, glow * 0.45) : 0));
     m.position.copy(loc.to3());
@@ -522,87 +525,37 @@ export class Interactable {
         break;
       }
       case 'Compressor': {
-        // THE COMPRESSOR: a hydraulic press. Two dishes on the platen take two parts; the ram comes down and one comes out.
-        const Steel = lin(0.5, 0.52, 0.58), SteelD = lin(0.17, 0.17, 0.2), Teal = lin(0.25, 0.85, 0.75), Brass = lin(1, 0.66, 0.22);
-        P(null, 0, V(70, 0, 10), V(170, 300, 20), SteelD);                                       // base plate
-        for (const y of [-120, 120]) { P(null, 1, V(70, y, 220), V(30, 30, 420), Steel); P(null, 1, V(70, y, 24), V(46, 46, 14), SteelD); P(null, 1, V(70, y, 420), V(46, 46, 14), SteelD); }   // columns
-        P(null, 0, V(70, 0, 440), V(110, 300, 50), SteelD); P(null, 0, V(70, 0, 468), V(116, 306, 6), Brass, null, 0.4);   // crosshead
-        P(null, 1, V(70, 0, 388), V(70, 70, 70), Steel); this.ram = new THREE.Group(); this.group.add(this.ram);
-        P(this.ram, 1, V(70, 0, 330), V(40, 40, 80), lin(0.8, 0.82, 0.86)); P(this.ram, 0, V(70, 0, 286), V(90, 200, 14), SteelD);   // ram and its die
-        P(null, 0, V(70, 0, 110), V(120, 240, 60), Steel); P(null, 0, V(70, 0, 144), V(124, 246, 8), SteelD);   // platen
-        for (const y of [-55, 55]) { P(null, 1, V(70, y, 152), V(64, 64, 8), Teal, null, 0.8); P(null, 1, V(70, y, 156), V(52, 52, 4), SteelD); }   // the two dishes
-        P(null, 1, V(132, 0, 120), V(40, 40, 8), lin(0.95, 0.92, 0.85), R(0, 0, 90)); P(null, 0, V(138, 0, 124), V(2, 3, 16), lin(0.8, 0.1, 0.1), R(30, 0, 0));   // pressure gauge
-        P(null, 1, V(20, 140, 260), V(14, 14, 380), Brass); P(null, 1, V(40, 140, 452), V(14, 14, 44), Brass, R(0, 90, 0));   // steam line
-        P(null, 0, V(4, 0, 250), V(10, 330, 500), DarkWood);
-        P(null, 0, V(8, 0, 560), V(12, 330, 80), Black); P(null, 0, V(10, 0, 602), V(14, 340, 6), Teal, null, 0.8);
-        this.text(null, V(16, -20, 572), 0, 40, 'COMPRESSOR', '#7fffe0');
-        this.text(null, V(16, -20, 536), 0, 18, 'TWO PARTS IN  -  ONE OUT', '#f2e8d5');
+        // THE COMPRESSOR: an old screw press of oak and iron (station_shapes.js). Two copper dishes on its bed take two
+        // parts; the platen comes down on them and one comes out at the chute.
+        this.sculpt(pressShape());
+        const Iron = lin(0.05, 0.05, 0.06), Brass = lin(0.6, 0.3, 0.06), Amber = lin(1, 0.62, 0.24), Cream = lin(0.84, 0.76, 0.6);
+        this.ram = new THREE.Group(); this.group.add(this.ram);
+        { const [x, y, z] = PRESS.platen; P(this.ram, 0, V(x, y, z), V(112, 200, 16), Iron); P(this.ram, 0, V(x, y, z + 9), V(116, 204, 3), Brass, null, 0.15); }
+        for (const [x, y, z] of PRESS.dishes) P(null, 1, V(x, y, z), V(50, 50, 2), Amber, null, 0.7);
+        { const [x, y, z] = PRESS.gauge; P(null, 1, V(x, y, z), V(26, 26, 2), Cream, R(0, 0, 90)); P(null, 0, V(x + 2, y + 3, z + 4), V(1, 2, 12), lin(0.6, 0.06, 0.04), R(35, 0, 0)); }
+        this.text(null, V(...PRESS.text), 0, 26, 'COMPRESSOR', '#f2e2b8');
+        this.text(null, V(...PRESS.rule), 0, 11, 'TWO PARTS IN  -  ONE OUT', '#e8b860');
         this.useRadius = 260;
+        this.glowAt = V(80, 0, 120); this.glowCol = [1, 0.66, 0.32];
         break;
       }
       case 'HighRoller': {
-        // WORKBENCH: a frontier gunsmith's bench, in the colours of the places it stands in: dark walnut and oxblood
-        // leather, brass and blued iron, a green felt mat with the gun on it, an oil lantern for light. The Blight has
-        // found it too: a few pale caps glowing at its foot.
-        const Wal = lin(0.2, 0.11, 0.06), WalD = lin(0.11, 0.06, 0.035), WalL = lin(0.32, 0.19, 0.1), Iron = lin(0.1, 0.1, 0.12), IronL = lin(0.28, 0.28, 0.31);
-        const Brass = lin(0.86, 0.6, 0.24), Leather = lin(0.32, 0.07, 0.05), Felt = lin(0.05, 0.16, 0.11), Cream = lin(0.9, 0.8, 0.58), Blight = lin(0.45, 1, 0.78), Flame = lin(1, 0.75, 0.38);
-        // the floor it stands on and the back it is built against: planks, battened, framed in posts with brass caps
-        P(null, 0, V(70, 0, 6), V(160, 410, 12), WalD);
-        P(null, 0, V(-6, 0, 262), V(14, 400, 524), WalD);
-        for (let y = -175; y <= 175; y += 50) P(null, 0, V(2, y, 262), V(3, 46, 500), y % 100 ? Wal : WalL);
-        for (const z of [150, 380]) P(null, 0, V(5, 0, z), V(4, 390, 12), WalD);
-        for (const y of [-200, 200]) { P(null, 0, V(2, y, 262), V(24, 18, 524), WalD); P(null, 0, V(2, y, 528), V(30, 24, 10), Brass, null, 0.25); P(null, 0, V(2, y, 8), V(30, 24, 14), Iron); }
-        // a leather strap across the back with the tools in it, and two long guns on brass pegs above
-        P(null, 0, V(8, 0, 270), V(4, 360, 20), Leather);
-        for (let y = -150; y <= 150; y += 60) P(null, 1, V(10, y, 270), V(6, 6, 3), Brass, R(0, 90, 0), 0.2);
-        P(null, 0, V(12, -140, 236), V(5, 10, 80), WalL); P(null, 0, V(12, -140, 280), V(8, 42, 20), IronL);   // hammer
-        P(null, 0, V(12, -90, 240), V(5, 10, 96), IronL); P(null, 1, V(12, -90, 292), V(26, 26, 6), IronL, R(0, 90, 0));   // wrench
-        P(null, 0, V(12, -30, 250), V(4, 10, 70), IronL); P(null, 0, V(12, -22, 250), V(4, 10, 70), IronL); P(null, 0, V(12, -26, 214), V(6, 26, 22), Leather);   // pliers
-        P(null, 0, V(12, 40, 252), V(3, 110, 30), IronL); P(null, 0, V(12, 108, 252), V(8, 26, 40), WalL);   // saw
-        for (const [z, len] of [[340, 300], [372, 260]]) {
-          for (const y of [-len / 2 + 30, len / 2 - 30]) P(null, 1, V(14, y, z - 8), V(5, 5, 14), Brass, R(0, 90, 0), 0.2);
-          P(null, 0, V(18, 0, z), V(8, len, 9), Iron); P(null, 0, V(18, -len / 2 + 40, z - 6), V(9, 80, 16), WalL); P(null, 0, V(18, -len / 2 + 6, z - 12), V(9, 18, 26), Wal);   // barrel, stock, butt
-        }
-        // the bench: a thick walnut top with a brass nosing, turned legs, a row of leather-fronted drawers
-        P(null, 0, V(70, 0, 104), V(136, 372, 18), Wal); P(null, 0, V(139, 0, 104), V(3, 374, 8), Brass, null, 0.25);
-        for (const y of [-170, 170]) for (const x of [16, 124]) { P(null, 1, V(x, y, 48), V(18, 18, 96), WalD); P(null, 1, V(x, y, 12), V(24, 24, 10), Iron); }
-        P(null, 0, V(70, 0, 30), V(118, 330, 8), WalD);
-        P(null, 0, V(132, 0, 70), V(8, 336, 50), WalD);
-        for (const y of [-110, 0, 110]) { P(null, 0, V(136, y, 70), V(3, 100, 40), Leather); P(null, 0, V(138.5, y, 70), V(2, 104, 2), Brass, null, 0.2); P(null, 1, V(140, y, 70), V(8, 8, 4), Brass, R(0, 90, 0), 0.3); }
-        // on the top: a green felt mat with a rifle clamped in a blued vise, a cleaning rod, a tin of oil, cartridges in a row
-        P(null, 0, V(76, 10, 113.5), V(96, 230, 1), Felt);
-        P(null, 0, V(76, -60, 124), V(40, 56, 22), Iron); P(null, 0, V(76, -80, 146), V(40, 12, 26), IronL); P(null, 0, V(76, -40, 146), V(40, 12, 26), IronL); P(null, 1, V(104, -60, 134), V(7, 7, 44), IronL, R(0, 90, 0));
-        P(null, 0, V(76, 30, 150), V(14, 200, 16), Iron); P(null, 1, V(76, 150, 152), V(8, 8, 70), IronL, R(90, 0, 0));
-        P(null, 0, V(76, -104, 146), V(16, 64, 24), WalL); P(null, 0, V(76, 70, 138), V(10, 14, 22), WalD);
-        P(null, 1, V(40, 120, 124), V(20, 20, 28), lin(0.3, 0.33, 0.2)); P(null, 3, V(40, 120, 144), V(10, 10, 12), Brass);
-        for (let i = 0; i < 6; i++) { P(null, 1, V(118, -150 + i * 11, 120), V(6, 6, 12), Brass, null, 0.3); P(null, 3, V(118, -150 + i * 11, 130), V(5, 5, 8), IronL); }
-        const gear = this.spinner(V(104, 128, 116)); P(gear, 1, V(0, 0, 0), V(30, 30, 5), Brass, null, 0.35); for (let i = 0; i < 6; i++) P(gear, 0, V(0, 0, 0), V(38, 6, 5), Brass, R(0, i * 30, 0), 0.35);
-        // two stubs of candle on a brass dish
-        P(null, 1, V(30, -150, 114), V(30, 30, 3), Brass, null, 0.2);
-        for (const [dy, h] of [[-6, 26], [8, 18]]) { P(null, 1, V(30, -150 + dy, 116 + h / 2), V(8, 8, h), Cream); P(null, 2, V(30, -150 + dy, 120 + h), V(5, 5, 8), Flame, null, 2.4); }
-        // the lantern, hung from an iron bracket off the right post
-        P(null, 0, V(40, 180, 420), V(80, 8, 8), Iron); P(null, 0, V(10, 186, 400), V(8, 8, 50), Iron, R(0, 45, 0));
-        P(null, 0, V(76, 180, 404), V(2, 2, 26), Iron);
-        P(null, 1, V(76, 180, 360), V(30, 30, 6), Brass, null, 0.3); P(null, 1, V(76, 180, 376), V(22, 22, 28), Flame, null, 2.2); P(null, 3, V(76, 180, 398), V(32, 32, 16), Brass, null, 0.3);
-        for (const [a, b] of [[-12, -12], [12, -12], [-12, 12], [12, 12]]) P(null, 0, V(76 + a, 180 + b, 376), V(2, 2, 30), Iron);
-        // a board on chains: the name in cream, the trade in brass, three brass chevrons
-        for (const y of [-140, 140]) P(null, 0, V(14, y, 500), V(3, 3, 44), Iron);
-        P(null, 0, V(14, 0, 446), V(12, 390, 92), Wal); P(null, 0, V(17, 0, 446), V(8, 374, 78), WalD);
-        for (const z of [404, 488]) P(null, 0, V(19, 0, z), V(4, 392, 5), Brass, null, 0.35);
-        this.text(null, V(22, -36, 458), 0, 44, 'WORKBENCH', '#ead7a8');
-        this.text(null, V(22, -36, 420), 0, 18, 'PARTS  ·  FITTING  ·  SCRAP', '#e0a85a');
-        for (let i = 0; i < 3; i++) for (const sgn of [-1, 1]) P(null, 0, V(22, 150 + sgn * 12, 420 + i * 22), V(4, 34, 8), Brass, R(sgn * 38, 0, 0), 1.2 - i * 0.25);
-        // a cornice to close the top
-        P(null, 0, V(40, 0, 530), V(90, 420, 12), WalD); P(null, 0, V(86, 0, 526), V(4, 420, 6), Brass, null, 0.25);
-        for (let y = -195; y <= 195; y += 30) P(null, 0, V(86, y, 516), V(6, 14, 14), WalD);
-        // the Blight at its foot: pale caps up the front left leg and in the corner, glowing a little
-        for (const [x, y, z, r] of [[126, -186, 22, 9], [130, -178, 36, 7], [122, -190, 52, 6], [24, -202, 14, 12], [36, -204, 22, 8], [138, 196, 14, 10]]) {
+        // WORKBENCH: a tinker's bench under its own red shingled roof (station_shapes.js): oak, brass and iron, tools on
+        // the board behind, a vise and a cloth of parts on the top. Its lantern burns, its gear turns, and the Blight
+        // has found it too: a few pale caps glowing at its foot.
+        this.sculpt(workbenchShape());
+        const Iron = lin(0.05, 0.05, 0.06), Brass = lin(0.6, 0.3, 0.06), Cream = lin(0.84, 0.76, 0.6), Blight = lin(0.45, 1, 0.78), Flame = lin(1, 0.75, 0.38);
+        { const [x, y, z] = BENCH.lantern; P(null, 0, V(x, y, z + 61), V(1.6, 1.6, 34), Iron); P(null, 3, V(x, y, z + 38), V(30, 30, 14), Brass, null, 0.2); P(null, 1, V(x, y, z + 15), V(22, 22, 26), Flame, null, 2.2); P(null, 1, V(x, y, z), V(28, 28, 5), Brass, null, 0.2);
+          for (const [a, b] of [[-12, -12], [12, -12], [-12, 12], [12, 12]]) P(null, 0, V(x + a, y + b, z + 16), V(2, 2, 28), Iron); }
+        { const gear = this.spinner(V(...BENCH.gear)); P(gear, 1, V(0, 0, 0), V(30, 30, 5), Brass, null, 0.35); for (let i = 0; i < 6; i++) P(gear, 0, V(0, 0, 0), V(38, 6, 5), Brass, R(0, i * 30, 0), 0.35); }
+        { const [x, y, z] = BENCH.text; this.text(null, V(x, y, z), 0, 40, 'WORKBENCH', '#f2e2b8'); this.text(null, V(x, y, z - 30), 0, 15, 'PARTS  ·  FITTING  ·  SCRAP', '#e8b860'); }
+        for (const [x, y, z, r] of [[132, -186, 22, 9], [136, -178, 36, 7], [128, -190, 52, 6], [24, -202, 14, 12], [36, -204, 22, 8], [142, 196, 14, 10]]) {
           P(null, 1, V(x, y, z - r * 0.6), V(r * 0.4, r * 0.4, r * 1.2), Cream);
           P(null, 2, V(x, y, z), V(r * 2, r * 2, r * 0.9), Blight, null, 0.6);
         }
         this.spinSpeed = 30; this.spinAxis = 'yaw';
         this.useRadius = 260;
-        this.glowAt = V(90, 120, 300); this.glowCol = [1, 0.72, 0.4];
+        { const [x, y, z] = BENCH.lantern; this.glowAt = V(x, y, z + 15); } this.glowCol = [1, 0.72, 0.4];
         break;
       }
       case 'ExitBell': {

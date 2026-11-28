@@ -14,6 +14,8 @@ steps = [{"js": setup}]
 names = []
 for i, v in enumerate(views):
     k, _, a = v.partition(':'); nm = f'{tag}_{i}'
+    if k == 'clear':   # clear the room: the stations and the way on come up
+        steps += [{"js": "const g=__dmh;g.toSpawn=0;g.spawned=0;for(const E of g.enemies){E.dead=true;E.remove=true;}g.descent.clear();__sim(60);'c'"}]; continue
     if k == 'top':
         h = float(a or 16000)
         js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx,{h},cy+1);C.up.set(0,0,-1);C.lookAt(cx,0,cy);C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();C.up.set(0,1,0);'t'"

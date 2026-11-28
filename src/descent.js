@@ -237,7 +237,7 @@ export class Descent {
     if (machine('compressor')) {
       const a = (S.benchYaw * Math.PI) / 180, side = (k) => [S.bench[0] - Math.sin(a) * 470 * k, S.bench[1] + Math.cos(a) * 470 * k], far = (q) => Math.min(...[S.box, S.chest, S.exit].filter(Boolean).map((o) => Math.hypot(o[0] - q[0], o[1] - q[1])));
       const at = S.press || (far(side(1)) >= far(side(-1)) ? side(1) : side(-1));   // a destination says where it goes
-      const C = this.station('Compressor', at[0], at[1], S.benchYaw, 0, -1, 'Compressor'); C.makeSolid(0, 150, -160, 160, 0, 470);
+      const C = this.station('Compressor', at[0], at[1], S.press && S.pressYaw !== undefined ? S.pressYaw : S.benchYaw, 0, -1, 'Compressor'); C.makeSolid(0, 150, -160, 160, 0, 470);
     }
     const [x, y] = S.exit;
     const I = new Interactable(g, 'Quest', V(x, y, 0), 0, 0, -1, '', V(100, 100, 100));
@@ -251,7 +251,7 @@ export class Descent {
     I.q = { usable: () => this.cleared, prompt: () => `[E] Go on to ${nxt >= ROOMS ? 'the Root' : this.nameOf(nxt)}\nFit your parts at the bench first: it stays here.${g.net.active ? `\nEveryone has to press it  (${this.rdyN[0]} of ${this.rdyN[1]} ready)` : ''}`,
       use: () => { if (this.host) this.ready('host'); else { g.net.emit('door', { g: 0 }); g.hud.toast('You are at the door. Waiting for the others.', '#ffcd5a'); } } };
     g.scene.add(I.group); g.interactables.push(I); this.gates.push(I);
-    g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); g.fx.ring(V3(S.bench[0], 6, S.bench[1] - f * 120), 260, lin(0.4, 0.9, 1), 0.5); g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
+    g.fx.ring(V3(x, 6, y), 300, lin(1, 0.8, 0.35), 0.5); { const ba = (S.benchYaw * Math.PI) / 180; g.fx.ring(V3(S.bench[0] + Math.cos(ba) * 120, 6, S.bench[1] + Math.sin(ba) * 120), 260, lin(0.4, 0.9, 1), 0.5); } g.fx.ring(V3(S.chest[0], 6, S.chest[1]), 260, lin(1, 0.85, 0.4), 0.5);
     g.audio.play('S_Clear', 0.9);
   }
   wipe() {

@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { V, V2 } from './mapkit.js';
 import { buildBramble } from './dest_bramble.js';
+import { buildOakwoods } from './dest_oakwoods.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -21,6 +22,8 @@ const C = (h) => new THREE.Color(h);
 export const DEST_DEFS = [
   { key: 'bramble', region: 0, name: 'Bramble Farm', hx: 5400, hy: 5800, H: 2600, flip: 1, bed: 'S_AmbWind', build: buildBramble,
     air: { sky: 0x6c84b6, fog: 0xd2b482, fogStart: 2400, fogDensity: 0.000072, fogMax: 0.8, sun: [-0.62, -0.42, 0.42], lit: [1.08, 0.95, 0.8, 1.04], shadow: [0.44, 0.44, 0.62, 0.82], sprite: [1.04, 0.98, 0.9] } },
+  { key: 'oakwoods', region: 1, name: 'Old Oak Woods', hx: 5600, hy: 6000, H: 2800, flip: 1, bed: 'S_AmbWind', build: buildOakwoods, wip: true,
+    air: { sky: 0x7e9eb4, fog: 0xa4b08a, fogStart: 1800, fogDensity: 0.00009, fogMax: 0.82, sun: [-0.5, -0.36, 0.5], lit: [1.02, 1.0, 0.84, 1.0], shadow: [0.36, 0.46, 0.42, 0.8], sprite: [0.96, 1.0, 0.9] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges

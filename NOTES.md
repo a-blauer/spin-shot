@@ -508,3 +508,42 @@
 - tests/dst: look.py (stills: top, oblique, eye level), scan.py + dscan.js + fscan.js (walk-through, invisible
   walls, clipping, floating), shapes.py + shapescan.js (loose parts inside shapes), nav.json (reachability),
   chase.json (horde pathing from 8 spots), perf.py (whole-frame cost), tri.json (the place's own meshes), run.json.
+
+## (67) Bramble Farm, second pass: true boards, a new coop, new workbench and compressor, the stations laid out
+- User (after playing the farm): the barn's floorboards and walls, the grain silo and the chicken coop not up to
+  standard; the stations and the box oddly placed; the workbench and compressor models don't fit the world in design
+  or palette.
+- Cause of the barn/silo/coop look: boards, battens and staves were blobs with few segments. A blob's poles taper its
+  long ends to points and four segments round make its section a diamond: battens ended in spikes with daylight
+  between them, the silo's staves the same over its base, the porch boards' ends a sawtooth.
+  - propkit: Geo.box() (six faces with their own corners: square ends, crisp edges, a colour per face) and shapeB,
+    a shape builder that draws any squared-off blob (e 8 or more, no warp) as a true box. dest_props.js and
+    dest_props_wood.js build with it; the village's pieces are unchanged.
+- Barn: battens, backing, trim as boxes; the stone footing laid in two courses of blocks; the floor a dark deck under
+  boards laid in staggered lengths, the worn ones pale down the middle, the farm track's ribbon now under the deck.
+- Silo: staves as boxes round a dark core (no gaps), a base of stone blocks in three staggered courses, a cap ring.
+- Coop (rebuilt, CP sizes): a hen house on its corner posts, whitewashed boards on a frame round a dark core, a red
+  shingled gable roof with overhangs and a ridge board, the pop-hole with its slide door and a cleated ramp, a nest box
+  with three hatches under a hinged lid, a wired window at the back. It now faces its run: pop-hole and ramp into it.
+- Stations (station_shapes.js, sculpted with the same kit and colours as the world; Interactable.sculpt draws them):
+  - Workbench: a tinker's bench under its own red shingled roof: oak top on stout legs, drawers with brass pulls, a
+    shelf with a crate of scrap, rope and a bucket; a brass-jawed vise with a gun's action in it; a green cloth of
+    gears, a spring and screws; an oil can and a small anvil; behind it a board of tools on pegs (hammer, saw,
+    wrench, brace, file, calipers) and a shelf of jars; the name board on posts on the roof. The lantern (lit), the
+    turning gear and the Blight's glowing caps at its foot are kept.
+  - Compressor: an old screw press: an oak base block in iron straps on a plank deck, two oak posts in iron bands, a
+    crossbeam with the name board across its face, a brass screw with a spoked iron wheel on top; the iron platen hangs
+    from the screw (the ram group); two copper dishes glowing amber in the bed; a copper chute down to a tray; a gauge
+    and a red-knobbed lever on the posts. Text cream and brass (no more teal).
+- Layout (descent: S.pressYaw turns the compressor on its own; the bench's ring follows the bench's facing): on the
+  threshing floor the box stands at the north side with the way on behind it, the workbench and the compressor either
+  side of the floor, turned in towards it and towards you as you come up (bench [-660, 4620] yaw -25, press
+  [660, 4620] yaw -155, box [0, 4900]). The chest spot is the box's (its ring lights the box).
+- dest.js: a destination can be wip (only built in test builds; the run takes an old room for it). Old Oak Woods is
+  wip (dest_oakwoods.js, dest_props_wood.js: oaks, the great oak, a fallen oak, the lodge, woodshed, camp, charcoal
+  mounds, lean-to, standing stones, footbridge, hide, arch); blightMass takes a strain palette ('mire').
+- tests: dst/sheet.py (a sheet of sculpts, each framed: __dprops / __wprops / __sprops in test builds); look.py
+  'clear' (the room cleared, the stations up); shapes.py ... st (the stations' sculpts too): 0 loose parts; farm
+  floating 0, invisible walls 0, clips only self or abutting; grid 10022/10025, all spawns reachable; chase: the horde
+  reaches every spot (the stragglers it lists are walking round the barn to its doors); dg0 [55,[],[]]; wt clean;
+  run.json to the raid; village floats 0.

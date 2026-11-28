@@ -67,6 +67,16 @@ export class Geo {
     if (prof[n - 1][0] > 0.01) { const [r, z] = prof[n - 1], ring = []; for (let j = 0; j < S; j++) { const a = (j / S) * Math.PI * 2; ring.push([at[0] + Math.cos(a) * r * squash[0], at[1] + Math.sin(a) * r * squash[1], at[2] + z]); } this.fan(at[0], at[1], at[2] + z, ring, cf(n - 2, 1)); }
     return this;
   }
+  // a box with crisp flat faces (half sizes hx, hy, hz): planks, boards, battens, beams, staves. Each face has its own
+  // corners, so edges stay sharp and a face can take its own colour: c a colour or c(nx, ny, nz) with the face's normal.
+  box(cx, cy, cz, hx, hy, hz, c) {
+    const cf = typeof c === 'function' ? c : () => c;
+    const F = [[[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1], [1, 0, 0]], [[-1, 1, -1], [-1, -1, -1], [-1, -1, 1], [-1, 1, 1], [-1, 0, 0]],
+      [[1, 1, -1], [-1, 1, -1], [-1, 1, 1], [1, 1, 1], [0, 1, 0]], [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1], [0, -1, 0]],
+      [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1], [0, 0, 1]], [[-1, 1, -1], [1, 1, -1], [1, -1, -1], [-1, -1, -1], [0, 0, -1]]];
+    for (const [a, b, d, e, n] of F) { const col = cf(n[0], n[1], n[2]), k = this.n; for (const [sx, sy, sz] of [a, b, d, e]) this.v(cx + sx * hx, cy + sy * hy, cz + sz * hz, col); this.idx.push(k, k + 1, k + 2, k, k + 2, k + 3); }
+    return this;
+  }
   // a rounded block (superellipsoid): half sizes hx, hy, hz; e how square (2 a ball, 6 a cushion, 10 a block with soft
   // edges); warp(x, y, z, nx, ny, nz) -> [x, y, z] dents and puffs it; c a colour or c(x, y, z)
   blob(cx, cy, cz, hx, hy, hz, c, { e = 2, nu = 20, nv = 12, warp = null } = {}) {
@@ -81,3 +91,6 @@ export class Geo {
 }
 // build a shape: fn(G) fills a Geo
 export const shape = (fn) => () => { const G = new Geo(); fn(G); return G.out(); };
+// the same for built things (planks, boards, staves): a squared-off blob (e 8 or more, no warp) is drawn as a true box,
+// so a board's ends are square and a row of them closes up, where a blob's poles would taper them to points
+export const shapeB = (fn) => () => { const G = new Geo(), blob = G.blob.bind(G); G.blob = (cx, cy, cz, hx, hy, hz, c, o = {}) => ((o.e || 2) >= 8 && !o.warp ? G.box(cx, cy, cz, hx, hy, hz, c) : blob(cx, cy, cz, hx, hy, hz, c, o)); fn(G); return G.out(); };

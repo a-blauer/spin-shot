@@ -367,6 +367,8 @@ export function buildDescent(M) {
     M.world.solidify(VI); M.world.chunk = null; }
   // the destinations, each in its own cell south of the rooms, each its own chunk after the village's
   DEST_ARENAS.length = 0;
-  DEST_DEFS.forEach((D, d) => { const ai = VILLAGE_IDX + 1 + d; ARENAS[ai] = buildDest(M, GM, d, ai); DEST_ARENAS.push(ai); });
+  // a place still being built (wip) is only put on the map in test builds; the run takes an old room in its stead
+  const WIP = typeof location !== 'undefined' && /[?&]test\b/.test(location.search);
+  DEST_DEFS.forEach((D, d) => { if (D.wip && !WIP) return; const ai = VILLAGE_IDX + 1 + d; ARENAS[ai] = buildDest(M, GM, d, ai); DEST_ARENAS.push(ai); });
   const S0 = spots(ARENAS[0], 1); M.Spawn(V(S0.spawn[0], S0.spawn[1], 100));
 }

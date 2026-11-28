@@ -11,7 +11,7 @@
 import { V, R } from './mapkit.js';
 import { shape, wob } from './propkit.js';
 import { destKit } from './dest_kit.js';
-import { stoneWall, gatePost, gateLeaf, farmhouse, FH, barn, BN, silo, handPump, churn, churnStand, coop, scarecrow, haystack, hiveBench, wheelbarrow, ladder, basket, appleTree, railFence, raisedBed, farmSign, cartShed, plough, furrows, blightMass, duckHouse, wheatField, farTree, hedgeLump, FC } from './dest_props.js';
+import { stoneWall, gatePost, gateLeaf, farmhouse, FH, barn, BN, silo, handPump, churn, churnStand, coop, CP, scarecrow, haystack, hiveBench, wheelbarrow, ladder, basket, appleTree, railFence, raisedBed, farmSign, cartShed, plough, furrows, blightMass, duckHouse, wheatField, farTree, hedgeLump, FC } from './dest_props.js';
 import { hay } from './descent_shapes.js';
 import { windmill, pumpkin, cabbage, rock, bush, tree, grassTuft, wellFine, hill, toadstoolCluster, mix } from './village_shapes.js';
 import { woodpile, choppingBlock, washLine, trough, cart, crate, sack, reeds, lilies, rowboat, flowerClump, cobbleSquare } from './village_props.js';
@@ -71,7 +71,7 @@ export function buildBramble(M, O) {
     for (const s of [-1, 1]) { const x = s * (half - 16), w = half - 30; S(gateLeaf(w, 130), x, gy + dir * 14, -3, dir > 0 ? 0 : 180); body(x, gy + dir * (14 + w / 2), 14, w, 140); }
   }
   S(farmSign(240), -560, yS + 70, 0, 0); body(-560, yS + 70, 24, 24, 310);
-  M.Sign(V(-560 - 6, yS + 70 + 130, 196), 180, 'BRAMBLE FARM', '#f2e6c8', 34);
+  M.Sign(V(-560 - 6, yS + 70 + 130, 196), 180, 'BRAMBLE FARM', { r: 0.95, g: 0.9, b: 0.78 }, 34);
   // a churn stand by the gate, where the milk was left for the cart
   S(churnStand(200), 620, yS + 220, 0, 0); body(620, yS + 220, 210, 90, 104);
   for (const [dx, h] of [[-60, 84], [0, 84], [62, 76]]) S(churn(h), 620 + dx, yS + 220, 100, rr(0, 360));
@@ -143,7 +143,7 @@ export function buildBramble(M, O) {
   { const [x, y] = BR.silo; S(silo(1500, 270), x, y, 0, 0); round(x, y, 290, 1500); body(x + 296, y, 20, 70, 1540); }
 
   // ---- the chicken coop and its run, south-east of the yard
-  { const [x, y] = BR.coop; S(coop(1), x, y, 0, 180); body(x, y, 190, 250, 210); body(x - 110, y, 120, 50, 30, 0, 0, false);
+  { const [x, y] = BR.coop; S(coop(1), x, y, 0, 0); body(x, y, CP.hx * 2 + 8, CP.hy * 2 + 8, CP.ridge + 8); body(x, y + CP.hy + CP.nest / 2, 136, CP.nest + 8, CP.z0 + 92); body(x + CP.hx + 75, y, 150, 50, 34, 0, 0, false);   // the pop-hole and its ramp open into the run
     fence(x + 120, y - 420, x + 980, y - 420, 90); fence(x + 120, y + 420, x + 980, y + 420, 90); fence(x + 980, y - 420, x + 980, y + 420, 90);
     S(sack(22, 0xd8c8a0), x + 300, y + 200, -4, 30); SOL(x + 300, y + 200, 50, 50, 40, 0, false);
   }
@@ -257,7 +257,9 @@ export function buildBramble(M, O) {
   const beds = [[3000, 950], [-900, 2900], [-2900, -3500], [-2300, 2700], [1800, 3600], [3900, 2500]];
   return {
     spots: { spawn: [0, -5250], yaw: Math.PI, exit: [0, 5300], textYaw: -90, ammo: [650, -5250], ammoYaw: 90,
-      bench: [-800, 4780], benchYaw: -90, box: [800, 4780], chest: [0, 4500], chestYaw: -90, press: [-1000, 4250] },
+      // on the threshing floor: the box at its north side with the way on behind it, the workbench and the compressor
+      // either side of the floor turned in towards it and towards you as you come up from the barn
+      bench: [-660, 4620], benchYaw: -25, box: [0, 4900], chest: [0, 4900], chestYaw: -90, press: [660, 4620], pressYaw: -155 },
     keep: [[BR.floor[0], BR.floor[1], 900]],
     beds,
   };
