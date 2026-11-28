@@ -26,6 +26,10 @@ for i, v in enumerate(views):
     elif k == 'ob':
         x, y, h, tx, ty = [float(t) for t in a.split(',')]
         js = f"const g=__dmh;__thin(true);const C=g.camera,[cx,cy]=__A.c;window.__dmhHold=true;C.position.set(cx+{x},{h},cy+{y});C.lookAt(cx+{tx},0,cy+{ty});C.fov=60;C.updateProjectionMatrix();C.updateMatrixWorld();'o'"
+    elif k == 'eyes':   # eye level after six seconds in place: the air's drift (spores, embers) has filled in round you
+        x, y, d = [float(t) for t in a.split(',')]
+        cam = f"(()=>{{const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();}})();"
+        js = f"const g=__dmh;__thin(false);g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});{cam}for(let i=0;i<360;i++){{g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});__sim(1);}}{cam}'s'"
     else:
         x, y, d = [float(t) for t in a.split(',')]
         js = f"const g=__dmh;for(const m of g.world.chunkMeshes||[])if(/^(mceil|mtite)/.test(m.geometry.userData.shape||''))m.visible=true;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"

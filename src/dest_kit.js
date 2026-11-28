@@ -42,7 +42,7 @@ export function destKit(M, seed0 = 1, O = null, opts = {}) {
     // stones along its edges, bedded in the ground (never sitting on the air past the ribbon); none where skip(x, y)
     // says the path runs over a floor (they would poke up through the boards)
     for (let i = 0; i < segs.length; i += 3) { if (rnd() < 0.5) continue; const [x, y, nx, ny] = segs[i]; const sd = rnd() < 0.5 ? -1 : 1, e = sd * (w / 2 + rr(-6, 8)), z = Math.max(2.5, pz + rr(0, 1.5)), sx = rr(20, 36), sy = rr(16, 30), yaw = rr(0, 90), ex = x + nx * e, ey = y + ny * e;
-      if (skip && skip(ex, ey)) continue; Oct(V(ex, ey, z), V(sx, sy, 7), edge, false, false, R(0, yaw, 0)); }
+      if (skip && skip(ex, ey)) continue; const sh = Math.max(7, z * 2 + 0.5); Oct(V(ex, ey, z + 3.5 - sh / 2), V(sx, sy, sh), edge, false, false, R(0, yaw, 0)); }   // a path laid late sits higher: its stones still reach the ground
   };
   // distance from a point to a polyline
   const distSeg = (px, py, [ax, ay], [bx, by]) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0; return Math.hypot(px - ax - dx * t, py - ay - dy * t); };

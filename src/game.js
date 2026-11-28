@@ -755,6 +755,7 @@ export class Game {
     this.tickFinal(dt);
     this.quest.tick(dt); this.mech.tick(dt); this.questHeat = Math.max(0, (this.questHeat || 0) - dt);
     if (this.map.ambient && !this.inVault(P.pos)) this.map.ambient(this, dt);
+    if (this.descent) { const A = this.descent.A(); if (A && A.dest && A.dest.ambient) A.dest.ambient(this, dt, A); }   // a destination's own air (Sporefall Wood's spores)
     this.net.tick(dt);
     this.tips(dt);
     if (this.pings) { for (const p of this.pings) p.t += dt; this.pings = this.pings.filter((p) => p.t < 7); }

@@ -134,11 +134,11 @@ export function fern(s = 1, seed = 1) {
 // roof with moss on it, a stone chimney up the +Y gable end. The porch: a plank deck, four posts, its own lower roof.
 // Sizes: CB.W deep (X), CB.L long (Y), eave CB.eave, ridge CB.ridge; the porch runs CB.porch out from the front wall.
 export const CB = { W: 700, L: 960, eave: 320, ridge: 610, over: 56, porch: 230, porchZ: 16, porchEave: 250, chimY: 560 };
-export function logCabin(seed = 1) {
+export function logCabin(seed = 1, moss = WC.moss, lichen = WC.lichen) {
   seed = Math.abs(Math.round(seed)) || 0;   // a negative or fractional seed would pick no colour (black)
-  return ['dcabin|' + (seed % 2), shape((G) => {
+  return ['dcabin|' + (seed % 2) + (moss !== WC.moss || lichen !== WC.lichen ? '|' + [moss, lichen].join('|') : ''), shape((G) => {
     const R = rng(seed * 101 + 7), { W, L, eave, ridge, over, porch, porchZ, porchEave } = CB, hw = W / 2, hl = L / 2, lr = 15, step = lr * 1.86;
-    const logC = (k) => (t, a) => (Math.sin(a * 5 + t * 23 + k) > 0.55 ? WC.logD : Math.sin(t * 9 + k * 3) > 0.85 ? WC.lichen : WC.log);
+    const logC = (k) => (t, a) => (Math.sin(a * 5 + t * 23 + k) > 0.55 ? WC.logD : Math.sin(t * 9 + k * 3) > 0.85 ? lichen : WC.log);
     const holes = { front: [[-50, 50, 26, 236], [-330, -210, 110, 220], [210, 330, 110, 220]], side: [[-60, 60, 110, 220]] };   // [y0, y1, z0, z1] along each wall
     // stone footing
     for (const sx of [-1, 1]) G.blob(sx * hw, 0, 14, 26, hl + 26, 20, 0x7e7a6e, { e: 6, nu: 10, nv: 4 });
@@ -176,7 +176,7 @@ export function logCabin(seed = 1) {
     const pitch = Math.atan2(ridge - eave, hw), rows = 9;
     for (const sx of [-1, 1]) {
       const xa = sx * (hw + over), za = eave - over * Math.tan(pitch), nz = Math.cos(pitch), nx = sx * Math.sin(pitch);
-      G.surf((u, v) => { const x = xa + (0 - xa) * v, z = za + (ridge - za) * v, lift = ((v * rows) % 1) * 4; return [x + nx * lift, -hl - over + u * (L + over * 2), z + nz * lift + 3]; }, 0, 1, 20, 0, 1, rows * 2, (u, v) => (sx < 0 && wob(u * 9, v * 5 + seed) > 0.4 ? WC.moss : [0x5a4a3c, 0x66543e, 0x4e4034][(Math.floor(v * rows) + Math.floor(u * 30) * 5) % 3]));
+      G.surf((u, v) => { const x = xa + (0 - xa) * v, z = za + (ridge - za) * v, lift = ((v * rows) % 1) * 4; return [x + nx * lift, -hl - over + u * (L + over * 2), z + nz * lift + 3]; }, 0, 1, 20, 0, 1, rows * 2, (u, v) => (sx < 0 && wob(u * 9, v * 5 + seed) > 0.4 ? moss : [0x5a4a3c, 0x66543e, 0x4e4034][(Math.floor(v * rows) + Math.floor(u * 30) * 5) % 3]));
       G.surf((u, v) => { const x = xa + (0 - xa) * v, z = za + (ridge - za) * v; return [x - nx * 8, -hl - over + u * (L + over * 2), z - nz * 8 - 4]; }, 0, 1, 6, 0, 1, 2, 0x3a2c20);
       G.blob(xa * 0.99, 0, za - 2, 7, hl + over, 9, 0x4e3a28, { e: 8, nu: 4, nv: 3 });
     }
@@ -361,11 +361,11 @@ export function hide() {
 
 // ---- the wood's sign: a timber arch over the way in, two rough posts and a beam, the name board hung under it on
 // chains (the name itself is the map's: a Sign). Spans Y, w between the posts.
-export function woodArch(w = 600) {
+export function woodArch(w = 600, moss = WC.moss) {
   w = q(w, 20);
-  return ['dwoodarch|' + w, shape((G) => {
+  return ['dwoodarch|' + w + (moss !== WC.moss ? '|' + moss : ''), shape((G) => {
     const hw = w / 2, H = 440;
-    for (const s of [-1, 1]) { G.tube([[0, s * hw, -12], [0, s * hw, H + 10]], 17, barkC(s + 3, WC.bark[1]), { S: 9, M: 6 }); G.tube([[0, s * hw, H - 120], [0, s * (hw - 90), H - 8]], 7, WC.log, { S: 6, M: 3 }); G.blob(0, s * hw, 2, 34, 34, 8, WC.moss, { nu: 8, nv: 3 }); }
+    for (const s of [-1, 1]) { G.tube([[0, s * hw, -12], [0, s * hw, H + 10]], 17, barkC(s + 3, WC.bark[1]), { S: 9, M: 6 }); G.tube([[0, s * hw, H - 120], [0, s * (hw - 90), H - 8]], 7, WC.log, { S: 6, M: 3 }); G.blob(0, s * hw, 2, 34, 34, 8, moss, { nu: 8, nv: 3 }); }
     G.tube([[0, -hw - 50, H], [0, hw + 50, H]], 15, barkC(7, WC.bark[0]), { S: 9, M: 10 });
     for (const s of [-1, 1]) G.tube([[0, s * 150, H - 14], [0, s * 150, H - 60]], 1.4, WC.iron, { S: 4, M: 3, caps: false });
     G.blob(0, 0, H - 92, 5, 190, 36, 0x6a4e34, { e: 8, nu: 6, nv: 3 }); G.blob(0, 0, H - 92, 6, 182, 30, 0x5a4028, { e: 8, nu: 6, nv: 3 });

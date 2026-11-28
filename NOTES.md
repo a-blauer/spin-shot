@@ -653,3 +653,29 @@
 - Checks: loose parts 0 (5995 shapes scanned), floating 0 of 553, clipping 0, invisible walls 0; walk-through flags only
   on huts, scaffolds, lift head and stamp mill (the scanner's blind spot; raycasts hit them). Grid 9513/9513
   reachable; chase clean from 12 spots. 130 calls, 268k triangles.
+
+## (74) Sporefall Wood (The Rot, room 5) built
+- `dest_sporefall.js` + `dest_props_rot.js`. The old pine wood above the Root, dead: the gnomes burned a firebreak
+  across it to hold the Rot back and the Blight came back through the ash as the Char. Way in under the timber arch
+  (grey lichen, not moss), the quarantine barrier raised, a QUARANTINE board; the expedition's camp (tents, fire,
+  cart, crates); the woodsman's cottage gone to the Char (log cabin with grey lichen, woodshed, a garden of dead
+  bracken, the Char heaving against its back corner); the fire-watch tower (legs on footings, bracing over head
+  height so you walk in under it, ladder through a hatch, cabin, shingled roof, pennant, alarm bell, beaters racked at
+  its foot); the burnt break right across the middle (patchy black and ash ground mesh, 70 black snags and stumps, a
+  few with embers in their cracks, burnt pines at its edges); the crews' station in it (pump cart with its hose run
+  out, beater rack, buckets, trough); felled logs stacked north of it; the still pond (wade it anywhere; drowned pines,
+  dead reeds, jetty, boat); the grove of 13 great Char caps with puffballs; the great dead pine at the heart, the Char's
+  mass out of its hollow, dark threads with hot spots across the ground; the flagstone floor and two waystones at the
+  way on. No boss here (room 5 leads to the raid).
+- New pieces: deadPine (silver-grey, spars and twigs, old man's beard lichen, one in three snapped, Char brackets over
+  head height, a burnt version), greatPine, fallenPine (+ bodies helper), burntSnag, giantCap, puffballs, fireTower,
+  pumpCart, bucket, beaterRack, roadBarrier, warnBoard, bracken, deadReeds, jetty, farPine, bareHill.
+- The air: a destination can now carry `ambient` (dest.js -> arena.dest.ambient, called from game.js each frame).
+  Sporefall's drifts spores down round you all the time, embers off the break, and a thicker fall plus embers round the
+  heart. look.py: new `eyes:x,y,deg` view, eye level after six seconds in place so the drift shows.
+- Shared changes: logCabin(seed, moss, lichen) and woodArch(w, moss) take their moss colour (keys unchanged for the
+  defaults); dest_kit path(): edge stones of a path laid late (higher) now reach down to the ground.
+- Checks: loose parts 0 (12863 shapes scanned), floating 0 of 945, clipping 0, invisible walls 0; walk-through only the
+  pond's reeds and the garden's dead stalks (soft plants, as before) and the scanner's long-object blind spot on one
+  garden fence (raycasts stop at it from both sides). Grid 11901/11901 reachable; chase clean from 24 spots (only
+  Sporecallers keep their range, by design). 201 calls, 636k triangles.
