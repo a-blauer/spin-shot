@@ -27,6 +27,7 @@ import { buildBrew, brewAir } from './dest_brew.js';
 import { buildHold, holdAir } from './dest_hold.js';
 import { buildGarden, gardenAir } from './dest_garden.js';
 import { buildInn, innAir } from './dest_inn.js';
+import { buildRidge, ridgeAir } from './dest_ridge.js';
 
 export const DSP = 20000;   // one destination's cell on the map
 const C = (h) => new THREE.Color(h);
@@ -65,7 +66,8 @@ export const DEST_DEFS = [
   { key: 'garden', region: 4, name: 'The Weeping Garden', hx: 5400, hy: 5800, H: 2600, flip: 1, bed: 'S_AmbWind', build: buildGarden, ambient: gardenAir,
     air: { sky: 0x7c7a88, fog: 0x8a8892, fogStart: 1700, fogDensity: 0.0001, fogMax: 0.84, sun: [-0.5, -0.35, 0.42], lit: [0.97, 0.94, 0.98, 1.0], shadow: [0.44, 0.44, 0.56, 0.84], sprite: [0.97, 0.95, 1.0] } },
   { key: 'inn', region: 0, name: 'The Crossroads Inn', hx: 5400, hy: 5800, H: 2400, flip: 1, bed: 'S_AmbWind', build: buildInn, ambient: innAir,
-    air: { sky: 0x86a0c6, fog: 0xd8bc90, fogStart: 2300, fogDensity: 0.00007, fogMax: 0.78, sun: [0.55, -0.35, 0.36], lit: [1.1, 0.95, 0.8, 1.02], shadow: [0.44, 0.45, 0.6, 0.82], sprite: [1.04, 0.97, 0.88] } },
+    air: { sky: 0x86a0c6, fog: 0xd8bc90, fogStart: 2300, fogDensity: 0.00007, fogMax: 0.78, sun: [0.55, -0.35, 0.36], lit: [1.1, 0.95, 0.8, 1.02], shadow: [0.44, 0.45, 0.6, 0.82], sprite: [1.04, 0.97, 0.88] } },  { key: 'ridge', region: 1, name: "Ranger's Ridge", hx: 4400, hy: 6000, H: 2800, flip: 1, bed: 'S_AmbWind', build: buildRidge, ambient: ridgeAir,
+    air: { sky: 0x8ab0d8, fog: 0xb4c4d0, fogStart: 2600, fogDensity: 0.00006, fogMax: 0.8, sun: [-0.58, -0.3, 0.52], lit: [1.05, 1.0, 0.92, 1.02], shadow: [0.42, 0.46, 0.62, 0.82], sprite: [1.0, 1.0, 0.98] } },
 ];
 export const destOrigin = (i) => [(i % 5) * DSP, -(1 + Math.floor(i / 5)) * DSP];
 // the walking grid has to reach every destination: the box they all sit in, with room for their edges

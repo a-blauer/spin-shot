@@ -416,7 +416,7 @@ export class World {
     const mat = new THREE.Matrix4().makeBasis(r, new THREE.Vector3(0, 1, 0), n);
     m.quaternion.setFromRotationMatrix(mat);
     m.position.copy(loc.to3());
-    m.userData.text = String(text); this.signs.add(m);
+    m.userData.text = String(text); m.userData.chunk = this.chunk == null ? -1 : this.chunk; this.signs.add(m);
   }
 
   // ------------------------------------------------------------------ set pieces
@@ -945,6 +945,8 @@ export class World {
   // draw only one chunk of a chunked map (the room you are in); -1 shows them all
   showChunk(c) {
     for (const m of this.chunkMeshes || []) m.visible = c < 0 || m.userData.chunk === c;
+    // the signs too: a place's sign must not stand on the next place's skyline
+    for (const m of (this.signs && this.signs.children) || []) m.visible = c < 0 || !(m.userData.chunk >= 0) || m.userData.chunk === c;
     // the static sprites (lamp halos, ground glows, decals) of this chunk and of none: an open place must not see
     // every other room's lamps on its horizon
     if (this.staticRec && this.shownChunk !== c) {

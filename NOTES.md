@@ -995,3 +995,41 @@
 - Checks: loose parts 0, floating 0 of 951, clipping 0, invisible walls 0, walk-through 0. Grid 9398/9398; chase clean
   from 28 spots, the taproom's four included (Rotcaps' and Puffballs' detours round the hedges traced to the player).
   221 calls, 843k triangles (Millbrook 671k, Bramble 918k).
+
+## (86) Ranger's Ridge (the Wildwood, room 2, a boss room) built
+- `dest_ridge.js` + `dest_props_ridge.js`. The long bare crest above the forest where the Wildwood's rangers keep
+  watch over the valleys either side. The trail comes up from the south past the rangers' sign and runs the ridge's
+  length between cairns. Their station on the west side: the round granite watch tower (its door at the foot, a timber
+  gallery round its top on corbels, a slated cone, the flag flying east on the wind), the hut with its turf roof and
+  porch, the woodshed at its back, the hounds' kennels with their run (the gate swung open), the alarm bell, the
+  weather post, the archery butts and the shooting mark, the saw trestle, the cold fire and its seats. East, at the
+  cliff's edge, the hoist: its platform out to the lip, the derrick's jib over the drop, a crate on the rope below, the
+  stores waiting by it, rope fences along the lip. In the saddle the mire: bog pools, peat hags, cotton grass, the
+  spring's well-house (coursed granite, slab roof, the spout in an arched recess) and its runnel under the boardwalk
+  the trail crosses on. The Mirecap came up in the mire: its heart there, the pines by it dead, its threads out over
+  the crest and into the ring. West, the warning beacon burning on its pillar (the rangers lit it and ran; the ladder
+  thrown down, the brushwood stacked), its smoke leaning east. East, the viewpoint: the toposcope on its flags, the
+  telescope, a bench, the rope fence. North of the saddle the old ring: a drystone wall round, fallen in five places,
+  its courses stepping down at the ends, standing stones inside and the old hearth in the middle (where the boss
+  comes). The way on: north between two stones. Granite tors and wind-bent pines (leaning east) over the crest,
+  heather in clumps.
+- The crest ends in cliffs just past the playable edge east and west (cliffFace: the face never comes in past its line,
+  its lip's turf laid over the slab's edge); the valleys are 3000 below: their forest (valleyTree, a few faces each),
+  the river and the valley road east, the long lake west, hills beyond, the ridge climbing on north and south. Only the
+  place you are in is drawn, so the valleys can lie where the neighbours are.
+- New pieces: watchTower, rangerHut, kennels, alarmBell, hoist, beacon (with its fire as a glow), toposcope,
+  telescope, weatherPost, tor + torParts (its slabs, for its bodies), windPine, cairn, heather, cottonGrass, peatHag,
+  bogPool, springHead, cliffFace, ropeFence, ringWall + ringRuns, hearthStones, trailSign, valleyTree.
+- Bodies: the tors slab by slab; the ring's wall in chords along each run, stepping down with its courses at the ends;
+  the derrick's legs and the butts' back legs as steps under their slant (`legBody`); the saw trestle's legs and its
+  log apart. The hut's sod is laid in sections: the loose-part scan skips faces too big for its grid, so turf lumps on
+  one great face read as loose.
+- Fixed: signs (`M.Sign`) belonged to no place, so the Crossroads Inn's name stood on the ridge's western skyline; a
+  sign now keeps its place's chunk and `showChunk` shows only the place's own. look.py's eye views turned every place's
+  roofs back on (the inn's upper floor stood on a far hill in the stills); they now turn on only this place's.
+- Lesson: fx `fadeIn`/`fadeOut` are shares of a particle's life, not seconds. Values of 1 or more leave a particle all
+  but invisible; the ridge's air uses shares. Several earlier places' airs (lake, fen, mill, inn, garden, town, caves,
+  hold, sporefall) use values of 1 or more and are fainter than written: to look at.
+- Checks: loose parts 0, floating 0 of 872, clipping 0, invisible walls 0, walk-through 0. Grid 9244/9244; chase clean
+  from 28 spots; all ten tier-3/4 bosses reach 13 spots (the ring, the hut, the kennels, the hoist, the viewpoint, the
+  beacon, the mire, the corners). 292 calls, 660k triangles.

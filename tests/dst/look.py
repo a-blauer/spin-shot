@@ -36,7 +36,7 @@ for i, v in enumerate(views):
         js = f"const g=__dmh;__thin(false);g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});{cam}for(let i=0;i<360;i++){{g.player.pos.set(__A.c[0]+{x},100,__A.c[1]+{y});__sim(1);}}{cam}'s'"
     else:
         x, y, d = [float(t) for t in a.split(',')]
-        js = f"const g=__dmh;for(const m of g.world.chunkMeshes||[])if(/^(mceil|mtite|gceil|gsun|gtite|ghcryst|hceil|hroof|hcorb|inroof)/.test(m.geometry.userData.shape||''))m.visible=true;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"
+        js = f"const g=__dmh;for(const m of g.world.chunkMeshes||[])if(m.userData.chunk===g.descent.arena&&/^(mceil|mtite|gceil|gsun|gtite|ghcryst|hceil|hroof|hcorb|inroof)/.test(m.geometry.userData.shape||''))m.visible=true;__thin(false);const C=g.camera,[cx,cy]=__A.c,r={d}*Math.PI/180;window.__dmhHold=true;C.position.set(cx+{x},150,cy+{y});C.lookAt(cx+{x}+Math.sin(r)*1000,90,cy+{y}+Math.cos(r)*1000);C.fov=80;C.updateProjectionMatrix();C.updateMatrixWorld();'e'"
     steps += [{"js": js}, {"wait": 40, "shot": f"dst/{nm}"}]
     names.append(nm)
 json.dump({"w": 1280, "h": 720, "query": "&map=6" + (("&dest=" + os.environ["DEST"]) if os.environ.get("DEST") else ""), "steps": steps}, open('/tmp/dlook.json', 'w'))
